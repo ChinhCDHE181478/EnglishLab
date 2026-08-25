@@ -13,14 +13,14 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.LearningPathManagementService;
 import fu.sep490.g23.backend.service.course.LearningPathRecommendationService;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
@@ -52,7 +52,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
     private final LearningPathCourseRepository learningPathCourseRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final UserRepository userRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final PlacementTestAttemptRepository placementAttemptRepository;
     private final PlacementRecommendationContextFactory recommendationContextFactory;
     private final LearningPathRecommendationService learningPathRecommendationService;
@@ -202,7 +202,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
     }
 
     private LearnerLearningPathResponse.PathOverview toLearnerPath(
-            LearningPath path, Map<Long, PackageEnrollment> enrollmentsByPackageId) {
+            LearningPath path, Map<Long, OnlineCourseEnrollment> enrollmentsByPackageId) {
         List<LearningPathCourse> refs = learningPathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId())
                 .stream()
                 .filter(ref -> ref.getOnlineCourse().getLearningPackage().getStatus() == PackageStatus.PUBLISHED
@@ -214,7 +214,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         Long nextCourseId = null;
         for (LearningPathCourse ref : refs) {
             OnlineCourse course = ref.getOnlineCourse();
-            PackageEnrollment enrollment = activeEnrollment(enrollmentsByPackageId.get(course.getLearningPackage().getId()));
+            OnlineCourseEnrollment enrollment = activeEnrollment(enrollmentsByPackageId.get(course.getLearningPackage().getId()));
             boolean completed = enrollment != null && (enrollment.getStatus() == EnrollmentStatus.COMPLETED
                     || defaultInt(enrollment.getProgressPercent()) >= 100);
             boolean accessible = enrollment != null || prerequisiteCompleted;
@@ -361,7 +361,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         return safePrice(value).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
-    private PackageEnrollment activeEnrollment(PackageEnrollment enrollment) {
+    private OnlineCourseEnrollment activeEnrollment(OnlineCourseEnrollment enrollment) {
         return enrollment == null || enrollment.getStatus() == EnrollmentStatus.CANCELLED ? null : enrollment;
     }
 

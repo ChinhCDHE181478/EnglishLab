@@ -6,7 +6,7 @@ import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.dto.response.course.LessonResponse;
 import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
@@ -17,12 +17,11 @@ import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.CourseReviewRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -41,8 +40,7 @@ public class OnlineCourseMapper {
 
     private final OnlineCourseRepository onlineCourseRepository;
     private final LessonProgressRepository lessonProgressRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
-    private final CourseReviewRepository courseReviewRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -59,22 +57,22 @@ public class OnlineCourseMapper {
     }
 
     private OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId, boolean includeLessonContent) {
-        LearningPackage learningPackage = course.getLearningPackage();
         CourseCategory category = course.getCategory();
-        BigDecimal originalPrice = safePrice(learningPackage.getPrice());
-        BigDecimal salePrice = resolveSalePrice(learningPackage);
+        BigDecimal originalPrice = safePrice(course.getPrice());
+        BigDecimal salePrice = resolveSalePrice(course);
+        Long packageId = course.getLearningPackage() == null ? null : course.getLearningPackage().getId();
         return OnlineCourseResponse.builder()
                 .id(course.getId())
-                .packageId(learningPackage.getId())
-                .title(learningPackage.getTitle())
-                .slug(learningPackage.getSlug())
-                .shortDescription(learningPackage.getShortDescription())
-                .description(learningPackage.getDescription())
+                .packageId(packageId)
+                .title(course.getTitle())
+                .slug(course.getSlug())
+                .shortDescription(course.getShortDescription())
+                .description(course.getDescription())
                 .category(category == null ? null : category.getCode())
                 .categoryName(category == null ? null : category.getName())
                 .level(course.getLevel())
-                .status(learningPackage.getStatus())
-                .targetScore(learningPackage.getTargetScore())
+                .status(course.getStatus())
+                .targetScore(course.getTargetScore())
                 .recommendedCurrentBandMin(course.getRecommendedCurrentBandMin())
                 .targetBand(course.getTargetBand())
                 .learningPathCode(course.getLearningPathCode())
@@ -82,45 +80,48 @@ public class OnlineCourseMapper {
                 .learningPathOrder(course.getLearningPathOrder())
                 .targetOutcome(course.getTargetOutcome())
                 .recommendedNextCourseSlug(course.getRecommendedNextCourseSlug())
-                .duration(learningPackage.getDuration())
-                .studyMode(learningPackage.getStudyMode())
+                .duration(course.getDuration())
+                .studyMode(course.getStudyMode())
                 .price(originalPrice)
                 .originalPrice(originalPrice)
                 .salePrice(salePrice)
                 .discountPercent(resolveDiscountPercent(originalPrice, salePrice))
-                .thumbnailUrl(learningPackage.getThumbnailUrl())
+                .thumbnailUrl(course.getThumbnailUrl())
                 .totalLessons(course.getTotalLessons())
                 .totalHours(course.getTotalHours())
-                .displayOrder(learningPackage.getDisplayOrder())
-                .featured(learningPackage.isFeatured())
+                .displayOrder(course.getDisplayOrder())
+                .featured(course.isFeatured())
                 .registered(registered)
                 .progressPercent(progressPercent)
                 .enrollmentId(enrollmentId)
-                .enrollmentCount(packageEnrollmentRepository.countByLearningPackage(learningPackage))
+                .enrollmentCount(packageEnrollmentRepository.countByOnlineCourse(course))
                 .averageRating(resolveAverageRating(course))
-                .reviewCount(courseReviewRepository.countByCourse(course))
-                .createdAt(learningPackage.getCreatedAt())
-                .updatedAt(learningPackage.getUpdatedAt())
+                .reviewCount(packageEnrollmentRepository.countByOnlineCourseAndReviewRatingIsNotNull(course))
+                .createdAt(course.getCreatedAt())
+                .updatedAt(course.getUpdatedAt())
                 .focusSkills(resolveFocusSkills(course))
                 .modules(toModuleResponses(course.getModules(), includeLessonContent))
                 .build();
     }
 
-    public PackageEnrollmentResponse toEnrollmentResponse(PackageEnrollment enrollment) {
-        LearningPackage learningPackage = enrollment.getLearningPackage();
-        Long courseId = onlineCourseRepository.findByLearningPackage(learningPackage)
-                .map(OnlineCourse::getId)
-                .orElse(null);
+    public OnlineCourseEnrollmentResponse toEnrollmentResponse(OnlineCourseEnrollment enrollment) {
+        OnlineCourse course = enrollment.getOnlineCourse() != null
+                ? enrollment.getOnlineCourse()
+                : onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).orElse(null);
+        Long courseId = course == null ? null : course.getId();
+        String title = course != null ? course.getTitle() : enrollment.getLearningPackage().getTitle();
+        String slug = course != null ? course.getSlug() : enrollment.getLearningPackage().getSlug();
+        String thumbnail = course != null ? course.getThumbnailUrl() : enrollment.getLearningPackage().getThumbnailUrl();
         List<LessonProgress> completedProgress = lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED);
-        return PackageEnrollmentResponse.builder()
+        return OnlineCourseEnrollmentResponse.builder()
                 .id(enrollment.getId())
-                .packageId(learningPackage.getId())
+                .packageId(enrollment.getLearningPackage().getId())
                 .courseId(courseId)
                 .courseVersionId(enrollment.getCourseVersion() == null ? null : enrollment.getCourseVersion().getId())
                 .courseVersionNumber(enrollment.getCourseVersion() == null ? null : enrollment.getCourseVersion().getVersionNumber())
-                .courseTitle(learningPackage.getTitle())
-                .courseSlug(learningPackage.getSlug())
-                .thumbnailUrl(learningPackage.getThumbnailUrl())
+                .courseTitle(title)
+                .courseSlug(slug)
+                .thumbnailUrl(thumbnail)
                 .status(enrollment.getStatus())
                 .progressPercent(enrollment.getProgressPercent())
                 .streakDays(calculateStreakDays(completedProgress))
@@ -249,13 +250,13 @@ public class OnlineCourseMapper {
     }
 
     private Double resolveAverageRating(OnlineCourse course) {
-        Double average = courseReviewRepository.findAverageRatingByCourse(course);
+        Double average = packageEnrollmentRepository.findAverageReviewRatingByOnlineCourse(course);
         return average == null ? 0D : BigDecimal.valueOf(average).setScale(1, RoundingMode.HALF_UP).doubleValue();
     }
 
-    private BigDecimal resolveSalePrice(LearningPackage learningPackage) {
-        BigDecimal originalPrice = safePrice(learningPackage.getPrice());
-        BigDecimal salePrice = learningPackage.getSalePrice();
+    private BigDecimal resolveSalePrice(OnlineCourse course) {
+        BigDecimal originalPrice = safePrice(course.getPrice());
+        BigDecimal salePrice = course.getSalePrice();
         if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
             return originalPrice;
         }

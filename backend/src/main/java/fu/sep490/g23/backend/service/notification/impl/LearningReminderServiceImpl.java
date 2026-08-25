@@ -14,7 +14,7 @@ import fu.sep490.g23.backend.service.notification.LearningReminderService;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.mail.LearningReminderMailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +49,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
     private final ClassroomEnrollmentRepository enrollmentRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
     private final ClassroomHomeworkSubmissionRepository submissionRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final AppNotificationService notificationService;
     private final NotificationPreferenceService preferenceService;
     private final LearningReminderMailService mailService;

@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
 import fu.sep490.g23.backend.dto.response.course.LessonResponse;
 import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
-import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -58,13 +58,13 @@ public interface OnlineCourseService {
     /** Hủy quyền học sau khi hoàn tiền đơn PayOS khóa học. */
     void revokePaidCourseAccess(Long courseId, String studentEmail);
 
-    List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
+    List<OnlineCourseEnrollmentResponse> getMyEnrollments(String studentEmail);
     List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
     List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context);
     LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);
-    PackageEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail);
+    OnlineCourseEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail);
     List<VocabularyTermResponse> getVocabularyTerms(Long courseId, String studentEmail);
     VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, Boolean reviewed, Boolean correct, String studentEmail);
     BunnyVideoUploadResponse uploadLessonVideo(Long courseId, Long lessonId, String title, MultipartFile file);

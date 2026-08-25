@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
 import fu.sep490.g23.backend.dto.request.course.CourseReviewRequest;
 import fu.sep490.g23.backend.dto.response.course.CourseRatingResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
@@ -44,7 +44,7 @@ public class StudentOnlineCourseController {
     }
 
     @GetMapping({"/my-enrollments", "/my-courses"})
-    public ResponseEntity<List<PackageEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
+    public ResponseEntity<List<OnlineCourseEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));
     }
 
@@ -84,7 +84,7 @@ public class StudentOnlineCourseController {
     }
 
     @PatchMapping("/{courseId}/lessons/{lessonId}/progress")
-    public ResponseEntity<PackageEnrollmentResponse> updateLessonProgress(
+    public ResponseEntity<OnlineCourseEnrollmentResponse> updateLessonProgress(
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
             @RequestParam(defaultValue = "true") boolean completed,

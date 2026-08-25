@@ -12,13 +12,13 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.course.CourseProgressService;
@@ -48,7 +48,7 @@ class SubmitAssessmentTest {
     private CourseAssessmentRepository courseAssessmentRepository;
 
     @Mock
-    private PackageEnrollmentRepository enrollmentRepository;
+    private OnlineCourseEnrollmentRepository enrollmentRepository;
 
     @Mock
     private OnlineCourseVersionService onlineCourseVersionService;
@@ -74,7 +74,7 @@ class SubmitAssessmentTest {
     private User student;
     private OnlineCourse course;
     private LearningPackage learningPackage;
-    private PackageEnrollment enrollment;
+    private OnlineCourseEnrollment enrollment;
     private CourseAssessment assessment;
     private AssessmentSubmissionRequest request;
 
@@ -90,7 +90,7 @@ class SubmitAssessmentTest {
         course.setId(10L);
         course.setLearningPackage(learningPackage);
 
-        enrollment = new PackageEnrollment();
+        enrollment = new OnlineCourseEnrollment();
         enrollment.setStudent(student);
         enrollment.setLearningPackage(learningPackage);
         enrollment.setStatus(EnrollmentStatus.ACTIVE);

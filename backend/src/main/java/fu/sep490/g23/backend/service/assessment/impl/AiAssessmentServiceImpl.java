@@ -26,7 +26,7 @@ import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sep490.g23.backend.entity.course.CourseModule;
 import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
@@ -36,7 +36,7 @@ import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -68,7 +68,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final AssessmentSubmissionRepository submissionRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
     private final AiEvaluationClient aiEvaluationClient;
     private final AssessmentAudioStorageService assessmentAudioStorageService;
@@ -83,7 +83,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     public List<CourseAssessmentResponse> getCourseAssessments(Long courseId, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = onlineCourseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
-        PackageEnrollment enrollment = ensureEnrolled(student, course);
+        OnlineCourseEnrollment enrollment = ensureEnrolled(student, course);
         List<CourseAssessment> assessments = courseAssessmentRepository
                 .findAllById(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).stream()
                 .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
@@ -100,7 +100,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         CourseAssessment assessment = courseAssessmentRepository.findById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
         normalizeAssessmentRubricCompatibility(assessment);
-        PackageEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourse());
+        OnlineCourseEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourse());
         onlineCourseVersionService.assertAssessmentBelongsToEnrollment(enrollment, assessmentId);
 
         if (assessment.getAiEvaluationMode() == AiEvaluationMode.NONE) {
@@ -163,7 +163,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return toSubmissionResponse(savedSubmission);
     }
 
-    private PackageEnrollment ensureEnrolled(User student, OnlineCourse course) {
+    private OnlineCourseEnrollment ensureEnrolled(User student, OnlineCourse course) {
         return courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course);
     }
 

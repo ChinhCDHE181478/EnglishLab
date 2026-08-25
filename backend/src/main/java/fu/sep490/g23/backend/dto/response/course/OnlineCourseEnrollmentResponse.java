@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PackageEnrollmentResponse {
+public class OnlineCourseEnrollmentResponse {
     private Long id;
     private Long packageId;
     private Long courseId;

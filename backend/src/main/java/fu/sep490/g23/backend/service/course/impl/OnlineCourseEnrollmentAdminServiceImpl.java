@@ -1,15 +1,15 @@
 package fu.sep490.g23.backend.service.course.impl;
 
-import fu.sep490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
-import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
+import fu.sep490.g23.backend.dto.request.course.UpdateOnlineCourseEnrollmentRequest;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentAdminResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
-import fu.sep490.g23.backend.service.course.PackageEnrollmentAdminService;
+import fu.sep490.g23.backend.service.course.OnlineCourseEnrollmentAdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,29 +25,29 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class PackageEnrollmentAdminServiceImpl implements PackageEnrollmentAdminService {
+public class OnlineCourseEnrollmentAdminServiceImpl implements OnlineCourseEnrollmentAdminService {
 
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final ClassroomAccessHelper accessHelper;
 
     @Override
     @Transactional(readOnly = true)
-    public List<PackageEnrollmentAdminResponse> listEnrollments(EnrollmentStatus status, String keyword) {
+    public List<OnlineCourseEnrollmentAdminResponse> listEnrollments(EnrollmentStatus status, String keyword) {
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim().toLowerCase() : null;
         return enrollmentRepository.findAll().stream()
                 .filter(enrollment -> isOnlinePackage(enrollment.getLearningPackage()))
                 .filter(enrollment -> status == null || enrollment.getStatus() == status)
                 .filter(enrollment -> matchesKeyword(enrollment, normalizedKeyword))
-                .sorted(Comparator.comparing(PackageEnrollment::getRegisteredAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .sorted(Comparator.comparing(OnlineCourseEnrollment::getRegisteredAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(this::toResponse)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PackageEnrollmentAdminResponse> pageEnrollments(EnrollmentStatus status, String keyword, Pageable pageable) {
+    public Page<OnlineCourseEnrollmentAdminResponse> pageEnrollments(EnrollmentStatus status, String keyword, Pageable pageable) {
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim().toLowerCase() : null;
-        Specification<PackageEnrollment> specification = (root, query, criteriaBuilder) -> {
+        Specification<OnlineCourseEnrollment> specification = (root, query, criteriaBuilder) -> {
             var learningPackage = root.join("learningPackage", JoinType.INNER);
             var packageType = learningPackage.join("packageType", JoinType.INNER);
             var student = root.join("student", JoinType.LEFT);
@@ -70,14 +70,14 @@ public class PackageEnrollmentAdminServiceImpl implements PackageEnrollmentAdmin
     }
 
     @Override
-    public PackageEnrollmentAdminResponse updateEnrollment(
+    public OnlineCourseEnrollmentAdminResponse updateEnrollment(
             Long enrollmentId,
-            UpdatePackageEnrollmentRequest request,
+            UpdateOnlineCourseEnrollmentRequest request,
             String managerEmail
     ) {
         User manager = accessHelper.requireUser(managerEmail);
         accessHelper.assertManager(manager);
-        PackageEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy ghi danh."));
         if (!isOnlinePackage(enrollment.getLearningPackage())) {
             throw new IllegalArgumentException("Ghi danh này không thuộc khóa học online.");
@@ -93,7 +93,7 @@ public class PackageEnrollmentAdminServiceImpl implements PackageEnrollmentAdmin
                 && !learningPackage.isDeleted();
     }
 
-    private boolean matchesKeyword(PackageEnrollment enrollment, String keyword) {
+    private boolean matchesKeyword(OnlineCourseEnrollment enrollment, String keyword) {
         if (keyword == null) {
             return true;
         }
@@ -111,10 +111,10 @@ public class PackageEnrollmentAdminServiceImpl implements PackageEnrollmentAdmin
         return value != null && value.toLowerCase().contains(keyword);
     }
 
-    private PackageEnrollmentAdminResponse toResponse(PackageEnrollment enrollment) {
+    private OnlineCourseEnrollmentAdminResponse toResponse(OnlineCourseEnrollment enrollment) {
         LearningPackage learningPackage = enrollment.getLearningPackage();
         User student = enrollment.getStudent();
-        return PackageEnrollmentAdminResponse.builder()
+        return OnlineCourseEnrollmentAdminResponse.builder()
                 .id(enrollment.getId())
                 .studentId(student == null ? null : student.getId())
                 .studentName(student == null ? null : student.getFullName())

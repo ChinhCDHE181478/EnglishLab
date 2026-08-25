@@ -49,7 +49,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
@@ -91,7 +91,7 @@ import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
@@ -162,7 +162,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final PackageTypeRepository packageTypeRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final ClassroomCampusRepository campusRepository;
     private final ClassroomRoomRepository roomRepository;
@@ -600,8 +600,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
 
     private void completeCourseIfPresent(User learner, String slug) {
         learningPackageRepository.findBySlugAndDeletedFalse(slug).ifPresent(pack -> {
-            PackageEnrollment enrollment = packageEnrollmentRepository.findByStudentAndLearningPackage(learner, pack)
-                    .orElseGet(() -> packageEnrollmentRepository.save(PackageEnrollment.builder()
+            OnlineCourseEnrollment enrollment = packageEnrollmentRepository.findByStudentAndLearningPackage(learner, pack)
+                    .orElseGet(() -> packageEnrollmentRepository.save(OnlineCourseEnrollment.builder()
                             .student(learner)
                             .learningPackage(pack)
                             .registeredAt(LocalDateTime.now().minusDays(40))
@@ -628,8 +628,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
 
     private void enrollInProgress(User learner, String slug, int percent) {
         learningPackageRepository.findBySlugAndDeletedFalse(slug).ifPresent(pack -> {
-            PackageEnrollment enrollment = packageEnrollmentRepository.findByStudentAndLearningPackage(learner, pack)
-                    .orElseGet(() -> packageEnrollmentRepository.save(PackageEnrollment.builder()
+            OnlineCourseEnrollment enrollment = packageEnrollmentRepository.findByStudentAndLearningPackage(learner, pack)
+                    .orElseGet(() -> packageEnrollmentRepository.save(OnlineCourseEnrollment.builder()
                             .student(learner)
                             .learningPackage(pack)
                             .registeredAt(LocalDateTime.now().minusDays(12))

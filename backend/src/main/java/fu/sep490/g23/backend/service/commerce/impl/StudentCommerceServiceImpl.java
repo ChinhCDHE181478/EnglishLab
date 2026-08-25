@@ -12,7 +12,7 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
 
     private final CourseListItemRepository courseListItemRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final UserRepository userRepository;
 
     @Override

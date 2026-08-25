@@ -7,7 +7,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +51,7 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     );
 
     private final UserRepository userRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final ClassroomEnrollmentRepository classroomEnrollmentRepository;
@@ -79,10 +79,10 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
         long orderCode = System.currentTimeMillis();
         int created = 0;
 
-        List<PackageEnrollment> onlineEnrollments = packageEnrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner);
+        List<OnlineCourseEnrollment> onlineEnrollments = packageEnrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner);
         List<CoursePurchase> pathCourses = new ArrayList<>();
         List<CoursePurchase> otherCourses = new ArrayList<>();
-        for (PackageEnrollment enrollment : onlineEnrollments) {
+        for (OnlineCourseEnrollment enrollment : onlineEnrollments) {
             CoursePurchase purchase = toPurchase(enrollment);
             if (purchase == null || coveredCourseIds.contains(purchase.courseId())) {
                 continue;
@@ -138,7 +138,7 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
         });
     }
 
-    private CoursePurchase toPurchase(PackageEnrollment enrollment) {
+    private CoursePurchase toPurchase(OnlineCourseEnrollment enrollment) {
         LearningPackage pack = enrollment.getLearningPackage();
         if (pack == null) {
             return null;

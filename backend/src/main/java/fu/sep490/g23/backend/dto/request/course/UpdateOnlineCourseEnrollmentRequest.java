@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdatePackageEnrollmentRequest {
+public class UpdateOnlineCourseEnrollmentRequest {
     @NotNull(message = "Trạng thái ghi danh không được để trống.")
     private EnrollmentStatus status;
 }

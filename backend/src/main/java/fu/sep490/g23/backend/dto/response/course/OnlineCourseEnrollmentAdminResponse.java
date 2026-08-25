@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class PackageEnrollmentAdminResponse {
+public class OnlineCourseEnrollmentAdminResponse {
     private Long id;
     private Long studentId;
     private String studentName;

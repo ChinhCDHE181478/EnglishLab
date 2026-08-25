@@ -12,7 +12,7 @@ import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.service.mail.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -172,7 +172,7 @@ public class DevMailTestController {
                     .targetOutcome("Đạt mốc 7.0+ Speaking & Writing theo chuẩn Cambridge IELTS")
                     .build();
 
-            PackageEnrollment packageEnrollment = PackageEnrollment.builder()
+            OnlineCourseEnrollment packageEnrollment = OnlineCourseEnrollment.builder()
                     .id(505L)
                     .registeredAt(LocalDateTime.now())
                     .build();

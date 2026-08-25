@@ -6,7 +6,7 @@ import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 
 import java.util.List;
 
@@ -29,19 +29,19 @@ public interface OnlineCourseVersionService {
 
     void refreshPublishedSnapshot(OnlineCourse course);
 
-    OnlineCourseResponse readLatestPublishedForEnrollment(PackageEnrollment enrollment, OnlineCourse liveCourse);
+    OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse);
 
     OnlineCourseResponse readPublishedSnapshot(OnlineCourse course, boolean includeLessonContent);
 
-    List<Long> getLatestPublishedAssessmentIds(PackageEnrollment enrollment);
+    List<Long> getLatestPublishedAssessmentIds(OnlineCourseEnrollment enrollment);
 
-    List<Long> getProgressBaselineAssessmentIds(PackageEnrollment enrollment);
+    List<Long> getProgressBaselineAssessmentIds(OnlineCourseEnrollment enrollment);
 
-    void assertAssessmentBelongsToEnrollment(PackageEnrollment enrollment, Long assessmentId);
+    void assertAssessmentBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long assessmentId);
 
-    void assertLessonBelongsToEnrollment(PackageEnrollment enrollment, Long lessonId);
+    void assertLessonBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long lessonId);
 
-    void assertLessonProgressTransitionAllowed(PackageEnrollment enrollment, Long lessonId, boolean completed);
+    void assertLessonProgressTransitionAllowed(OnlineCourseEnrollment enrollment, Long lessonId, boolean completed);
 
     boolean isAssessmentReferencedByPublishedHistory(OnlineCourse course, Long assessmentId);
 

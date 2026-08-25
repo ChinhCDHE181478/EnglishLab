@@ -8,7 +8,7 @@ import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
@@ -23,7 +23,7 @@ import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,7 +50,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final CourseDiscussionThreadRepository threadRepository;
     private final CourseDiscussionReplyRepository replyRepository;
     private final CourseDiscussionReportRepository reportRepository;
@@ -298,7 +298,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
 
     private void enroll(User learner, LearningPackage pack) {
         enrollmentRepository.findByStudentAndLearningPackage(learner, pack)
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+                .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
                         .learningPackage(pack)
                         .status(EnrollmentStatus.ACTIVE)

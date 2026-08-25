@@ -43,7 +43,7 @@ public class LessonProgress extends DomainRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private PackageEnrollment enrollment;
+    private OnlineCourseEnrollment enrollment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_version_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))

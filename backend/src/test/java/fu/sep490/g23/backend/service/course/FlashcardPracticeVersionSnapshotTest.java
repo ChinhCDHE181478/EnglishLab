@@ -8,13 +8,13 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.service.course.impl.FlashcardPracticeServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class FlashcardPracticeVersionSnapshotTest {
     @Mock
     private OnlineCourseRepository onlineCourseRepository;
     @Mock
-    private PackageEnrollmentRepository enrollmentRepository;
+    private OnlineCourseEnrollmentRepository enrollmentRepository;
     @Mock
     private CourseListItemRepository courseListItemRepository;
     @Mock
@@ -58,7 +58,7 @@ class FlashcardPracticeVersionSnapshotTest {
                 .versionNumber(1)
                 .status(CourseVersionStatus.RETIRED)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(5L)
                 .student(learner)
                 .learningPackage(learningPackage)

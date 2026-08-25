@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.entity.admin.AuditLog;
 import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.CourseModule;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
@@ -23,7 +23,7 @@ import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
@@ -57,7 +57,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
@@ -235,8 +235,8 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         }
         final User learner = existing;
 
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, course.getLearningPackage())
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, course.getLearningPackage())
+                .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
                         .learningPackage(course.getLearningPackage())
                         .registeredAt(LocalDateTime.now().minusDays(14))
@@ -253,7 +253,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         learningPackageRepository.findBySlugAndDeletedFalse(courseSlug)
                 .flatMap(onlineCourseRepository::findByLearningPackage)
                 .ifPresent(course -> enrollmentRepository.findByStudentAndLearningPackage(learner, course.getLearningPackage())
-                        .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+                        .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                                 .student(learner)
                                 .learningPackage(course.getLearningPackage())
                                 .status(EnrollmentStatus.ACTIVE)
@@ -262,7 +262,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                                 .build())));
     }
 
-    private void completeLesson(User learner, PackageEnrollment enrollment, Lesson lesson) {
+    private void completeLesson(User learner, OnlineCourseEnrollment enrollment, Lesson lesson) {
         LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
                 .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
         progress.setEnrollment(enrollment);

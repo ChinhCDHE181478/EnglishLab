@@ -14,7 +14,7 @@ import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
@@ -50,7 +50,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
     @Mock private LearningPackageRepository learningPackageRepository;
     @Mock private PackageTypeRepository packageTypeRepository;
-    @Mock private PackageEnrollmentRepository packageEnrollmentRepository;
+    @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     @Mock private CurriculumProgramRepository curriculumProgramRepository;
     @Mock private TrainingProgramRepository trainingProgramRepository;
     @Mock private ClassroomMaterialRepository materialRepository;

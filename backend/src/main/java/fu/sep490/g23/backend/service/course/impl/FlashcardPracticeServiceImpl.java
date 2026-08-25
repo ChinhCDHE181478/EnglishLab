@@ -1,5 +1,5 @@
 package fu.sep490.g23.backend.service.course.impl;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
 import fu.sep490.g23.backend.entity.course.CourseModule;
 import fu.sep490.g23.backend.entity.course.VocabularyProgress;
@@ -23,7 +23,7 @@ import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
@@ -47,7 +47,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
 
     private final UserRepository userRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final CourseListItemRepository courseListItemRepository;
     private final VocabularyProgressRepository progressRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
@@ -80,7 +80,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
 
     private List<VocabularyTermResponse> getEnrolledVersionTerms(User student, Long courseId, boolean starredOnly) {
         Map<String, VocabularyTermResponse> uniqueTerms = new LinkedHashMap<>();
-        for (PackageEnrollment enrollment : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)) {
+        for (OnlineCourseEnrollment enrollment : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)) {
             OnlineCourse course = onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).orElse(null);
             if (course == null || course.getLearningPackage().isDeleted()
                     || (courseId != null && !course.getId().equals(courseId))) {

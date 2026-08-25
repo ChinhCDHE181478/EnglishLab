@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -193,6 +193,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         version.setReviewNote(null);
         version.setPublishedAt(LocalDateTime.now());
         course.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
+        course.setStatus(PackageStatus.PUBLISHED);
         course.getLearningPackage().setSubmittedForReviewAt(null);
         course.getLearningPackage().setReviewedBy(publisher);
         course.getLearningPackage().setReviewedAt(LocalDateTime.now());
@@ -282,7 +283,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     @Override
     @Transactional(readOnly = true)
-    public OnlineCourseResponse readLatestPublishedForEnrollment(PackageEnrollment enrollment, OnlineCourse liveCourse) {
+    public OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse) {
         OnlineCourseVersion published = findLatestPublishedVersion(liveCourse);
         OnlineCourseResponse response = readSnapshot(published, liveCourse);
         response.setRegistered(true);
@@ -308,7 +309,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public List<Long> getLatestPublishedAssessmentIds(PackageEnrollment enrollment) {
+    public List<Long> getLatestPublishedAssessmentIds(OnlineCourseEnrollment enrollment) {
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
         normalizeAssessmentProgressKeys(course);
         OnlineCourseVersion version = findLatestPublishedVersion(course);
@@ -339,7 +340,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public List<Long> getProgressBaselineAssessmentIds(PackageEnrollment enrollment) {
+    public List<Long> getProgressBaselineAssessmentIds(OnlineCourseEnrollment enrollment) {
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
         normalizeAssessmentProgressKeys(course);
         OnlineCourseVersion baselineVersion = enrollment.getCourseVersion();
@@ -412,7 +413,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     @Override
     @Transactional
-    public void assertAssessmentBelongsToEnrollment(PackageEnrollment enrollment, Long assessmentId) {
+    public void assertAssessmentBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long assessmentId) {
         if (!getLatestPublishedAssessmentIds(enrollment).contains(assessmentId)) {
             throw new IllegalArgumentException("Bài đánh giá không thuộc phiên bản mới nhất của khóa học này.");
         }
@@ -420,7 +421,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     @Override
     @Transactional(readOnly = true)
-    public void assertLessonBelongsToEnrollment(PackageEnrollment enrollment, Long lessonId) {
+    public void assertLessonBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long lessonId) {
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
         OnlineCourseResponse snapshot = readSnapshot(findLatestPublishedVersion(course), course);
         boolean found = snapshot.getModules() != null && snapshot.getModules().stream()
@@ -434,7 +435,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     @Override
     @Transactional(readOnly = true)
     public void assertLessonProgressTransitionAllowed(
-            PackageEnrollment enrollment,
+            OnlineCourseEnrollment enrollment,
             Long lessonId,
             boolean completed
     ) {
@@ -470,7 +471,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     private void assertPreviousModuleAssessmentsPassed(
-            PackageEnrollment enrollment,
+            OnlineCourseEnrollment enrollment,
             OnlineCourse course,
             OnlineCourseResponse snapshot,
             Long lessonId
@@ -662,7 +663,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .orElse(null);
     }
 
-    private OnlineCourse resolveEnrollmentCourse(PackageEnrollment enrollment) {
+    private OnlineCourse resolveEnrollmentCourse(OnlineCourseEnrollment enrollment) {
         if (enrollment == null) {
             throw new IllegalArgumentException("Không tìm thấy enrollment khóa học.");
         }

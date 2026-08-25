@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -24,7 +24,7 @@ import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.course.CourseProgressService;
@@ -63,7 +63,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private final UserRepository userRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final CourseAssessmentRepository assessmentRepository;
     private final AssessmentSubmissionRepository submissionRepository;
@@ -116,8 +116,8 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
 
         courseVersionService.refreshPublishedSnapshot(course);
         OnlineCourseVersion version = courseVersionService.requirePublishedVersion(course);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
+                .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
                         .learningPackage(learningPackage)
                         .registeredAt(LocalDateTime.now().minusDays(45))
@@ -129,7 +129,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         completeLessons(course, learner, enrollment, version);
         seedAssessmentSubmissions(assessments, learner);
         backfillCorrectedExamples(assessments, learner);
-        PackageEnrollment completed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
+        OnlineCourseEnrollment completed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
         if (completed.getProgressPercent() != 100) {
             log.warn("Khóa {} của tài khoản demo chưa đủ điều kiện hoàn thành: {}% - {}.",
                     slug, completed.getProgressPercent(), completed.getStatus());
@@ -154,8 +154,8 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                 .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         courseVersionService.refreshPublishedSnapshot(course);
         OnlineCourseVersion version = courseVersionService.requirePublishedVersion(course);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
+                .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
                         .learningPackage(learningPackage)
                         .registeredAt(LocalDateTime.now().minusDays(40))
@@ -195,7 +195,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                     .build());
         }
 
-        PackageEnrollment refreshed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
+        OnlineCourseEnrollment refreshed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
         log.info("Khóa vocabulary demo của {}: {}% - {} (2 mô-đun đầu đã xong; module test 3-8 chưa nộp).",
                 LEARNER_EMAIL, refreshed.getProgressPercent(), refreshed.getStatus());
     }
@@ -319,7 +319,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private void completeLessons(
             OnlineCourse course,
             User learner,
-            PackageEnrollment enrollment,
+            OnlineCourseEnrollment enrollment,
             OnlineCourseVersion version
     ) {
         completeLessons(course, learner, enrollment, version, Integer.MAX_VALUE);
@@ -328,7 +328,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private void completeLessons(
             OnlineCourse course,
             User learner,
-            PackageEnrollment enrollment,
+            OnlineCourseEnrollment enrollment,
             OnlineCourseVersion version,
             int maxModules
     ) {
@@ -360,7 +360,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
 
     private void pruneLessonProgressBeyondModules(
             OnlineCourse course,
-            PackageEnrollment enrollment,
+            OnlineCourseEnrollment enrollment,
             int keepModuleCount
     ) {
         Set<Long> allowedLessonIds = orderedModules(course).stream()

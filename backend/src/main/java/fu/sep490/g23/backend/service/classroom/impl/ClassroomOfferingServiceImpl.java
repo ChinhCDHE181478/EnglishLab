@@ -58,14 +58,14 @@ import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
@@ -138,7 +138,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final PackageTypeRepository packageTypeRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
     private final CurriculumSessionPlanRepository curriculumSessionPlanRepository;
     private final TrainingProgramRepository trainingProgramRepository;
@@ -667,7 +667,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
         ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
         enrollment.setNote(request.getNote());
-        enrollment.setPackageEnrollment(ensurePackageEnrollment(student, offering));
+        enrollment.setPackageEnrollment(ensureOnlineCourseEnrollment(student, offering));
 
         if (isClassFull(offering) && !enrollment.hasClassAccess()) {
             enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
@@ -741,7 +741,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomEnrollment targetEnrollment = ClassroomEnrollment.builder()
                 .student(student)
                 .classroomOffering(target)
-                .packageEnrollment(ensurePackageEnrollment(student, target))
+                .packageEnrollment(ensureOnlineCourseEnrollment(student, target))
                 .holdSpot(sourceEnrollment.isHoldSpot())
                 .tuitionAmountDue(targetDue)
                 .tuitionAmountPaid(carriedPaid)
@@ -1972,7 +1972,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return assigned >= maxCapacity;
     }
 
-    private PackageEnrollment ensurePackageEnrollment(User student, ClassroomOffering offering) {
+    private OnlineCourseEnrollment ensureOnlineCourseEnrollment(User student, ClassroomOffering offering) {
         return packageEnrollmentRepository.findByStudentAndLearningPackage(student, offering.getLearningPackage())
                 .map(enrollment -> {
                     if (!courseEnrollmentAccessPolicy.hasLearningAccess(enrollment)) {
@@ -1980,7 +1980,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     }
                     return enrollment;
                 })
-                .orElseGet(() -> packageEnrollmentRepository.save(PackageEnrollment.builder()
+                .orElseGet(() -> packageEnrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(student)
                         .learningPackage(offering.getLearningPackage())
                         .status(EnrollmentStatus.ACTIVE)
@@ -2017,7 +2017,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (assignmentNote != null && !assignmentNote.isBlank()) {
             enrollment.setAssignmentNote(assignmentNote);
         }
-        enrollment.setPackageEnrollment(ensurePackageEnrollment(student, offering));
+        enrollment.setPackageEnrollment(ensureOnlineCourseEnrollment(student, offering));
         ensureGradebookEntry(offering, student);
     }
 

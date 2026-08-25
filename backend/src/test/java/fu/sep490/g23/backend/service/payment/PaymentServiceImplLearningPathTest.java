@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.service.payment;
 
-import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
@@ -82,7 +82,7 @@ class PaymentServiceImplLearningPathTest {
     @Test
     void quoteLearningPath_appliesConfiguredDiscountWhenTwoCoursesRemain() {
         when(onlineCourseService.getMyEnrollments("learner@example.com"))
-                .thenReturn(List.of(PackageEnrollmentResponse.builder().courseId(1L).build()));
+                .thenReturn(List.of(OnlineCourseEnrollmentResponse.builder().courseId(1L).build()));
 
         PaymentQuoteResponse quote = paymentService.quotePayment(
                 List.of(), List.of(), 9L, null, "learner@example.com");
@@ -97,8 +97,8 @@ class PaymentServiceImplLearningPathTest {
     void quoteLearningPath_doesNotDiscountOnlyRemainingCourse() {
         when(onlineCourseService.getMyEnrollments("learner@example.com"))
                 .thenReturn(List.of(
-                        PackageEnrollmentResponse.builder().courseId(1L).build(),
-                        PackageEnrollmentResponse.builder().courseId(2L).build()
+                        OnlineCourseEnrollmentResponse.builder().courseId(1L).build(),
+                        OnlineCourseEnrollmentResponse.builder().courseId(2L).build()
                 ));
 
         PaymentQuoteResponse quote = paymentService.quotePayment(
@@ -113,9 +113,9 @@ class PaymentServiceImplLearningPathTest {
     void quoteLearningPath_rejectsWhenAllCoursesAreOwned() {
         when(onlineCourseService.getMyEnrollments("learner@example.com"))
                 .thenReturn(List.of(
-                        PackageEnrollmentResponse.builder().courseId(1L).build(),
-                        PackageEnrollmentResponse.builder().courseId(2L).build(),
-                        PackageEnrollmentResponse.builder().courseId(3L).build()
+                        OnlineCourseEnrollmentResponse.builder().courseId(1L).build(),
+                        OnlineCourseEnrollmentResponse.builder().courseId(2L).build(),
+                        OnlineCourseEnrollmentResponse.builder().courseId(3L).build()
                 ));
 
         RuntimeException error = assertThrows(RuntimeException.class, () -> paymentService.quotePayment(

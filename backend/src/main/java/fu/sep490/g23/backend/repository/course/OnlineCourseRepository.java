@@ -19,10 +19,16 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
     Optional<OnlineCourse> findWithModulesById(Long id);
 
     @EntityGraph(attributePaths = {"learningPackage", "category", "modules"})
+    Optional<OnlineCourse> findWithModulesByIdAndDeletedFalseAndStatus(Long id, PackageStatus status);
+
+    @EntityGraph(attributePaths = {"learningPackage", "category", "modules"})
     Optional<OnlineCourse> findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(Long id, PackageStatus status);
 
     @EntityGraph(attributePaths = {"learningPackage", "category", "modules"})
     Optional<OnlineCourse> findByLearningPackage(LearningPackage learningPackage);
+
+    @EntityGraph(attributePaths = {"learningPackage", "category", "modules"})
+    Optional<OnlineCourse> findBySlugAndDeletedFalseAndStatus(String slug, PackageStatus status);
 
     @EntityGraph(attributePaths = {"learningPackage", "category"})
     List<OnlineCourse> findAllByCategoryIsNull();
@@ -30,17 +36,23 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
     @EntityGraph(attributePaths = {"learningPackage"})
     @Query("""
             select c from OnlineCourse c
-            where c.learningPackage.deleted = false
-              and c.learningPackage.status = :status
+            where c.deleted = false
+              and c.status = :status
               and c.learningPathCode is not null
               and trim(c.learningPathCode) <> ''
             order by c.learningPathCode asc, c.learningPathName asc, c.learningPathOrder asc, c.id asc
             """)
     List<OnlineCourse> findPublishedLearningPathCourses(PackageStatus status);
 
+    long countByCategoryAndDeletedFalse(CourseCategory category);
+
     long countByCategoryAndLearningPackageDeletedFalse(CourseCategory category);
 
+    long countByDeletedFalse();
+
     long countByLearningPackageDeletedFalse();
+
+    long countByDeletedFalseAndStatus(PackageStatus status);
 
     long countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus status);
 
@@ -48,7 +60,7 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
             select coalesce(category.name, 'Chưa phân loại'), count(course)
             from OnlineCourse course
             left join course.category category
-            where course.learningPackage.deleted = false
+            where course.deleted = false
             group by category.name
             order by count(course) desc
             """)

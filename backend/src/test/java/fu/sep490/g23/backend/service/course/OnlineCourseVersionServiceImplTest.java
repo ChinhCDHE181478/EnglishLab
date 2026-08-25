@@ -14,7 +14,7 @@ import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -228,13 +228,13 @@ class OnlineCourseVersionServiceImplTest {
 
         service.publish(course.getId(), versionTwo.getId(), contentManager.getEmail());
 
-        PackageEnrollment existingEnrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment existingEnrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .courseVersion(versionOne)
                 .progressPercent(80)
                 .build();
         OnlineCourseResponse oldContent = service.readLatestPublishedForEnrollment(existingEnrollment, course);
-        PackageEnrollment newEnrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment newEnrollment = OnlineCourseEnrollment.builder()
                 .id(42L)
                 .courseVersion(service.requirePublishedVersion(course))
                 .progressPercent(0)
@@ -261,7 +261,7 @@ class OnlineCourseVersionServiceImplTest {
         versionTwo.setContentSnapshotJson(new ObjectMapper().writeValueAsString(
                 OnlineCourseResponse.builder().id(course.getId()).modules(List.of(module)).build()
         ));
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .learningPackage(course.getLearningPackage())
                 .courseVersion(versionOne)
@@ -290,7 +290,7 @@ class OnlineCourseVersionServiceImplTest {
         versionTwo.setContentSnapshotJson(new ObjectMapper().writeValueAsString(
                 OnlineCourseResponse.builder().id(course.getId()).modules(List.of(module)).build()
         ));
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .learningPackage(course.getLearningPackage())
                 .courseVersion(versionOne)
@@ -335,7 +335,7 @@ class OnlineCourseVersionServiceImplTest {
                 OnlineCourseResponse.builder().id(course.getId()).modules(List.of(firstModule, secondModule)).build()
         ));
         User student = User.builder().id(7L).email("learner@englishlab.vn").build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .student(student)
                 .learningPackage(course.getLearningPackage())
@@ -400,7 +400,7 @@ class OnlineCourseVersionServiceImplTest {
         versionOne.setAssessmentIdsJson("[91]");
         versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
         versionTwo.setAssessmentIdsJson("[92]");
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .courseVersion(versionOne)
                 .learningPackage(course.getLearningPackage())
                 .build();

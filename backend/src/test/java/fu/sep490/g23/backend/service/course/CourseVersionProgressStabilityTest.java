@@ -7,7 +7,7 @@ import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.dto.response.course.CourseCompletionStatus;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.impl.CourseProgressServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +44,7 @@ class CourseVersionProgressStabilityTest {
     private AssessmentSubmissionRepository assessmentSubmissionRepository;
 
     @Mock
-    private PackageEnrollmentRepository enrollmentRepository;
+    private OnlineCourseEnrollmentRepository enrollmentRepository;
 
     @Mock
     private OnlineCourseVersionService onlineCourseVersionService;
@@ -70,7 +70,7 @@ class CourseVersionProgressStabilityTest {
                 .totalRequiredLessons(10)
                 .totalRequiredAssessments(0)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(55L)
                 .student(learner)
                 .courseVersion(enrollmentVersion)
@@ -82,7 +82,7 @@ class CourseVersionProgressStabilityTest {
         when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED)).thenReturn(8L);
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
 
-        PackageEnrollment refreshed = progressService.refreshEnrollmentProgress(
+        OnlineCourseEnrollment refreshed = progressService.refreshEnrollmentProgress(
                 enrollment,
                 courseWithTwentyLiveLessons,
                 learner
@@ -113,7 +113,7 @@ class CourseVersionProgressStabilityTest {
                 .totalRequiredLessons(2)
                 .totalRequiredAssessments(0)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(57L)
                 .student(learner)
                 .courseVersion(enrollmentVersion)
@@ -152,7 +152,7 @@ class CourseVersionProgressStabilityTest {
                 .totalRequiredLessons(1)
                 .totalRequiredAssessments(1)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(56L)
                 .student(learner)
                 .courseVersion(baselineVersion)
@@ -177,7 +177,7 @@ class CourseVersionProgressStabilityTest {
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
         when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
 
-        PackageEnrollment refreshed = progressService.refreshEnrollmentProgress(enrollment, course, learner);
+        OnlineCourseEnrollment refreshed = progressService.refreshEnrollmentProgress(enrollment, course, learner);
 
         assertThat(refreshed.getProgressPercent()).isEqualTo(100);
         assertThat(refreshed.getStatus()).isEqualTo(EnrollmentStatus.COMPLETED);

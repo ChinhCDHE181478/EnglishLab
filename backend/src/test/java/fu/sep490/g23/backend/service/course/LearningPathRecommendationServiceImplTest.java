@@ -7,13 +7,13 @@ import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
 import fu.sep490.g23.backend.service.course.impl.LearningPathRecommendationServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 class LearningPathRecommendationServiceImplTest {
     @Mock private LearningPathRepository pathRepository;
     @Mock private LearningPathCourseRepository pathCourseRepository;
-    @Mock private PackageEnrollmentRepository enrollmentRepository;
+    @Mock private OnlineCourseEnrollmentRepository enrollmentRepository;
 
     private LearningPathRecommendationServiceImpl service;
     private User learner;
@@ -67,7 +67,7 @@ class LearningPathRecommendationServiceImplTest {
         OnlineCourse intermediate = course(20L, CourseLevel.INTERMEDIATE);
         when(pathRepository.findAll()).thenReturn(List.of(path));
         when(pathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(1L)).thenReturn(List.of(ref(path, beginner, 1), ref(path, intermediate, 2)));
-        when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner)).thenReturn(List.of(PackageEnrollment.builder()
+        when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner)).thenReturn(List.of(OnlineCourseEnrollment.builder()
                 .id(50L).student(learner).learningPackage(beginner.getLearningPackage()).status(EnrollmentStatus.COMPLETED).progressPercent(100).build()));
 
         LearnerLearningPathResponse.PathOverview result = service.recommend(learner, context(PlacementLevel.INTERMEDIATE), true);
