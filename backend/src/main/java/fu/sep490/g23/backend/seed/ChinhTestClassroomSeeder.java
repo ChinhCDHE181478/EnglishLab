@@ -608,7 +608,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .salePrice(BigDecimal.valueOf(4_690_000))
                         .duration("8 tuần")
                         .studyMode("Virtual · Google Meet")
-                        .maxCapacity(20)
                         .status(PackageStatus.PUBLISHED)
                         .displayOrder(1)
                         .featured(true)

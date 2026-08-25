@@ -54,7 +54,6 @@ public class TrainingProgramBackfillMigration implements CommandLineRunner {
                     .price(BigDecimal.ZERO)
                     .duration(curriculum.getTotalSessions() == null || curriculum.getTotalSessions() <= 0 ? null : curriculum.getTotalSessions() + " buổi")
                     .studyMode(mode == ClassroomDeliveryMode.VIRTUAL ? "Virtual" : "Tại trung tâm")
-                    .maxCapacity(30)
                     .status(toPackageStatus(curriculum.getStatus()))
                     .displayOrder(curriculum.getDisplayOrder() == null ? 0 : curriculum.getDisplayOrder())
                     .featured(false)

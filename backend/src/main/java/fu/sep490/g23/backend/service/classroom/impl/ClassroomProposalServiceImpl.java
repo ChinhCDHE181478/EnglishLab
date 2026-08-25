@@ -333,9 +333,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             int learnerCount
     ) {
         proposal.setTitle(payload.getTitle().trim());
-        proposal.setCapacity(payload.getCapacity() == null
-                ? proposal.getCourseOffering().getMaxCapacity()
-                : payload.getCapacity());
+        proposal.setCapacity(payload.getCapacity());
         proposal.setPlannedStartDate(payload.getPlannedStartDate());
         proposal.setPlannedEndDate(payload.getPlannedEndDate());
         proposal.setScheduleWeekdays(payload.getWeekdays().stream()

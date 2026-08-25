@@ -169,7 +169,7 @@ export function ProgramTable({
         <table className="min-w-[980px] w-full text-left">
           <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.12em] text-[#8e7371]">
             <tr>
-              {['Khóa học', 'Chương trình đào tạo', 'Cấp độ', 'Kế hoạch mở lớp', 'Trạng thái', 'Lớp đang dùng', 'Thao tác'].map((heading) => (
+              {['Khóa học', 'Chương trình đào tạo', 'Cấp độ', 'Thời lượng', 'Trạng thái', 'Lớp đang dùng', 'Thao tác'].map((heading) => (
                 <th className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-left' : ''}`} key={heading}>{heading}</th>
               ))}
             </tr>
@@ -207,8 +207,8 @@ export function ProgramTable({
                   </td>
                   <td className="px-5 py-5 text-sm text-[#0b1c30]">{program.entryLevel || '—'}</td>
                   <td className="px-5 py-5 text-sm text-[#0b1c30]">
-                    <p className="font-semibold">{program.plannedStartDate ? new Date(`${program.plannedStartDate}T00:00:00`).toLocaleDateString('vi-VN') : 'Chưa chốt ngày'}</p>
-                    <p className="mt-1 max-w-[180px] truncate text-xs text-[#584140]">{program.plannedSchedule || `${program.capacity ?? program.maxCapacity ?? 30} học viên`}</p>
+                    <p className="font-semibold">{program.duration || 'Chưa cập nhật'}</p>
+                    <p className="mt-1 max-w-[180px] truncate text-xs text-[#584140]">{program.studyMode || 'Chưa cập nhật hình thức học'}</p>
                   </td>
                   <td className="px-5 py-5">
                     <ProgramStatusPill label={program.statusLabel || program.status} status={program.status} />

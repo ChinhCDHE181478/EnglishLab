@@ -1,18 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAppDialog } from '../../components/ui/AppDialog';
-import {
-  CheckCircle2,
-  Download,
-  FileSpreadsheet,
-  LoaderCircle,
-  Plus,
-  RefreshCw,
-  UploadCloud,
-  X,
-} from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
-import curriculumApi from '../../api/curriculumApi';
 import {
   ProgramFilterBar,
   ProgramPageHero,
@@ -23,11 +13,6 @@ import {
   ERROR_NOTICE_CLASS,
   SUCCESS_NOTICE_CLASS,
 } from '../../utils/formStyles';
-import {
-  downloadCurriculumExcelTemplate,
-  importCurriculumUnitsWithSessionPlans,
-  parseCurriculumExcelFile,
-} from '../../utils/curriculumExcel';
 
 const modeConfig = {
   OFFLINE: {
@@ -114,13 +99,6 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Excel import modal state
-  const [excelModalOpen, setExcelModalOpen] = useState(false);
-  const [parsedExcel, setParsedExcel] = useState(null);
-  const [excelReading, setExcelReading] = useState(false);
-  const [excelImporting, setExcelImporting] = useState(false);
-  const [excelError, setExcelError] = useState('');
-
   const loadPrograms = async () => {
     setLoading(true);
     setError('');
@@ -137,69 +115,6 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
   useEffect(() => {
     loadPrograms();
   }, [config.deliveryMode]);
-
-  const handleExcelFileChange = async (file) => {
-    if (!file) return;
-    if (!/\.(xlsx|xls)$/i.test(file.name)) {
-      setExcelError('Chỉ hỗ trợ tệp Excel định dạng .xlsx hoặc .xls.');
-      return;
-    }
-    setExcelReading(true);
-    setExcelError('');
-    setParsedExcel(null);
-    try {
-      const parsed = await parseCurriculumExcelFile(file);
-      setParsedExcel(parsed);
-    } catch (err) {
-      setExcelError(err.message || 'Không đọc được tệp Excel.');
-    } finally {
-      setExcelReading(false);
-    }
-  };
-
-  const handleImportExcelSubmit = async () => {
-    if (!parsedExcel) return;
-    setExcelImporting(true);
-    setExcelError('');
-    try {
-      const curriculum = await curriculumApi.createCurriculumProgram({
-        title: parsedExcel.title,
-        examCategory: 'GENERAL_ENGLISH',
-        programTrack: 'GENERAL_ENGLISH_COMMUNICATION',
-        focusSkills: 'LISTENING,SPEAKING,VOCABULARY,COMMUNICATION',
-        entryLevel: 'B1',
-        deliveryMode: config.deliveryMode,
-        outcomes: 'Nội dung khởi tạo từ tệp Excel',
-        totalSessions: 0,
-        status: 'DRAFT',
-      });
-
-      const importResult = await importCurriculumUnitsWithSessionPlans(
-        curriculumApi,
-        curriculum.id,
-        parsedExcel.units,
-      );
-      if (importResult.failures.length) {
-        throw new Error(importResult.failures.join(' '));
-      }
-
-      const createdProgram = await classroomApi.createContentManagerProgram({
-        title: parsedExcel.title,
-        deliveryType: config.deliveryMode,
-        curriculumProgramId: curriculum.id,
-        status: 'DRAFT',
-        price: 0,
-      });
-
-      setExcelModalOpen(false);
-      setParsedExcel(null);
-      navigate(`${detailBasePath}/${createdProgram.id}/edit`);
-    } catch (err) {
-      setExcelError(err?.response?.data?.message || err?.message || 'Chưa thể tạo khóa học từ Excel. Bạn vẫn có thể tạo thủ công.');
-    } finally {
-      setExcelImporting(false);
-    }
-  };
 
   const filteredPrograms = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -338,20 +253,10 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
         subtitle={config.subtitle}
         title={config.title}
         actions={(
-          <>
-            <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]" onClick={openCreate} type="button">
-              <Plus className="h-4 w-4" />
-              Tạo khóa học
-            </button>
-            <button
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[#dfbfbd] bg-[#fff8f8] px-5 py-3 text-sm font-bold text-[#730014] shadow-sm transition hover:bg-[#fff0f1] active:scale-[0.98]"
-              onClick={() => setExcelModalOpen(true)}
-              type="button"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Import từ Excel
-            </button>
-          </>
+          <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]" onClick={openCreate} type="button">
+            <Plus className="h-4 w-4" />
+            Tạo khóa học
+          </button>
         )}
       />
 
@@ -401,103 +306,6 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
         working={working}
       />
 
-      {excelModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a0004]/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[28px] border border-[#ead9db] bg-white p-6 shadow-2xl space-y-5">
-            <div className="flex items-start justify-between border-b border-[#f1e4e5] pb-4">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a0018]">Khởi tạo nhanh</span>
-                <h3 className="font-['Manrope'] text-xl font-black text-[#2b2828]">Import {config.title || 'Chương trình đào tạo'} từ Excel</h3>
-              </div>
-              <button
-                aria-label="Đóng"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-700"
-                onClick={() => {
-                  setExcelModalOpen(false);
-                  setParsedExcel(null);
-                  setExcelError('');
-                }}
-                type="button"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#dfbfbd] bg-[#fffafb] p-6 text-center transition hover:border-[#8a0018]">
-              <UploadCloud className="h-10 w-10 text-[#8a0018]" />
-              <p className="mt-3 text-sm font-bold text-[#2b2828]">Chọn hoặc kéo thả tệp Excel vào đây</p>
-              <p className="mt-1 text-xs text-slate-400">Chỉ nhận định dạng .xlsx hoặc .xls</p>
-
-              <label className="mt-4 cursor-pointer rounded-xl bg-[#4b0009] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#730014]">
-                Browse File Excel
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  className="hidden"
-                  onChange={(event) => handleExcelFileChange(event.target.files?.[0])}
-                />
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8a0018] hover:underline"
-                onClick={downloadCurriculumExcelTemplate}
-              >
-                <Download className="h-3.5 w-3.5" /> Tải bản mẫu Excel chuẩn
-              </button>
-            </div>
-
-            {excelReading && (
-              <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-600">
-                <LoaderCircle className="h-4 w-4 animate-spin text-[#8a0018]" /> Đang đọc tệp Excel...
-              </div>
-            )}
-
-            {excelError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">
-                {excelError}
-              </div>
-            ) : null}
-
-            {parsedExcel && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-xs">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Đã đọc tệp thành công: {parsedExcel.fileName}
-                </div>
-                <div className="text-xs text-slate-700 space-y-1 pl-6">
-                  <p><strong>Tên chương trình:</strong> {parsedExcel.title}</p>
-                  <p><strong>Mã:</strong> Hệ thống sẽ tự tạo khi khởi tạo</p>
-                  <p><strong>Số Unit:</strong> {parsedExcel.units.length}</p>
-                  <p><strong>Tổng số buổi:</strong> {parsedExcel.units.reduce((total, unit) => total + unit.sessionPlans.length, 0)}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 border-t border-slate-100 pt-3">
-              <button
-                className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-xs font-bold text-[#730014] hover:bg-slate-50"
-                onClick={() => {
-                  setExcelModalOpen(false);
-                  setParsedExcel(null);
-                }}
-                type="button"
-              >
-                Hủy
-              </button>
-              <button
-                className="rounded-xl bg-[#4b0009] px-5 py-2 text-xs font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
-                disabled={!parsedExcel || excelImporting}
-                onClick={handleImportExcelSubmit}
-                type="button"
-              >
-                {excelImporting ? 'Đang tạo khóa học...' : 'Khởi tạo khóa học từ Excel'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
