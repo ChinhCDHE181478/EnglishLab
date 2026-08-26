@@ -1,11 +1,9 @@
 package fu.sep490.g23.backend.entity.teacher;
 
-import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -20,20 +18,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "user_auxiliary_records")
-@SQLRestriction("record_type = 'teacher_credentials'")
-public class TeacherCredential extends DomainRecord {
-    @Override
-    protected String domainRecordType() {
-        return "teacher_credentials";
-    }
+@Table(name = "teacher_credentials")
+public class TeacherCredential {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
     @Column(nullable = false, length = 40)
@@ -63,7 +56,7 @@ public class TeacherCredential extends DomainRecord {
     private CredentialVerificationStatus verificationStatus = CredentialVerificationStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "verified_by_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "verified_by_id")
     private User verifiedBy;
 
     @Column(name = "verified_at")

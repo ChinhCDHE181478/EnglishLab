@@ -111,6 +111,28 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean notificationStudyAlertEnabled = true;
 
+    @Column(name = "teacher_headline", length = 180)
+    private String teacherHeadline;
+
+    @Column(name = "teacher_biography", columnDefinition = "text")
+    private String teacherBiography;
+
+    @Column(name = "teacher_specializations", length = 700)
+    private String teacherSpecializations;
+
+    @Column(name = "teacher_teaching_languages", length = 300)
+    private String teacherTeachingLanguages;
+
+    @Column(name = "teacher_years_of_experience")
+    private Integer teacherYearsOfExperience;
+
+    @Column(name = "teacher_highest_qualification", length = 250)
+    private String teacherHighestQualification;
+
+    @Column(name = "teacher_public_profile", nullable = false)
+    @Builder.Default
+    private boolean teacherPublicProfile = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

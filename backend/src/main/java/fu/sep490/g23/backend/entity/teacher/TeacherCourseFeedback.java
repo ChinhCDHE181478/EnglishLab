@@ -1,13 +1,11 @@
 package fu.sep490.g23.backend.entity.teacher;
 
-import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -15,34 +13,29 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_auxiliary_records")
+@Table(name = "teacher_course_feedback")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SQLRestriction("record_type = 'teacher_course_feedback'")
-public class TeacherCourseFeedback extends DomainRecord {
-    @Override
-    protected String domainRecordType() {
-        return "teacher_course_feedback";
-    }
+public class TeacherCourseFeedback {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "enrollment_id", nullable = false)
     private ClassEnrollment enrollment;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "class_section_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "class_section_id", nullable = false)
     private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
     @Column(name = "clarity_score", nullable = false)

@@ -64,7 +64,6 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
-import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
@@ -94,7 +93,6 @@ import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepository;
-import fu.sep490.g23.backend.repository.teacher.TeacherProfessionalProfileRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
@@ -175,7 +173,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final TrainingProgramRepository trainingProgramRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
     private final CurriculumUnitRepository curriculumUnitRepository;
-    private final TeacherProfessionalProfileRepository teacherProfileRepository;
     private final TeacherPerformanceEvaluationRepository teacherEvaluationRepository;
     private final ClassroomAttendanceRepository attendanceRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
@@ -899,16 +896,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         };
         for (int i = 0; i < teachers.size(); i++) {
             User teacher = teachers.get(i);
-            TeacherProfessionalProfile profile = teacherProfileRepository.findByTeacherId(teacher.getId())
-                    .orElseGet(() -> TeacherProfessionalProfile.builder().teacher(teacher).build());
-            profile.setHeadline(headlines[i % headlines.length]);
-            profile.setBiography("Giảng dạy ca tối tại EnglishLab Hai Bà Trưng, theo dõi tiến độ học viên từng buổi.");
-            profile.setSpecializations("IELTS, TOEIC, giao tiếp công sở");
-            profile.setTeachingLanguages("Tiếng Anh, tiếng Việt");
-            profile.setYearsOfExperience(3 + (i % 8));
-            profile.setHighestQualification(i % 2 == 0 ? "CELTA" : "IELTS 8.0");
-            profile.setPublicProfile(true);
-            teacherProfileRepository.save(profile);
+            teacher.setTeacherHeadline(headlines[i % headlines.length]);
+            teacher.setTeacherBiography("Giảng dạy ca tối tại EnglishLab Hai Bà Trưng, theo dõi tiến độ học viên từng buổi.");
+            teacher.setTeacherSpecializations("IELTS, TOEIC, giao tiếp công sở");
+            teacher.setTeacherTeachingLanguages("Tiếng Anh, tiếng Việt");
+            teacher.setTeacherYearsOfExperience(3 + (i % 8));
+            teacher.setTeacherHighestQualification(i % 2 == 0 ? "CELTA" : "IELTS 8.0");
+            teacher.setTeacherPublicProfile(true);
+            userRepository.save(teacher);
 
             if (teacherEvaluationRepository.findByTeacherIdOrderByPeriodEndDescIdDesc(teacher.getId()).isEmpty()) {
                 BigDecimal delivery = BigDecimal.valueOf(3.8 + (i % 10) * 0.1);

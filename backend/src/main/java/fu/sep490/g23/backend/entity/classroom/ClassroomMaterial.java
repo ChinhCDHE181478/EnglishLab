@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "classroom_materials")
+@Table(name = "class_resources")
 @EntityListeners(AuditingEntityListener.class)
 public class ClassroomMaterial {
     @Id
