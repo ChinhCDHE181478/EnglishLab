@@ -7,6 +7,8 @@ import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
+import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -15,6 +17,7 @@ import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
@@ -43,6 +46,7 @@ class PaymentServiceImplClassroomTuitionTest {
 
     @Mock private PayosProperties payosProperties;
     @Mock private PaymentOrderRepository paymentOrderRepository;
+    @Mock private PaymentOrderItemRepository paymentOrderItemRepository;
     @Mock private DiscountCodeRepository discountCodeRepository;
     @Mock private OnlineCourseRepository onlineCourseRepository;
     @Mock private LearningPathRepository learningPathRepository;
@@ -63,6 +67,7 @@ class PaymentServiceImplClassroomTuitionTest {
         paymentService = new PaymentServiceImpl(
                 payosProperties,
                 paymentOrderRepository,
+                paymentOrderItemRepository,
                 discountCodeRepository,
                 onlineCourseRepository,
                 learningPathRepository,
@@ -93,7 +98,7 @@ class PaymentServiceImplClassroomTuitionTest {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
-        when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
 
         PaymentQuoteResponse quote = paymentService.quotePayment(List.of(), List.of(12L), null, "learner@example.com");
 
@@ -107,7 +112,7 @@ class PaymentServiceImplClassroomTuitionTest {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
-        when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
 
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
@@ -123,7 +128,7 @@ class PaymentServiceImplClassroomTuitionTest {
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
 
-        when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
 
         PaymentQuoteResponse quote = paymentService.quotePayment(
                 List.of(), List.of(12L), null, "learner@example.com"
@@ -152,9 +157,6 @@ class PaymentServiceImplClassroomTuitionTest {
         PaymentOrder order = PaymentOrder.builder()
                 .orderCode(123L)
                 .student(student)
-                .courseIdsCsv("")
-                .classSectionIdsCsv("12")
-                .enrollmentId(88L)
                 .amount(5_000_000L)
                 .originalAmount(5_000_000L)
                 .systemDiscountAmount(0L)
@@ -163,6 +165,15 @@ class PaymentServiceImplClassroomTuitionTest {
                 .description("ELAB123")
                 .status(PaymentOrderStatus.PENDING)
                 .build();
+
+        ClassEnrollment enrollment = ClassEnrollment.builder().id(88L).build();
+        when(paymentOrderItemRepository.findByPaymentOrderIdOrderById(null)).thenReturn(List.of(
+                PaymentOrderItem.builder()
+                        .itemType(PaymentOrderItemType.CLASS_ENROLLMENT)
+                        .classEnrollment(enrollment)
+                        .titleSnapshot("Classroom")
+                        .build()
+        ));
 
         ReflectionTestUtils.invokeMethod(paymentService, "markOrderPaid", order);
 
@@ -180,7 +191,7 @@ class PaymentServiceImplClassroomTuitionTest {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
-        when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
         when(payosProperties.isEnabled()).thenReturn(false);
 
         RuntimeException ex = assertThrows(

@@ -15,6 +15,7 @@ import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.when;
 class PaymentServiceImplLearningPathTest {
     @Mock private PayosProperties payosProperties;
     @Mock private PaymentOrderRepository paymentOrderRepository;
+    @Mock private PaymentOrderItemRepository paymentOrderItemRepository;
     @Mock private DiscountCodeRepository discountCodeRepository;
     @Mock private OnlineCourseRepository onlineCourseRepository;
     @Mock private LearningPathRepository learningPathRepository;
@@ -55,6 +57,7 @@ class PaymentServiceImplLearningPathTest {
         paymentService = new PaymentServiceImpl(
                 payosProperties,
                 paymentOrderRepository,
+                paymentOrderItemRepository,
                 discountCodeRepository,
                 onlineCourseRepository,
                 learningPathRepository,

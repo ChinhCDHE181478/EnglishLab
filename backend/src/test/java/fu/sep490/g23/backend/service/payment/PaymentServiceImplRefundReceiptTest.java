@@ -5,6 +5,10 @@ import fu.sep490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.payment.DiscountCode;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
+import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -13,6 +17,7 @@ import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
@@ -23,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,6 +44,7 @@ class PaymentServiceImplRefundReceiptTest {
 
     @Mock private PayosProperties payosProperties;
     @Mock private PaymentOrderRepository paymentOrderRepository;
+    @Mock private PaymentOrderItemRepository paymentOrderItemRepository;
     @Mock private DiscountCodeRepository discountCodeRepository;
     @Mock private OnlineCourseRepository onlineCourseRepository;
     @Mock private LearningPathRepository learningPathRepository;
@@ -59,6 +66,7 @@ class PaymentServiceImplRefundReceiptTest {
         paymentService = new PaymentServiceImpl(
                 payosProperties,
                 paymentOrderRepository,
+                paymentOrderItemRepository,
                 discountCodeRepository,
                 onlineCourseRepository,
                 learningPathRepository,
@@ -76,10 +84,6 @@ class PaymentServiceImplRefundReceiptTest {
         courseOrder = PaymentOrder.builder()
                 .orderCode(1001L)
                 .student(student)
-                .courseIdsCsv("11,12")
-                .classSectionIdsCsv("")
-                .enrollmentId(null)
-                .courseTitles("Course A | Course B")
                 .amount(500_000L)
                 .originalAmount(600_000L)
                 .systemDiscountAmount(50_000L)
@@ -90,6 +94,13 @@ class PaymentServiceImplRefundReceiptTest {
                 .description("ELAB001001")
                 .status(PaymentOrderStatus.PAID)
                 .build();
+        org.mockito.Mockito.lenient().when(paymentOrderItemRepository.findByPaymentOrderIdOrderById(null))
+                .thenReturn(List.of(
+                        PaymentOrderItem.builder().itemType(PaymentOrderItemType.ONLINE_COURSE)
+                                .onlineCourse(OnlineCourse.builder().id(11L).build()).titleSnapshot("Course A").build(),
+                        PaymentOrderItem.builder().itemType(PaymentOrderItemType.ONLINE_COURSE)
+                                .onlineCourse(OnlineCourse.builder().id(12L).build()).titleSnapshot("Course B").build()
+                ));
     }
 
     @Test
@@ -114,8 +125,11 @@ class PaymentServiceImplRefundReceiptTest {
 
     @Test
     void refundCourseOrder_rejectsClassroomTuition() {
-        courseOrder.setEnrollmentId(88L);
-        courseOrder.setCourseIdsCsv("");
+        when(paymentOrderItemRepository.findByPaymentOrderIdOrderById(null)).thenReturn(List.of(
+                PaymentOrderItem.builder().itemType(PaymentOrderItemType.CLASS_ENROLLMENT)
+                        .classEnrollment(ClassEnrollment.builder().id(88L).build())
+                        .titleSnapshot("Classroom").build()
+        ));
         when(userRepository.findByEmail("manager@example.com")).thenReturn(Optional.of(manager));
         when(paymentOrderRepository.findByOrderCode(1001L)).thenReturn(Optional.of(courseOrder));
 

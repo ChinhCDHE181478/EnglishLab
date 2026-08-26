@@ -54,26 +54,13 @@ public class PaymentOrder {
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
-    @Column(name = "course_ids_csv", nullable = false, length = 1000)
-    private String courseIdsCsv;
-
-    @Column(name = "classroom_offering_ids_csv", length = 1000)
-    private String classSectionIdsCsv;
-
-    /** Enrollment học phí lớp gắn với đơn PayOS (null nếu đơn khóa học online). */
-    @Column(name = "enrollment_id")
-    private Long enrollmentId;
-
-    @Column(name = "course_titles", columnDefinition = "text")
-    private String courseTitles;
-
     @Column(name = "learning_path_id")
     private Long learningPathId;
 
     @Column(name = "learning_path_code", length = 80)
     private String learningPathCode;
 
-    @Column(name = "amount_vnd", nullable = false)
+    @Column(name = "final_amount_vnd", nullable = false)
     private Long amount;
 
     @Column(name = "original_amount_vnd", nullable = false)

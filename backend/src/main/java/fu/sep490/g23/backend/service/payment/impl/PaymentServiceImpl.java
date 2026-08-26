@@ -19,6 +19,8 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.payment.DiscountCode;
 import fu.sep490.g23.backend.entity.payment.enums.DiscountType;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
+import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -27,6 +29,7 @@ import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
@@ -65,6 +68,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PayosProperties payosProperties;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final PaymentOrderItemRepository paymentOrderItemRepository;
     private final DiscountCodeRepository discountCodeRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final LearningPathRepository learningPathRepository;
@@ -132,12 +136,6 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentOrder paymentOrder = PaymentOrder.builder()
                 .orderCode(orderCode)
                 .student(student)
-                .courseIdsCsv(bundle.onlineCourses().stream().map(course -> String.valueOf(course.getId())).collect(Collectors.joining(",")))
-                .classSectionIdsCsv(bundle.classroomTuitions().stream()
-                        .map(item -> String.valueOf(item.offering().getId()))
-                        .collect(Collectors.joining(",")))
-                .enrollmentId(bundle.primaryEnrollmentId())
-                .courseTitles(bundle.allTitles())
                 .learningPathId(bundle.learningPathId())
                 .learningPathCode(bundle.learningPathCode())
                 .amount(amount)
@@ -152,6 +150,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .status(PaymentOrderStatus.PENDING)
                 .build();
         paymentOrderRepository.save(paymentOrder);
+        savePaymentOrderItems(paymentOrder, bundle, breakdown);
 
         try {
             PayOS client = createClient();
@@ -222,7 +221,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .paid(order.getStatus() == PaymentOrderStatus.PAID)
                 .message(resolveStatusMessage(order))
                 .classSectionId(firstClassSectionId(order))
-                .enrollmentId(order.getEnrollmentId())
+                .enrollmentId(firstClassEnrollmentId(order))
                 .build();
     }
 
@@ -433,12 +432,13 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void applyClassroomTuitionIfNeeded(PaymentOrder order) {
-        if (order.getEnrollmentId() == null) {
+        Long enrollmentId = firstClassEnrollmentId(order);
+        if (enrollmentId == null) {
             return;
         }
         BigDecimal amount = BigDecimal.valueOf(safeLong(order.getAmount()));
         String note = "PayOS #" + order.getOrderCode();
-        classSectionService.applyPayosTuitionPayment(order.getEnrollmentId(), amount, note);
+        classSectionService.applyPayosTuitionPayment(enrollmentId, amount, note);
     }
 
     private void consumeCouponReservation(PaymentOrder order) {
@@ -537,7 +537,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Học phí lớp này đã được thanh toán đủ.");
         }
 
-        if (paymentOrderRepository.existsByEnrollmentIdAndStatusIn(
+        if (paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(
                 enrollment.getId(),
                 List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING)
         )) {
@@ -587,7 +587,12 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void enrollPurchasedCourses(PaymentOrder order) {
-        for (Long courseId : parseCourseIds(order.getCourseIdsCsv())) {
+        for (Long courseId : paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId()).stream()
+                .filter(item -> item.getItemType() == PaymentOrderItemType.ONLINE_COURSE)
+                .map(PaymentOrderItem::getOnlineCourse)
+                .filter(Objects::nonNull)
+                .map(OnlineCourse::getId)
+                .toList()) {
             try {
                 onlineCourseService.activatePaidCourse(courseId, order.getStudent().getEmail());
             } catch (RuntimeException ex) {
@@ -597,17 +602,6 @@ public class PaymentServiceImpl implements PaymentService {
                 }
             }
         }
-    }
-
-    private List<Long> parseCourseIds(String courseIdsCsv) {
-        if (courseIdsCsv == null || courseIdsCsv.isBlank()) {
-            return List.of();
-        }
-        return List.of(courseIdsCsv.split(",")).stream()
-                .map(String::trim)
-                .filter(value -> !value.isBlank())
-                .map(Long::valueOf)
-                .toList();
     }
 
     private PaymentOrderStatus resolveFailureStatus(Map<String, Object> payload, Map<String, Object> data) {
@@ -624,7 +618,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private String resolveStatusMessage(PaymentOrder order) {
         PaymentOrderStatus status = order.getStatus();
-        boolean classroomTuition = order.getEnrollmentId() != null;
+        boolean classroomTuition = firstClassEnrollmentId(order) != null;
         return switch (status) {
             case PAID -> classroomTuition
                     ? "Thanh toán thành công. Học phí lớp đã được ghi nhận vào hồ sơ đăng ký của bạn."
@@ -638,10 +632,25 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private Long firstClassSectionId(PaymentOrder order) {
-        if (order.getClassSectionIdsCsv() == null || order.getClassSectionIdsCsv().isBlank()) {
-            return null;
-        }
-        return parseCourseIds(order.getClassSectionIdsCsv()).stream().findFirst().orElse(null);
+        return paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId()).stream()
+                .filter(item -> item.getItemType() == PaymentOrderItemType.CLASS_ENROLLMENT)
+                .map(PaymentOrderItem::getClassEnrollment)
+                .filter(Objects::nonNull)
+                .map(ClassEnrollment::getClassSection)
+                .filter(Objects::nonNull)
+                .map(ClassSection::getId)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Long firstClassEnrollmentId(PaymentOrder order) {
+        return paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId()).stream()
+                .filter(item -> item.getItemType() == PaymentOrderItemType.CLASS_ENROLLMENT)
+                .map(PaymentOrderItem::getClassEnrollment)
+                .filter(Objects::nonNull)
+                .map(ClassEnrollment::getId)
+                .findFirst()
+                .orElse(null);
     }
 
     private void syncOrderStatusFromProvider(PaymentOrder order) {
@@ -844,7 +853,12 @@ public class PaymentServiceImpl implements PaymentService {
         paymentOrderRepository.save(order);
 
         String studentEmail = order.getStudent().getEmail();
-        for (Long courseId : parseCourseIds(order.getCourseIdsCsv())) {
+        for (Long courseId : paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId()).stream()
+                .filter(item -> item.getItemType() == PaymentOrderItemType.ONLINE_COURSE)
+                .map(PaymentOrderItem::getOnlineCourse)
+                .filter(Objects::nonNull)
+                .map(OnlineCourse::getId)
+                .toList()) {
             onlineCourseService.revokePaidCourseAccess(courseId, studentEmail);
         }
         restoreCouponUsage(order);
@@ -867,10 +881,11 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void assertCourseOrder(PaymentOrder order) {
-        if (order.getEnrollmentId() != null) {
+        List<PaymentOrderItem> items = paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId());
+        if (items.stream().anyMatch(item -> item.getItemType() == PaymentOrderItemType.CLASS_ENROLLMENT)) {
             throw new RuntimeException("Đơn học phí lớp không hỗ trợ hoàn tiền/biên lai khóa học trong luồng này.");
         }
-        if (order.getCourseIdsCsv() == null || order.getCourseIdsCsv().isBlank()) {
+        if (items.stream().noneMatch(item -> item.getItemType() == PaymentOrderItemType.ONLINE_COURSE)) {
             throw new RuntimeException("Đơn hàng không chứa khóa học online hợp lệ.");
         }
     }
@@ -924,13 +939,10 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private PaymentOrderSummaryResponse toOrderSummary(PaymentOrder order) {
-        List<String> titles = order.getCourseTitles() == null || order.getCourseTitles().isBlank()
-                ? List.of()
-                : List.of(order.getCourseTitles().split("\\|"));
-        boolean courseOrder = order.getEnrollmentId() == null
-                && order.getCourseIdsCsv() != null
-                && !order.getCourseIdsCsv().isBlank();
-        boolean classroomTuition = order.getEnrollmentId() != null;
+        List<PaymentOrderItem> items = paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId());
+        List<String> titles = items.stream().map(PaymentOrderItem::getTitleSnapshot).toList();
+        boolean courseOrder = items.stream().anyMatch(item -> item.getItemType() == PaymentOrderItemType.ONLINE_COURSE);
+        boolean classroomTuition = items.stream().anyMatch(item -> item.getItemType() == PaymentOrderItemType.CLASS_ENROLLMENT);
         User student = order.getStudent();
         return PaymentOrderSummaryResponse.builder()
                 .orderCode(order.getOrderCode())
@@ -958,6 +970,53 @@ public class PaymentServiceImpl implements PaymentService {
                 .learningPathId(order.getLearningPathId())
                 .learningPathCode(order.getLearningPathCode())
                 .build();
+    }
+
+    private void savePaymentOrderItems(
+            PaymentOrder order,
+            PayableBundle bundle,
+            PriceBreakdown breakdown
+    ) {
+        List<PaymentOrderItem> items = new ArrayList<>();
+        if (bundle.isClassroomTuition()) {
+            bundle.classroomTuitions().forEach(line -> items.add(PaymentOrderItem.builder()
+                    .paymentOrder(order)
+                    .itemType(PaymentOrderItemType.CLASS_ENROLLMENT)
+                    .classEnrollment(line.enrollment())
+                    .titleSnapshot(line.title())
+                    .unitPriceVnd(line.amountVnd())
+                    .discountAmountVnd(0L)
+                    .finalAmountVnd(line.amountVnd())
+                    .quantity(1)
+                    .build()));
+        } else {
+            long unitTotal = bundle.onlineCourses().stream()
+                    .map(OnlineCourse::getLearningPackage)
+                    .mapToLong(pkg -> toVnd(resolveOriginalPrice(pkg)))
+                    .sum();
+            long allocated = 0L;
+            for (int index = 0; index < bundle.onlineCourses().size(); index++) {
+                OnlineCourse course = bundle.onlineCourses().get(index);
+                long unitPrice = toVnd(resolveOriginalPrice(course.getLearningPackage()));
+                long finalAmount = index == bundle.onlineCourses().size() - 1
+                        ? breakdown.totalAmount() - allocated
+                        : unitTotal == 0L
+                                ? breakdown.totalAmount() / bundle.onlineCourses().size()
+                                : Math.floorDiv(breakdown.totalAmount() * unitPrice, unitTotal);
+                allocated += finalAmount;
+                items.add(PaymentOrderItem.builder()
+                        .paymentOrder(order)
+                        .itemType(PaymentOrderItemType.ONLINE_COURSE)
+                        .onlineCourse(course)
+                        .titleSnapshot(course.getLearningPackage().getTitle())
+                        .unitPriceVnd(unitPrice)
+                        .discountAmountVnd(Math.max(0L, unitPrice - finalAmount))
+                        .finalAmountVnd(finalAmount)
+                        .quantity(1)
+                        .build());
+            }
+        }
+        paymentOrderItemRepository.saveAll(items);
     }
 
     private long safeLong(Long value) {

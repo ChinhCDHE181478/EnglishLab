@@ -1,12 +1,10 @@
 package fu.sep490.g23.backend.entity.classroom;
 
-import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -22,21 +20,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "classroom_financial_records")
-@SQLRestriction("record_type = 'classroom_tuition_payment_proofs'")
+@Table(name = "tuition_payment_proofs")
 @EntityListeners(AuditingEntityListener.class)
-public class ClassroomTuitionPaymentProof extends DomainRecord {
-    @Override
-    protected String domainRecordType() {
-        return "classroom_tuition_payment_proofs";
-    }
+public class ClassroomTuitionPaymentProof {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "enrollment_id", nullable = false)
     private ClassEnrollment enrollment;
 
     @Column(nullable = false, precision = 12, scale = 2)
@@ -61,7 +54,7 @@ public class ClassroomTuitionPaymentProof extends DomainRecord {
     private String reviewNote;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewed_by_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "reviewed_by_id")
     private User reviewedBy;
 
     @Column(name = "reviewed_at")
