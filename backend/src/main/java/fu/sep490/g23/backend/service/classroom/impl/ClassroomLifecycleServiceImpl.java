@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomLifecycleService;
@@ -61,7 +60,7 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
         );
 
         for (ClassSchedule session : endedSessions) {
-            if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
+            if (session.getEffectiveDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
                 try {
                     virtualAttendanceService.finalizeVirtualAttendance(session);
                 } catch (RuntimeException exception) {
@@ -71,10 +70,8 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
                             exception.getMessage()
                     );
                 }
-                session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
             }
             session.setStatus(ClassroomSessionStatus.COMPLETED);
-            session.setLocked(true);
         }
         sessionRepository.saveAll(endedSessions);
 

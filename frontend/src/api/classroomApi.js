@@ -444,6 +444,11 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async getStaffProgram(id) {
+    const response = await axiosClient.get(`/api/staff/classrooms/training-programs/${id}`);
+    return unwrapData(response);
+  },
+
   async updateStaffClassroom(id, payload) {
     const response = await axiosClient.put(`/api/staff/classrooms/${id}`, payload);
     return unwrapData(response);

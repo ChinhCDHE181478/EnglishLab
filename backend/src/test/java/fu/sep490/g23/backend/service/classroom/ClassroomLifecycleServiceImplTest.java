@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomLifecycleServiceImpl;
@@ -70,8 +69,7 @@ class ClassroomLifecycleServiceImplTest {
         service.reconcileStatuses(now);
 
         assertThat(session.getStatus()).isEqualTo(ClassroomSessionStatus.COMPLETED);
-        assertThat(session.isLocked()).isTrue();
-        assertThat(session.getLarkMeetingStatus()).isEqualTo(LarkMeetingStatus.ENDED);
+        assertThat(session.isImmutable()).isTrue();
         assertThat(offering.getStatus()).isEqualTo(ClassroomOfferingStatus.COMPLETED);
         verify(virtualAttendanceService).finalizeVirtualAttendance(session);
         verify(sessionRepository).saveAll(List.of(session));
@@ -114,7 +112,7 @@ class ClassroomLifecycleServiceImplTest {
         ClassSchedule makeup = session(
                 91L,
                 LocalDate.of(2026, 8, 12),
-                ClassroomSessionStatus.MAKEUP,
+                ClassroomSessionStatus.SCHEDULED,
                 ClassroomDeliveryMode.OFFLINE
         );
 
@@ -193,8 +191,7 @@ class ClassroomLifecycleServiceImplTest {
                 .startTime(LocalTime.of(19, 30))
                 .endTime(LocalTime.of(21, 0))
                 .status(status)
-                .deliveryMode(deliveryMode)
-                .larkMeetingStatus(LarkMeetingStatus.OPEN)
+                .deliveryModeOverride(deliveryMode)
                 .build();
     }
 }

@@ -21,7 +21,7 @@ import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.response.classroom.AvailableRoomOptionResponse;
 import fu.sep490.g23.backend.dto.response.classroom.AvailableTeacherOptionResponse;
 import fu.sep490.g23.backend.dto.response.classroom.TuitionProofResponse;
-import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sep490.g23.backend.dto.response.classroom.InstructorLedCourseResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -34,7 +34,8 @@ import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomContentService;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleAvailabilityService;
 import fu.sep490.g23.backend.service.classroom.TuitionProofService;
-import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.service.classroom.InstructorLedCourseCatalogService;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -60,7 +61,8 @@ public class StaffClassroomController {
 
     private final ClassroomOfferingService classSectionService;
     private final TuitionProofService tuitionProofService;
-    private final TrainingProgramService trainingProgramService;
+    private final InstructorLedCourseCatalogService instructorLedCourseCatalogService;
+    private final InstructorLedCourseManagementService instructorLedCourseManagementService;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
@@ -69,7 +71,8 @@ public class StaffClassroomController {
     public StaffClassroomController(
             ClassroomOfferingService classSectionService,
             TuitionProofService tuitionProofService,
-            TrainingProgramService trainingProgramService,
+            InstructorLedCourseCatalogService instructorLedCourseCatalogService,
+            InstructorLedCourseManagementService instructorLedCourseManagementService,
             UserRepository userRepository,
             RoomRepository roomRepository,
             ClassroomScheduleAvailabilityService scheduleAvailabilityService,
@@ -77,7 +80,8 @@ public class StaffClassroomController {
     ) {
         this.classSectionService = classSectionService;
         this.tuitionProofService = tuitionProofService;
-        this.trainingProgramService = trainingProgramService;
+        this.instructorLedCourseCatalogService = instructorLedCourseCatalogService;
+        this.instructorLedCourseManagementService = instructorLedCourseManagementService;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
         this.scheduleAvailabilityService = scheduleAvailabilityService;
@@ -163,10 +167,17 @@ public class StaffClassroomController {
     }
 
     @GetMapping("/training-programs")
-    public ResponseEntity<List<TrainingProgramResponse>> listPublishedTrainingPrograms(
+    public ResponseEntity<List<InstructorLedCourseResponse>> listPublishedTrainingPrograms(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
-        return ResponseEntity.ok(trainingProgramService.listPublishedPrograms(deliveryMode));
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms(deliveryMode));
+    }
+
+    @GetMapping("/training-programs/{id}")
+    public ResponseEntity<fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse> getPublishedTrainingProgram(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));
     }
 
     @GetMapping("/{id}")
@@ -206,7 +217,7 @@ public class StaffClassroomController {
 
     @PostMapping({
             "/sessions/{sessionId}/sync-google-meet",
-            "/sessions/{sessionId}/sync-lark-meeting"
+            "/sessions/{sessionId}/sync-google-meet"
     })
     public ResponseEntity<ClassroomSessionResponse> syncVirtualSessionMeeting(
             @PathVariable Long sessionId,

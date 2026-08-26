@@ -3,7 +3,6 @@ import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.dto.request.classroom.TransferStudentRequest;
-import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -309,7 +308,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     private String buildOldValuesJson(ClassroomChangeRequestType type, ClassSection offering, ClassSchedule session) {
         try {
             Map<String, Object> values = switch (type) {
-                case RESCHEDULE_SESSION, CANCEL_SESSION, CHANGE_ROOM, CHANGE_TEACHER, UPDATE_LARK_LINK -> sessionValues(session);
+                case RESCHEDULE_SESSION, CANCEL_SESSION, CHANGE_ROOM, CHANGE_TEACHER, RECREATE_GOOGLE_MEET -> sessionValues(session);
                 case TRANSFER_STUDENT, TRANSFER_CLASS -> Map.of("classSectionId", offering.getId());
                 case CREATE_MAKEUP_SESSION -> sessionValues(session);
             };
@@ -331,7 +330,6 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         values.put("endTime", session.getEndTime() == null ? null : session.getEndTime().toString());
         values.put("teacherId", session.getTeacher() == null ? null : session.getTeacher().getId());
         values.put("roomId", session.getRoom() == null ? null : session.getRoom().getId());
-        values.put("larkMeetingUrl", session.getLarkMeetingUrl());
         values.put("status", session.getStatus() == null ? null : session.getStatus().name());
         return values;
     }
@@ -375,9 +373,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         }
         if (newValues.containsKey("roomId") && newValues.get("roomId") != null) {
             builder.roomId(Long.valueOf(String.valueOf(newValues.get("roomId"))));
-        } else if (makeup && offering.getRegularRoom() != null) {
+        } else if (makeup && offering.getRoom() != null) {
             // Khớp createSession: roomId null → dùng phòng mặc định của lớp.
-            builder.roomId(offering.getRegularRoom().getId());
+            builder.roomId(offering.getRoom().getId());
         }
         if (newValues.containsKey("targetClassSectionId") && newValues.get("targetClassSectionId") != null) {
             builder.targetClassSectionId(Long.valueOf(String.valueOf(newValues.get("targetClassSectionId"))));
@@ -386,7 +384,6 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             builder.learnerIds(List.of(Long.valueOf(String.valueOf(newValues.get("studentId")))));
         }
         if (newValues.containsKey("larkMeetingUrl")) {
-            builder.larkMeetingUrl(String.valueOf(newValues.get("larkMeetingUrl")));
         }
 
         return builder.build();
@@ -449,7 +446,6 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                     throw new RuntimeException("Thiếu buổi học mục tiêu.");
                 }
                 session.setStatus(ClassroomSessionStatus.CANCELLED);
-                session.setLocked(true);
                 sessionRepository.save(session);
             }
             case CREATE_MAKEUP_SESSION -> {
@@ -459,7 +455,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                         .endTime(LocalTime.parse(String.valueOf(newValues.get("endTime"))))
                         .teacherId(newValues.get("teacherId") == null ? null : Long.valueOf(String.valueOf(newValues.get("teacherId"))))
                         .roomId(newValues.get("roomId") == null ? null : Long.valueOf(String.valueOf(newValues.get("roomId"))))
-                        .status(ClassroomSessionStatus.MAKEUP)
+                        .status(ClassroomSessionStatus.SCHEDULED)
                         .build();
                 offeringService.createSession(
                         changeRequest.getClassSection().getId(),
@@ -475,13 +471,11 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                             .note(changeRequest.getReason())
                             .build()
             );
-            case UPDATE_LARK_LINK -> {
+            case RECREATE_GOOGLE_MEET -> {
                 if (session == null) {
                     throw new RuntimeException("Thiếu buổi học mục tiêu.");
                 }
-                offeringService.updateSessionLarkLink(session.getId(), UpdateLarkLinkRequest.builder()
-                        .larkMeetingUrl(String.valueOf(newValues.get("larkMeetingUrl")))
-                        .build());
+                offeringService.syncVirtualSessionMeeting(session.getId(), changeRequest.getRequester() != null ? changeRequest.getRequester().getEmail() : "system@englishlab.edu.vn");
             }
             case TRANSFER_CLASS -> {
                 ClassSection sourceOffering = changeRequest.getClassSection();

@@ -39,7 +39,6 @@ public class CreateClassroomOfferingRequest {
     private ClassroomOfferingStatus classroomStatus;
     private PackageStatus packageStatus;
 
-    @JsonAlias({"trainingProgramId", "curriculumProgramId"})
     private Long instructorLedCourseId;
 
     @Size(max = 120)
@@ -55,7 +54,7 @@ public class CreateClassroomOfferingRequest {
     private LocalDate endDate;
 
     private Long primaryTeacherId;
-    private Long defaultRoomId;
+    private Long roomId;
 
     @Size(max = 500)
     private String offlineAddress;

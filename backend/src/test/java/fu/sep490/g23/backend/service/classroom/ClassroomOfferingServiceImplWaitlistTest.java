@@ -48,7 +48,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
     @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
-    @Mock private InstructorLedCourseRepository curriculumProgramRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
     @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
@@ -57,92 +57,11 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Mock private VirtualMeetingService virtualMeetingService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
-    @Mock private LarkMeetingParticipantRepository larkParticipantRepository;
     @Mock private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     @Mock private VirtualAttendanceService virtualAttendanceService;
 
     @InjectMocks
     private ClassroomOfferingServiceImpl service;
-
-    @Test
-    void syncVirtualSessionMeetingCreatesManagedLarkRoomForStaff() {
-        User staff = User.builder().id(1L).email("staff@example.com").fullName("Staff").build();
-        ClassSchedule session = ClassSchedule.builder()
-                .id(9L)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .status(ClassroomSessionStatus.SCHEDULED)
-                .larkSyncStatus("PENDING")
-                .build();
-        ClassroomSessionResponse expected = ClassroomSessionResponse.builder()
-                .id(session.getId())
-                .larkMeetingUrl("https://meet.larksuite.com/room/automatic")
-                .larkMeetingNo("123456789")
-                .larkSyncStatus("SYNCED")
-                .build();
-        when(accessHelper.requireUser(staff.getEmail())).thenReturn(staff);
-        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
-        when(virtualMeetingService.isEnabled()).thenReturn(true);
-        doAnswer(invocation -> {
-            ClassSchedule target = invocation.getArgument(0);
-            target.setLarkMeetingUrl(expected.getLarkMeetingUrl());
-            target.setLarkMeetingNo(expected.getLarkMeetingNo());
-            target.setLarkSyncStatus("SYNCED");
-            return null;
-        }).when(virtualMeetingService).syncMeeting(session);
-        when(sessionRepository.save(session)).thenReturn(session);
-        when(mapper.toSessionResponse(session)).thenReturn(expected);
-
-        ClassroomSessionResponse response =
-                service.syncVirtualSessionMeeting(session.getId(), staff.getEmail());
-
-        assertEquals("SYNCED", response.getLarkSyncStatus());
-        assertEquals("123456789", response.getLarkMeetingNo());
-        verify(accessHelper).assertStaffOperator(staff);
-        verify(virtualMeetingService).syncMeeting(session);
-    }
-
-    @Test
-    void retryPendingVirtualMeetingsAutomaticallyCreatesMissingRoom() {
-        ClassSchedule session = ClassSchedule.builder()
-                .id(10L)
-                .sessionDate(LocalDate.now().plusDays(1))
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .status(ClassroomSessionStatus.SCHEDULED)
-                .larkSyncStatus("FAILED")
-                .build();
-        when(virtualMeetingService.isEnabled()).thenReturn(true);
-        when(sessionRepository.findVirtualMeetingsPendingSync(
-                eq(ClassroomDeliveryMode.VIRTUAL),
-                anyCollection(),
-                anyCollection(),
-                eq(LocalDate.now()),
-                any(Pageable.class)
-        )).thenReturn(List.of(session));
-        doAnswer(invocation -> {
-            ClassSchedule target = invocation.getArgument(0);
-            target.setLarkMeetingUrl("https://meet.google.com/abc-defg-hij");
-            target.setLarkSyncStatus("SYNCED");
-            target.setLarkSyncError(null);
-            return null;
-        }).when(virtualMeetingService).syncMeeting(session);
-
-        service.retryPendingVirtualMeetings();
-
-        assertEquals("SYNCED", session.getLarkSyncStatus());
-        verify(virtualMeetingService).syncMeeting(session);
-        verify(sessionRepository).save(session);
-    }
-
-    @Test
-    void retryPendingVirtualMeetingsDoesNothingWhileIntegrationIsDisabled() {
-        when(virtualMeetingService.isEnabled()).thenReturn(false);
-
-        service.retryPendingVirtualMeetings();
-
-        verify(sessionRepository, never()).findVirtualMeetingsPendingSync(
-                any(), anyCollection(), anyCollection(), any(), any(Pageable.class)
-        );
-    }
 
     @Test
     void getMyClasses_ReturnsOnlyStaffAssignedClassrooms() {

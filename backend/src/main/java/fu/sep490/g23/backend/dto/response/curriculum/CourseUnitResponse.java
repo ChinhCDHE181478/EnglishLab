@@ -15,7 +15,7 @@ public class CourseUnitResponse {
     private String title;
     private String description;
     private String sessionPlan;
-    private List<CourseLessonResponse> sessionPlans;
+    private List<CourseLessonResponse> lessons;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CourseUnitContentRefResponse> materials;

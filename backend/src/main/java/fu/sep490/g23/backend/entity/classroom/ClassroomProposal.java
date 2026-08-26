@@ -18,6 +18,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
@@ -132,6 +133,11 @@ public class ClassroomProposal {
     @JoinColumn(name = "approved_classroom_id")
     private ClassSection approvedClassroom;
 
+    @OneToMany(mappedBy = "proposal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sequenceNumber ASC, id ASC")
+    @Builder.Default
+    private List<ClassroomProposalScheduleItem> scheduleItems = new ArrayList<>();
+
     @Transient
     @Builder.Default
     private List<ClassroomProposalMember> members = new ArrayList<>();
@@ -151,5 +157,15 @@ public class ClassroomProposal {
     public void addMember(ClassroomProposalMember member) {
         members.add(member);
         member.setProposal(this);
+    }
+
+    public void setScheduleItems(List<ClassroomProposalScheduleItem> items) {
+        this.scheduleItems.clear();
+        if (items != null) {
+            for (ClassroomProposalScheduleItem item : items) {
+                item.setProposal(this);
+                this.scheduleItems.add(item);
+            }
+        }
     }
 }

@@ -17,6 +17,10 @@ import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposal;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposalMember;
+import fu.sep490.g23.backend.entity.classroom.ClassroomProposalScheduleItem;
+import fu.sep490.g23.backend.dto.request.classroom.ClassroomProposalScheduleItemRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalScheduleItemResponse;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
@@ -129,16 +133,12 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             Long excludeProposalId,
             String staffEmail
     ) {
-        validateProposalPayload(payload);
+        validateSchedulePayload(payload);
         requireStaff(staffEmail);
-        InstructorLedCourse courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
-        ClassroomProposal proposal = ClassroomProposal.builder()
-                .courseOffering(courseOffering)
-                .deliveryType(payload.getDeliveryType())
-                .approvalStatus(ClassroomApprovalStatus.DRAFT)
-                .build();
-        applyProposalFields(proposal, payload, 0);
-        validateProposal(proposal, true);
+        InstructorLedCourse courseOffering = payload.getCourseOfferingId() != null
+                ? instructorLedCourseRepository.findById(payload.getCourseOfferingId()).orElse(null)
+                : null;
+        ClassroomProposal proposal = buildTemporaryProposal(payload, courseOffering);
         return checkScheduleConflicts(proposal, excludeProposalId);
     }
 
@@ -149,16 +149,12 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             Long excludeProposalId,
             String staffEmail
     ) {
-        validateProposalPayload(payload);
+        validateSchedulePayload(payload);
         requireStaff(staffEmail);
-        InstructorLedCourse courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
-        ClassroomProposal proposal = ClassroomProposal.builder()
-                .courseOffering(courseOffering)
-                .deliveryType(payload.getDeliveryType())
-                .approvalStatus(ClassroomApprovalStatus.DRAFT)
-                .build();
-        applyProposalFields(proposal, payload, 0);
-        validateProposal(proposal, false);
+        InstructorLedCourse courseOffering = payload.getCourseOfferingId() != null
+                ? instructorLedCourseRepository.findById(payload.getCourseOfferingId()).orElse(null)
+                : null;
+        ClassroomProposal proposal = buildTemporaryProposal(payload, courseOffering);
 
         proposal.setRoom(null);
         List<ClassroomPickerOptionResponse> availableTeachers = userRepository
@@ -169,7 +165,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     proposal.setPrimaryTeacher(teacher);
                     return checkScheduleConflicts(proposal, excludeProposalId).getConflicts().stream()
                             .noneMatch(conflict -> conflict.getType() == ConflictType.TEACHER_SCHEDULE
-                                    || conflict.getType() == ConflictType.LARK_TEACHER_OVERLAP);
+                                    || conflict.getType() == ConflictType.VIRTUAL_TEACHER_OVERLAP);
                 })
                 .map(teacher -> ClassroomPickerOptionResponse.builder()
                         .id(teacher.getId())
@@ -182,7 +178,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         List<ClassroomPickerOptionResponse> availableRooms = proposal.getDeliveryType() == ClassroomDeliveryMode.VIRTUAL
                 ? List.of()
                 : roomRepository.findByActiveTrue().stream()
-                .filter(room -> room.getCapacity() == null || room.getCapacity() >= proposal.getCapacity())
+                .filter(room -> room.getCapacity() == null || room.getCapacity() >= (proposal.getCapacity() != null ? proposal.getCapacity() : 1))
                 .sorted(Comparator.comparing(Room::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .filter(room -> {
                     proposal.setRoom(room);
@@ -200,6 +196,63 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .teachers(availableTeachers)
                 .rooms(availableRooms)
                 .build();
+    }
+
+    private ClassroomProposal buildTemporaryProposal(CreateClassroomProposalRequest payload, InstructorLedCourse courseOffering) {
+        ClassroomDeliveryMode delivery = payload.getDeliveryType() != null
+                ? payload.getDeliveryType()
+                : ClassroomDeliveryMode.OFFLINE;
+        int cap = payload.getCapacity() != null && payload.getCapacity() >= 1 ? payload.getCapacity() : 20;
+
+        ClassroomProposal proposal = ClassroomProposal.builder()
+                .title(StringUtils.hasText(payload.getTitle()) ? payload.getTitle().trim() : "Tạm tính")
+                .courseOffering(courseOffering != null ? courseOffering : InstructorLedCourse.builder().id(999999L).title("Tạm tính").build())
+                .deliveryType(delivery)
+                .capacity(cap)
+                .plannedStartDate(payload.getPlannedStartDate())
+                .plannedEndDate(payload.getEndDate() != null ? payload.getEndDate() : payload.getPlannedStartDate())
+                .scheduleWeekdays(payload.getWeekdays() != null ? payload.getWeekdays().stream().distinct().map(DayOfWeek::name).collect(Collectors.joining(",")) : "MONDAY")
+                .sessionStartTime(payload.getSessionStartTime())
+                .sessionEndTime(payload.getSessionEndTime())
+                .approvalStatus(ClassroomApprovalStatus.DRAFT)
+                .primaryTeacher(resolveTeacher(payload.getPrimaryTeacherId()))
+                .room(delivery == ClassroomDeliveryMode.OFFLINE ? resolveRoom(payload.getRoomId()) : null)
+                .build();
+
+        if (payload.getScheduleItems() != null && !payload.getScheduleItems().isEmpty()) {
+            List<ClassroomProposalScheduleItem> items = new ArrayList<>();
+            for (int i = 0; i < payload.getScheduleItems().size(); i++) {
+                ClassroomProposalScheduleItemRequest itemReq = payload.getScheduleItems().get(i);
+                items.add(ClassroomProposalScheduleItem.builder()
+                        .proposal(proposal)
+                        .sequenceNumber(itemReq.getSequenceNumber() != null ? itemReq.getSequenceNumber() : (i + 1))
+                        .sessionDate(itemReq.getSessionDate())
+                        .startTime(itemReq.getStartTime())
+                        .endTime(itemReq.getEndTime())
+                        .deliveryModeOverride(itemReq.getDeliveryModeOverride())
+                        .build());
+            }
+            proposal.setScheduleItems(items);
+        }
+        return proposal;
+    }
+
+    private void validateSchedulePayload(CreateClassroomProposalRequest payload) {
+        if (payload == null) {
+            throw new IllegalArgumentException("Dữ liệu lịch không được để trống.");
+        }
+        if (payload.getPlannedStartDate() == null) {
+            throw new IllegalArgumentException("Hãy chọn ngày bắt đầu trước.");
+        }
+        if (payload.getWeekdays() == null || payload.getWeekdays().isEmpty()) {
+            throw new IllegalArgumentException("Hãy chọn ít nhất một thứ học trong tuần.");
+        }
+        if (payload.getSessionStartTime() == null || payload.getSessionEndTime() == null) {
+            throw new IllegalArgumentException("Hãy chọn giờ học hợp lệ.");
+        }
+        if (!payload.getSessionEndTime().isAfter(payload.getSessionStartTime())) {
+            throw new IllegalArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+        }
     }
 
     @Override
@@ -254,40 +307,33 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
 
-        List<LocalDate> dates = sessionDates(proposal);
-        List<CourseLesson> sessionPlans = courseLessonRepository
-                .findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(
-                        proposal.getCourseOffering().getId()
-                );
-        if (!sessionPlans.isEmpty() && dates.size() != sessionPlans.size()) {
-            throw new IllegalArgumentException(
-                    "Lịch lớp hiện tạo ra " + dates.size() + " buổi nhưng giáo trình yêu cầu "
-                            + sessionPlans.size()
-                            + " buổi. Vui lòng điều chỉnh ngày bắt đầu, ngày kết thúc hoặc lịch học trước khi duyệt."
-            );
+        List<ClassroomProposalScheduleItem> scheduleItems = proposal.getScheduleItems();
+        if (scheduleItems == null || scheduleItems.isEmpty()) {
+            scheduleItems = generateDefaultScheduleItems(proposal);
         }
 
         ClassroomOfferingResponse created = classSectionService.createOffering(
                 toOfferingRequest(proposal),
                 managerEmail
         );
-        for (int index = 0; index < dates.size(); index++) {
-            LocalDate sessionDate = dates.get(index);
-            CourseLesson sessionPlan = sessionPlans.isEmpty() ? null : sessionPlans.get(index);
+        for (ClassroomProposalScheduleItem item : scheduleItems) {
+            Long teacherId = item.getTeacher() != null ? item.getTeacher().getId()
+                    : (proposal.getPrimaryTeacher() != null ? proposal.getPrimaryTeacher().getId() : null);
+            Long roomId = item.getRoom() != null ? item.getRoom().getId()
+                    : (proposal.getRoom() != null ? proposal.getRoom().getId() : null);
+            ClassroomDeliveryMode deliveryOverride = item.getDeliveryModeOverride();
+
             classSectionService.createSession(created.getId(), CreateClassroomSessionRequest.builder()
-                    .sessionDate(sessionDate)
-                    .startTime(proposal.getSessionStartTime())
-                    .endTime(proposal.getSessionEndTime())
-                    .teacherId(proposal.getPrimaryTeacher() == null ? null : proposal.getPrimaryTeacher().getId())
+                    .sessionDate(item.getSessionDate())
+                    .startTime(item.getStartTime())
+                    .endTime(item.getEndTime())
+                    .teacherId(teacherId)
                     .status(ClassroomSessionStatus.SCHEDULED)
-                    .deliveryMode(proposal.getDeliveryType())
-                    .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
-                    .larkMeetingUrl(null)
-                    .courseLessonId(sessionPlan == null ? null : sessionPlan.getId())
-                    .sessionContent(sessionPlan == null
-                            ? proposal.getCourseOffering().getTitle()
-                            : sessionPlan.getTitle())
-                    .note("Sinh từ đề xuất " + proposal.getProposalCode())
+                    .deliveryModeOverride(deliveryOverride)
+                    .roomId(roomId)
+                    .courseLessonId(item.getCourseLesson() == null ? null : item.getCourseLesson().getId())
+                    .sessionContent(item.getCourseLesson() != null ? null : item.getSessionContent())
+                    .note(item.getNote() != null ? item.getNote() : ("Sinh từ đề xuất " + proposal.getProposalCode()))
                     .build());
         }
 
@@ -347,10 +393,68 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         proposal.setOfflineAddress(null);
         proposal.setVirtualMeetingUrl(null);
         proposal.setStaffNote(trimOrNull(payload.getNote()));
+        if (payload.getScheduleItems() != null && !payload.getScheduleItems().isEmpty()) {
+            List<ClassroomProposalScheduleItem> items = new ArrayList<>();
+            for (int i = 0; i < payload.getScheduleItems().size(); i++) {
+                ClassroomProposalScheduleItemRequest itemReq = payload.getScheduleItems().get(i);
+                CourseLesson lesson = itemReq.getCourseLessonId() == null ? null
+                        : courseLessonRepository.findById(itemReq.getCourseLessonId()).orElse(null);
+                User itemTeacher = resolveTeacher(itemReq.getTeacherId());
+                Room itemRoom = resolveRoom(itemReq.getRoomId());
+                items.add(ClassroomProposalScheduleItem.builder()
+                        .proposal(proposal)
+                        .sequenceNumber(itemReq.getSequenceNumber() != null ? itemReq.getSequenceNumber() : (i + 1))
+                        .sessionDate(itemReq.getSessionDate())
+                        .startTime(itemReq.getStartTime())
+                        .endTime(itemReq.getEndTime())
+                        .deliveryModeOverride(itemReq.getDeliveryModeOverride())
+                        .teacher(itemTeacher)
+                        .room(itemRoom)
+                        .courseLesson(lesson)
+                        .sessionContent(lesson != null ? null : trimOrNull(itemReq.getSessionContent()))
+                        .note(trimOrNull(itemReq.getNote()))
+                        .build());
+            }
+            proposal.setScheduleItems(items);
+        } else {
+            proposal.setScheduleItems(generateDefaultScheduleItems(proposal));
+        }
         validateProposal(proposal, false);
         if (proposal.getCapacity() < learnerCount) {
             throw new IllegalArgumentException("Sức chứa đề xuất nhỏ hơn số học viên đã chọn.");
         }
+    }
+
+    private List<ClassroomProposalScheduleItem> generateDefaultScheduleItems(ClassroomProposal proposal) {
+        List<CourseLesson> orderedLessons = courseLessonRepository.findByCourseOrderedByUnitAndLesson(
+                proposal.getCourseOffering().getId()
+        );
+        List<CourseLesson> flattenedLessons = new ArrayList<>();
+        for (CourseLesson lesson : orderedLessons) {
+            int count = lesson.getPlannedSessionCount() == null || lesson.getPlannedSessionCount() < 1
+                    ? 1
+                    : lesson.getPlannedSessionCount();
+            for (int k = 0; k < count; k++) {
+                flattenedLessons.add(lesson);
+            }
+        }
+        List<LocalDate> dates = sessionDates(proposal);
+        List<ClassroomProposalScheduleItem> items = new ArrayList<>();
+        int count = Math.max(dates.size(), flattenedLessons.size());
+        for (int i = 0; i < count; i++) {
+            LocalDate date = i < dates.size() ? dates.get(i) : proposal.getPlannedEndDate();
+            CourseLesson lesson = i < flattenedLessons.size() ? flattenedLessons.get(i) : null;
+            items.add(ClassroomProposalScheduleItem.builder()
+                    .proposal(proposal)
+                    .sequenceNumber(i + 1)
+                    .sessionDate(date)
+                    .startTime(proposal.getSessionStartTime())
+                    .endTime(proposal.getSessionEndTime())
+                    .courseLesson(lesson)
+                    .sessionContent(lesson != null ? lesson.getTitle() : proposal.getCourseOffering().getTitle())
+                    .build());
+        }
+        return items;
     }
 
     private void validateProposalPayload(CreateClassroomProposalRequest payload) {
@@ -442,7 +546,6 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     .endTime(proposal.getSessionEndTime())
                     .learnerIds(List.of())
                     .checkCapacity(false)
-                    .larkMeetingUrl(proposal.getVirtualMeetingUrl())
                     .build());
             if (sessionResult != null && sessionResult.getConflicts() != null) {
                 sessionResult.getConflicts().stream()
@@ -569,7 +672,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .startDate(proposal.getPlannedStartDate())
                 .endDate(proposal.getPlannedEndDate())
                 .primaryTeacherId(proposal.getPrimaryTeacher().getId())
-                .defaultRoomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
+                .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
                 .offlineAddress(proposal.getOfflineAddress())
                 .locationNote(scheduleLabel(proposal))
                 .defaultLarkMeetingUrl(null)
@@ -602,7 +705,9 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .weekdays(new ArrayList<>(parseWeekdays(proposal.getScheduleWeekdays())))
                 .sessionStartTime(proposal.getSessionStartTime())
                 .sessionEndTime(proposal.getSessionEndTime())
-                .plannedSessionCount(sessionDates(proposal).size())
+.plannedSessionCount(proposal.getScheduleItems() != null && !proposal.getScheduleItems().isEmpty()
+                        ? proposal.getScheduleItems().size()
+                        : sessionDates(proposal).size())
                 .primaryTeacherId(proposal.getPrimaryTeacher() == null ? null : proposal.getPrimaryTeacher().getId())
                 .primaryTeacherName(proposal.getPrimaryTeacher() == null ? null : proposal.getPrimaryTeacher().getFullName())
                 .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
@@ -620,9 +725,37 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .reviewedAt(proposal.getReviewedAt())
                 .reviewNote(proposal.getReviewNote())
                 .approvedClassroomId(proposal.getApprovedClassroom() == null ? null : proposal.getApprovedClassroom().getId())
+                .scheduleItems(proposal.getScheduleItems() == null ? List.of() : proposal.getScheduleItems().stream()
+                        .map(this::toScheduleItemResponse)
+                        .toList())
                 .members(members)
                 .createdAt(proposal.getCreatedAt())
                 .updatedAt(proposal.getUpdatedAt())
+                .build();
+    }
+
+    private ClassroomProposalScheduleItemResponse toScheduleItemResponse(ClassroomProposalScheduleItem item) {
+        CourseLesson lesson = item.getCourseLesson();
+        CourseUnit unit = lesson == null ? null : lesson.getCourseUnit();
+        User teacher = item.getTeacher();
+        Room room = item.getRoom();
+        return ClassroomProposalScheduleItemResponse.builder()
+                .id(item.getId())
+                .sequenceNumber(item.getSequenceNumber())
+                .sessionDate(item.getSessionDate())
+                .startTime(item.getStartTime())
+                .endTime(item.getEndTime())
+                .deliveryModeOverride(item.getDeliveryModeOverride())
+                .teacherId(teacher == null ? null : teacher.getId())
+                .teacherName(teacher == null ? null : teacher.getFullName())
+                .roomId(room == null ? null : room.getId())
+                .roomName(room == null ? null : room.getName())
+                .courseLessonId(lesson == null ? null : lesson.getId())
+                .courseLessonTitle(lesson == null ? null : lesson.getTitle())
+                .courseUnitId(unit == null ? null : unit.getId())
+                .courseUnitTitle(unit == null ? null : unit.getTitle())
+                .sessionContent(item.getSessionContent())
+                .note(item.getNote())
                 .build();
     }
 

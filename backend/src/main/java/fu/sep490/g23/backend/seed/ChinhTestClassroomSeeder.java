@@ -11,7 +11,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
@@ -651,8 +650,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .startDate(LocalDate.now().minusWeeks(5))
                 .plannedEndDate(LocalDate.now().plusWeeks(3))
                 .primaryTeacher(teacher)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .recordingVisible(false)
                 .syllabusSummary("8 buổi bám sát 4 kỹ năng IELTS: Listening, Reading, Writing, Speaking. Mỗi buổi gồm lý thuyết + luyện tập + flashcards + feedback cá nhân.")
                 .programOutcomes("Đạt band 6.5 IELTS tổng. Viết task 1 và task 2 đạt band 6.0+. Nói liên tục 2 phút không dừng.")
                 .teacherGuide("Mỗi buổi: review 10 phút + dạy chiến lược 30 phút + luyện tập có hướng dẫn 40 phút + Q&A 10 phút.")
@@ -781,9 +778,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .endTime(SESSION_END)
                 .teacher(teacher)
                 .status(status)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
+                .deliveryModeOverride(null)
                 .recordingVisible(false)
                 .sessionContent(content)
                 .note("Lớp test chinhcdhe181478 – buổi " + date)

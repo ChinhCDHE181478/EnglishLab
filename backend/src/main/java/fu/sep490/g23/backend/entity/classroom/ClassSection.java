@@ -83,8 +83,8 @@ public class ClassSection {
     private User googleMeetOwner;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "regular_room_id")
-    private Room regularRoom;
+    @JoinColumn(name = "room_id")
+    private Room room;
 
     @Column(name = "offline_address", length = 500)
     private String offlineAddress;

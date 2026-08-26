@@ -6,27 +6,38 @@ const normalizeHeader = (value) => String(value || '')
   .trim()
   .toLowerCase();
 
+const headerAliases = {
+  programTitle: ['ten khoa hoc', 'ten chuong trinh'],
+  unitTitle: ['ten unit'],
+  unitDescription: ['mo ta unit'],
+  sessionNumber: ['thu tu bai hoc', 'so bai hoc', 'so buoi'],
+  sessionTitle: ['ten bai hoc', 'ten buoi hoc'],
+  sessionDescription: ['mo ta bai hoc', 'mo ta buoi hoc'],
+  learningObjectives: ['muc tieu hoc tap'],
+};
+
 const requiredHeaders = {
-  programTitle: 'ten chuong trinh',
+  programTitle: 'ten khoa hoc',
   unitTitle: 'ten unit',
   unitDescription: 'mo ta unit',
-  sessionNumber: 'so buoi',
-  sessionTitle: 'ten buoi hoc',
-  sessionDescription: 'mo ta buoi hoc',
+  sessionNumber: 'thu tu bai hoc',
+  sessionTitle: 'ten bai hoc',
+  sessionDescription: 'mo ta bai hoc',
   learningObjectives: 'muc tieu hoc tap',
 };
 
 const errorMessage = (error, fallback) => error?.response?.data?.message || error?.message || fallback;
 
-export const parseCurriculumExcelRows = (rows, fileName = '') => {
+export const parseInstructorLedCourseExcelRows = (rows, fileName = '') => {
   if (!Array.isArray(rows) || rows.length < 2) {
     throw new Error('Tệp Excel không chứa dữ liệu hoặc sai định dạng.');
   }
 
   const normalizedHeaders = (rows[0] || []).map(normalizeHeader);
-  const columns = Object.fromEntries(Object.entries(requiredHeaders).map(([key, header]) => (
-    [key, normalizedHeaders.indexOf(header)]
-  )));
+  const columns = Object.fromEntries(Object.entries(headerAliases).map(([key, aliases]) => {
+    const index = aliases.reduce((found, alias) => (found >= 0 ? found : normalizedHeaders.indexOf(alias)), -1);
+    return [key, index];
+  }));
   const missingHeaders = Object.entries(columns)
     .filter(([, index]) => index < 0)
     .map(([key]) => requiredHeaders[key]);
@@ -79,7 +90,7 @@ export const parseCurriculumExcelRows = (rows, fileName = '') => {
         displayOrder: unitsByTitle.size + 1,
         title: currentUnitTitle,
         description: String(row[columns.unitDescription] || '').trim() || null,
-        sessionPlans: [],
+        lessons: [],
         sourceRow: excelRow,
       };
       unitsByTitle.set(unitKey, unit);
@@ -87,9 +98,9 @@ export const parseCurriculumExcelRows = (rows, fileName = '') => {
       unit.description = String(row[columns.unitDescription] || '').trim() || null;
     }
 
-    unit.sessionPlans.push({
+    unit.lessons.push({
       sessionNumber,
-      displayOrder: unit.sessionPlans.length,
+      displayOrder: unit.lessons.length,
       title: sessionTitle,
       description: String(row[columns.sessionDescription] || '').trim() || null,
       learningObjectives: String(row[columns.learningObjectives] || '').trim() || null,
@@ -109,33 +120,33 @@ export const parseCurriculumExcelFile = async (file) => {
   const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-  return parseCurriculumExcelRows(rows, file.name);
+  return parseInstructorLedCourseExcelRows(rows, file.name);
 };
 
 export const downloadCurriculumExcelTemplate = async () => {
   const XLSX = await import('@e965/xlsx');
   const rows = [
-    ['Tên chương trình', 'Tên Unit', 'Mô tả Unit', 'Số buổi', 'Tên buổi học', 'Mô tả buổi học', 'Mục tiêu học tập'],
+    ['Tên khóa học', 'Tên Unit', 'Mô tả Unit', 'Thứ tự bài học', 'Tên bài học', 'Mô tả bài học', 'Mục tiêu học tập'],
     ['IELTS Reading Foundation', 'Reading Fundamentals', 'Các kỹ năng đọc nền tảng', 1, 'Reading Overview + Skimming', 'Tổng quan IELTS Reading và kỹ thuật đọc lướt', 'Nắm format và áp dụng skimming'],
     ['', 'Reading Fundamentals', 'Các kỹ năng đọc nền tảng', 2, 'Scanning + Keywords', 'Xác định thông tin chi tiết và từ khóa', 'Áp dụng scanning để tìm thông tin'],
     ['', 'Reading Question Types', 'Chiến thuật cho từng dạng câu hỏi', 3, 'True / False / Not Given', 'Nhận diện và xử lý dạng câu hỏi', 'Phân biệt False và Not Given'],
   ];
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
   worksheet['!cols'] = [
-    { wch: 30 }, { wch: 28 }, { wch: 38 }, { wch: 12 }, { wch: 38 }, { wch: 48 }, { wch: 48 },
+    { wch: 30 }, { wch: 28 }, { wch: 38 }, { wch: 14 }, { wch: 38 }, { wch: 48 }, { wch: 48 },
   ];
   worksheet['!autofilter'] = { ref: 'A1:G4' };
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Khung_Chuong_Trinh');
-  XLSX.writeFile(workbook, 'Mau_Import_Chuong_Trinh_Dao_Tao.xlsx');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Khung_Khoa_Hoc');
+  XLSX.writeFile(workbook, 'Mau_Import_Khoa_Hoc.xlsx');
 };
 
-export const importCurriculumUnitsWithSessionPlans = async (api, programId, units) => {
-  const result = { createdUnits: 0, createdSessionPlans: 0, failures: [] };
+export const importCourseUnitsWithLessons = async (api, programId, units) => {
+  const result = { createdUnits: 0, createdLessons: 0, failures: [] };
   for (const unit of units) {
     let savedUnit;
     try {
-      savedUnit = await api.createCurriculumUnit(programId, {
+      savedUnit = await api.createCourseUnit(programId, {
         displayOrder: unit.displayOrder,
         title: unit.title,
         description: unit.description,
@@ -146,18 +157,18 @@ export const importCurriculumUnitsWithSessionPlans = async (api, programId, unit
       continue;
     }
 
-    for (const sessionPlan of unit.sessionPlans) {
+    for (const lesson of unit.lessons) {
       try {
-        await api.createCurriculumSessionPlan(savedUnit.id, {
-          sessionNumber: sessionPlan.sessionNumber,
-          displayOrder: sessionPlan.displayOrder,
-          title: sessionPlan.title,
-          description: sessionPlan.description,
-          learningObjectives: sessionPlan.learningObjectives,
+        await api.createCourseLesson(savedUnit.id, {
+          sessionNumber: lesson.sessionNumber,
+          displayOrder: lesson.displayOrder,
+          title: lesson.title,
+          description: lesson.description,
+          learningObjectives: lesson.learningObjectives,
         });
-        result.createdSessionPlans += 1;
+        result.createdLessons += 1;
       } catch (error) {
-        result.failures.push(`Dòng ${sessionPlan.sourceRow}: ${errorMessage(error, `Không tạo được buổi ${sessionPlan.sessionNumber}.`)}`);
+        result.failures.push(`Dòng ${lesson.sourceRow}: ${errorMessage(error, `Không tạo được buổi ${lesson.sessionNumber}.`)}`);
       }
     }
   }

@@ -100,11 +100,10 @@ public class StaffClassroomIT {
         body.put("shortDescription", "IT_CLASS_03 persisted update");
         copyIfPresent(detail, body, "classroomStatus", "classroomStatus");
         copyIfPresent(detail, body, "packageStatus", "packageStatus");
-        copyIfPresent(detail, body, "trainingProgramId", "trainingProgramId");
-        copyIfPresent(detail, body, "curriculumProgramId", "curriculumProgramId");
+        copyIfPresent(detail, body, "instructorLedCourseId", "instructorLedCourseId");
         copyIfPresent(detail, body, "startDate", "startDate");
         copyIfPresent(detail, body, "endDate", "endDate");
-        copyIfPresent(detail, body, "roomId", "defaultRoomId");
+        copyIfPresent(detail, body, "roomId", "roomId");
         copyIfPresent(detail, body, "offlineAddress", "offlineAddress");
         copyIfPresent(detail, body, "price", "price");
         copyIfPresent(detail, body, "salePrice", "salePrice");

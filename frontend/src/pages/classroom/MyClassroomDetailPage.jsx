@@ -113,16 +113,16 @@ const toLocalDateStr = (date = new Date()) => {
   return `${y}-${m}-${d}`;
 };
 
-/** Resolve Google Meet URL from session or classroom default (legacy field: larkMeetingUrl). */
+/** Resolve Google Meet URL from session or classroom default (legacy field: googleMeetUrl). */
 const resolveGoogleMeetUrl = (session, classroom) =>
-  session?.larkMeetingUrl
-  || classroom?.defaultLarkMeetingUrl
+  session?.googleMeetUrl
+  || classroom?.googleMeetUrl
   || '';
 
 /** Show Meet join when a Google Meet link exists and the session is not past/cancelled. */
 const canJoinGoogleMeet = (session, classroom) => {
   if (!session) return false;
-  const isVirtual = session.deliveryMode === 'VIRTUAL' || classroom?.deliveryMode === 'VIRTUAL';
+  const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL' || classroom?.deliveryMode === 'VIRTUAL';
   if (!isVirtual) return false;
   if (!resolveGoogleMeetUrl(session, classroom)) return false;
   const status = getEffectiveSessionStatus(session);
@@ -193,7 +193,7 @@ export default function MyClassroomDetailPage() {
   const [submitAnswers, setSubmitAnswers] = useState({});
   const [submitFiles, setSubmitFiles] = useState({});
   const [actionMessage, setActionMessage] = useState('');
-  const [larkMessage, setLarkMessage] = useState('');
+  const [meetMessage, setMeetMessage] = useState('');
   const [disputeForm, setDisputeForm] = useState({ attendanceId: null, reason: '' });
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [selectedHomeworkForSubmission, setSelectedHomeworkForSubmission] = useState(null);
@@ -520,7 +520,7 @@ export default function MyClassroomDetailPage() {
 
   const handleSyllabusClick = (syllabusItem) => {
     const sTitle = syllabusItem.title.trim().toLowerCase();
-    const matchingUnit = classroom?.curriculumProgram?.units?.find((unit) => {
+    const matchingUnit = classroom?.instructorLedCourse?.units?.find((unit) => {
       const uTitle = unit.title.trim().toLowerCase();
       const normalizedSTitle = sTitle.replace(/^buổi\s*\d+\s*[-–:]\s*/, '').trim();
       return uTitle === normalizedSTitle || normalizedSTitle.includes(uTitle) || uTitle.includes(normalizedSTitle);
@@ -547,7 +547,7 @@ export default function MyClassroomDetailPage() {
     if (activeTab === 'curriculum') {
       return (
         <LearnerCurriculumPanel
-          curriculum={classroom?.curriculumProgram}
+          curriculum={classroom?.instructorLedCourse}
           onOpenPractice={(unitId, exerciseId) => {
             setSelectedUnitId(unitId);
             setSelectedExerciseId(exerciseId);
@@ -567,7 +567,7 @@ export default function MyClassroomDetailPage() {
       return (
         <ClassroomPracticePanel
           classroomId={id}
-          curriculum={classroom?.curriculumProgram}
+          curriculum={classroom?.instructorLedCourse}
           initialUnitId={selectedUnitId}
           initialExerciseId={selectedExerciseId}
         />
@@ -577,7 +577,7 @@ export default function MyClassroomDetailPage() {
     if (activeTab === 'flashcards') {
       return (
         <ClassroomFlashcardsPanel
-          curriculum={classroom?.curriculumProgram}
+          curriculum={classroom?.instructorLedCourse}
           initialUnitId={selectedUnitId}
         />
       );
@@ -610,7 +610,7 @@ export default function MyClassroomDetailPage() {
                 {pendingHomework.length} bài tập cần hoàn thành
               </button>
             )}
-            {larkMessage && <p className="w-full text-xs text-rose-700 font-semibold">{larkMessage}</p>}
+            {meetMessage && <p className="w-full text-xs text-rose-700 font-semibold">{meetMessage}</p>}
           </div>
 
           {/* ── KPI Row ── */}
@@ -687,8 +687,8 @@ export default function MyClassroomDetailPage() {
                     <h4 className="font-['Manrope'] text-base font-extrabold text-[#1a1c1c]">
                       {getClassroomSessionTitle(nextSession, `Buổi học ngày ${formatClassroomDate(nextSession.sessionDate)}`)}
                     </h4>
-                    {nextSession.sessionPlanDescription && (
-                      <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={nextSession.sessionPlanDescription} />
+                    {(nextSession.courseLessonDescription || nextSession.sessionPlanDescription) && (
+                      <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={nextSession.courseLessonDescription || nextSession.sessionPlanDescription} />
                     )}
 
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#584140]">
@@ -720,7 +720,7 @@ export default function MyClassroomDetailPage() {
                         className="!px-4 !py-2.5 !text-xs"
                         classroomId={id}
                         sessionId={nextSession.id}
-                        onBlocked={setLarkMessage}
+                        onBlocked={setMeetMessage}
                         url={resolveGoogleMeetUrl(nextSession, classroom)}
                       />
                     )}
@@ -914,7 +914,7 @@ export default function MyClassroomDetailPage() {
 
           <div className="relative border-l-2 border-gray-200 pl-6 ml-4 space-y-6 py-2">
             {paginatedSessions.map((session) => {
-              const isVirtual = session.deliveryMode === 'VIRTUAL' || classroom?.deliveryMode === 'VIRTUAL';
+              const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL' || classroom?.deliveryMode === 'VIRTUAL';
               const meetUrl = resolveGoogleMeetUrl(session, classroom);
               const canJoinMeet = canJoinGoogleMeet(session, classroom);
               const effStatus = getEffectiveSessionStatus(session);
@@ -967,8 +967,8 @@ export default function MyClassroomDetailPage() {
                         <h3 className="font-['Manrope'] text-sm font-extrabold text-[#1a1c1c]">
                           {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
                         </h3>
-                        {session.sessionPlanDescription && (
-                          <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={session.sessionPlanDescription} />
+                        {(session.courseLessonDescription || session.sessionPlanDescription) && (
+                          <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={session.courseLessonDescription || session.sessionPlanDescription} />
                         )}
 
                         <div className="grid gap-x-6 gap-y-2 text-xs text-[#584140] sm:grid-cols-2">
@@ -997,7 +997,7 @@ export default function MyClassroomDetailPage() {
                             className="!px-4 !py-2.5 !text-xs"
                             classroomId={id}
                             sessionId={session.id}
-                            onBlocked={setLarkMessage}
+                            onBlocked={setMeetMessage}
                             url={meetUrl}
                           />
                         )}
@@ -1025,7 +1025,7 @@ export default function MyClassroomDetailPage() {
               );
             })}
           </div>
-          {larkMessage && <p className="text-xs font-bold text-rose-700">{larkMessage}</p>}
+          {meetMessage && <p className="text-xs font-bold text-rose-700">{meetMessage}</p>}
 
           {sessionsTotalPages > 1 && (
             <div className="flex justify-center mt-6">
@@ -1961,7 +1961,7 @@ export default function MyClassroomDetailPage() {
           {flashcardHomework ? (
             <FlashcardHomeworkWorkspace
               canComplete={!flashcardHomework.mySubmission || canResubmitHomework(flashcardHomework)}
-              curriculum={classroom?.curriculumProgram}
+              curriculum={classroom?.instructorLedCourse}
               homework={flashcardHomework}
               onClose={() => setFlashcardHomework(null)}
               onComplete={handleCompleteFlashcardHomework}
@@ -2509,10 +2509,10 @@ function LearnerCurriculumPanel({
                         </p>
                       )}
 
-                      {unit.sessionPlans?.length > 0 && (
+                      {unit.lessons?.length > 0 && (
                         <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
                           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Các buổi học</span>
-                          {unit.sessionPlans.map((plan) => (
+                          {unit.lessons.map((plan) => (
                             <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
                               <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
                               <p className="text-xs font-bold text-[#1a1c1c]">{plan.title}</p>

@@ -12,7 +12,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
@@ -164,7 +163,6 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .code(slug)
                     .instructorLedCourse(course)
                     .tuitionFeeVnd(BigDecimal.valueOf(price))
-                    .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.UPCOMING)
                     .entryLevel(entryLevel)
                     .targetOutcome(outcome)
@@ -172,9 +170,8 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .startDate(startDate)
                     .plannedEndDate(startDate.plusWeeks(8))
                     .primaryTeacher(teacher)
-                    .regularRoom(room)
+                    .room(room)
                     .offlineAddress("EnglishLab Center, Hà Nội")
-                    .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
                     .syllabusSummary("Lộ trình 10 buổi có bài tập và phản hồi từ giáo viên.")
                     .build());
             teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
@@ -190,7 +187,6 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .endTime(LocalTime.of(21, 0))
                     .teacher(teacher)
                     .room(room)
-                    .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomSessionStatus.SCHEDULED)
                     .sessionContent("Buổi 1: Orientation và đánh giá mục tiêu học tập.")
                     .build());

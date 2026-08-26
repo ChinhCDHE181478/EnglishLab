@@ -7,7 +7,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionTiming;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
@@ -119,7 +118,6 @@ public class ClassroomMapper {
 
         return ClassroomOfferingResponse.builder()
                 .id(offering.getId())
-                .packageId(course.getId())
                 .title(offering.getName())
                 .slug(course.getSlug())
                 .shortDescription(course.getShortDescription())
@@ -127,18 +125,12 @@ public class ClassroomMapper {
                 .deliveryMode(offering.getDeliveryMode())
                 .deliveryModeLabel(deliveryModeLabel(offering.getDeliveryMode()))
                 .classroomStatus(offering.getStatus())
-                .packageStatus(course.getPublicationStatus())
-                .trainingProgramId(course.getId())
-                .trainingProgramTitle(course.getTitle())
-                .trainingProgramCode(course.getCode())
-                .trainingProgramSlug(course.getSlug())
-                .trainingProgramStatus(course.getPublicationStatus().name())
                 .instructorLedCourseId(course.getId())
                 .instructorLedCourseTitle(course.getTitle())
                 .instructorLedCourseCode(course.getCode())
                 .instructorLedCourseSlug(course.getSlug())
                 .instructorLedCourseExamType(course.getExamType())
-                .instructorLedCourseStatus(course.getPublicationStatus().name())
+                .instructorLedCourseStatus(course.getPublicationStatus() == null ? null : course.getPublicationStatus().name())
                 .instructorLedCourse(toInstructorLedCourseResponse(course, includeDetails))
                 .entryLevel(offering.getEntryLevel())
                 .targetOutcome(offering.getTargetOutcome())
@@ -148,17 +140,14 @@ public class ClassroomMapper {
                 .endDate(offering.getPlannedEndDate())
                 .primaryTeacherId(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getId())
                 .primaryTeacherName(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getFullName())
-                .roomId(offering.getRegularRoom() == null ? null : offering.getRegularRoom().getId())
-                .roomName(offering.getRegularRoom() == null ? null : offering.getRegularRoom().getName())
+                .roomId(offering.getRoom() == null ? null : offering.getRoom().getId())
+                .roomName(offering.getRoom() == null ? null : offering.getRoom().getName())
                 .offlineAddress(offering.getOfflineAddress())
                 .locationNote(offering.getLocationNote())
-                .defaultLarkMeetingUrl(virtualMeetingService.isLegacyOrPlaceholderUrl(offering.getDefaultLarkMeetingUrl())
-                        ? null
-                        : offering.getDefaultLarkMeetingUrl())
-                .larkMeetingStatus(offering.getLarkMeetingStatus())
-                .larkPlatformName(virtualMeetingService.getPlatformName())
-                .recordingUrl(offering.isRecordingVisible() ? offering.getRecordingUrl() : null)
-                .recordingVisible(offering.isRecordingVisible())
+                .googleMeetOwnerId(offering.getGoogleMeetOwner() == null ? null : offering.getGoogleMeetOwner().getId())
+                .googleMeetUrl(offering.getGoogleMeetUrl())
+                .googleMeetStatus(offering.getGoogleMeetStatus())
+                .googleMeetSyncError(offering.getGoogleMeetSyncError())
                 .syllabusSummary(offering.getSyllabusSummary())
                 .programOutcomes(offering.getProgramOutcomes())
                 .teacherGuide(offering.getTeacherGuide())
@@ -220,8 +209,6 @@ public class ClassroomMapper {
         ClassroomOfferingResponse response = toOfferingResponse(offering, true, null, null, true);
         response.setEnrollments(null);
         response.setTeacherGuide(null);
-        response.setDefaultLarkMeetingUrl(null);
-        response.setRecordingUrl(null);
         if (response.getInstructorLedCourse() != null) {
             response.getInstructorLedCourse().setTeacherGuide(null);
         }
@@ -235,11 +222,8 @@ public class ClassroomMapper {
     }
 
     private void sanitizePublicSession(ClassroomSessionResponse session) {
-        session.setLarkMeetingUrl(null);
-        session.setLarkJoinable(false);
-        session.setLarkSyncStatus(null);
-        session.setLarkSyncError(null);
-        session.setLarkSyncedAt(null);
+        session.setGoogleMeetUrl(null);
+        session.setGoogleMeetJoinable(false);
         session.setRecordingUrl(null);
         session.setRecordingVisible(false);
         session.setNote(null);
@@ -260,64 +244,52 @@ public class ClassroomMapper {
     }
 
     private ClassroomSessionResponse toSessionResponse(ClassSchedule session, boolean includeHiddenRecording) {
-        User teacher = session.getTeacher();
-        CourseLesson sessionPlan = session.getCourseLesson();
+        User teacher = session.getEffectiveTeacher();
+        CourseLesson courseLesson = session.getCourseLesson();
         fu.sep490.g23.backend.entity.course.CourseUnit courseUnit =
-                sessionPlan == null ? null : sessionPlan.getCourseUnit();
-        LarkMeetingStatus larkStatus = session.getLarkMeetingStatus();
-        boolean recordingExpired = session.getRecordingExpiresAt() != null
-                && !session.getRecordingExpiresAt().isAfter(LocalDateTime.now());
-        boolean recordingAvailable = Boolean.TRUE.equals(session.getRecordingVisible()) && !recordingExpired;
+                courseLesson == null ? null : courseLesson.getCourseUnit();
+        ClassSection section = session.getClassSection();
+        boolean recordingAvailable = Boolean.TRUE.equals(session.getRecordingVisible());
+        ClassroomDeliveryMode effectiveDeliveryMode = session.getEffectiveDeliveryMode();
+        Room effectiveRoom = session.getEffectiveRoom();
+        boolean googleMeetJoinable = virtualMeetingService.isJoinable(section);
+
         return ClassroomSessionResponse.builder()
                 .id(session.getId())
-                .classSectionId(session.getClassSection().getId())
-                .classroomTitle(session.getClassSection().getTitle())
+                .classSectionId(section.getId())
+                .classroomTitle(section.getName())
                 .sessionDate(session.getSessionDate())
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())
                 .teacherId(teacher == null ? null : teacher.getId())
                 .teacherName(teacher == null ? null : teacher.getFullName())
                 .status(session.getStatus())
-                .deliveryMode(session.getDeliveryMode())
-                .deliveryModeLabel(deliveryModeLabel(session.getDeliveryMode()))
-                .roomId(session.getRoom() == null ? null : session.getRoom().getId())
-                .roomName(session.getRoom() == null ? null : session.getRoom().getName())
-                .offlineAddress(session.getClassSection().getOfflineAddress())
-                .larkMeetingUrl(virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())
-                        ? null
-                        : session.getLarkMeetingUrl())
-                .larkMeetingNo(session.getLarkMeetingNo())
-                .larkMeetingStatus(larkStatus)
-                .larkJoinable(virtualMeetingService.isJoinable(session.getLarkMeetingUrl(), larkStatus))
-                .larkPlatformName(virtualMeetingService.getPlatformName())
-                .larkSyncStatus(session.getLarkSyncStatus())
-                .larkSyncError(session.getLarkSyncError())
-                .larkSyncedAt(session.getLarkSyncedAt())
+                .deliveryModeOverride(session.getDeliveryModeOverride())
+                .effectiveDeliveryMode(effectiveDeliveryMode)
+                .deliveryModeLabel(deliveryModeLabel(effectiveDeliveryMode))
+                .roomId(effectiveRoom == null ? null : effectiveRoom.getId())
+                .roomName(effectiveRoom == null ? null : effectiveRoom.getName())
+                .offlineAddress(section.getOfflineAddress())
+                .googleMeetUrl(section.getGoogleMeetUrl())
+                .googleMeetStatus(section.getGoogleMeetStatus())
+                .googleMeetJoinable(googleMeetJoinable)
                 .recordingUrl(includeHiddenRecording || recordingAvailable ? session.getRecordingUrl() : null)
-                .recordingVisible(includeHiddenRecording
-                        ? Boolean.TRUE.equals(session.getRecordingVisible())
-                        : recordingAvailable)
-                .recordingSyncStatus(session.getRecordingSyncStatus())
-                .recordingProvider(session.getRecordingProvider())
-                .recordingDurationMs(session.getRecordingDurationMs())
+                .recordingVisible(includeHiddenRecording ? Boolean.TRUE.equals(session.getRecordingVisible()) : recordingAvailable)
+                .recordingStatus(session.getRecordingStatus())
                 .recordingSyncedAt(session.getRecordingSyncedAt())
                 .recordingLastAttemptAt(session.getRecordingLastAttemptAt())
                 .recordingSyncError(includeHiddenRecording ? session.getRecordingSyncError() : null)
                 .recordingSyncAttempts(session.getRecordingSyncAttempts())
-                .recordingPublishedAt(session.getRecordingPublishedAt())
-                .recordingExpiresAt(session.getRecordingExpiresAt())
                 .sessionContent(session.getSessionContent())
-                .courseLessonId(sessionPlan == null ? null : sessionPlan.getId())
-                .sessionNumber(sessionPlan == null ? null : sessionPlan.getSequenceNumber())
-                .sessionPlanTitle(sessionPlan == null ? null : sessionPlan.getTitle())
-                .sessionPlanDescription(sessionPlan == null ? null : sessionPlan.getDescription())
-                .learningObjectives(sessionPlan == null ? null : sessionPlan.getLearningObjectives())
+                .courseLessonId(courseLesson == null ? null : courseLesson.getId())
+                .courseLessonSequenceNumber(courseLesson == null ? null : courseLesson.getSequenceNumber())
+                .courseLessonTitle(courseLesson == null ? null : courseLesson.getTitle())
+                .courseLessonDescription(courseLesson == null ? null : courseLesson.getDescription())
+                .learningObjectives(courseLesson == null ? null : courseLesson.getLearningObjectives())
                 .courseUnitId(courseUnit == null ? null : courseUnit.getId())
                 .courseUnitSequenceNumber(courseUnit == null ? null : courseUnit.getSequenceNumber())
                 .courseUnitTitle(courseUnit == null ? null : courseUnit.getTitle())
                 .note(session.getNote())
-                .locked(session.isLocked())
-                .rescheduled(session.getStatus() == ClassroomSessionStatus.RESCHEDULED)
                 .cancelled(session.getStatus() == ClassroomSessionStatus.CANCELLED)
                 .build();
     }
@@ -446,10 +418,8 @@ public class ClassroomMapper {
                 .endTime(session.getEndTime())
                 .classroomTitle(offering.getTitle())
                 .classSectionId(offering.getId())
-                .deliveryMode(session.getDeliveryMode() != null ? session.getDeliveryMode().name() : null)
-                .roomName(session.getRoom() != null ? session.getRoom().getName() : null)
-                .larkMeetingUrl(session.getLarkMeetingUrl())
-                .larkSyncError(session.getLarkSyncError())
+                .deliveryMode(session.getEffectiveDeliveryMode() != null ? session.getEffectiveDeliveryMode().name() : null)
+                .roomName(session.getEffectiveRoom() != null ? session.getEffectiveRoom().getName() : null)
                 .build();
     }
 
@@ -469,10 +439,8 @@ public class ClassroomMapper {
                 .endTime(session.getEndTime())
                 .classroomTitle(offering.getTitle())
                 .classSectionId(offering.getId())
-                .deliveryMode(session.getDeliveryMode() != null ? session.getDeliveryMode().name() : null)
-                .roomName(session.getRoom() != null ? session.getRoom().getName() : null)
-                .larkMeetingUrl(session.getLarkMeetingUrl())
-                .larkSyncError(session.getLarkSyncError())
+                .deliveryMode(session.getEffectiveDeliveryMode() != null ? session.getEffectiveDeliveryMode().name() : null)
+                .roomName(session.getEffectiveRoom() != null ? session.getEffectiveRoom().getName() : null)
                 .build();
     }
 
@@ -735,7 +703,7 @@ public class ClassroomMapper {
                 .displayOrder(unit.getSequenceNumber())
                 .title(unit.getTitle())
                 .description(unit.getDescription())
-                .sessionPlans(unit.getLessons() == null ? List.of() : unit.getLessons().stream()
+                .lessons(unit.getLessons() == null ? List.of() : unit.getLessons().stream()
                         .map(this::toCourseLessonResponse)
                         .toList())
                 .createdAt(unit.getCreatedAt())
@@ -853,7 +821,7 @@ public class ClassroomMapper {
             case CREATE_MAKEUP_SESSION -> "Tạo buổi học bù";
             case TRANSFER_STUDENT -> "Chuyển học viên";
             case TRANSFER_CLASS -> "Chuyển lớp";
-            case UPDATE_LARK_LINK -> "Cập nhật liên kết Google Meet";
+            case RECREATE_GOOGLE_MEET -> "Tạo lại liên kết Google Meet";
         };
     }
 

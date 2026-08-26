@@ -262,15 +262,13 @@ class ClassroomProposalServiceImplTest {
         ArgumentCaptor<CreateClassroomOfferingRequest> offeringCaptor =
                 ArgumentCaptor.forClass(CreateClassroomOfferingRequest.class);
         verify(classroomOfferingService).createOffering(offeringCaptor.capture(), any());
-        assertThat(offeringCaptor.getValue().getDefaultLarkMeetingUrl()).isNull();
 
         ArgumentCaptor<CreateClassroomSessionRequest> sessionCaptor =
                 ArgumentCaptor.forClass(CreateClassroomSessionRequest.class);
         verify(classroomOfferingService, times(2)).createSession(any(), sessionCaptor.capture());
         assertThat(sessionCaptor.getAllValues())
                 .allSatisfy(request -> {
-                    assertThat(request.getDeliveryMode()).isEqualTo(ClassroomDeliveryMode.VIRTUAL);
-                    assertThat(request.getLarkMeetingUrl()).isNull();
+                    assertThat(request.getDeliveryModeOverride()).isNull();
                 });
     }
 
@@ -281,7 +279,7 @@ class ClassroomProposalServiceImplTest {
         List<CourseLesson> plans = structuredPlans(proposal.getCourseOffering(), 5);
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
-        when(courseLessonRepository.findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(77L)).thenReturn(plans);
+        when(courseLessonRepository.findByCourseOrderedByUnitAndLesson(77L)).thenReturn(plans);
         when(classroomOfferingService.createOffering(any(CreateClassroomOfferingRequest.class), any()))
                 .thenReturn(ClassroomOfferingResponse.builder().id(classroom.getId()).build());
         when(offeringRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
@@ -293,37 +291,38 @@ class ClassroomProposalServiceImplTest {
         verify(classroomOfferingService, times(5)).createSession(any(), captor.capture());
         assertThat(captor.getAllValues()).hasSize(5);
         assertThat(captor.getAllValues().get(0).getCourseLessonId()).isEqualTo(1L);
-        assertThat(captor.getAllValues().get(0).getSessionContent()).isEqualTo("Nội dung buổi 1");
+        assertThat(captor.getAllValues().get(0).getSessionContent()).isNull();
         assertThat(captor.getAllValues().get(4).getCourseLessonId()).isEqualTo(5L);
-        assertThat(captor.getAllValues().get(4).getSessionContent()).isEqualTo("Nội dung buổi 5");
+        assertThat(captor.getAllValues().get(4).getSessionContent()).isNull();
     }
 
     @Test
-    void managerApprovalRejectsFourDatesForFiveStructuredPlans() {
-        ClassroomProposal proposal = structuredPendingProposal(4);
+    void managerApprovalCreatesSessionsFromCustomProposalScheduleItems() {
+        ClassroomProposal proposal = pendingProposal();
+        proposal.getScheduleItems().clear();
+        proposal.getScheduleItems().add(fu.sep490.g23.backend.entity.classroom.ClassroomProposalScheduleItem.builder()
+                .proposal(proposal)
+                .sequenceNumber(1)
+                .sessionDate(LocalDate.now().plusDays(2))
+                .startTime(LocalTime.of(18, 0))
+                .endTime(LocalTime.of(20, 0))
+                .sessionContent("Buổi kiểm tra giữa kỳ")
+                .build());
+
+        ClassSection classroom = ClassSection.builder().id(103L).build();
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
-        when(courseLessonRepository.findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(77L))
-                .thenReturn(structuredPlans(proposal.getCourseOffering(), 5));
+        when(classroomOfferingService.createOffering(any(CreateClassroomOfferingRequest.class), any()))
+                .thenReturn(ClassroomOfferingResponse.builder().id(classroom.getId()).build());
+        when(offeringRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(proposalRepository.save(proposal)).thenReturn(proposal);
 
-        assertThatThrownBy(() -> service.approve(proposal.getId(), manager.getEmail()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("tạo ra 4 buổi nhưng giáo trình yêu cầu 5 buổi");
-        verify(classroomOfferingService, never()).createOffering(any(), any());
-    }
+        service.approve(proposal.getId(), manager.getEmail());
 
-    @Test
-    void managerApprovalRejectsSixDatesForFiveStructuredPlans() {
-        ClassroomProposal proposal = structuredPendingProposal(6);
-        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
-        when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
-        when(courseLessonRepository.findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(77L))
-                .thenReturn(structuredPlans(proposal.getCourseOffering(), 5));
-
-        assertThatThrownBy(() -> service.approve(proposal.getId(), manager.getEmail()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("tạo ra 6 buổi nhưng giáo trình yêu cầu 5 buổi");
-        verify(classroomOfferingService, never()).createOffering(any(), any());
+        ArgumentCaptor<CreateClassroomSessionRequest> captor = ArgumentCaptor.forClass(CreateClassroomSessionRequest.class);
+        verify(classroomOfferingService, times(1)).createSession(any(), captor.capture());
+        assertThat(captor.getAllValues().get(0).getCourseLessonId()).isNull();
+        assertThat(captor.getAllValues().get(0).getSessionContent()).isEqualTo("Buổi kiểm tra giữa kỳ");
     }
 
     @Test

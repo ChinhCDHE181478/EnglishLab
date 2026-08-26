@@ -121,7 +121,7 @@ public class ClassSchedule {
     }
 
     public Room getEffectiveRoom() {
-        return room != null ? room : classSection.getRegularRoom();
+        return room != null ? room : classSection.getRoom();
     }
 
     public ClassroomDeliveryMode getEffectiveDeliveryMode() {

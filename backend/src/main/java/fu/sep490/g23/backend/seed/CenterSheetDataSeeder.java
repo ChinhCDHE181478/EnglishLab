@@ -41,7 +41,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
@@ -337,7 +337,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             existing.setName(title);
             existing.setInstructorLedCourse(instructorLedCourse);
             existing.setPrimaryTeacher(teacher);
-            existing.setRegularRoom(room);
+            existing.setRoom(room);
             return offeringRepository.save(existing);
         }).orElseGet(() -> {
             ClassSection offering = ClassSection.builder()
@@ -353,11 +353,11 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .startDate(start)
                     .plannedEndDate(end)
                     .primaryTeacher(teacher)
-                    .virtualMeetingOwner(online ? teacher : null)
-                    .regularRoom(room)
+                    .room(room)
                     .offlineAddress(online ? null : ADDRESS)
-                    .defaultLarkMeetingUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
-                    .larkMeetingStatus(online ? LarkMeetingStatus.SCHEDULED : LarkMeetingStatus.NOT_CREATED)
+                    .googleMeetOwner(online ? teacher : null)
+                    .googleMeetUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
+                    .googleMeetStatus(online ? GoogleMeetStatus.READY : GoogleMeetStatus.NOT_CREATED)
                     .syllabusSummary("36 buổi Listening-Reading-Writing-Speaking xoay vòng.")
                     .build();
             return offeringRepository.save(offering);
@@ -453,12 +453,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .endTime(end)
                         .teacher(teacher)
                         .status(status)
-                        .deliveryMode(online ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
+                        .deliveryModeOverride(null)
                         .room(room)
-                        .larkMeetingUrl(online ? offering.getDefaultLarkMeetingUrl() : null)
-                        .larkMeetingStatus(online ? LarkMeetingStatus.SCHEDULED : LarkMeetingStatus.NOT_CREATED)
-                        .recordingProvider(online ? "GOOGLE_MEET" : null)
-                        .recordingSyncStatus(RecordingSyncStatus.NOT_AVAILABLE)
+                        .recordingStatus(RecordingSyncStatus.NOT_AVAILABLE)
                         .sessionContent("Buổi " + index + ": luyện 4 kỹ năng")
                         .build());
                 index++;

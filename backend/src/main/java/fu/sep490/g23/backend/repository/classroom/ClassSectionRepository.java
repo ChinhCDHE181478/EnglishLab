@@ -53,4 +53,13 @@ public interface ClassSectionRepository extends JpaRepository<ClassSection, Long
     List<ClassSection> findByPlannedEndDateBetween(LocalDate from, LocalDate to);
 
     List<ClassSection> findByStatusIn(Collection<ClassroomOfferingStatus> statuses);
+
+    @Query("""
+            SELECT section FROM ClassSection section
+            WHERE section.deliveryMode = 'VIRTUAL'
+              AND section.googleMeetStatus IN ('NOT_CREATED', 'FAILED')
+              AND section.status IN ('UPCOMING', 'ACTIVE')
+            ORDER BY section.updatedAt ASC, section.id ASC
+            """)
+    List<ClassSection> findGoogleMeetRoomsPendingSync(Pageable pageable);
 }

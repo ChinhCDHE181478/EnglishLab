@@ -14,6 +14,7 @@ public class CourseLessonResponse {
     private Long programId;
     private Integer sessionNumber;
     private Integer displayOrder;
+    private Integer plannedSessionCount;
     private String title;
     private String description;
     private String learningObjectives;

@@ -24,17 +24,18 @@ SET google_meet_space_name = source.space_name,
     google_meet_url = COALESCE(section.google_meet_url, source.meeting_url),
     google_meet_status = 'READY',
     google_meet_sync_error = source.sync_error
-FROM LATERAL (
-    SELECT schedule.lark_meeting_id AS space_name,
+FROM (
+    SELECT DISTINCT ON (schedule.class_section_id)
+           schedule.class_section_id,
+           schedule.lark_meeting_id AS space_name,
            schedule.lark_meeting_url AS meeting_url,
            schedule.lark_sync_error AS sync_error
     FROM class_schedules schedule
-    WHERE schedule.class_section_id = section.id
-      AND schedule.lark_meeting_id LIKE 'spaces/%'
+    WHERE schedule.lark_meeting_id LIKE 'spaces/%'
       AND schedule.lark_meeting_url ~* '^https://meet\.google\.com/'
-    ORDER BY schedule.lark_synced_at DESC NULLS LAST, schedule.id DESC
-    LIMIT 1
-) source;
+    ORDER BY schedule.class_section_id, schedule.lark_synced_at DESC NULLS LAST, schedule.id DESC
+) source
+WHERE source.class_section_id = section.id;
 
 ALTER TABLE class_sections
     ADD CONSTRAINT fk_class_sections_google_meet_owner
@@ -61,6 +62,10 @@ UPDATE class_schedules
 SET status = 'SCHEDULED'
 WHERE status IN ('MAKEUP', 'RESCHEDULED');
 
+UPDATE class_schedules
+SET recording_sync_status = 'PROCESSING'
+WHERE recording_sync_status IN ('SCHEDULED', 'RECORDING');
+
 ALTER TABLE class_schedules
     DROP CONSTRAINT IF EXISTS ck_class_schedules_type,
     DROP CONSTRAINT IF EXISTS ck_class_schedules_lesson_required;
@@ -68,14 +73,14 @@ ALTER TABLE class_schedules
 ALTER TABLE class_schedules
     RENAME COLUMN delivery_mode TO delivery_mode_override;
 
+ALTER TABLE class_schedules
+    ALTER COLUMN delivery_mode_override DROP NOT NULL;
+
 UPDATE class_schedules schedule
 SET delivery_mode_override = NULL
 FROM class_sections section
 WHERE section.id = schedule.class_section_id
   AND schedule.delivery_mode_override = section.delivery_mode;
-
-ALTER TABLE class_schedules
-    ALTER COLUMN delivery_mode_override DROP NOT NULL;
 
 ALTER TABLE class_schedules
     RENAME COLUMN recording_sync_status TO recording_status;

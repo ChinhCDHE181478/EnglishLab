@@ -10,7 +10,6 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
@@ -343,8 +342,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(11, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .room(offering.getRegularRoom())
+                .room(offering.getRoom())
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Giới thiệu IELTS Foundation và kỹ năng Listening cơ bản")
                 .build());
@@ -355,8 +353,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startTime(LocalTime.of(14, 0))
                 .endTime(LocalTime.of(16, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .room(offering.getRegularRoom())
+                .room(offering.getRoom())
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Buổi học mẫu để kiểm tra xung đột lịch giáo viên")
                 .build());
@@ -392,7 +389,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .oldValuesJson("{\"sessionDate\":\"" + conflictSession.getSessionDate() + "\"}")
                 .newValuesJson("{\"sessionDate\":\"" + conflictSession.getSessionDate().plusDays(1)
                         + "\",\"startTime\":\"14:00\",\"endTime\":\"16:00\",\"teacherId\":" + teacher.getId()
-                        + ",\"roomId\":" + offering.getRegularRoom().getId() + "}")
+                        + ",\"roomId\":" + offering.getRoom().getId() + "}")
                 .reason("Giáo viên có lịch họp nội bộ, đề nghị dời buổi học.")
                 .status(ClassroomChangeRequestStatus.PENDING)
                 .build());
@@ -405,9 +402,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startTime(LocalTime.of(19, 0))
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Speaking Part 1 & 2 practice")
                 .build());
@@ -529,9 +523,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startTime(LocalTime.of(19, 0))
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.COMPLETED)
                 .sessionContent("TOEIC Listening Part 1-2")
                 .build());
@@ -542,9 +533,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startTime(LocalTime.of(19, 30))
                 .endTime(LocalTime.of(21, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.OPEN)
                 .sessionContent("TOEIC Speaking practice hôm nay")
                 .build());
@@ -555,9 +543,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startTime(LocalTime.of(19, 0))
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Role-play giao tiếp công sở")
                 .build());
@@ -654,8 +639,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startTime(LocalTime.of(startHour, 0))
                 .endTime(LocalTime.of(endHour, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .room(offering.getRegularRoom())
+                .room(offering.getRoom())
                 .status(status)
                 .sessionContent(content)
                 .build());
@@ -677,7 +661,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .name(title)
                 .code(slug)
                 .tuitionFeeVnd(salePrice != null ? salePrice : price)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .status(status)
                 .entryLevel("4.0 - 6.0")
                 .targetOutcome("Đạt band 5.5-6.5")
@@ -685,7 +668,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startDate(startDate)
                 .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
-                .regularRoom(room)
+                .room(room)
                 .offlineAddress(DEFAULT_OFFLINE_ADDRESS)
                 .locationNote(room.getName() + ", tầng 2")
                 .syllabusSummary("Listening, Reading, Writing & Speaking theo lộ trình 8 tuần")
@@ -715,7 +698,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .name(title)
                 .code(slug)
                 .tuitionFeeVnd(salePrice != null ? salePrice : price)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
                 .status(status)
                 .entryLevel("5.0+")
                 .targetOutcome("Tự tin giao tiếp và luyện thi")
@@ -723,8 +705,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startDate(startDate)
                 .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .recordingVisible(true)
                 .syllabusSummary("Buổi live + bài tập + feedback cá nhân")
                 .build());
 
@@ -804,34 +784,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 : offering.getPrice();
     }
 
-    private void clearLegacyDemoLarkLinks() {
-        clearOfferingDemoLarkLinks(VIRTUAL_UPCOMING_TITLE, LEGACY_DEMO_LARK_URL_SPEAKING);
-        clearOfferingDemoLarkLinks(VIRTUAL_IN_PROGRESS_TITLE, LEGACY_DEMO_LARK_URL_TOEIC);
-    }
-
-    private void clearOfferingDemoLarkLinks(String offeringTitle, String legacyDemoLarkUrl) {
-        offeringRepository.findByNameIgnoreCase(offeringTitle).ifPresent(offering -> {
-            if (legacyDemoLarkUrl.equalsIgnoreCase(offering.getDefaultLarkMeetingUrl())) {
-                offering.setDefaultLarkMeetingUrl(null);
-                offering.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
-                offeringRepository.save(offering);
-            }
-
-            sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId())
-                    .forEach(session -> {
-                        boolean hasLegacyUrl = legacyDemoLarkUrl.equalsIgnoreCase(session.getLarkMeetingUrl());
-                        boolean hasDemoStatus = "DEMO".equalsIgnoreCase(session.getLarkSyncStatus());
-                        if (!hasLegacyUrl && !hasDemoStatus) {
-                            return;
-                        }
-                        session.setLarkMeetingUrl(null);
-                        session.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
-                        session.setLarkSyncStatus("PENDING");
-                        session.setLarkSyncError(null);
-                        sessionRepository.save(session);
-                    });
-        });
-    }
+    private void clearLegacyDemoLarkLinks() {}
 
     private void syncTeacher2Account() {
         Optional<User> legacyTeacher = userRepository.findByEmail(LEGACY_TEACHER2_EMAIL);

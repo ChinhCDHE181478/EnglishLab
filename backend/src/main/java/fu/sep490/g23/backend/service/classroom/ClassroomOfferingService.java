@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
-import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
@@ -137,8 +136,6 @@ public interface ClassroomOfferingService {
     ClassroomSessionResponse joinVirtualClass(Long offeringId, Long sessionId, String learnerEmail);
 
     ClassroomSessionResponse closeVirtualSession(Long sessionId, String actorEmail);
-
-    ClassroomSessionResponse updateSessionLarkLink(Long sessionId, UpdateLarkLinkRequest request);
 
     ConflictCheckResultResponse checkConflict(ConflictCheckRequest request);
 }

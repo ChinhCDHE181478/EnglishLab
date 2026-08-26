@@ -31,6 +31,6 @@ public class ClassroomAttendanceResponse {
     private Long classSectionId;
     private String deliveryMode;
     private String roomName;
-    private String larkMeetingUrl;
-    private String larkSyncError;
+    private String googleMeetUrl;
+    private String googleMeetSyncError;
 }

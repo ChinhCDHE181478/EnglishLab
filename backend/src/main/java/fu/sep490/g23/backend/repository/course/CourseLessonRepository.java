@@ -13,6 +13,13 @@ public interface CourseLessonRepository extends JpaRepository<CourseLesson, Long
     List<CourseLesson> findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(Long instructorLedCourseId);
 
     @Query("""
+            select lesson from CourseLesson lesson
+            where lesson.courseUnit.instructorLedCourse.id = :instructorLedCourseId
+            order by lesson.courseUnit.sequenceNumber asc, lesson.sequenceNumber asc, lesson.id asc
+            """)
+    List<CourseLesson> findByCourseOrderedByUnitAndLesson(@Param("instructorLedCourseId") Long instructorLedCourseId);
+
+    @Query("""
             select count(lesson) > 0 from CourseLesson lesson
             where lesson.courseUnit.instructorLedCourse.id = :courseId
               and lesson.sequenceNumber = :sequenceNumber
