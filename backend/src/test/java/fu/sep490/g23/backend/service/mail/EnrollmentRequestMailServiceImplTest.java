@@ -4,7 +4,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.service.mail.impl.EnrollmentRequestMailServiceImpl;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import jakarta.mail.Multipart;
@@ -63,7 +62,7 @@ class EnrollmentRequestMailServiceImplTest {
     void sendsAssignmentEmailToContactAddressWithVietnameseDate() throws Exception {
         ClassSection classroom = ClassSection.builder()
                 .id(30L)
-                .learningPackage(LearningPackage.builder().title("IELTS Foundation F01").build())
+                .name("IELTS Foundation F01")
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .offlineAddress("EnglishLab Campus")
                 .startDate(LocalDate.of(2026, 8, 5))

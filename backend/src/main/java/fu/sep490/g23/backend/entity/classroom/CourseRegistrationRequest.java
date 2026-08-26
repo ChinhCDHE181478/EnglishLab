@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.entity.classroom;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
@@ -48,7 +49,7 @@ public class CourseRegistrationRequest {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_offering_id")
-    private TrainingProgram courseOffering;
+    private InstructorLedCourse courseOffering;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "preferred_class_section_id")
@@ -57,6 +58,10 @@ public class CourseRegistrationRequest {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_class_section_id")
     private ClassSection assignedClassSection;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classroom_proposal_id")
+    private ClassroomProposal classroomProposal;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "placement_attempt_id")

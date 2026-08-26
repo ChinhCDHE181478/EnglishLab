@@ -17,37 +17,36 @@ import java.util.Collection;
 import java.util.List;
 
 public interface ClassSectionRepository extends JpaRepository<ClassSection, Long> {
+    long countByPrimaryTeacherIsNotNull();
+    List<ClassSection> findByPrimaryTeacherId(Long teacherId);
+    Optional<ClassSection> findByCode(String code);
 
-    @Query("SELECT co FROM ClassSection co JOIN FETCH co.learningPackage lp WHERE lp.slug = :slugOrId AND lp.deleted = false")
-    Optional<ClassSection> findByLearningPackageSlug(@Param("slugOrId") String slugOrId);
+    @Query("SELECT co FROM ClassSection co JOIN FETCH co.instructorLedCourse course WHERE course.slug = :slugOrId OR co.code = :slugOrId")
+    Optional<ClassSection> findByInstructorLedCourseSlugOrCode(@Param("slugOrId") String slugOrId);
 
-    @Query("SELECT co FROM ClassSection co JOIN FETCH co.learningPackage lp WHERE LOWER(lp.title) = LOWER(:title) AND lp.deleted = false")
-    Optional<ClassSection> findByLearningPackageTitleIgnoreCase(@Param("title") String title);
+    @Query("SELECT co FROM ClassSection co WHERE LOWER(co.name) = LOWER(:title)")
+    Optional<ClassSection> findByNameIgnoreCase(@Param("title") String title);
 
-    @Query("SELECT co FROM ClassSection co JOIN FETCH co.learningPackage lp WHERE lp.id = :packageId AND lp.deleted = false")
-    Optional<ClassSection> findByLearningPackageId(@Param("packageId") Long packageId);
+    @Query("SELECT co FROM ClassSection co WHERE co.id = :packageId")
+    Optional<ClassSection> findByIdAsCatalogItem(@Param("packageId") Long packageId);
 
     @Query("""
             SELECT co
             FROM ClassSection co
-            JOIN co.learningPackage lp
-            WHERE lp.deleted = false
-              AND lp.status = 'PUBLISHED'
+            WHERE co.instructorLedCourse.publicationStatus = 'PUBLISHED'
               AND co.status = 'UPCOMING'
               AND co.startDate > CURRENT_DATE
               AND (:mode IS NULL OR co.deliveryMode = :mode)
             """)
     Page<ClassSection> findPublished(@Param("mode") ClassroomDeliveryMode mode, Pageable pageable);
 
-    boolean existsByLearningPackage_TitleIgnoreCase(String title);
+    boolean existsByNameIgnoreCase(String title);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT co
             FROM ClassSection co
-            JOIN FETCH co.learningPackage lp
             WHERE co.id = :id
-              AND lp.deleted = false
             """)
     Optional<ClassSection> findByIdForUpdate(@Param("id") Long id);
 

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class CurriculumSessionPlanResponse {
+public class CourseLessonResponse {
     private Long id;
     private Long unitId;
     private String unitTitle;

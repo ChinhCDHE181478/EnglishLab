@@ -39,10 +39,9 @@ import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.classroom.*;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
@@ -73,7 +72,6 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     private final ClassroomHomeworkSubmissionRepository submissionRepository;
     private final ClassSectionRepository offeringRepository;
     private final ClassScheduleRepository sessionRepository;
-    private final CurriculumUnitRepository curriculumUnitRepository;
     private final CourseUnitRepository courseUnitRepository;
     private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
@@ -190,12 +188,12 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             session = sessionRepository.findById(request.getSessionId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
         }
-        CurriculumUnit curriculumUnit = resolveCurriculumUnit(offering, request.getCurriculumUnitId());
+        CourseUnit courseUnit = resolveCourseUnit(offering, request.getCourseUnitId());
 
         ClassroomHomework homework = ClassroomHomework.builder()
                 .classSection(offering)
                 .session(session)
-                .curriculumUnit(curriculumUnit)
+                .courseUnit(courseUnit)
                 .title(request.getTitle().trim())
                 .instruction(request.getInstruction())
                 .deadline(request.getDeadline())
@@ -208,7 +206,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .createdBy(creator)
                 .build();
         applyGradingConfig(homework, request);
-        linkCourseUnit(homework, curriculumUnit);
+        linkCourseUnit(homework, courseUnit);
 
         ClassroomHomework saved = homeworkRepository.save(homework);
         if (saved.getStatus() == HomeworkStatus.OPEN) {
@@ -240,8 +238,8 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         } else {
             homework.setSession(null);
         }
-        homework.setCurriculumUnit(resolveCurriculumUnit(homework.getClassSection(), request.getCurriculumUnitId()));
-        linkCourseUnit(homework, homework.getCurriculumUnit());
+        homework.setCourseUnit(resolveCourseUnit(homework.getClassSection(), request.getCourseUnitId()));
+        linkCourseUnit(homework, homework.getCourseUnit());
         homework.setActivityType(request.getActivityType() == null ? HomeworkActivityType.TEXT_RESPONSE : request.getActivityType());
         homework.setActivityConfigJson(request.getActivityConfigJson());
         applyGradingConfig(homework, request);
@@ -431,21 +429,21 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập."));
     }
 
-    private CurriculumUnit resolveCurriculumUnit(ClassSection offering, Long unitId) {
+    private CourseUnit resolveCourseUnit(ClassSection offering, Long unitId) {
         if (unitId == null) {
             return null;
         }
-        CurriculumUnit unit = curriculumUnitRepository.findById(unitId)
+        CourseUnit unit = courseUnitRepository.findById(unitId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy unit trong giáo trình."));
-        if (offering.getCurriculumProgram() == null
-                || unit.getProgram() == null
-                || !unit.getProgram().getId().equals(offering.getCurriculumProgram().getId())) {
+        if (offering.getInstructorLedCourse() == null
+                || unit.getInstructorLedCourse() == null
+                || !unit.getInstructorLedCourse().getId().equals(offering.getInstructorLedCourse().getId())) {
             throw new RuntimeException("Unit được chọn không thuộc giáo trình của lớp học này.");
         }
         return unit;
     }
 
-    private void linkCourseUnit(ClassroomHomework homework, CurriculumUnit unit) {
+    private void linkCourseUnit(ClassroomHomework homework, CourseUnit unit) {
         if (unit == null || unit.getId() == null) {
             homework.setCourseUnit(null);
             return;

@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CurriculumUnitRequest {
+public class CourseUnitRequest {
     @Min(0)
     private Integer displayOrder;
 

@@ -4,6 +4,8 @@ import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -21,5 +23,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     Boolean existsByEmail(String email);
 
-    List<User> findDistinctByRoles_CodeIn(Collection<RoleEnum> roles);
+    @Query("select distinct user from User user join user.roles role where role in :roles")
+    List<User> findDistinctByRoles_CodeIn(@Param("roles") Collection<RoleEnum> roles);
 }

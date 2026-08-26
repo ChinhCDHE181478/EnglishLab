@@ -35,7 +35,7 @@ public class ClassroomPracticeAttemptHistory {
     private ExerciseBankItem exercise;
 
     /** Legacy exercise_bank_items id retained for Slice-3 dual column; drop in Slice 10. */
-    @Column(name = "exercise_id", nullable = false)
+    @Transient
     private Long legacyExerciseId;
 
     @Column(name = "attempt_number", nullable = false)

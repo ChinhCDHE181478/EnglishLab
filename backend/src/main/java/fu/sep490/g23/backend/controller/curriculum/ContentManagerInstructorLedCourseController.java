@@ -1,20 +1,20 @@
 package fu.sep490.g23.backend.controller.curriculum;
 
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumSessionPlanRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumUnitRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.InstructorLedCourseRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitContentRefRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseLessonRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.FlashcardSetRequest;
 import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseLessonResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseUnitResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,19 +38,19 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/content-manager")
 @RequiredArgsConstructor
-public class ContentManagerCurriculumController {
+public class ContentManagerInstructorLedCourseController {
 
-    private final CurriculumProgramService curriculumProgramService;
+    private final InstructorLedCourseManagementService instructorLedCourseManagementService;
 
     @GetMapping("/curriculum-programs")
-    public ResponseEntity<List<CurriculumProgramResponse>> listPrograms(
+    public ResponseEntity<List<InstructorLedCourseResponse>> listPrograms(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
-        return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
+        return ResponseEntity.ok(instructorLedCourseManagementService.listPrograms(deliveryMode));
     }
 
     @GetMapping("/curriculum-programs/page")
-    public ResponseEntity<Page<CurriculumProgramResponse>> pagePrograms(
+    public ResponseEntity<Page<InstructorLedCourseResponse>> pagePrograms(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String examCategory,
@@ -58,123 +58,123 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) String status,
             @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(curriculumProgramService.pagePrograms(
+        return ResponseEntity.ok(instructorLedCourseManagementService.pagePrograms(
                 deliveryMode, keyword, examCategory, entryLevel, status, pageable));
     }
 
     @GetMapping("/curriculum-programs/{id}")
-    public ResponseEntity<CurriculumProgramResponse> getProgram(@PathVariable Long id) {
-        return ResponseEntity.ok(curriculumProgramService.getProgram(id));
+    public ResponseEntity<InstructorLedCourseResponse> getProgram(@PathVariable Long id) {
+        return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));
     }
 
     @PostMapping("/curriculum-programs")
-    public ResponseEntity<CurriculumProgramResponse> createProgram(
-            @Valid @RequestBody CurriculumProgramRequest request
+    public ResponseEntity<InstructorLedCourseResponse> createProgram(
+            @Valid @RequestBody InstructorLedCourseRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.createProgram(request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createProgram(request));
     }
 
     @PutMapping("/curriculum-programs/{id}")
-    public ResponseEntity<CurriculumProgramResponse> updateProgram(
+    public ResponseEntity<InstructorLedCourseResponse> updateProgram(
             @PathVariable Long id,
-            @Valid @RequestBody CurriculumProgramRequest request
+            @Valid @RequestBody InstructorLedCourseRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.updateProgram(id, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.updateProgram(id, request));
     }
 
     @DeleteMapping("/curriculum-programs/{id}")
     public ResponseEntity<Void> archiveProgram(@PathVariable Long id) {
-        curriculumProgramService.archiveProgram(id);
+        instructorLedCourseManagementService.archiveProgram(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/curriculum-programs/{id}/clone")
-    public ResponseEntity<CurriculumProgramResponse> cloneProgram(@PathVariable Long id) {
-        return ResponseEntity.ok(curriculumProgramService.cloneProgram(id));
+    public ResponseEntity<InstructorLedCourseResponse> cloneProgram(@PathVariable Long id) {
+        return ResponseEntity.ok(instructorLedCourseManagementService.cloneProgram(id));
     }
 
     @PostMapping("/curriculum-programs/{id}/publish")
-    public ResponseEntity<CurriculumProgramResponse> publishProgram(
+    public ResponseEntity<InstructorLedCourseResponse> publishProgram(
             @PathVariable Long id,
             org.springframework.security.core.Authentication authentication
     ) {
-        return ResponseEntity.ok(curriculumProgramService.publishProgram(id, authentication.getName()));
+        return ResponseEntity.ok(instructorLedCourseManagementService.publishProgram(id, authentication.getName()));
     }
 
     @PostMapping("/curriculum-programs/{programId}/units")
-    public ResponseEntity<CurriculumUnitResponse> createUnit(
+    public ResponseEntity<CourseUnitResponse> createUnit(
             @PathVariable Long programId,
-            @Valid @RequestBody CurriculumUnitRequest request
+            @Valid @RequestBody CourseUnitRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.createUnit(programId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createUnit(programId, request));
     }
 
     @PutMapping("/curriculum-units/{unitId}")
-    public ResponseEntity<CurriculumUnitResponse> updateUnit(
+    public ResponseEntity<CourseUnitResponse> updateUnit(
             @PathVariable Long unitId,
-            @Valid @RequestBody CurriculumUnitRequest request
+            @Valid @RequestBody CourseUnitRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.updateUnit(unitId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.updateUnit(unitId, request));
     }
 
     @DeleteMapping("/curriculum-units/{unitId}")
     public ResponseEntity<Void> deleteUnit(@PathVariable Long unitId) {
-        curriculumProgramService.deleteUnit(unitId);
+        instructorLedCourseManagementService.deleteUnit(unitId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/curriculum-units/{unitId}/session-plans")
-    public ResponseEntity<CurriculumSessionPlanResponse> createSessionPlan(
+    public ResponseEntity<CourseLessonResponse> createSessionPlan(
             @PathVariable Long unitId,
-            @Valid @RequestBody CurriculumSessionPlanRequest request
+            @Valid @RequestBody CourseLessonRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.createSessionPlan(unitId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createSessionPlan(unitId, request));
     }
 
     @PutMapping("/curriculum-session-plans/{sessionPlanId}")
-    public ResponseEntity<CurriculumSessionPlanResponse> updateSessionPlan(
+    public ResponseEntity<CourseLessonResponse> updateSessionPlan(
             @PathVariable Long sessionPlanId,
-            @Valid @RequestBody CurriculumSessionPlanRequest request
+            @Valid @RequestBody CourseLessonRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.updateSessionPlan(sessionPlanId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.updateSessionPlan(sessionPlanId, request));
     }
 
     @DeleteMapping("/curriculum-session-plans/{sessionPlanId}")
     public ResponseEntity<Void> deleteSessionPlan(@PathVariable Long sessionPlanId) {
-        curriculumProgramService.deleteSessionPlan(sessionPlanId);
+        instructorLedCourseManagementService.deleteSessionPlan(sessionPlanId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/curriculum-units/{unitId}/materials")
-    public ResponseEntity<CurriculumUnitResponse> attachMaterial(
+    public ResponseEntity<CourseUnitResponse> attachMaterial(
             @PathVariable Long unitId,
-            @Valid @RequestBody CurriculumReferenceRequest request
+            @Valid @RequestBody CourseUnitContentRefRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.attachMaterial(unitId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.attachMaterial(unitId, request));
     }
 
     @PostMapping("/curriculum-units/{unitId}/exercises")
-    public ResponseEntity<CurriculumUnitResponse> attachExercise(
+    public ResponseEntity<CourseUnitResponse> attachExercise(
             @PathVariable Long unitId,
-            @Valid @RequestBody CurriculumReferenceRequest request
+            @Valid @RequestBody CourseUnitContentRefRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.attachExercise(unitId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.attachExercise(unitId, request));
     }
 
     @PostMapping("/curriculum-units/{unitId}/assessments")
-    public ResponseEntity<CurriculumUnitResponse> attachAssessment(
+    public ResponseEntity<CourseUnitResponse> attachAssessment(
             @PathVariable Long unitId,
-            @Valid @RequestBody CurriculumReferenceRequest request
+            @Valid @RequestBody CourseUnitContentRefRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.attachAssessment(unitId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.attachAssessment(unitId, request));
     }
 
     @PostMapping("/curriculum-units/{unitId}/flashcards")
-    public ResponseEntity<CurriculumUnitResponse> attachFlashcard(
+    public ResponseEntity<CourseUnitResponse> attachFlashcard(
             @PathVariable Long unitId,
-            @Valid @RequestBody CurriculumReferenceRequest request
+            @Valid @RequestBody CourseUnitContentRefRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.attachFlashcard(unitId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.attachFlashcard(unitId, request));
     }
 
     @DeleteMapping("/curriculum-refs/{type}/{referenceId}")
@@ -182,7 +182,7 @@ public class ContentManagerCurriculumController {
             @PathVariable String type,
             @PathVariable Long referenceId
     ) {
-        curriculumProgramService.detachReference(type, referenceId);
+        instructorLedCourseManagementService.detachReference(type, referenceId);
         return ResponseEntity.noContent().build();
     }
 
@@ -191,7 +191,7 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) AssessmentSkill skill,
             @RequestParam(required = false) AssessmentType type
     ) {
-        return ResponseEntity.ok(curriculumProgramService.listAssessmentBank(skill, type));
+        return ResponseEntity.ok(instructorLedCourseManagementService.listAssessmentBank(skill, type));
     }
 
     @GetMapping("/assessment-bank/page")
@@ -203,7 +203,7 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) String examCategory,
             @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(curriculumProgramService.pageAssessmentBank(
+        return ResponseEntity.ok(instructorLedCourseManagementService.pageAssessmentBank(
                 skill, type, status, keyword, examCategory, pageable));
     }
 
@@ -212,19 +212,19 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) AssessmentSkill skill,
             @RequestParam(required = false) AssessmentType type
     ) {
-        return ResponseEntity.ok(curriculumProgramService.getAssessmentBankStats(skill, type));
+        return ResponseEntity.ok(instructorLedCourseManagementService.getAssessmentBankStats(skill, type));
     }
 
     @GetMapping("/assessment-bank/{id}")
     public ResponseEntity<AssessmentBankItemResponse> getAssessmentBankItem(@PathVariable Long id) {
-        return ResponseEntity.ok(curriculumProgramService.getAssessmentBankItem(id));
+        return ResponseEntity.ok(instructorLedCourseManagementService.getAssessmentBankItem(id));
     }
 
     @PostMapping("/assessment-bank")
     public ResponseEntity<AssessmentBankItemResponse> createAssessmentBankItem(
             @Valid @RequestBody AssessmentBankItemRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.createAssessmentBankItem(request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createAssessmentBankItem(request));
     }
 
     @PutMapping("/assessment-bank/{id}")
@@ -232,18 +232,18 @@ public class ContentManagerCurriculumController {
             @PathVariable Long id,
             @Valid @RequestBody AssessmentBankItemRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.updateAssessmentBankItem(id, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.updateAssessmentBankItem(id, request));
     }
 
     @DeleteMapping("/assessment-bank/{id}")
     public ResponseEntity<Void> archiveAssessmentBankItem(@PathVariable Long id) {
-        curriculumProgramService.archiveAssessmentBankItem(id);
+        instructorLedCourseManagementService.archiveAssessmentBankItem(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/flashcard-sets")
     public ResponseEntity<List<FlashcardSetResponse>> listFlashcardSets() {
-        return ResponseEntity.ok(curriculumProgramService.listFlashcardSets());
+        return ResponseEntity.ok(instructorLedCourseManagementService.listFlashcardSets());
     }
 
     @GetMapping("/flashcard-sets/page")
@@ -254,7 +254,7 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) String status,
             @PageableDefault(size = 8, sort = "displayOrder", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        return ResponseEntity.ok(curriculumProgramService.pageFlashcardSets(
+        return ResponseEntity.ok(instructorLedCourseManagementService.pageFlashcardSets(
                 keyword, examCategory, skill, status, pageable));
     }
 
@@ -263,19 +263,19 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) String examCategory,
             @RequestParam(required = false) String skill
     ) {
-        return ResponseEntity.ok(curriculumProgramService.getFlashcardSetStats(examCategory, skill));
+        return ResponseEntity.ok(instructorLedCourseManagementService.getFlashcardSetStats(examCategory, skill));
     }
 
     @GetMapping("/flashcard-sets/{id}")
     public ResponseEntity<FlashcardSetResponse> getFlashcardSet(@PathVariable Long id) {
-        return ResponseEntity.ok(curriculumProgramService.getFlashcardSet(id));
+        return ResponseEntity.ok(instructorLedCourseManagementService.getFlashcardSet(id));
     }
 
     @PostMapping("/flashcard-sets")
     public ResponseEntity<FlashcardSetResponse> createFlashcardSet(
             @Valid @RequestBody FlashcardSetRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.createFlashcardSet(request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createFlashcardSet(request));
     }
 
     @PutMapping("/flashcard-sets/{id}")
@@ -283,12 +283,12 @@ public class ContentManagerCurriculumController {
             @PathVariable Long id,
             @Valid @RequestBody FlashcardSetRequest request
     ) {
-        return ResponseEntity.ok(curriculumProgramService.updateFlashcardSet(id, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.updateFlashcardSet(id, request));
     }
 
     @DeleteMapping("/flashcard-sets/{id}")
     public ResponseEntity<Void> archiveFlashcardSet(@PathVariable Long id) {
-        curriculumProgramService.archiveFlashcardSet(id);
+        instructorLedCourseManagementService.archiveFlashcardSet(id);
         return ResponseEntity.noContent().build();
     }
 }

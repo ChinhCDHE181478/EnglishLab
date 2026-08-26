@@ -139,7 +139,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         String title = enrollment.getStudent().getFullName() == null || enrollment.getStudent().getFullName().isBlank()
                 ? enrollment.getStudent().getEmail()
                 : enrollment.getStudent().getFullName();
-        String subtitle = offering.getLearningPackage().getTitle()
+        String subtitle = offering.getTitle()
                 + " · "
                 + ClassroomRegistrationSupport.registrationStatusLabel(status);
         Long classroomId = offering.getId();
@@ -160,7 +160,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         return StaffActionItemResponse.builder()
                 .kind("APPROVE_CHANGE_REQUEST")
                 .title(mapper.changeRequestTypeLabel(request.getRequestType()))
-                .subtitle(request.getClassSection().getLearningPackage().getTitle()
+                .subtitle(request.getClassSection().getTitle()
                         + " · "
                         + request.getRequester().getFullName())
                 .changeRequestId(request.getId())
@@ -176,7 +176,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         List<StaffClassroomAlertResponse> alerts = new ArrayList<>();
 
         offeringRepository.findAll().stream()
-                .filter(offering -> !offering.getLearningPackage().isDeleted())
+                .filter(offering -> !offering.isDeleted())
                 .filter(offering -> ACTIVE_OFFERING_STATUSES.contains(offering.getStatus()))
                 .forEach(offering -> {
                     long sessionCount = sessionRepository.countByClassSectionId(offering.getId());
@@ -243,7 +243,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
     ) {
         return StaffClassroomAlertResponse.builder()
                 .classSectionId(offering.getId())
-                .title(offering.getLearningPackage().getTitle())
+                .title(offering.getTitle())
                 .deliveryMode(offering.getDeliveryMode() == null ? null : offering.getDeliveryMode().name())
                 .startDate(offering.getStartDate())
                 .enrolledCount(enrolledCount)
@@ -286,7 +286,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                         .name(entry.getStudent() == null ? "Học viên" : entry.getStudent().getFullName())
                         .subtitle(entry.getClassSection() == null
                                 ? ""
-                                : entry.getClassSection().getLearningPackage().getTitle())
+                                : entry.getClassSection().getTitle())
                         .score(entry.getFinalResult())
                         .href(entry.getClassSection() == null
                                 ? "/staff/classrooms"

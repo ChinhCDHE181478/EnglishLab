@@ -3,7 +3,6 @@ package fu.sep490.g23.backend.entity.course;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -16,7 +15,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -45,14 +43,6 @@ public class OnlineCourse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    /**
-     * Legacy package twin. Compatibility only — OnlineCourse is canonical commercial source.
-     * Do not reverse-sync Package → OnlineCourse. Remove with final Package drop slice.
-     */
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "package_id", nullable = false, unique = true)
-    private LearningPackage learningPackage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
@@ -179,33 +169,4 @@ public class OnlineCourse {
         return PackageStatus.PUBLISHED.equals(status) && !deleted;
     }
 
-    /**
-     * @deprecated Slice-1 bridge only. Do not add new call sites. Remove in final Package drop slice.
-     * Never reverse-sync Package → OnlineCourse.
-     */
-    @Deprecated
-    public void syncCommercialToLegacyPackage() {
-        if (learningPackage == null) {
-            return;
-        }
-        learningPackage.setTitle(title);
-        learningPackage.setSlug(slug);
-        learningPackage.setShortDescription(shortDescription);
-        learningPackage.setDescription(description);
-        learningPackage.setTargetScore(targetScore);
-        learningPackage.setDuration(duration);
-        learningPackage.setStudyMode(studyMode);
-        learningPackage.setPrice(price != null ? price : BigDecimal.ZERO);
-        learningPackage.setSalePrice(salePrice);
-        learningPackage.setThumbnailUrl(thumbnailUrl);
-        learningPackage.setStatus(status != null ? status : PackageStatus.DRAFT);
-        learningPackage.setDisplayOrder(displayOrder != null ? displayOrder : 0);
-        learningPackage.setFeatured(featured);
-        learningPackage.setDeleted(deleted);
-        learningPackage.setCreatedBy(createdBy);
-        learningPackage.setReviewNote(reviewNote);
-        learningPackage.setSubmittedForReviewAt(submittedForReviewAt);
-        learningPackage.setReviewedAt(reviewedAt);
-        learningPackage.setReviewedBy(reviewedBy);
-    }
 }

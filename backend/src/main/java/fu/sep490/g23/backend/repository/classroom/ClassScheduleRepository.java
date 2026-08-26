@@ -17,6 +17,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Long> {
+    long countByTeacherIsNotNull();
+    List<ClassSchedule> findByClassSectionIdAndTeacherIsNotNull(Long classSectionId);
+
+    List<ClassSchedule> findByTeacherId(Long teacherId);
 
     List<ClassSchedule> findByClassSectionIdOrderBySessionDateAscStartTimeAsc(Long classSectionId);
 
@@ -29,10 +33,6 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     long countByTeacherId(Long teacherId);
 
     long countByTeacherIdAndStatus(Long teacherId, ClassroomSessionStatus status);
-
-    boolean existsByCurriculumSessionPlanId(Long curriculumSessionPlanId);
-
-    boolean existsByCurriculumSessionPlanUnitId(Long unitId);
 
     List<ClassSchedule> findByDeliveryModeAndStatusIn(
             ClassroomDeliveryMode deliveryMode,
@@ -172,12 +172,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     @Query("""
             SELECT DISTINCT s FROM ClassSchedule s
             JOIN s.classSection co
-            JOIN ClassroomTeacherAssignment ta ON ta.classSection = co
-            WHERE ta.teacher.id = :teacherId
+            WHERE (s.teacher.id = :teacherId
+                   OR (s.teacher IS NULL AND co.primaryTeacher.id = :teacherId))
               AND s.sessionDate >= :fromDate
-              AND (ta.effectiveFrom IS NULL OR ta.effectiveFrom <= :fromDate)
-              AND (ta.effectiveTo IS NULL OR ta.effectiveTo >= :fromDate)
-              AND (ta.classSchedule IS NULL OR ta.classSchedule = s)
             ORDER BY s.sessionDate ASC, s.startTime ASC
             """)
     List<ClassSchedule> findTeacherSchedule(

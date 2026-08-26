@@ -40,7 +40,7 @@ public class CourseAssessment {
     private AssessmentRubric rubric;
 
     /** Legacy {@code assessment_rubrics.id} kept for dual-write while legacy table remains. */
-    @Column(name = "rubric_id")
+    @Transient
     private Long legacyRubricId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,7 +48,7 @@ public class CourseAssessment {
     private AssessmentBankItem assessmentBankItem;
 
     /** Legacy {@code assessment_bank_items.id} kept for dual-write while legacy table remains. */
-    @Column(name = "assessment_bank_item_id")
+    @Transient
     private Long legacyAssessmentBankItemId;
 
     @ManyToOne(fetch = FetchType.LAZY)

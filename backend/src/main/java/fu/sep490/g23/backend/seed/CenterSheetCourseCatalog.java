@@ -3,21 +3,16 @@ package fu.sep490.g23.backend.seed;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -29,9 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CenterSheetCourseCatalog {
 
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
@@ -123,20 +116,12 @@ public class CenterSheetCourseCatalog {
     }
 
     void seed(User contentManager) {
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
-                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
-                        .code(PackageTypeCode.ONLINE_COURSE)
-                        .name("Online Course")
-                        .description("Self-paced online learning package")
-                        .active(true)
-                        .build()));
-
         for (CourseSpec spec : specs()) {
-            upsertCourse(spec, packageType, contentManager);
+            upsertCourse(spec, contentManager);
         }
     }
 
-    private void upsertCourse(CourseSpec spec, PackageType packageType, User contentManager) {
+    private void upsertCourse(CourseSpec spec, User contentManager) {
         CourseCategory category = courseCategoryRepository.findByCode(spec.category().name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
                         .code(spec.category().name())
@@ -146,30 +131,23 @@ public class CenterSheetCourseCatalog {
                         .active(true)
                         .build()));
 
-        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(spec.slug())
-                .orElseGet(() -> LearningPackage.builder()
+        OnlineCourse course = onlineCourseRepository.findBySlug(spec.slug())
+                .orElseGet(() -> OnlineCourse.builder()
                         .slug(spec.slug())
-                        .packageType(packageType)
                         .build());
-        learningPackage.setPackageType(packageType);
-        learningPackage.setTitle(spec.title());
-        learningPackage.setShortDescription(spec.description());
-        learningPackage.setDescription(spec.description());
-        learningPackage.setTargetScore(spec.category() == CourseCategoryCode.TOEIC ? "TOEIC 650+" : "IELTS " + spec.targetBand());
-        learningPackage.setDuration("8 giờ học");
-        learningPackage.setStudyMode("Tự học online, 4 module");
-        learningPackage.setPrice(BigDecimal.valueOf(1_490_000));
-        learningPackage.setThumbnailUrl(spec.thumbnailUrl());
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setDisplayOrder(spec.displayOrder());
-        learningPackage.setFeatured(spec.pathOrder() <= 2);
-        learningPackage.setDeleted(false);
-        learningPackage.setCreatedBy(contentManager);
-        LearningPackage savedPackage = learningPackageRepository.save(learningPackage);
-
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(savedPackage)
-                .orElseGet(() -> OnlineCourse.builder().learningPackage(savedPackage).build());
-        course.setLearningPackage(savedPackage);
+        course.setTitle(spec.title());
+        course.setShortDescription(spec.description());
+        course.setDescription(spec.description());
+        course.setTargetScore(spec.category() == CourseCategoryCode.TOEIC ? "TOEIC 650+" : "IELTS " + spec.targetBand());
+        course.setDuration("8 giờ học");
+        course.setStudyMode("Tự học online, 4 module");
+        course.setPrice(BigDecimal.valueOf(1_490_000));
+        course.setThumbnailUrl(spec.thumbnailUrl());
+        course.setStatus(PackageStatus.PUBLISHED);
+        course.setDisplayOrder(spec.displayOrder());
+        course.setFeatured(spec.pathOrder() <= 2);
+        course.setDeleted(false);
+        course.setCreatedBy(contentManager);
         course.setCategory(category);
         course.setLevel(spec.level());
         course.setRecommendedCurrentBandMin(spec.minBand());
@@ -179,6 +157,8 @@ public class CenterSheetCourseCatalog {
         course.setLearningPathOrder(spec.pathOrder());
         course.setRecommendedNextCourseSlug(spec.nextSlug());
         course.setTargetOutcome(spec.description());
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        course = savedCourse;
         OnlineCourseVersion draftVersion = null;
         if (course.getModules() == null || course.getModules().isEmpty()) {
             draftVersion = ensureDraftVersion(course);

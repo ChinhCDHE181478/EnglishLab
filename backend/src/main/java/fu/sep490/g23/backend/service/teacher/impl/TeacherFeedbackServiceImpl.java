@@ -327,9 +327,9 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
     }
 
     private String classroomTitle(ClassSection classroom) {
-        return classroom.getLearningPackage() == null
+        return classroom.getInstructorLedCourse() == null
                 ? "Lớp #" + classroom.getId()
-                : classroom.getLearningPackage().getTitle();
+                : classroom.getTitle();
     }
 
     private void validateNarrative(String text, String label) {

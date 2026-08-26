@@ -29,7 +29,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRep
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomHomeworkServiceImpl;
 import fu.sep490.g23.backend.service.mail.ClassroomHomeworkMailService;
@@ -58,7 +58,7 @@ class ClassroomHomeworkServiceImplTest {
     @Mock private ClassroomHomeworkSubmissionRepository submissionRepository;
     @Mock private ClassSectionRepository offeringRepository;
     @Mock private ClassScheduleRepository sessionRepository;
-    @Mock private CurriculumUnitRepository curriculumUnitRepository;
+    @Mock private CourseUnitRepository courseUnitRepository;
     @Mock private AssessmentBankItemRepository assessmentBankItemRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;

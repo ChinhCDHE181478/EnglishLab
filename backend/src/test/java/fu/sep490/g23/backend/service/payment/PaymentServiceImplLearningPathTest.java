@@ -3,13 +3,13 @@ package fu.sep490.g23.backend.service.payment;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
@@ -128,14 +128,13 @@ class PaymentServiceImplLearningPathTest {
     }
 
     private LearningPathCourse courseRef(Long courseId, Long packageId, int order) {
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(packageId)
+        OnlineCourse course = OnlineCourse.builder()
+                .id(courseId)
                 .title("Course " + courseId)
                 .slug("course-" + courseId)
                 .price(new BigDecimal("1000000"))
                 .status(PackageStatus.PUBLISHED)
                 .build();
-        OnlineCourse course = OnlineCourse.builder().id(courseId).learningPackage(learningPackage).build();
         return LearningPathCourse.builder()
                 .learningPath(path)
                 .onlineCourse(course)

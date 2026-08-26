@@ -21,7 +21,6 @@ import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
@@ -61,7 +60,6 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final UserRepository userRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
@@ -94,13 +92,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     }
 
     private void completePublishedCourse(User learner, String slug, int minAssessments) {
-        var learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(slug).orElse(null);
-        if (learningPackage == null) {
-            log.warn("Không thể hoàn thiện khóa {} cho tài khoản demo vì thiếu khóa học.", slug);
-            return;
-        }
-
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(learningPackage).orElse(null);
+        OnlineCourse course = onlineCourseRepository.findBySlug(slug).orElse(null);
         if (course == null) {
             log.warn("Không thể hoàn thiện khóa {} cho tài khoản demo vì thiếu dữ liệu OnlineCourse.", slug);
             return;
@@ -116,10 +108,10 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
 
         courseVersionService.refreshPublishedSnapshot(course);
         OnlineCourseVersion version = courseVersionService.requirePublishedVersion(course);
-        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
                 .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
-                        .learningPackage(learningPackage)
+                        .onlineCourse(course)
                         .registeredAt(LocalDateTime.now().minusDays(45))
                         .build()));
         enrollment.setCourseVersion(version);
@@ -135,16 +127,11 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                     slug, completed.getProgressPercent(), completed.getStatus());
             return;
         }
-        log.info("Đã hoàn thiện khóa {} cho {}.", learningPackage.getTitle(), LEARNER_EMAIL);
+        log.info("Đã hoàn thiện khóa {} cho {}.", course.getTitle(), LEARNER_EMAIL);
     }
 
     private void seedVocabularyCourseLessonProgress(User learner) {
-        var learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(VOCABULARY_COURSE_SLUG).orElse(null);
-        if (learningPackage == null) {
-            log.warn("Không thể tạo tiến độ vocabulary demo vì thiếu khóa học.");
-            return;
-        }
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(learningPackage).orElse(null);
+        OnlineCourse course = onlineCourseRepository.findBySlug(VOCABULARY_COURSE_SLUG).orElse(null);
         if (course == null) {
             log.warn("Không thể tạo tiến độ vocabulary demo vì thiếu OnlineCourse.");
             return;
@@ -154,10 +141,10 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                 .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         courseVersionService.refreshPublishedSnapshot(course);
         OnlineCourseVersion version = courseVersionService.requirePublishedVersion(course);
-        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
                 .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
-                        .learningPackage(learningPackage)
+                        .onlineCourse(course)
                         .registeredAt(LocalDateTime.now().minusDays(40))
                         .build()));
         enrollment.setCourseVersion(version);

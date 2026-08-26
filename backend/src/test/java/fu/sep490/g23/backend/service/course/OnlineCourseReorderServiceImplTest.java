@@ -6,7 +6,6 @@ import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
@@ -124,7 +123,7 @@ class OnlineCourseReorderServiceImplTest {
                 .build();
         OnlineCourse course = OnlineCourse.builder()
                 .id(1L)
-                .learningPackage(LearningPackage.builder().status(PackageStatus.DRAFT).deleted(false).build())
+                .status(PackageStatus.DRAFT)
                 .modules(new ArrayList<>(List.of(first, second)))
                 .build();
         first.setOnlineCourse(course);

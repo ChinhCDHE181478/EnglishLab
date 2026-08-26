@@ -35,8 +35,7 @@ import java.time.LocalDateTime;
 @Table(
         name = "online_course_enrollments",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_oce_student_course", columnNames = {"student_id", "online_course_id"}),
-                @UniqueConstraint(name = "uk_package_enrollment_user_package", columnNames = {"student_id", "package_id"})
+                @UniqueConstraint(name = "uk_oce_student_course", columnNames = {"student_id", "online_course_id"})
         }
 )
 @EntityListeners(AuditingEntityListener.class)
@@ -52,11 +51,6 @@ public class OnlineCourseEnrollment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "online_course_id", nullable = false)
     private OnlineCourse onlineCourse;
-
-    /** Legacy Package FK retained through Slice 1; dual-write with onlineCourse. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "package_id", nullable = false)
-    private LearningPackage learningPackage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_version_id")

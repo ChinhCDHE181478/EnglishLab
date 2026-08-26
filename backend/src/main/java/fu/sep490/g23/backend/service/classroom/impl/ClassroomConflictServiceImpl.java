@@ -68,7 +68,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
                         Map.of(
                                 "teacherId", request.getTeacherId(),
                                 "sessionId", session.getId(),
-                                "classroomTitle", session.getClassSection().getLearningPackage().getTitle(),
+                                "classroomTitle", session.getClassSection().getTitle(),
                                 "overlapStart", session.getStartDateTime().toString(),
                                 "overlapEnd", session.getEndDateTime().toString()
                         )
@@ -92,7 +92,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
                                     "roomId", request.getRoomId(),
                                     "roomName", roomName,
                                     "sessionId", session.getId(),
-                                    "classroomTitle", session.getClassSection().getLearningPackage().getTitle()
+                                    "classroomTitle", session.getClassSection().getTitle()
                             )
                     ));
                 });
@@ -113,7 +113,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
                         Map.of(
                                 "learnerId", learnerId,
                                 "sessionId", session.getId(),
-                                "classroomTitle", session.getClassSection().getLearningPackage().getTitle()
+                                "classroomTitle", session.getClassSection().getTitle()
                         )
                 )));
             }

@@ -26,7 +26,7 @@ public class ClassroomProgramServiceImpl implements ClassroomProgramService {
     @Transactional(readOnly = true)
     public List<ClassroomOfferingResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
         return offeringRepository.findAll().stream()
-                .filter(offering -> offering.getLearningPackage() != null && !offering.getLearningPackage().isDeleted())
+                .filter(offering -> offering.getInstructorLedCourse() != null && !offering.isDeleted())
                 .filter(offering -> deliveryMode == null || offering.getDeliveryMode() == deliveryMode)
                 .map(offering -> mapper.toOfferingResponse(offering, true, null, null, true))
                 .toList();
@@ -35,7 +35,7 @@ public class ClassroomProgramServiceImpl implements ClassroomProgramService {
     @Override
     public ClassroomOfferingResponse updateProgramProfile(Long offeringId, UpdateClassroomProgramRequest request) {
         ClassSection offering = offeringRepository.findById(offeringId)
-                .filter(item -> item.getLearningPackage() != null && !item.getLearningPackage().isDeleted())
+                .filter(item -> item.getInstructorLedCourse() != null && !item.isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
 
         if (StringUtils.hasText(request.getEntryLevel())) {

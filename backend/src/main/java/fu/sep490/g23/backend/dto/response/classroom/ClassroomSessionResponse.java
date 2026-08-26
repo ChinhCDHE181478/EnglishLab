@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
@@ -48,14 +49,18 @@ public class ClassroomSessionResponse {
     private LocalDateTime recordingPublishedAt;
     private LocalDateTime recordingExpiresAt;
     private String sessionContent;
-    private Long curriculumSessionPlanId;
+    @JsonProperty("curriculumSessionPlanId")
+    private Long courseLessonId;
     private Integer sessionNumber;
     private String sessionPlanTitle;
     private String sessionPlanDescription;
     private String learningObjectives;
-    private Long curriculumUnitId;
-    private Integer curriculumUnitDisplayOrder;
-    private String curriculumUnitTitle;
+    @JsonProperty("curriculumUnitId")
+    private Long courseUnitId;
+    @JsonProperty("curriculumUnitDisplayOrder")
+    private Integer courseUnitSequenceNumber;
+    @JsonProperty("curriculumUnitTitle")
+    private String courseUnitTitle;
     private String note;
     private boolean locked;
     private boolean rescheduled;

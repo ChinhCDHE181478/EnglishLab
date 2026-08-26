@@ -1,10 +1,8 @@
 package fu.sep490.g23.backend.seed;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumFlashcardRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSyllabusItem;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitContentRefRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -23,14 +21,14 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -40,18 +38,19 @@ import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptHistoryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
+import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 
@@ -60,21 +59,14 @@ import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.*;
 import fu.sep490.g23.backend.service.user.UserRoleService;
-import fu.sep490.g23.backend.service.course.InstructorLedCourseIdResolver;
-import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -121,7 +113,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private static final String PACKAGE_SLUG = "ielts-intensive-chinh-test-v1";
     private static final String CLASS_TITLE = "IELTS Intensive 6.5+ – Lớp Test Chinh";
     private static final String CURRICULUM_SLUG = "ielts-650-complete-virtual-v1";
-    private static final String TRAINING_PROGRAM_SLUG = "ielts-intensive-training-v1";
     private static final String MATERIAL_BASE_URL = "https://cdn.englishlab.vn/materials/ielts-650/";
     private static final LocalTime SESSION_START = LocalTime.of(8, 0);
     private static final LocalTime SESSION_END = LocalTime.of(10, 0);
@@ -131,8 +122,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final DemoLearnerOnboardingSupport onboardingSupport;
-    private final PackageTypeRepository packageTypeRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final ClassSectionRepository offeringRepository;
     private final ClassScheduleRepository sessionRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
@@ -145,15 +134,14 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomSyllabusItemRepository syllabusRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
-    private final CurriculumProgramRepository curriculumProgramRepository;
-    private final CurriculumUnitRepository curriculumUnitRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
+    private final CourseUnitRepository courseUnitRepository;
+    private final CourseUnitContentRefRepository courseUnitContentRefRepository;
     private final CenterMaterialLibraryItemRepository centerMaterialRepository;
     private final ExerciseBankItemRepository exerciseRepository;
     private final FlashcardSetRepository flashcardSetRepository;
-    private final TrainingProgramRepository trainingProgramRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
-    private final InstructorLedCourseSync instructorLedCourseSync;
-    private final InstructorLedCourseIdResolver instructorLedCourseIdResolver;
+    private final InstructorLedCourseManagementService instructorLedCourseManagementService;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -236,44 +224,32 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         }
         log.info("[ChinhTestSeeder] Bắt đầu đồng bộ giáo trình và dữ liệu lớp học cho {}...", LEARNER_EMAIL);
 
-        PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
-                .orElseThrow(() -> new IllegalStateException("CLASSROOM package type chưa tồn tại. Hãy chạy OnlineCourseDataSeeder trước."));
-
         User learner = ensureUser(LEARNER_EMAIL, "Chinh CDHE181478", RoleEnum.LEARNER);
         User teacher = ensureUser(TEACHER_EMAIL, "Nguyễn Văn Teacher", RoleEnum.TEACHER);
 
         // 1. Tạo hoặc đồng bộ Giáo trình chuẩn (Curriculum + Flashcards + Bài luyện tập)
-        CurriculumProgram curriculum = ensureCurriculum(teacher);
-        List<CurriculumUnit> units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(curriculum.getId());
-        synchronizeCurriculumResources(units, teacher);
-        units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(curriculum.getId());
+        InstructorLedCourse curriculum = ensureCurriculum(teacher);
+        List<CourseUnit> units = courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(curriculum.getId());
+        synchronizeCourseResources(units, teacher);
+        units = courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(curriculum.getId());
 
-        // 2. Tạo hoặc đồng bộ Training Program
-        TrainingProgram trainingProgram = ensureTrainingProgram(curriculum);
-
-        // 3. Liên kết Giáo trình cho tất cả lớp đang học của Nguyễn Văn Teacher (bao gồm ielts-intermediate-live)
-        offeringRepository.findByLearningPackageSlug("ielts-intermediate-live").ifPresent(interOffering -> {
-            interOffering.setCurriculumProgram(curriculum);
-            interOffering.setTrainingProgram(trainingProgram);
-            instructorLedCourseIdResolver.resolveFromTrainingProgramId(trainingProgram.getId())
-                    .ifPresent(interOffering::setInstructorLedCourse);
+        // 2. Liên kết khóa học cho tất cả lớp đang học của Nguyễn Văn Teacher.
+        offeringRepository.findByCode("ielts-intermediate-live").ifPresent(interOffering -> {
+            interOffering.setInstructorLedCourse(curriculum);
             offeringRepository.save(interOffering);
             log.info("[ChinhTestSeeder] Đã liên kết giáo trình ID: {} cho lớp IELTS Intermediate (ID: {})", curriculum.getId(), interOffering.getId());
         });
 
         // 4. Tạo hoặc cập nhật Lớp học chính (ClassSection)
-        Optional<ClassSection> existingOffering = offeringRepository.findByLearningPackageSlug(PACKAGE_SLUG);
+        Optional<ClassSection> existingOffering = offeringRepository.findByCode(PACKAGE_SLUG);
         ClassSection offering;
         if (existingOffering.isPresent()) {
             offering = existingOffering.get();
-            offering.setCurriculumProgram(curriculum);
-            offering.setTrainingProgram(trainingProgram);
-            instructorLedCourseIdResolver.resolveFromTrainingProgramId(trainingProgram.getId())
-                    .ifPresent(offering::setInstructorLedCourse);
+            offering.setInstructorLedCourse(curriculum);
             offering = offeringRepository.save(offering);
             log.info("[ChinhTestSeeder] Lớp học đã tồn tại (ID: {}), đã liên kết giáo trình ID: {}", offering.getId(), curriculum.getId());
         } else {
-            offering = createOffering(classroomType, trainingProgram, curriculum, teacher);
+            offering = createOffering(curriculum, teacher);
         }
 
         ensureTeacherAssignment(offering, teacher);
@@ -306,7 +282,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
         // Đảm bảo có buổi học HÔM NAY cho cả 2 lớp
         alignTodaySession(offering);
-        offeringRepository.findByLearningPackageSlug("ielts-intermediate-live").ifPresent(this::alignTodaySession);
+        offeringRepository.findByCode("ielts-intermediate-live").ifPresent(this::alignTodaySession);
 
         // 6. Tạo/đồng bộ Bài tập & Bài nộp & Chấm điểm
         createHomework(offering, sessions, units, teacher, learner);
@@ -339,83 +315,79 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     // ── Curriculum Program, Units, Flashcards, Practice, Materials ───────────
 
-    private CurriculumProgram ensureCurriculum(User teacher) {
-        CurriculumProgram program = curriculumProgramRepository.findBySlug(CURRICULUM_SLUG)
-                .orElseGet(() -> curriculumProgramRepository.save(CurriculumProgram.builder()
+    private InstructorLedCourse ensureCurriculum(User teacher) {
+        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(CURRICULUM_SLUG)
+                .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title("IELTS Intensive 6.5+ - Virtual Curriculum")
                         .code("EL-IELTS-650-V1")
                         .slug(CURRICULUM_SLUG)
-                        .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                        .examCategory("IELTS")
+                        .examType("IELTS")
                         .targetBand(BigDecimal.valueOf(6.5))
                         .entryLevel("IELTS 5.0+ hoặc CEFR B1")
-                        .outcomes("Nắm vững cả 4 kỹ năng IELTS; đạt band 6.5+; thành thạo chiến thuật phòng thi.")
+                        .learningOutcomes("Nắm vững cả 4 kỹ năng IELTS; đạt band 6.5+; thành thạo chiến thuật phòng thi.")
                         .teacherGuide("Mỗi unit gồm tài liệu trung tâm, luyện tập, bộ flashcard từ vựng và bài tập có deadline.")
-                        .interactionActivities("Live practice, pair speaking, answer review, error log và mock test.")
-                        .totalSessions(8)
-                        .status("APPROVED")
-                        .virtualPlatform("GOOGLE_MEET")
-                        .recordingAllowed(true)
-                        .recordingAvailableDays(30)
-                        .materialsDownloadable(true)
-                        .deviceCheckRequired(true)
-                        .micRequired(true)
-                        .speakerRequired(true)
-                        .autoAttendanceEnabled(true)
+                        .shortDescription("Chương trình IELTS 6.5+ chuyên sâu 8 tuần.")
+                        .description("Chương trình bám sát 4 kỹ năng IELTS, tích hợp bài giảng, bài tập, flashcard và bài thi thử.")
+                        .baseTuitionFeeVnd(BigDecimal.valueOf(5_200_000))
+                        .saleTuitionFeeVnd(BigDecimal.valueOf(4_690_000))
+                        .durationLabel("8 tuần")
+                        .publicationStatus(PackageStatus.PUBLISHED)
                         .displayOrder(1)
                         .reviewedBy(teacher)
                         .reviewedAt(LocalDateTime.now())
                         .build()));
 
-        if (curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(program.getId()).isEmpty()) {
+        if (courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(program.getId()).isEmpty()) {
             for (int index = 0; index < UNIT_SEEDS.size(); index++) {
                 IeltsUnitSeed seed = UNIT_SEEDS.get(index);
                 CenterMaterialLibraryItem material = ensureCenterMaterial(seed, index + 1, teacher);
                 ExerciseBankItem exercise = ensureExercise(seed, index + 1, teacher);
                 FlashcardSet flashcards = ensureFlashcards(seed, index + 1);
 
-                CurriculumUnit unit = CurriculumUnit.builder()
-                        .program(program)
-                        .displayOrder(index + 1)
+                CourseUnit unit = CourseUnit.builder()
+                        .instructorLedCourse(program)
+                        .sequenceNumber(index + 1)
                         .title("Unit " + (index + 1) + " – " + seed.title())
                         .description(seed.description())
-                        .sessionPlan("Warm-up 10 phút; chiến thuật 25 phút; guided practice 35 phút; review & Q&A 20 phút.")
+                        .learningObjectives("Warm-up 10 phút; chiến thuật 25 phút; guided practice 35 phút; review & Q&A 20 phút.")
                         .build();
-                unit.getMaterialRefs().add(CurriculumMaterialRef.builder()
-                        .unit(unit).material(material).displayOrder(1).note("Tài liệu bài học chuẩn của trung tâm").build());
-                unit.getExerciseRefs().add(CurriculumExerciseRef.builder()
-                        .unit(unit).exercise(exercise).displayOrder(1).note("Bài luyện tập củng cố kiến thức").build());
-                unit.getFlashcardRefs().add(CurriculumFlashcardRef.builder()
-                        .unit(unit).flashcardSet(flashcards).displayOrder(1).note("Từ vựng trọng tâm ôn trước và sau buổi học").build());
-                curriculumUnitRepository.save(unit);
+                courseUnitRepository.save(unit);
+                attachUnitResources(unit, material, exercise, flashcards);
             }
         }
         return program;
     }
 
-    private void synchronizeCurriculumResources(List<CurriculumUnit> units, User teacher) {
+    private void synchronizeCourseResources(List<CourseUnit> units, User teacher) {
         for (int index = 0; index < Math.min(units.size(), UNIT_SEEDS.size()); index++) {
-            CurriculumUnit unit = units.get(index);
+            CourseUnit unit = units.get(index);
             IeltsUnitSeed seed = UNIT_SEEDS.get(index);
             int unitNumber = index + 1;
             CenterMaterialLibraryItem material = ensureCenterMaterial(seed, unitNumber, teacher);
             ExerciseBankItem exercise = ensureExercise(seed, unitNumber, teacher);
             FlashcardSet flashcards = ensureFlashcards(seed, unitNumber);
 
-            if (unit.getMaterialRefs().stream().noneMatch(ref -> ref.getMaterial().getId().equals(material.getId()))) {
-                unit.getMaterialRefs().add(CurriculumMaterialRef.builder()
-                        .unit(unit).material(material).displayOrder(1).note("Tài liệu bài học chuẩn của trung tâm").build());
-            }
-            if (unit.getExerciseRefs().stream().noneMatch(ref -> ref.getExercise().getId().equals(exercise.getId()))) {
-                unit.getExerciseRefs().add(CurriculumExerciseRef.builder()
-                        .unit(unit).exercise(exercise).displayOrder(1).note("Bài luyện tập củng cố kiến thức").build());
-            }
-            if (unit.getFlashcardRefs().stream().noneMatch(ref -> ref.getFlashcardSet().getId().equals(flashcards.getId()))) {
-                unit.getFlashcardRefs().add(CurriculumFlashcardRef.builder()
-                        .unit(unit).flashcardSet(flashcards).displayOrder(1).note("Từ vựng trọng tâm ôn trước và sau buổi học").build());
-            }
-            curriculumUnitRepository.save(unit);
+            attachUnitResources(unit, material, exercise, flashcards);
         }
+    }
+
+    private void attachUnitResources(
+            CourseUnit unit,
+            CenterMaterialLibraryItem material,
+            ExerciseBankItem exercise,
+            FlashcardSet flashcards
+    ) {
+        instructorLedCourseManagementService.attachMaterial(unit.getId(), contentRef(material.getId(), "Tài liệu bài học chuẩn của trung tâm"));
+        instructorLedCourseManagementService.attachExercise(unit.getId(), contentRef(exercise.getId(), "Bài luyện tập củng cố kiến thức"));
+        instructorLedCourseManagementService.attachFlashcard(unit.getId(), contentRef(flashcards.getId(), "Từ vựng trọng tâm ôn trước và sau buổi học"));
+    }
+
+    private CourseUnitContentRefRequest contentRef(Long resourceId, String note) {
+        CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
+        request.setResourceId(resourceId);
+        request.setDisplayOrder(1);
+        request.setNote(note);
+        return request;
     }
 
     private CenterMaterialLibraryItem ensureCenterMaterial(IeltsUnitSeed seed, int unitNumber, User teacher) {
@@ -602,36 +574,14 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         };
     }
 
-    private TrainingProgram ensureTrainingProgram(CurriculumProgram curriculum) {
-        TrainingProgram program = trainingProgramRepository.findBySlug(TRAINING_PROGRAM_SLUG)
-                .orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
-                        .title("IELTS Intensive 6.5+ Program")
-                        .code("TR-IELTS-650-V1")
-                        .slug(TRAINING_PROGRAM_SLUG)
-                        .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                        .curriculumProgram(curriculum)
-                        .shortDescription("Chương trình đào tạo IELTS 6.5+ chuyên sâu 8 tuần.")
-                        .description("Chương trình bám sát 4 kỹ năng IELTS chuẩn quốc tế, tích hợp bài giảng, bài tập, flashcard và bài thi thử.")
-                        .price(BigDecimal.valueOf(5_200_000))
-                        .salePrice(BigDecimal.valueOf(4_690_000))
-                        .duration("8 tuần")
-                        .studyMode("Virtual · Google Meet")
-                        .status(PackageStatus.PUBLISHED)
-                        .displayOrder(1)
-                        .featured(true)
-                        .build()));
-        instructorLedCourseSync.syncFromTrainingProgram(program);
-        return program;
-    }
-
     // ── Practice Attempts ────────────────────────────────────────────────────
 
-    private void ensurePracticeAttempts(ClassSection offering, List<CurriculumUnit> units, User learner) {
+    private void ensurePracticeAttempts(ClassSection offering, List<CourseUnit> units, User learner) {
         if (units.isEmpty()) return;
 
         // Attempt 1: Unit 1 Practice (100% score)
-        if (units.size() > 0 && !units.get(0).getExerciseRefs().isEmpty()) {
-            ExerciseBankItem ex1 = units.get(0).getExerciseRefs().get(0).getExercise();
+        ExerciseBankItem ex1 = units.isEmpty() ? null : findExercise(units.get(0));
+        if (ex1 != null) {
             if (practiceAttemptHistoryRepository.countByClassSectionIdAndStudentIdAndExerciseId(
                     offering.getId(), learner.getId(), ex1.getId()) == 0) {
                 practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
@@ -652,8 +602,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         }
 
         // Attempt 2: Unit 2 Practice (66.7% score)
-        if (units.size() > 1 && !units.get(1).getExerciseRefs().isEmpty()) {
-            ExerciseBankItem ex2 = units.get(1).getExerciseRefs().get(0).getExercise();
+        ExerciseBankItem ex2 = units.size() <= 1 ? null : findExercise(units.get(1));
+        if (ex2 != null) {
             if (practiceAttemptHistoryRepository.countByClassSectionIdAndStudentIdAndExerciseId(
                     offering.getId(), learner.getId(), ex2.getId()) == 0) {
                 practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
@@ -674,31 +624,26 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         }
     }
 
+    private ExerciseBankItem findExercise(CourseUnit unit) {
+        return courseUnitContentRefRepository.findByCourseUnitIdOrderBySequenceNumberAscIdAsc(unit.getId()).stream()
+                .filter(ref -> ref.getContentType() == CourseUnitContentType.EXERCISE)
+                .map(ref -> ref.getContentBankItem() == null
+                        ? null
+                        : exerciseRepository.findById(ref.getContentBankItem().getId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
     // ── Offering ──────────────────────────────────────────────────────────────
 
-    private ClassSection createOffering(PackageType classroomType, TrainingProgram trainingProgram,
-                                             CurriculumProgram curriculum, User teacher) {
-        LearningPackage pkg = learningPackageRepository.save(LearningPackage.builder()
-                .packageType(classroomType)
-                .title(CLASS_TITLE)
-                .slug(PACKAGE_SLUG)
-                .shortDescription("Lớp học IELTS 6.5+ dành để test đầy đủ tính năng.")
-                .description("Lớp test cho chinh: có bài tập quá hạn, bài mới, buổi học đang diễn ra và sắp tới. Bao gồm giáo trình, flashcard, bài luyện tập, điểm danh, bảng điểm, học phí, tài liệu, thông báo.")
-                .targetScore("IELTS 6.5+")
-                .duration("8 tuần")
-                .studyMode("Virtual · Google Meet")
-                .price(BigDecimal.valueOf(5_200_000))
-                .salePrice(BigDecimal.valueOf(4_690_000))
-                .status(PackageStatus.PUBLISHED)
-                .featured(true)
-                .createdBy(teacher)
-                .build());
-
+    private ClassSection createOffering(InstructorLedCourse curriculum, User teacher) {
         ClassSection offering = ClassSection.builder()
-                .learningPackage(pkg)
+                .name(CLASS_TITLE)
+                .code(PACKAGE_SLUG)
+                .instructorLedCourse(curriculum)
+                .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .trainingProgram(trainingProgram)
-                .curriculumProgram(curriculum)
                 .status(ClassroomOfferingStatus.ACTIVE)
                 .entryLevel("IELTS 5.0+ hoặc CEFR B1")
                 .targetOutcome("Đạt IELTS 6.5+; thành thạo cả 4 kỹ năng; có chiến lược thi thực tế.")
@@ -713,8 +658,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .teacherGuide("Mỗi buổi: review 10 phút + dạy chiến lược 30 phút + luyện tập có hướng dẫn 40 phút + Q&A 10 phút.")
                 .interactionActivities("Mock test, pair speaking, error log review, timed writing, peer feedback.")
                 .build();
-        instructorLedCourseIdResolver.resolveFromTrainingProgramId(trainingProgram.getId())
-                .ifPresent(offering::setInstructorLedCourse);
         return offeringRepository.save(offering);
     }
 
@@ -869,7 +812,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                     .title(row[0])
                     .description(row[1])
                     .displayOrder(i + 1)
-                    .sessionNumber(i + 1)
                     .linkedSessionId(session != null ? session.getId() : null)
                     .sessionPlan(row[2])
                     .homeworkNotes(row[3])
@@ -1015,7 +957,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     // ── Homework ──────────────────────────────────────────────────────────────
 
     private void createHomework(ClassSection offering, List<ClassSchedule> schedules,
-                                 List<CurriculumUnit> units, User teacher, User learner) {
+                                 List<CourseUnit> units, User teacher, User learner) {
         LocalDate today = LocalDate.now();
 
         ClassSchedule s1 = schedules.size() > 0 ? schedules.get(0) : null;
@@ -1027,14 +969,14 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         ClassSchedule s7 = schedules.size() > 6 ? schedules.get(6) : null;
         ClassSchedule s8 = schedules.size() > 7 ? schedules.get(7) : null;
 
-        CurriculumUnit u1 = units.size() > 0 ? units.get(0) : null;
-        CurriculumUnit u2 = units.size() > 1 ? units.get(1) : null;
-        CurriculumUnit u3 = units.size() > 2 ? units.get(2) : null;
-        CurriculumUnit u4 = units.size() > 3 ? units.get(3) : null;
-        CurriculumUnit u5 = units.size() > 4 ? units.get(4) : null;
-        CurriculumUnit u6 = units.size() > 5 ? units.get(5) : null;
-        CurriculumUnit u7 = units.size() > 6 ? units.get(6) : null;
-        CurriculumUnit u8 = units.size() > 7 ? units.get(7) : null;
+        CourseUnit u1 = units.size() > 0 ? units.get(0) : null;
+        CourseUnit u2 = units.size() > 1 ? units.get(1) : null;
+        CourseUnit u3 = units.size() > 2 ? units.get(2) : null;
+        CourseUnit u4 = units.size() > 3 ? units.get(3) : null;
+        CourseUnit u5 = units.size() > 4 ? units.get(4) : null;
+        CourseUnit u6 = units.size() > 5 ? units.get(5) : null;
+        CourseUnit u7 = units.size() > 6 ? units.get(6) : null;
+        CourseUnit u8 = units.size() > 7 ? units.get(7) : null;
 
         // ── HW1: Quá hạn – chưa nộp ─────────────────────────────────────────
         saveHomework(offering, s1, u1, teacher,
@@ -1140,7 +1082,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     }
 
     private ClassroomHomework saveHomework(ClassSection offering, ClassSchedule session,
-                                            CurriculumUnit unit,
+                                            CourseUnit unit,
                                             User teacher, String title, String instruction,
                                             LocalDateTime deadline,
                                             HomeworkActivityType activityType,
@@ -1152,8 +1094,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .stream().filter(h -> title.equalsIgnoreCase(h.getTitle())).findFirst();
         if (existing.isPresent()) {
             ClassroomHomework hw = existing.get();
-            if (unit != null && hw.getCurriculumUnit() == null) {
-                hw.setCurriculumUnit(unit);
+            if (unit != null && hw.getCourseUnit() == null) {
+                hw.setCourseUnit(unit);
                 return homeworkRepository.save(hw);
             }
             return hw;
@@ -1162,7 +1104,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         ClassroomHomework.ClassroomHomeworkBuilder builder = ClassroomHomework.builder()
                 .classSection(offering)
                 .session(session)
-                .curriculumUnit(unit)
+                .courseUnit(unit)
                 .title(title)
                 .instruction(instruction)
                 .deadline(deadline)

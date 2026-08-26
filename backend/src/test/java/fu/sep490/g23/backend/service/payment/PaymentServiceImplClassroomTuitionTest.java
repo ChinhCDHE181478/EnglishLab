@@ -5,19 +5,18 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
-import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
@@ -80,8 +79,7 @@ class PaymentServiceImplClassroomTuitionTest {
         );
 
         student = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(3L).title("TOEIC Intensive").price(new BigDecimal("5000000")).build();
-        ClassSection offering = ClassSection.builder().id(12L).learningPackage(learningPackage).build();
+        ClassSection offering = ClassSection.builder().id(12L).name("TOEIC Intensive").tuitionFeeVnd(new BigDecimal("5000000")).build();
         enrollment = ClassEnrollment.builder()
                 .id(88L)
                 .student(student)
@@ -98,9 +96,11 @@ class PaymentServiceImplClassroomTuitionTest {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
-        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
+                .thenReturn(false);
 
-        PaymentQuoteResponse quote = paymentService.quotePayment(List.of(), List.of(12L), null, "learner@example.com");
+        PaymentQuoteResponse quote = paymentService.quotePayment(
+                List.of(), List.of(12L), null, "learner@example.com");
 
         assertEquals(5_000_000L, quote.getTotalAmount());
         assertEquals(5_000_000L, quote.getOriginalAmount());
@@ -112,27 +112,29 @@ class PaymentServiceImplClassroomTuitionTest {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
-        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
+                .thenReturn(false);
 
-        RuntimeException ex = assertThrows(
+        RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> paymentService.quotePayment(List.of(), List.of(12L), "SAVE10", "learner@example.com")
+                () -> paymentService.quotePayment(
+                        List.of(), List.of(12L), "SAVE10", "learner@example.com")
         );
-        assertTrue(ex.getMessage().contains("Mã giảm giá"));
+
+        assertTrue(exception.getMessage().contains("Mã giảm giá"));
     }
 
     @Test
-    void quotePayment_allowsLegacyPendingConfirmation() {
+    void quotePayment_allowsPendingConfirmationEnrollment() {
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.PENDING_CONFIRMATION);
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
-
-        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
+                .thenReturn(false);
 
         PaymentQuoteResponse quote = paymentService.quotePayment(
-                List.of(), List.of(12L), null, "learner@example.com"
-        );
+                List.of(), List.of(12L), null, "learner@example.com");
 
         assertEquals(5_000_000L, quote.getTotalAmount());
     }
@@ -144,12 +146,13 @@ class PaymentServiceImplClassroomTuitionTest {
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
 
-        RuntimeException ex = assertThrows(
+        RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> paymentService.quotePayment(List.of(), List.of(12L), null, "learner@example.com")
+                () -> paymentService.quotePayment(
+                        List.of(), List.of(12L), null, "learner@example.com")
         );
 
-        assertTrue(ex.getMessage().contains("danh sách chờ"));
+        assertTrue(exception.getMessage().contains("danh sách chờ"));
     }
 
     @Test

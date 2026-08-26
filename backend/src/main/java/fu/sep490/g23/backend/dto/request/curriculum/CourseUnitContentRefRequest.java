@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CurriculumReferenceRequest {
+public class CourseUnitContentRefRequest {
     @NotNull(message = "Tài nguyên cần gắn không được để trống.")
     private Long resourceId;
 

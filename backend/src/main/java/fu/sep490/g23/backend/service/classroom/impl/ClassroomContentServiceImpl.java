@@ -259,7 +259,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
 
     private ClassSection findOffering(Long offeringId) {
         return offeringRepository.findById(offeringId)
-                .filter(offering -> !offering.getLearningPackage().isDeleted())
+                .filter(offering -> !offering.isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
     }
 

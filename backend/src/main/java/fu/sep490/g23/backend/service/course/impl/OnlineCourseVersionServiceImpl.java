@@ -206,12 +206,12 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         version.setReviewedBy(publisher);
         version.setReviewNote(null);
         version.setPublishedAt(LocalDateTime.now());
-        course.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
         course.setStatus(PackageStatus.PUBLISHED);
-        course.getLearningPackage().setSubmittedForReviewAt(null);
-        course.getLearningPackage().setReviewedBy(publisher);
-        course.getLearningPackage().setReviewedAt(LocalDateTime.now());
-        course.getLearningPackage().setReviewNote(null);
+        course.setStatus(PackageStatus.PUBLISHED);
+        course.setSubmittedForReviewAt(null);
+        course.setReviewedBy(publisher);
+        course.setReviewedAt(LocalDateTime.now());
+        course.setReviewNote(null);
         return toResponse(version, true);
     }
 
@@ -227,7 +227,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
                 .orElse(null);
         if (published == null) {
-            PackageStatus status = course.getLearningPackage().getStatus();
+            PackageStatus status = course.getStatus();
             if (status == PackageStatus.DRAFT || status == PackageStatus.REJECTED) {
                 return;
             }
@@ -314,7 +314,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                                 .map(OnlineCourseVersion::getVersionNumber)
                                 .max(Integer::compareTo)
                                 .orElse(0) + 1)
-                        .createdBy(course.getLearningPackage().getCreatedBy())
+                        .createdBy(course.getCreatedBy())
                         .build());
         synchronizeSnapshot(version, course);
         version.setStatus(CourseVersionStatus.PUBLISHED);
@@ -721,7 +721,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         if (enrollment.getCourseVersion() != null && enrollment.getCourseVersion().getOnlineCourse() != null) {
             return enrollment.getCourseVersion().getOnlineCourse();
         }
-        return onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+        return java.util.Optional.ofNullable(enrollment.getOnlineCourse())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khóa học của enrollment này."));
     }
 
@@ -1023,7 +1023,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     private OnlineCourse findCourse(Long courseId) {
         OnlineCourse course = onlineCourseRepository.findWithModulesById(courseId)
-                .filter(item -> !item.getLearningPackage().isDeleted())
+                .filter(item -> !item.isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
         course.getModules().forEach(module -> module.getLessons().size());
         return course;

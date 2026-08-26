@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.request.assessment.PlacementTestSubmissionRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitContentRefRequest;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -24,7 +24,6 @@ import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
@@ -49,18 +48,12 @@ import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumFlashcardRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
+import fu.sep490.g23.backend.entity.course.CourseLesson;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
@@ -82,23 +75,18 @@ import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
-import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
-import fu.sep490.g23.backend.service.course.InstructorLedCourseIdResolver;
-import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -157,8 +145,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
-    private final PackageTypeRepository packageTypeRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
@@ -170,9 +156,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomChangeRequestRepository changeRequestRepository;
     private final CourseRegistrationRequestRepository enrollmentRequestRepository;
-    private final TrainingProgramRepository trainingProgramRepository;
-    private final CurriculumProgramRepository curriculumProgramRepository;
-    private final CurriculumUnitRepository curriculumUnitRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
+    private final CourseUnitRepository courseUnitRepository;
     private final TeacherPerformanceEvaluationRepository teacherEvaluationRepository;
     private final ClassroomAttendanceRepository attendanceRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
@@ -183,10 +168,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final PlacementTestAttemptRepository placementAttemptRepository;
     private final PlacementTestDefinitionService placementTestDefinitionService;
     private final PlacementTestService placementTestService;
-    private final CurriculumProgramService curriculumProgramService;
+    private final InstructorLedCourseManagementService instructorLedCourseManagementService;
     private final ClassroomMaterialSyncService classroomMaterialSyncService;
-    private final InstructorLedCourseSync instructorLedCourseSync;
-    private final InstructorLedCourseIdResolver instructorLedCourseIdResolver;
     private final CenterMaterialLibraryItemRepository centerMaterialRepository;
     private final ExerciseBankItemRepository exerciseBankItemRepository;
     private final FlashcardSetRepository flashcardSetRepository;
@@ -205,7 +188,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
         log.info("[CenterSheet] Nap du lieu quy mo trung tam (local sheet DB), flag={}", sheetEnabled);
         try {
-            seedPackageTypes();
             User contentManager = ensureUser("content.manager@englishlab.vn", "Quản lý Content", RoleEnum.CONTENT_MANAGER);
         ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
         ensureUser("classroom.manager@englishlab.vn", "Quản lý lớp học", RoleEnum.MANAGER);
@@ -248,20 +230,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
-    private void seedPackageTypes() {
-        upsertType(PackageTypeCode.ONLINE_COURSE, "Online Course");
-        upsertType(PackageTypeCode.CLASSROOM, "Classroom");
-        upsertType(PackageTypeCode.MOCK_TEST, "Mock Test");
-        upsertType(PackageTypeCode.SUBSCRIPTION, "Subscription");
-        upsertType(PackageTypeCode.BUNDLE, "Bundle");
-    }
-
-    private void upsertType(PackageTypeCode code, String name) {
-        if (!packageTypeRepository.existsByCode(code)) {
-            packageTypeRepository.save(PackageType.builder().code(code).name(name).description(name).active(true).build());
-        }
-    }
-
     private List<Room> ensureRooms() {
         List<Room> rooms = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
@@ -288,13 +256,11 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             User showcaseLearner,
             User alien
     ) {
-        PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
-                .orElseThrow(() -> new IllegalStateException("CLASSROOM package type missing"));
-        TrainingProgram ieltsOffline = ensureSheetTrainingProgram(
+        InstructorLedCourse ieltsOffline = ensureSheetTrainingProgram(
                 "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
-        TrainingProgram ieltsLive = ensureSheetTrainingProgram(
+        InstructorLedCourse ieltsLive = ensureSheetTrainingProgram(
                 "center-sheet-ielts-live", "IELTS 4 kỹ năng Google Meet", ClassroomDeliveryMode.VIRTUAL);
-        TrainingProgram toeicOffline = ensureSheetTrainingProgram(
+        InstructorLedCourse toeicOffline = ensureSheetTrainingProgram(
                 "center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
         List<ClassSection> offerings = new ArrayList<>();
         int learnerCursor = 1;
@@ -315,9 +281,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     + (mwf ? "T2-4-6 " : "T3-5-7 ")
                     + (eveningTwo ? "Ca 2" : "Ca 1");
             ClassSection offering = upsertOffering(
-                    classroomType, slug, title, online, start, end, teacher, room, eveningTwo);
-            TrainingProgram program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
-            attachCurriculum(offering, program);
+                    slug, title, online, start, end, teacher, room, eveningTwo);
+            InstructorLedCourse program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
+            attachCourse(offering, program);
             ensureTeacherAssignment(offering, teacher);
             seedSessions(offering, teacher, room, mwf, eveningTwo, online);
             List<User> classLearners = new ArrayList<>();
@@ -356,7 +322,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private ClassSection upsertOffering(
-            PackageType classroomType,
             String slug,
             String title,
             boolean online,
@@ -367,31 +332,16 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             boolean eveningTwo
     ) {
         String cover = online ? "/course-covers/classroom-online.png" : "/course-covers/classroom-offline.png";
-        return offeringRepository.findByLearningPackageSlug(slug).map(existing -> {
-            LearningPackage pack = existing.getLearningPackage();
-            pack.setTitle(title);
-            pack.setThumbnailUrl(cover);
-            learningPackageRepository.save(pack);
+        return offeringRepository.findByInstructorLedCourseSlugOrCode(slug).map(existing -> {
+            existing.setName(title);
             existing.setPrimaryTeacher(teacher);
             existing.setRegularRoom(room);
             return offeringRepository.save(existing);
         }).orElseGet(() -> {
-            LearningPackage pack = LearningPackage.builder()
-                    .packageType(classroomType)
-                    .slug(slug)
-                    .title(title)
-                    .shortDescription("Lớp 3 tháng, 3 buổi/tuần, sĩ số 10.")
-                    .description("Chương trình lớp học trung tâm EnglishLab, nghỉ Chủ nhật, 2 ca tối.")
-                    .duration("3 tháng")
-                    .studyMode(online ? "Google Meet" : "Tại trung tâm")
-                    .price(BigDecimal.valueOf(4_690_000))
-                    .thumbnailUrl(cover)
-                    .status(PackageStatus.PUBLISHED)
-                    .displayOrder(100)
-                    .deleted(false)
-                    .build();
             ClassSection offering = ClassSection.builder()
-                    .learningPackage(pack)
+                    .name(title)
+                    .code(slug)
+                    .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
                     .deliveryMode(online ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.ACTIVE)
                     .entryLevel("IELTS 5.0")
@@ -437,18 +387,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         return classIndex % 2 == 1;
     }
 
-    private void attachCurriculum(ClassSection offering, TrainingProgram program) {
-        CurriculumProgram curriculum = program.getCurriculumProgram();
-        offering.setTrainingProgram(program);
-        offering.setCurriculumProgram(curriculum);
-        instructorLedCourseIdResolver.resolveFromTrainingProgramId(program.getId())
-                .ifPresent(offering::setInstructorLedCourse);
+    private void attachCourse(ClassSection offering, InstructorLedCourse curriculum) {
+        offering.setInstructorLedCourse(curriculum);
         offering.setEntryLevel(curriculum.getEntryLevel());
-        offering.setTargetOutcome(curriculum.getOutcomes());
-        offering.setSyllabusSummary(curriculum.getOutcomes());
-        offering.setProgramOutcomes(curriculum.getOutcomes());
+        offering.setTargetOutcome(curriculum.getLearningOutcomes());
+        offering.setSyllabusSummary(curriculum.getLearningOutcomes());
+        offering.setProgramOutcomes(curriculum.getLearningOutcomes());
         offering.setTeacherGuide(curriculum.getTeacherGuide());
-        offering.setInteractionActivities(curriculum.getInteractionActivities());
+        offering.setInteractionActivities(null);
         offeringRepository.save(offering);
         User actor = offering.getPrimaryTeacher();
         if (actor == null) {
@@ -587,39 +533,37 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private void completeCourseIfPresent(User learner, String slug) {
-        learningPackageRepository.findBySlugAndDeletedFalse(slug).ifPresent(pack -> {
-            OnlineCourseEnrollment enrollment = packageEnrollmentRepository.findByStudentAndLearningPackage(learner, pack)
+        onlineCourseRepository.findBySlug(slug).ifPresent(course -> {
+            OnlineCourseEnrollment enrollment = packageEnrollmentRepository.findByStudentAndOnlineCourse(learner, course)
                     .orElseGet(() -> packageEnrollmentRepository.save(OnlineCourseEnrollment.builder()
                             .student(learner)
-                            .learningPackage(pack)
+                            .onlineCourse(course)
                             .registeredAt(LocalDateTime.now().minusDays(40))
                             .build()));
             enrollment.setStatus(EnrollmentStatus.COMPLETED);
             enrollment.setProgressPercent(100);
             packageEnrollmentRepository.save(enrollment);
-            onlineCourseRepository.findByLearningPackage(pack).ifPresent(course -> {
-                for (var module : course.getModules()) {
-                    for (OnlineLesson lesson : module.getLessons()) {
-                        LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
-                                .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
-                        progress.setEnrollment(enrollment);
-                        progress.setStatus(LessonProgressStatus.COMPLETED);
-                        progress.setProgressPercent(100);
-                        progress.setCompletedAt(LocalDateTime.now().minusDays(5));
-                        progress.setLastAccessedAt(LocalDateTime.now().minusDays(2));
-                        lessonProgressRepository.save(progress);
-                    }
+            for (var module : course.getModules()) {
+                for (OnlineLesson lesson : module.getLessons()) {
+                    LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
+                            .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
+                    progress.setEnrollment(enrollment);
+                    progress.setStatus(LessonProgressStatus.COMPLETED);
+                    progress.setProgressPercent(100);
+                    progress.setCompletedAt(LocalDateTime.now().minusDays(5));
+                    progress.setLastAccessedAt(LocalDateTime.now().minusDays(2));
+                    lessonProgressRepository.save(progress);
                 }
-            });
+            }
         });
     }
 
     private void enrollInProgress(User learner, String slug, int percent) {
-        learningPackageRepository.findBySlugAndDeletedFalse(slug).ifPresent(pack -> {
-            OnlineCourseEnrollment enrollment = packageEnrollmentRepository.findByStudentAndLearningPackage(learner, pack)
+        onlineCourseRepository.findBySlug(slug).ifPresent(course -> {
+            OnlineCourseEnrollment enrollment = packageEnrollmentRepository.findByStudentAndOnlineCourse(learner, course)
                     .orElseGet(() -> packageEnrollmentRepository.save(OnlineCourseEnrollment.builder()
                             .student(learner)
-                            .learningPackage(pack)
+                            .onlineCourse(course)
                             .registeredAt(LocalDateTime.now().minusDays(12))
                             .build()));
             if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
@@ -821,7 +765,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         request.setTimeLimitMinutes(minutes);
         request.setStatus("PUBLISHED");
         request.setDisplayOrder(10);
-        curriculumProgramService.createAssessmentBankItem(request);
+        instructorLedCourseManagementService.createAssessmentBankItem(request);
     }
 
     private void seedPlacementViaApi(User learner) {
@@ -938,8 +882,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             List<ClassSection> offerings,
             User showcaseLearner
     ) {
-        TrainingProgram ieltsProgram = ensureSheetTrainingProgram("center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
-        TrainingProgram toeicProgram = ensureSheetTrainingProgram("center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse ieltsProgram = ensureSheetTrainingProgram("center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse toeicProgram = ensureSheetTrainingProgram("center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
         if (enrollmentRequestRepository.count() > 0) {
             for (CourseRegistrationRequest existing : enrollmentRequestRepository.findAll()) {
                 if (existing.getCourseOffering() == null) {
@@ -1065,105 +1009,86 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
-    private TrainingProgram ensureSheetTrainingProgram(String slug, String title, ClassroomDeliveryMode mode) {
+    private InstructorLedCourse ensureSheetTrainingProgram(String slug, String title, ClassroomDeliveryMode mode) {
         boolean toeic = slug.contains("toeic");
-        CurriculumProgram curriculum = ensureSheetCurriculum(slug + "-curriculum", title, mode, toeic);
-        TrainingProgram program = trainingProgramRepository.findBySlug(slug).orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
-                .title(title)
-                .code("TP_" + slug.replace("center-sheet-", "").replace("-", "_").toUpperCase())
-                .slug(slug)
-                .deliveryMode(mode)
-                .curriculumProgram(curriculum)
-                .shortDescription(title)
-                .description("Giáo trình ca tối tại " + CAMPUS_NAME + ", 12 tuần / 36 buổi.")
-                .price(BigDecimal.valueOf(toeic ? 8_900_000 : 12_500_000))
-                .duration("12 tuần")
-                .studyMode(mode == ClassroomDeliveryMode.VIRTUAL ? "Google Meet · Ca tối" : "Offline · Ca tối")
-                .status(PackageStatus.PUBLISHED)
-                .displayOrder(1)
-                .featured(true)
-                .build()));
-        instructorLedCourseSync.syncFromTrainingProgram(program);
-        return program;
+        return ensureSheetCurriculum(slug, title, mode, toeic);
     }
 
-    private CurriculumProgram ensureSheetCurriculum(
+    private InstructorLedCourse ensureSheetCurriculum(
             String slug,
             String title,
             ClassroomDeliveryMode mode,
             boolean toeic
     ) {
         String codeBase = slug.replace("center-sheet-", "").replace("-", "_").replace("_curriculum", "").toUpperCase();
-        CurriculumProgram program = curriculumProgramRepository.findBySlug(slug)
-                .orElseGet(() -> curriculumProgramRepository.save(CurriculumProgram.builder()
+        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(slug)
+                .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title(title)
                         .code("CS_" + codeBase)
                         .slug(slug)
-                        .deliveryMode(mode)
-                        .examCategory(toeic ? "TOEIC" : "IELTS")
+                        .examType(toeic ? "TOEIC" : "IELTS")
                         .programTrack(toeic ? "TOEIC_2_SKILLS" : "IELTS_4_SKILLS")
                         .focusSkills(toeic ? "Listening, Reading" : "Listening, Reading, Writing, Speaking")
                         .entryLevel(toeic ? "TOEIC 350+" : "IELTS 5.0")
-                        .outcomes(toeic
+                        .learningOutcomes(toeic
                                 ? "Hoàn thành 36 buổi TOEIC L&R: Part 1-7, chiến thuật làm bài, mục tiêu 650+."
                                 : "Hoàn thành 36 buổi IELTS 4 kỹ năng: Listening, Reading, Writing, Speaking, mục tiêu 6.0-6.5.")
                         .teacherGuide("Mỗi unit gồm học liệu trung tâm, bài luyện tập, bộ flashcard và kế hoạch 4 buổi.")
-                        .interactionActivities(mode == ClassroomDeliveryMode.VIRTUAL
-                                ? "Breakout room, share screen, pair speaking trên Google Meet."
-                                : "Pair work, board work, role-play tại lớp ca tối.")
-                        .totalSessions(36)
-                        .status("APPROVED")
-                        .virtualPlatform(mode == ClassroomDeliveryMode.VIRTUAL ? "GOOGLE_MEET" : null)
+                        .shortDescription(title)
+                        .description("Giáo trình ca tối tại " + CAMPUS_NAME + ", 12 tuần / 36 buổi.")
+                        .baseTuitionFeeVnd(BigDecimal.valueOf(toeic ? 8_900_000 : 12_500_000))
+                        .durationLabel("12 tuần")
+                        .publicationStatus(PackageStatus.PUBLISHED)
                         .displayOrder(1)
+                        .featured(true)
                         .build()));
-        if (curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(program.getId()).isEmpty()) {
+        if (courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(program.getId()).isEmpty()) {
             String[][] units = toeic ? toeicUnits() : ieltsUnits();
             for (int i = 0; i < units.length; i++) {
-                CurriculumUnit unit = CurriculumUnit.builder()
-                        .program(program)
-                        .displayOrder(i + 1)
+                CourseUnit unit = CourseUnit.builder()
+                        .instructorLedCourse(program)
+                        .sequenceNumber(i + 1)
                         .title(units[i][0])
                         .description(units[i][1])
-                        .sessionPlan("Warm-up 10 phút; chiến thuật 25 phút; luyện có hướng dẫn 40 phút; chốt bài về nhà 15 phút.")
+                        .learningObjectives("Warm-up 10 phút; chiến thuật 25 phút; luyện có hướng dẫn 40 phút; chốt bài về nhà 15 phút.")
                         .build();
                 for (int session = 1; session <= 4; session++) {
-                    unit.addSessionPlan(CurriculumSessionPlan.builder()
-                            .sessionNumber(i * 4 + session)
-                            .displayOrder(session)
+                    unit.addLesson(CourseLesson.builder()
+                            .sequenceNumber(i * 4 + session)
                             .title("Buổi " + (i * 4 + session) + " · " + units[i][0])
                             .description(units[i][1])
                             .learningObjectives(units[i][2])
                             .build());
                 }
-                curriculumUnitRepository.save(unit);
+                courseUnitRepository.save(unit);
             }
         }
-        List<CurriculumUnit> units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(program.getId());
+        List<CourseUnit> units = courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(program.getId());
         User creator = userRepository.findByEmail("content.manager@englishlab.vn").orElse(null);
         attachSheetUnitResources(units, toeic, creator);
         return program;
     }
 
-    private void attachSheetUnitResources(List<CurriculumUnit> units, boolean toeic, User creator) {
+    private void attachSheetUnitResources(List<CourseUnit> units, boolean toeic, User creator) {
         String[][] catalog = toeic ? toeicUnits() : ieltsUnits();
         String exam = toeic ? "TOEIC" : "IELTS";
         for (int i = 0; i < Math.min(units.size(), catalog.length); i++) {
             int unitNumber = i + 1;
-            CurriculumUnit unit = units.get(i);
+            CourseUnit unit = units.get(i);
             String title = catalog[i][0];
             String description = catalog[i][1];
             String skill = toeic ? toeicSkill(unitNumber) : ieltsSkill(unitNumber);
             CenterMaterialLibraryItem material = ensureSheetMaterial(exam, unitNumber, title, description, skill, creator);
             ExerciseBankItem exercise = ensureSheetExercise(exam, unitNumber, title, description, skill, creator);
             FlashcardSet flashcards = ensureSheetFlashcards(exam, unitNumber, title, skill);
-            curriculumProgramService.attachMaterial(unit.getId(), sheetRef(material.getId(), "Học liệu chuẩn của unit"));
-            curriculumProgramService.attachExercise(unit.getId(), sheetRef(exercise.getId(), "Bài luyện tập trong giáo trình"));
-            curriculumProgramService.attachFlashcard(unit.getId(), sheetRef(flashcards.getId(), "Từ vựng ôn trước và sau buổi học"));
+            instructorLedCourseManagementService.attachMaterial(unit.getId(), sheetRef(material.getId(), "Học liệu chuẩn của unit"));
+            instructorLedCourseManagementService.attachExercise(unit.getId(), sheetRef(exercise.getId(), "Bài luyện tập trong giáo trình"));
+            instructorLedCourseManagementService.attachFlashcard(unit.getId(), sheetRef(flashcards.getId(), "Từ vựng ôn trước và sau buổi học"));
         }
     }
 
-    private CurriculumReferenceRequest sheetRef(Long resourceId, String note) {
-        CurriculumReferenceRequest request = new CurriculumReferenceRequest();
+    private CourseUnitContentRefRequest sheetRef(Long resourceId, String note) {
+        CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
         request.setResourceId(resourceId);
         request.setDisplayOrder(1);
         request.setNote(note);
@@ -1507,16 +1432,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private void seedUpcomingAlertClass(List<User> teachers, List<User> learners) {
-        if (offeringRepository.findByLearningPackageSlug("center-sheet-class-31").isPresent()) {
+        if (offeringRepository.findByInstructorLedCourseSlugOrCode("center-sheet-class-31").isPresent()) {
             return;
         }
-        PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM).orElse(null);
-        if (classroomType == null || teachers.size() < 2 || learners.size() < 4) {
+        if (teachers.size() < 2 || learners.size() < 4) {
             return;
         }
         User teacher = teachers.get(1);
         ClassSection offering = upsertOffering(
-                classroomType,
                 "center-sheet-class-31",
                 "IELTS Center K4 T2-4-6 Ca 1",
                 false,
@@ -1529,7 +1452,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         offering.setCapacity(10);
         offering.setStatus(ClassroomOfferingStatus.UPCOMING);
         offeringRepository.save(offering);
-        attachCurriculum(offering, ensureSheetTrainingProgram(
+        attachCourse(offering, ensureSheetTrainingProgram(
                 "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE));
         ensureTeacherAssignment(offering, teacher);
         ensureClassEnrollment(offering, learners.get(1), teacher, LocalDate.now());

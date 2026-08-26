@@ -12,11 +12,11 @@ import fu.sep490.g23.backend.entity.AuthToken;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -25,7 +25,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementEligibilityService;
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.classroom.impl.EnrollmentRequestServiceImpl;
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
 class EnrollmentRequestServiceImplTest {
     @Mock private CourseRegistrationRequestRepository requestRepository;
     @Mock private EnrollmentRequestStatusHistoryRepository historyRepository;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock private ClassSectionRepository classroomOfferingRepository;
     @Mock private ClassScheduleRepository classroomSessionRepository;
     @Mock private ClassEnrollmentRepository classroomEnrollmentRepository;
@@ -75,7 +75,7 @@ class EnrollmentRequestServiceImplTest {
     private User learner;
     private User staff;
     private User manager;
-    private TrainingProgram program;
+    private InstructorLedCourse program;
     private ClassSection classroom;
 
     @BeforeEach
@@ -83,7 +83,7 @@ class EnrollmentRequestServiceImplTest {
         service = new EnrollmentRequestServiceImpl(
                 requestRepository,
                 historyRepository,
-                trainingProgramRepository,
+                instructorLedCourseRepository,
                 classroomOfferingRepository,
                 classroomSessionRepository,
                 classroomEnrollmentRepository,
@@ -100,24 +100,23 @@ class EnrollmentRequestServiceImplTest {
         learner = user(10L, "learner@example.com", RoleEnum.LEARNER);
         staff = user(50L, "staff@example.com", RoleEnum.STAFF);
         manager = user(60L, "manager@example.com", RoleEnum.MANAGER);
-        program = TrainingProgram.builder()
+        program = InstructorLedCourse.builder()
                 .id(20L)
                 .code("IELTS-FOUNDATION")
+                .slug("ielts-foundation")
                 .title("IELTS Foundation")
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .status(PackageStatus.PUBLISHED)
-                .build();
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(21L)
-                .title("IELTS F01")
-                .slug("ielts-f01")
-                .studyMode("T2, T4, T6 · 18:30")
-                .status(PackageStatus.PUBLISHED)
+                .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
         classroom = ClassSection.builder()
                 .id(30L)
-                .learningPackage(learningPackage)
-                .trainingProgram(program)
+                .name("IELTS F01")
+                .code("ielts-f01")
+                .instructorLedCourse(InstructorLedCourse.builder()
+                        .id(program.getId())
+                        .code(program.getCode())
+                        .title(program.getTitle())
+                        .publicationStatus(PackageStatus.PUBLISHED)
+                        .build())
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .status(ClassroomOfferingStatus.UPCOMING)
                 .startDate(LocalDate.now().plusDays(14))
@@ -127,7 +126,7 @@ class EnrollmentRequestServiceImplTest {
     @Test
     void learnerRegistersInterestInCourseInsteadOfClass() {
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
-        when(trainingProgramRepository.findById(program.getId())).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(program.getId())).thenReturn(Optional.of(program));
         when(requestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(any(), any(), anySet()))
                 .thenReturn(false);
         stubPersistence();
@@ -148,7 +147,7 @@ class EnrollmentRequestServiceImplTest {
     @Test
     void learnerCannotCreateSecondActiveRequestForSameCourse() {
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
-        when(trainingProgramRepository.findById(program.getId())).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(program.getId())).thenReturn(Optional.of(program));
         when(requestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(
                 eq(learner),
                 eq(program),
@@ -222,14 +221,19 @@ class EnrollmentRequestServiceImplTest {
     @Test
     void staffCanAssignAClassFromDifferentCourseAfterPlacementTestAndEmailsLearner() {
         CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
-        TrainingProgram placementProgram = TrainingProgram.builder()
+        InstructorLedCourse placementProgram = InstructorLedCourse.builder()
                 .id(99L)
                 .code("IELTS-INTERMEDIATE")
+                .slug("ielts-intermediate")
                 .title("IELTS Intermediate")
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .status(PackageStatus.PUBLISHED)
+                .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
-        classroom.setTrainingProgram(placementProgram);
+        classroom.setInstructorLedCourse(InstructorLedCourse.builder()
+                .id(placementProgram.getId())
+                .code(placementProgram.getCode())
+                .title(placementProgram.getTitle())
+                .publicationStatus(PackageStatus.PUBLISHED)
+                .build());
         stubStaffRequest(request);
         when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
         when(classroomOfferingService.enrollStudent(any(), any()))

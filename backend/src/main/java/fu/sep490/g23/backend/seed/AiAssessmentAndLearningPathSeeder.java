@@ -14,7 +14,6 @@ import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +39,6 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
 
     private final AssessmentRubricRepository rubricRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
 
     @Value("${app.seed.test.enabled:false}")
@@ -57,8 +55,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         AssessmentRubric speakingRubric = upsertIeltsSpeakingRubric();
         AssessmentRubric vocabularyRubric = upsertVocabularyRubric();
 
-        learningPackageRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus")
-                .flatMap(onlineCourseRepository::findByLearningPackage)
+        onlineCourseRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus")
                 .ifPresent(course -> {
                     configurePath(course, 1, "IELTS 5.5 to 7.0 Self-Paced Path", 5.5, 7.0,
                             "Learner can use band-7 topic vocabulary, collocations, and examples in IELTS Speaking/Writing responses.",
@@ -66,8 +63,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                     seedVocabularyAssessments(course, vocabularyRubric);
                 });
 
-        learningPackageRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
-                .flatMap(onlineCourseRepository::findByLearningPackage)
+        onlineCourseRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
                 .ifPresent(course -> {
                     configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 6.0, 7.0,
                             "Learner can complete IELTS-style practice tests, analyze mistakes, and follow AI recommendations for final review.",

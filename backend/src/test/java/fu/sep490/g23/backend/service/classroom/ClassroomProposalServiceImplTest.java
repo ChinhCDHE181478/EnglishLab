@@ -16,15 +16,15 @@ import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposal;
 import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ConflictType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
+import fu.sep490.g23.backend.entity.course.CourseLesson;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -34,8 +34,8 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomProposalRepository;
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
+import fu.sep490.g23.backend.repository.course.CourseLessonRepository;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomProposalServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,21 +66,21 @@ class ClassroomProposalServiceImplTest {
     @Mock private ClassroomProposalMemberRepository memberRepository;
     @Mock private CourseRegistrationRequestRepository enrollmentRequestRepository;
     @Mock private EnrollmentRequestStatusHistoryRepository enrollmentHistoryRepository;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock private RoomRepository roomRepository;
     @Mock private ClassSectionRepository offeringRepository;
     @Mock private UserRepository userRepository;
     @Mock private ClassroomConflictService conflictService;
     @Mock private ClassroomScheduleLockService scheduleLockService;
     @Mock private ClassroomOfferingService classroomOfferingService;
-    @Mock private CurriculumSessionPlanRepository curriculumSessionPlanRepository;
+    @Mock private CourseLessonRepository courseLessonRepository;
 
     private ClassroomProposalServiceImpl service;
     private User learner;
     private User staff;
     private User manager;
     private User teacher;
-    private TrainingProgram courseOffering;
+    private InstructorLedCourse courseOffering;
     private Room room;
     private CourseRegistrationRequest courseRegistrationRequest;
 
@@ -88,24 +88,25 @@ class ClassroomProposalServiceImplTest {
     void setUp() {
         service = new ClassroomProposalServiceImpl(
                 proposalRepository,
-                trainingProgramRepository,
+                instructorLedCourseRepository,
                 roomRepository,
                 offeringRepository,
                 userRepository,
                 conflictService,
                 scheduleLockService,
                 classroomOfferingService,
-                curriculumSessionPlanRepository
+                courseLessonRepository
         );
         learner = user(1L, "learner@example.com", RoleEnum.LEARNER);
         staff = user(2L, "staff@example.com", RoleEnum.STAFF);
         manager = user(3L, "manager@example.com", RoleEnum.MANAGER);
         teacher = user(4L, "teacher@example.com", RoleEnum.TEACHER);
-        courseOffering = TrainingProgram.builder()
+        courseOffering = InstructorLedCourse.builder()
                 .id(10L)
+                .code("IELTS-FOUNDATION")
+                .slug("ielts-foundation")
                 .title("IELTS Foundation Offline")
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .status(PackageStatus.PUBLISHED)
+                .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
         room = Room.builder().id(11L).name("A101").capacity(25).active(true).build();
         courseRegistrationRequest = CourseRegistrationRequest.builder()
@@ -121,7 +122,7 @@ class ClassroomProposalServiceImplTest {
     void createDraftDoesNotRequireOrMoveLearners() {
         CreateClassroomProposalRequest payload = proposalPayload();
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
-        when(trainingProgramRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
+        when(instructorLedCourseRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
         when(userRepository.findById(teacher.getId())).thenReturn(Optional.of(teacher));
         when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
         when(proposalRepository.save(any(ClassroomProposal.class))).thenAnswer(invocation -> {
@@ -141,12 +142,11 @@ class ClassroomProposalServiceImplTest {
     }
 
     @Test
-    void createDraftUsesCourseDeliveryModeInsteadOfClientValue() {
-        courseOffering.setDeliveryMode(ClassroomDeliveryMode.VIRTUAL);
+    void createDraftUsesRequestedDeliveryMode() {
         CreateClassroomProposalRequest payload = proposalPayload();
-        payload.setDeliveryType(ClassroomDeliveryMode.OFFLINE);
+        payload.setDeliveryType(ClassroomDeliveryMode.VIRTUAL);
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
-        when(trainingProgramRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
+        when(instructorLedCourseRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
         when(userRepository.findById(teacher.getId())).thenReturn(Optional.of(teacher));
         when(proposalRepository.save(any(ClassroomProposal.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -167,7 +167,7 @@ class ClassroomProposalServiceImplTest {
                         .build()))
                 .build();
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
-        when(trainingProgramRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
+        when(instructorLedCourseRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
         when(userRepository.findById(teacher.getId())).thenReturn(Optional.of(teacher));
         when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
         when(conflictService.check(any())).thenReturn(conflict);
@@ -184,7 +184,7 @@ class ClassroomProposalServiceImplTest {
         CreateClassroomProposalRequest payload = proposalPayload();
         ClassroomProposal pending = pendingProposal();
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
-        when(trainingProgramRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
+        when(instructorLedCourseRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
         when(userRepository.findById(teacher.getId())).thenReturn(Optional.of(teacher));
         when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
         when(proposalRepository.findByApprovalStatusOrderByCreatedAtAsc(
@@ -204,7 +204,7 @@ class ClassroomProposalServiceImplTest {
         CreateClassroomProposalRequest payload = proposalPayload();
         room.setCapacity(10);
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
-        when(trainingProgramRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
+        when(instructorLedCourseRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
         when(userRepository.findById(teacher.getId())).thenReturn(Optional.of(teacher));
         when(roomRepository.findById(room.getId())).thenReturn(Optional.of(room));
 
@@ -236,7 +236,7 @@ class ClassroomProposalServiceImplTest {
                 ArgumentCaptor.forClass(CreateClassroomSessionRequest.class);
         verify(classroomOfferingService, times(2)).createSession(any(), sessionCaptor.capture());
         assertThat(sessionCaptor.getAllValues()).allSatisfy(request -> {
-            assertThat(request.getCurriculumSessionPlanId()).isNull();
+            assertThat(request.getCourseLessonId()).isNull();
             assertThat(request.getSessionContent()).isEqualTo(courseOffering.getTitle());
         });
         verify(classroomOfferingService, never()).enrollStudent(any(), any());
@@ -244,7 +244,6 @@ class ClassroomProposalServiceImplTest {
 
     @Test
     void managerApprovalCreatesVirtualRoomsAutomaticallyWithoutManualLink() {
-        courseOffering.setDeliveryMode(ClassroomDeliveryMode.VIRTUAL);
         ClassroomProposal proposal = pendingProposal();
         proposal.setDeliveryType(ClassroomDeliveryMode.VIRTUAL);
         proposal.setRoom(null);
@@ -279,10 +278,10 @@ class ClassroomProposalServiceImplTest {
     void managerApprovalMapsFiveDatesToFiveStructuredSessionPlans() {
         ClassroomProposal proposal = structuredPendingProposal(5);
         ClassSection classroom = ClassSection.builder().id(102L).build();
-        List<CurriculumSessionPlan> plans = structuredPlans(proposal.getCourseOffering().getCurriculumProgram(), 5);
+        List<CourseLesson> plans = structuredPlans(proposal.getCourseOffering(), 5);
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
-        when(curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(77L)).thenReturn(plans);
+        when(courseLessonRepository.findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(77L)).thenReturn(plans);
         when(classroomOfferingService.createOffering(any(CreateClassroomOfferingRequest.class), any()))
                 .thenReturn(ClassroomOfferingResponse.builder().id(classroom.getId()).build());
         when(offeringRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
@@ -293,9 +292,9 @@ class ClassroomProposalServiceImplTest {
         ArgumentCaptor<CreateClassroomSessionRequest> captor = ArgumentCaptor.forClass(CreateClassroomSessionRequest.class);
         verify(classroomOfferingService, times(5)).createSession(any(), captor.capture());
         assertThat(captor.getAllValues()).hasSize(5);
-        assertThat(captor.getAllValues().get(0).getCurriculumSessionPlanId()).isEqualTo(1L);
+        assertThat(captor.getAllValues().get(0).getCourseLessonId()).isEqualTo(1L);
         assertThat(captor.getAllValues().get(0).getSessionContent()).isEqualTo("Nội dung buổi 1");
-        assertThat(captor.getAllValues().get(4).getCurriculumSessionPlanId()).isEqualTo(5L);
+        assertThat(captor.getAllValues().get(4).getCourseLessonId()).isEqualTo(5L);
         assertThat(captor.getAllValues().get(4).getSessionContent()).isEqualTo("Nội dung buổi 5");
     }
 
@@ -304,8 +303,8 @@ class ClassroomProposalServiceImplTest {
         ClassroomProposal proposal = structuredPendingProposal(4);
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
-        when(curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(77L))
-                .thenReturn(structuredPlans(proposal.getCourseOffering().getCurriculumProgram(), 5));
+        when(courseLessonRepository.findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(77L))
+                .thenReturn(structuredPlans(proposal.getCourseOffering(), 5));
 
         assertThatThrownBy(() -> service.approve(proposal.getId(), manager.getEmail()))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -318,8 +317,8 @@ class ClassroomProposalServiceImplTest {
         ClassroomProposal proposal = structuredPendingProposal(6);
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
-        when(curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(77L))
-                .thenReturn(structuredPlans(proposal.getCourseOffering().getCurriculumProgram(), 5));
+        when(courseLessonRepository.findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(77L))
+                .thenReturn(structuredPlans(proposal.getCourseOffering(), 5));
 
         assertThatThrownBy(() -> service.approve(proposal.getId(), manager.getEmail()))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -376,22 +375,21 @@ class ClassroomProposalServiceImplTest {
         proposal.setPlannedStartDate(firstMonday);
         proposal.setPlannedEndDate(firstMonday.plusDays(dateCount - 1L));
         proposal.setScheduleWeekdays("MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY");
-        courseOffering.setCurriculumProgram(CurriculumProgram.builder().id(77L).build());
+        courseOffering.setId(77L);
         return proposal;
     }
 
-    private List<CurriculumSessionPlan> structuredPlans(CurriculumProgram program, int count) {
-        CurriculumUnit unit = CurriculumUnit.builder()
+    private List<CourseLesson> structuredPlans(InstructorLedCourse program, int count) {
+        CourseUnit unit = CourseUnit.builder()
                 .id(88L)
-                .program(program)
+                .instructorLedCourse(program)
                 .title("Reading Fundamentals")
                 .build();
         return java.util.stream.IntStream.rangeClosed(1, count)
-                .mapToObj(number -> CurriculumSessionPlan.builder()
+                .mapToObj(number -> CourseLesson.builder()
                         .id((long) number)
-                        .unit(unit)
-                        .sessionNumber(number)
-                        .displayOrder(number)
+                        .courseUnit(unit)
+                        .sequenceNumber(number)
                         .title("Nội dung buổi " + number)
                         .build())
                 .toList();

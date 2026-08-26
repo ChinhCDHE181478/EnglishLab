@@ -7,16 +7,15 @@ import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -133,15 +132,12 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean teacherPublicProfile = false;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"),
-            uniqueConstraints = @UniqueConstraint(name = "uk_user_roles_user_role", columnNames = {"user_id", "role_id"})
-    )
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_code", nullable = false, length = 40)
     @Builder.Default
-    private Set<Role> roles = new LinkedHashSet<>();
+    private Set<RoleEnum> roles = new LinkedHashSet<>();
 
     @Transient
     private RoleEnum role;
@@ -168,8 +164,6 @@ public class User implements UserDetails {
     public RoleEnum getRole() {
         if (roles != null && !roles.isEmpty()) {
             return roles.stream()
-                    .filter(Role::isActive)
-                    .map(Role::getCode)
                     .min(Comparator.comparingInt(User::rolePriority))
                     .orElse(role == null ? RoleEnum.LEARNER : role);
         }
@@ -184,10 +178,7 @@ public class User implements UserDetails {
         if (roles == null) {
             return Set.of();
         }
-        return roles.stream()
-                .filter(Role::isActive)
-                .map(Role::getCode)
-                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        return new LinkedHashSet<>(roles);
     }
 
     public boolean hasRole(RoleEnum expectedRole) {

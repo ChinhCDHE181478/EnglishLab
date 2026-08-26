@@ -1,10 +1,8 @@
 package fu.sep490.g23.backend.service.curriculum;
 
 import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
-import fu.sep490.g23.backend.entity.curriculum.ContentBankLegacyIdMap;
 import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
-import fu.sep490.g23.backend.repository.curriculum.ContentBankLegacyIdMapRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,23 +17,20 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ContentBankIdResolver {
 
-    private final ContentBankLegacyIdMapRepository legacyIdMapRepository;
     private final ContentBankItemRepository contentBankItemRepository;
 
     public Optional<Long> resolve(ContentBankType legacyType, Long legacyId) {
         if (legacyType == null || legacyId == null) {
             return Optional.empty();
         }
-        return legacyIdMapRepository.findByLegacyTypeAndLegacyId(legacyType, legacyId)
-                .map(ContentBankLegacyIdMap::getContentBankItemId);
+        return Optional.of(legacyId);
     }
 
     public Optional<Long> reverseResolve(ContentBankType legacyType, Long contentBankItemId) {
         if (legacyType == null || contentBankItemId == null) {
             return Optional.empty();
         }
-        return legacyIdMapRepository.findByLegacyTypeAndContentBankItemId(legacyType, contentBankItemId)
-                .map(ContentBankLegacyIdMap::getLegacyId);
+        return Optional.of(contentBankItemId);
     }
 
     /**

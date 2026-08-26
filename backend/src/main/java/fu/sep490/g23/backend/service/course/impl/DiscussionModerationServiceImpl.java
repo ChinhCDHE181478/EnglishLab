@@ -123,7 +123,7 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
                 .reporterEmail(report.getReporter().getEmail())
                 .createdAt(report.getCreatedAt())
                 .courseId(post.getCourse().getId())
-                .courseTitle(post.getCourse().getLearningPackage().getTitle())
+                .courseTitle(post.getCourse().getTitle())
                 .lessonId(post.getLesson() == null ? null : post.getLesson().getId())
                 .lessonTitle(post.getLesson() == null ? null : post.getLesson().getTitle())
                 .targetAuthor(displayName(post.getAuthor()))

@@ -12,7 +12,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -320,9 +319,9 @@ public class PaymentServiceImpl implements PaymentService {
             );
         }
 
-        List<LearningPackage> packages = bundle.packages();
-        long originalAmount = packages.stream().mapToLong(pkg -> toVnd(resolveOriginalPrice(pkg))).sum();
-        long courseSubtotalAmount = packages.stream().mapToLong(pkg -> toVnd(resolveSystemPrice(pkg))).sum();
+        List<OnlineCourse> courses = bundle.onlineCourses();
+        long originalAmount = courses.stream().mapToLong(course -> toVnd(resolveOriginalPrice(course))).sum();
+        long courseSubtotalAmount = courses.stream().mapToLong(course -> toVnd(resolveSystemPrice(course))).sum();
         long systemDiscountAmount = Math.max(0L, originalAmount - courseSubtotalAmount);
         long learningPathDiscountAmount = calculateLearningPathDiscount(bundle, courseSubtotalAmount);
         long subtotalAmount = Math.max(0L, courseSubtotalAmount - learningPathDiscountAmount);
@@ -500,8 +499,7 @@ public class PaymentServiceImpl implements PaymentService {
         List<OnlineCourse> remainingCourses = learningPathCourseRepository
                 .findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
                 .map(ref -> ref.getOnlineCourse())
-                .filter(course -> course.getLearningPackage() != null
-                        && course.getLearningPackage().isPublished())
+                .filter(course -> course != null && course.isPublished())
                 .filter(course -> !enrolledCourseIds.contains(course.getId()))
                 .toList();
         if (remainingCourses.isEmpty()) {
@@ -545,9 +543,9 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         ClassSection offering = enrollment.getClassSection();
-        String title = offering.getLearningPackage() == null
+        String title = offering.getTitle() == null
                 ? "Lớp #" + offering.getId()
-                : offering.getLearningPackage().getTitle();
+                : offering.getTitle();
         return List.of(new PayableClassroomTuition(enrollment, offering, toVnd(balance), title));
     }
 
@@ -563,9 +561,7 @@ public class PaymentServiceImpl implements PaymentService {
         for (Long courseId : courseIds) {
             OnlineCourse course = onlineCourseRepository.findById(courseId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học có mã " + courseId + "."));
-            if (course.getLearningPackage() == null
-                    || course.getLearningPackage().isDeleted()
-                    || course.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
+            if (course.isDeleted() || course.getStatus() != PackageStatus.PUBLISHED) {
                 throw new RuntimeException("Có khóa học hiện không còn khả dụng để thanh toán.");
             }
 
@@ -578,7 +574,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return courses.stream()
-                .sorted(Comparator.comparing(course -> course.getLearningPackage().getTitle(), String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(OnlineCourse::getTitle, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
@@ -718,16 +714,13 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    private BigDecimal resolveOriginalPrice(LearningPackage learningPackage) {
-        return learningPackage == null || learningPackage.getPrice() == null ? BigDecimal.ZERO : learningPackage.getPrice();
-
+    private BigDecimal resolveOriginalPrice(OnlineCourse course) {
+        return course == null || course.getPrice() == null ? BigDecimal.ZERO : course.getPrice();
     }
 
-    private BigDecimal resolveSystemPrice(LearningPackage learningPackage) {
-        BigDecimal originalPrice = resolveOriginalPrice(learningPackage);
-
-        BigDecimal salePrice = learningPackage == null ? null : learningPackage.getSalePrice();
-
+    private BigDecimal resolveSystemPrice(OnlineCourse course) {
+        BigDecimal originalPrice = resolveOriginalPrice(course);
+        BigDecimal salePrice = course == null ? null : course.getSalePrice();
         if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
             return originalPrice;
         }
@@ -991,13 +984,12 @@ public class PaymentServiceImpl implements PaymentService {
                     .build()));
         } else {
             long unitTotal = bundle.onlineCourses().stream()
-                    .map(OnlineCourse::getLearningPackage)
-                    .mapToLong(pkg -> toVnd(resolveOriginalPrice(pkg)))
+                    .mapToLong(course -> toVnd(resolveOriginalPrice(course)))
                     .sum();
             long allocated = 0L;
             for (int index = 0; index < bundle.onlineCourses().size(); index++) {
                 OnlineCourse course = bundle.onlineCourses().get(index);
-                long unitPrice = toVnd(resolveOriginalPrice(course.getLearningPackage()));
+                long unitPrice = toVnd(resolveOriginalPrice(course));
                 long finalAmount = index == bundle.onlineCourses().size() - 1
                         ? breakdown.totalAmount() - allocated
                         : unitTotal == 0L
@@ -1008,7 +1000,7 @@ public class PaymentServiceImpl implements PaymentService {
                         .paymentOrder(order)
                         .itemType(PaymentOrderItemType.ONLINE_COURSE)
                         .onlineCourse(course)
-                        .titleSnapshot(course.getLearningPackage().getTitle())
+                        .titleSnapshot(course.getTitle())
                         .unitPriceVnd(unitPrice)
                         .discountAmountVnd(Math.max(0L, unitPrice - finalAmount))
                         .finalAmountVnd(finalAmount)
@@ -1069,24 +1061,14 @@ public class PaymentServiceImpl implements PaymentService {
             return learningPath == null ? null : learningPath.getName();
         }
 
-        List<LearningPackage> packages() {
-            List<LearningPackage> result = new ArrayList<>();
-            onlineCourses.forEach(course -> {
-                if (course.getLearningPackage() != null) {
-                    result.add(course.getLearningPackage());
-                }
-            });
-            return result;
-        }
-
         String allTitles() {
             if (isClassroomTuition()) {
                 return classroomTuitions.stream()
                         .map(PayableClassroomTuition::title)
                         .collect(Collectors.joining(" | "));
             }
-            return packages().stream()
-                    .map(LearningPackage::getTitle)
+            return onlineCourses.stream()
+                    .map(OnlineCourse::getTitle)
                     .collect(Collectors.joining(" | "));
         }
     }

@@ -110,7 +110,7 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
         int order = 0;
         for (QuizQuestionRequest questionRequest : request.getQuestions()) {
             questions.add(ClassroomQuizQuestion.builder()
-                    .quiz(quiz)
+                    .id((long) order + 1)
                     .sortOrder(questionRequest.getSortOrder() == null ? order++ : questionRequest.getSortOrder())
                     .prompt(questionRequest.getPrompt().trim())
                     .optionsJson(questionRequest.getOptionsJson())
@@ -174,6 +174,7 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
                 .quiz(quiz)
                 .student(learner)
                 .answersJson(request.getAnswersJson())
+                .questionsSnapshot(new ArrayList<>(quiz.getQuestions()))
                 .score(score)
                 .correctCount(correct)
                 .totalQuestions(total)

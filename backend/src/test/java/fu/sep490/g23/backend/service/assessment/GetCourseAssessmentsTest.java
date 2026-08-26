@@ -7,7 +7,6 @@ import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.AssessmentSubmission;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
@@ -65,7 +64,6 @@ class GetCourseAssessmentsTest {
 
     private User student;
     private OnlineCourse course;
-    private LearningPackage learningPackage;
     private OnlineCourseEnrollment enrollment;
     private CourseAssessment assessment;
 
@@ -74,16 +72,12 @@ class GetCourseAssessmentsTest {
         student = new User();
         student.setEmail("student@test.com");
 
-        learningPackage = new LearningPackage();
-        learningPackage.setId(1L);
-
         course = new OnlineCourse();
         course.setId(10L);
-        course.setLearningPackage(learningPackage);
 
         enrollment = new OnlineCourseEnrollment();
         enrollment.setStudent(student);
-        enrollment.setLearningPackage(learningPackage);
+        enrollment.setOnlineCourse(course);
         enrollment.setStatus(EnrollmentStatus.ACTIVE);
 
         assessment = new CourseAssessment();

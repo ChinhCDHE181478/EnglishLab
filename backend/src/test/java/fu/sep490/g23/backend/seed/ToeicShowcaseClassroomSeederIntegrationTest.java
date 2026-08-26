@@ -12,7 +12,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRep
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,7 +60,7 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
     private ClassroomMaterialRepository materialRepository;
 
     @Autowired
-    private CurriculumUnitRepository curriculumUnitRepository;
+    private CourseUnitRepository courseUnitRepository;
 
     @Autowired
     private ClassroomMapper classroomMapper;
@@ -69,18 +69,17 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
     void createsCompleteToeicClassForRequestedLearner() {
         User learner = userRepository.findByEmail("0386852628z@gmail.com").orElseThrow();
         ClassSection offering = offeringRepository
-                .findByLearningPackageSlug("toeic-650-showcase-class-0386852628z")
+                .findByInstructorLedCourseSlugOrCode("toeic-650-showcase-class-0386852628z")
                 .orElseThrow();
 
-        assertThat(offering.getCurriculumProgram()).isNotNull();
-        assertThat(offering.getTrainingProgram()).isNotNull();
-        var seededUnits = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(
-                        offering.getCurriculumProgram().getId()).stream()
+        assertThat(offering.getInstructorLedCourse()).isNotNull();
+        var seededUnits = courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(
+                        offering.getInstructorLedCourse().getId()).stream()
                 .filter(unit -> SEEDED_UNIT_TITLES.contains(unit.getTitle()))
                 .toList();
         assertThat(seededUnits).hasSize(8);
         var learnerResponse = classroomMapper.toOfferingResponse(offering, true, learner.getId(), null, true);
-        var seededUnitResponses = learnerResponse.getCurriculumProgram().getUnits().stream()
+        var seededUnitResponses = learnerResponse.getInstructorLedCourse().getUnits().stream()
                 .filter(unit -> SEEDED_UNIT_TITLES.contains(unit.getTitle()))
                 .toList();
         assertThat(seededUnitResponses).hasSize(8)
@@ -118,7 +117,7 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
                 "Unit 7 Error Log - Reading",
                 "Unit 8 Full Test Strategy - Nộp kế hoạch"
         );
-        assertThat(classroomHomework).extracting(item -> item.getCurriculumUnit().getDisplayOrder())
+        assertThat(classroomHomework).extracting(item -> item.getCourseUnit().getSequenceNumber())
                 .contains(1, 2, 3, 4, 5, 6, 7, 8);
         assertThat(classroomHomework.stream()
                 .filter(item -> "Unit 5 Progress Check - Incomplete Sentences".equals(item.getTitle()))
@@ -126,7 +125,7 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
                 .satisfies(item -> {
                     assertThat(item.getActivityConfigJson()).contains("\"parts\"");
                     assertThat(item.getInstruction()).contains("kiểm tra tiến độ bắt buộc");
-                    assertThat(item.getCurriculumUnit().getDisplayOrder()).isEqualTo(5);
+                    assertThat(item.getCourseUnit().getSequenceNumber()).isEqualTo(5);
                     assertThat(item.getGradingMode()).isEqualTo(HomeworkGradingMode.AUTO);
                 });
         var quiz = classroomHomework.stream()

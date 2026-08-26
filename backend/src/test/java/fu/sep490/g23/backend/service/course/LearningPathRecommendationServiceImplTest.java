@@ -3,7 +3,6 @@ package fu.sep490.g23.backend.service.course;
 import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
@@ -68,7 +67,7 @@ class LearningPathRecommendationServiceImplTest {
         when(pathRepository.findAll()).thenReturn(List.of(path));
         when(pathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(1L)).thenReturn(List.of(ref(path, beginner, 1), ref(path, intermediate, 2)));
         when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner)).thenReturn(List.of(OnlineCourseEnrollment.builder()
-                .id(50L).student(learner).learningPackage(beginner.getLearningPackage()).status(EnrollmentStatus.COMPLETED).progressPercent(100).build()));
+                .id(50L).student(learner).onlineCourse(beginner).status(EnrollmentStatus.COMPLETED).progressPercent(100).build()));
 
         LearnerLearningPathResponse.PathOverview result = service.recommend(learner, context(PlacementLevel.INTERMEDIATE), true);
 
@@ -81,8 +80,7 @@ class LearningPathRecommendationServiceImplTest {
     }
 
     private OnlineCourse course(Long id, CourseLevel level) {
-        LearningPackage learningPackage = LearningPackage.builder().id(id + 100).title(level.name()).slug(level.name().toLowerCase()).status(PackageStatus.PUBLISHED).build();
-        return OnlineCourse.builder().id(id).learningPackage(learningPackage).level(level).build();
+        return OnlineCourse.builder().id(id).title(level.name()).slug(level.name().toLowerCase()).status(PackageStatus.PUBLISHED).level(level).build();
     }
 
     private LearningPathCourse ref(LearningPath path, OnlineCourse course, int order) {

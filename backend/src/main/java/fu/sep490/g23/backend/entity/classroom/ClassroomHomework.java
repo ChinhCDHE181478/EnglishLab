@@ -11,7 +11,6 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.entity.course.CourseUnit;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -41,10 +40,6 @@ public class ClassroomHomework {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
     private ClassSchedule session;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "curriculum_unit_id")
-    private CurriculumUnit curriculumUnit;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_unit_id")
@@ -100,14 +95,14 @@ public class ClassroomHomework {
     @JoinColumn(name = "rubric_content_bank_item_id")
     private AssessmentRubric rubric;
 
-    @Column(name = "rubric_id")
+    @Transient
     private Long legacyRubricId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assessment_content_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
 
-    @Column(name = "assessment_bank_item_id")
+    @Transient
     private Long legacyAssessmentBankItemId;
 
     @ManyToOne(fetch = FetchType.LAZY)

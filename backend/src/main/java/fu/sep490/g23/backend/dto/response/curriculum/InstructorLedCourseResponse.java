@@ -12,7 +12,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class CurriculumProgramResponse {
+public class InstructorLedCourseResponse {
     private Long id;
     private String title;
     private String code;
@@ -60,7 +60,7 @@ public class CurriculumProgramResponse {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<CurriculumUnitResponse> units;
+    private List<CourseUnitResponse> units;
     /** Danh sách lớp đang gắn giáo trình (chỉ trả về ở API chi tiết). */
     private List<ClassroomUsage> usingClassrooms;
 

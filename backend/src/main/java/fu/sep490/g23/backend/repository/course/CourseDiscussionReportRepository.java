@@ -19,12 +19,12 @@ public interface CourseDiscussionReportRepository extends JpaRepository<CourseDi
     Optional<CourseDiscussionReport> findByPostAndReporter(CourseDiscussionPost post, User reporter);
 
     @EntityGraph(attributePaths = {
-            "reporter", "reviewedBy", "post", "post.course", "post.course.learningPackage", "post.lesson", "post.author"
+            "reporter", "reviewedBy", "post", "post.course", "post.lesson", "post.author"
     })
     List<CourseDiscussionReport> findByStatusOrderByCreatedAtDesc(CourseDiscussionReportStatus status);
 
     @EntityGraph(attributePaths = {
-            "reporter", "reviewedBy", "post", "post.course", "post.course.learningPackage", "post.lesson", "post.author"
+            "reporter", "reviewedBy", "post", "post.course", "post.lesson", "post.author"
     })
     List<CourseDiscussionReport> findByStatusAndReasonCategoryOrderByCreatedAtDesc(
             CourseDiscussionReportStatus status,
@@ -32,12 +32,12 @@ public interface CourseDiscussionReportRepository extends JpaRepository<CourseDi
     );
 
     @EntityGraph(attributePaths = {
-            "reporter", "reviewedBy", "post", "post.course", "post.course.learningPackage", "post.lesson", "post.author"
+            "reporter", "reviewedBy", "post", "post.course", "post.lesson", "post.author"
     })
     Page<CourseDiscussionReport> findByStatus(CourseDiscussionReportStatus status, Pageable pageable);
 
     @EntityGraph(attributePaths = {
-            "reporter", "reviewedBy", "post", "post.course", "post.course.learningPackage", "post.lesson", "post.author"
+            "reporter", "reviewedBy", "post", "post.course", "post.lesson", "post.author"
     })
     Page<CourseDiscussionReport> findByStatusAndReasonCategory(
             CourseDiscussionReportStatus status,

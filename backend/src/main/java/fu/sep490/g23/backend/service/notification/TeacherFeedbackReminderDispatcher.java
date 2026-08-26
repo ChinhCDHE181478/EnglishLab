@@ -48,9 +48,9 @@ public class TeacherFeedbackReminderDispatcher {
 
         boolean closingSoon = !today.isBefore(closesOn.minusDays(Math.max(0, closingReminderDays)));
         String title = closingSoon ? "Sắp hết hạn đánh giá giáo viên" : "Đã mở phiếu đánh giá giáo viên";
-        String classTitle = classroom.getLearningPackage() == null
+        String classTitle = classroom.getInstructorLedCourse() == null
                 ? "lớp #" + classroom.getId()
-                : classroom.getLearningPackage().getTitle();
+                : classroom.getInstructorLedCourse().getTitle();
         String body = closingSoon
                 ? "Phiếu đánh giá giáo viên của " + classTitle + " sẽ đóng ngày " + formatDate(closesOn)
                         + ". Bạn có thể gửi mới hoặc chỉnh sửa phản hồi đã gửi."

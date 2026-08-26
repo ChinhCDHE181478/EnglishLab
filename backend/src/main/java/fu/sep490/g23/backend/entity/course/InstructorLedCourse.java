@@ -4,6 +4,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -140,10 +141,15 @@ public class InstructorLedCourse {
     @Column(name = "review_note", columnDefinition = "text")
     private String reviewNote;
 
-    @OneToMany(mappedBy = "instructorLedCourse")
+    @OneToMany(mappedBy = "instructorLedCourse", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sequenceNumber ASC, id ASC")
     @Builder.Default
     private List<CourseUnit> units = new ArrayList<>();
+
+    public void addUnit(CourseUnit unit) {
+        units.add(unit);
+        unit.setInstructorLedCourse(this);
+    }
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

@@ -154,7 +154,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .build();
 
         AssessmentSubmission savedSubmission = submissionRepository.save(submission);
-        enrollmentRepository.findByStudentAndLearningPackage(student, assessment.getOnlineCourse().getLearningPackage())
+        enrollmentRepository.findByStudentAndOnlineCourse(student, assessment.getOnlineCourse())
                 .ifPresent(activeEnrollment -> courseProgressService.refreshEnrollmentProgress(
                         activeEnrollment,
                         assessment.getOnlineCourse(),
@@ -782,7 +782,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 student.getFullName(),
                 safe(student.getCurrentBand()),
                 safe(student.getStudyGoal()),
-                course.getLearningPackage().getTitle(),
+                course.getTitle(),
                 safe(course.getRecommendedCurrentBandMin()),
                 safe(course.getTargetBand()),
                 safe(course.getTargetOutcome()),

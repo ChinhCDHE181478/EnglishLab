@@ -2,7 +2,7 @@ package fu.sep490.g23.backend.repository.classroom;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,7 +19,7 @@ public interface CourseRegistrationRequestRepository extends JpaRepository<Cours
 
     boolean existsByLearnerAndCourseOfferingAndStatusNotIn(
             User learner,
-            TrainingProgram courseOffering,
+            InstructorLedCourse courseOffering,
             Collection<EnrollmentRequestStatus> terminalStatuses
     );
 

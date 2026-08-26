@@ -83,7 +83,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                     long minutes = Duration.between(now, start).toMinutes();
                     String window = minutes <= 120 ? "2H" : "24H";
                     String title = minutes <= 120 ? "Buổi học sắp bắt đầu" : "Nhắc lịch học ngày mai";
-                    String classTitle = session.getClassSection().getLearningPackage().getTitle();
+                    String classTitle = session.getClassSection().getTitle();
                     String body = classTitle + " bắt đầu lúc " + start.format(DATE_TIME) + ".";
                     String actionPath = "/my-classrooms/" + session.getClassSection().getId();
                     for (ClassEnrollment enrollment : enrollmentRepository
@@ -157,7 +157,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                     if (!preferenceService.isStudyAlertEnabled(learner)) return;
                     String weeklyKey = "INACTIVE_ENROLLMENT_" + enrollment.getId() + "_"
                             + now.toLocalDate().with(DayOfWeek.MONDAY);
-                    String courseTitle = enrollment.getLearningPackage().getTitle();
+                    String courseTitle = enrollment.getOnlineCourse().getTitle();
                     String body = "Bạn đang ở " + enrollment.getProgressPercent()
                             + "% khóa “" + courseTitle + "”. Hãy tiếp tục từ nội dung gần nhất.";
                     boolean created = notificationService.createForUserOnce(
@@ -165,7 +165,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                             "STUDY_INACTIVITY",
                             "Đừng để gián đoạn mục tiêu học tập",
                             body,
-                            "/courses/" + enrollment.getLearningPackage().getSlug() + "/home",
+                            "/courses/" + enrollment.getOnlineCourse().getSlug() + "/home",
                             weeklyKey,
                             Map.of("enrollmentId", enrollment.getId())
                     );
@@ -175,7 +175,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                                 "Tiếp tục mục tiêu học tập - EnglishLab",
                                 "Đừng để gián đoạn mục tiêu học tập",
                                 body,
-                                "/courses/" + enrollment.getLearningPackage().getSlug() + "/home"
+                                "/courses/" + enrollment.getOnlineCourse().getSlug() + "/home"
                         );
                     }
                 }));

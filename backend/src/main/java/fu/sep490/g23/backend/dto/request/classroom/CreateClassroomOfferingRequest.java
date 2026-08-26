@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.request.classroom;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -38,8 +39,8 @@ public class CreateClassroomOfferingRequest {
     private ClassroomOfferingStatus classroomStatus;
     private PackageStatus packageStatus;
 
-    private Long trainingProgramId;
-    private Long curriculumProgramId;
+    @JsonAlias({"trainingProgramId", "curriculumProgramId"})
+    private Long instructorLedCourseId;
 
     @Size(max = 120)
     private String entryLevel;

@@ -8,18 +8,18 @@ import java.util.List;
 
 @Data
 @Builder
-public class CurriculumUnitResponse {
+public class CourseUnitResponse {
     private Long id;
     private Long programId;
     private Integer displayOrder;
     private String title;
     private String description;
     private String sessionPlan;
-    private List<CurriculumSessionPlanResponse> sessionPlans;
+    private List<CourseLessonResponse> sessionPlans;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<CurriculumReferenceResponse> materials;
-    private List<CurriculumReferenceResponse> exercises;
-    private List<CurriculumReferenceResponse> assessments;
-    private List<CurriculumReferenceResponse> flashcards;
+    private List<CourseUnitContentRefResponse> materials;
+    private List<CourseUnitContentRefResponse> exercises;
+    private List<CourseUnitContentRefResponse> assessments;
+    private List<CourseUnitContentRefResponse> flashcards;
 }

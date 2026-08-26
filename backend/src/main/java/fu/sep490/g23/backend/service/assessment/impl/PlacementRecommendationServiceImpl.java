@@ -8,12 +8,12 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementEligibilityService;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContextFactory;
@@ -41,7 +41,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
     private final PlacementEligibilityService eligibilityService;
     private final PlacementRecommendationContextFactory contextFactory;
     private final OnlineCourseService onlineCourseService;
-    private final TrainingProgramRepository trainingProgramRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
     private final LearningPathRecommendationService learningPathRecommendationService;
 
     @Override
@@ -114,11 +114,9 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
     }
 
     private List<RecommendedTrainingProgramResponse> recommendTrainingPrograms(PlacementRecommendationContext context) {
-        return trainingProgramRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc().stream()
-                .filter(program -> program.getStatus() == PackageStatus.PUBLISHED)
-                .filter(program -> program.getCurriculumProgram() != null
-                        && "PUBLISHED".equalsIgnoreCase(program.getCurriculumProgram().getStatus()))
-                .filter(program -> context.getExamType().equalsIgnoreCase(program.getCurriculumProgram().getExamCategory()))
+        return instructorLedCourseRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc().stream()
+                .filter(program -> program.getPublicationStatus() == PackageStatus.PUBLISHED)
+                .filter(program -> context.getExamType().equalsIgnoreCase(program.getExamType()))
                 .map(program -> new ScoredTrainingProgram(program, trainingProgramScore(program, context)))
                 .sorted(Comparator.comparingDouble(ScoredTrainingProgram::score).reversed()
                         .thenComparing(item -> item.program().getDisplayOrder())
@@ -128,8 +126,8 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .toList();
     }
 
-    private double trainingProgramScore(TrainingProgram program, PlacementRecommendationContext context) {
-        CurriculumProgram curriculum = program.getCurriculumProgram();
+    private double trainingProgramScore(InstructorLedCourse program, PlacementRecommendationContext context) {
+        InstructorLedCourse curriculum = program;
         double score = 20;
         if (curriculum.getEntryPlacementLevel() != null && context.getRecommendedLevel() != null) {
             score += curriculum.getEntryPlacementLevel() == context.getRecommendedLevel() ? 15 : -5;
@@ -150,10 +148,10 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
     }
 
     private RecommendedTrainingProgramResponse toTrainingResponse(
-            TrainingProgram program,
+            InstructorLedCourse program,
             PlacementRecommendationContext context
     ) {
-        CurriculumProgram curriculum = program.getCurriculumProgram();
+        InstructorLedCourse curriculum = program;
         Set<AssessmentSkill> matches = focusSkills(curriculum.getFocusSkills()).stream()
                 .filter(context.getWeakSkills()::contains)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
@@ -166,18 +164,18 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .id(program.getId())
                 .slug(program.getSlug())
                 .title(program.getTitle())
-                .deliveryMode(program.getDeliveryMode())
+                .deliveryMode(null)
                 .thumbnailUrl(program.getThumbnailUrl())
                 .shortDescription(program.getShortDescription())
                 .entryPlacementLevel(curriculum.getEntryPlacementLevel())
-                .examCategory(curriculum.getExamCategory())
+                .examCategory(curriculum.getExamType())
                 .programTrack(curriculum.getProgramTrack())
                 .focusSkills(focusSkills(curriculum.getFocusSkills()).stream().map(Enum::name).toList())
                 .targetBand(curriculum.getTargetBand())
                 .targetScore(curriculum.getTargetScore())
-                .totalSessions(curriculum.getTotalSessions())
-                .price(program.getPrice())
-                .salePrice(program.getSalePrice())
+                .totalSessions(curriculum.getUnits().stream().mapToInt(unit -> unit.getLessons().size()).sum())
+                .price(program.getBaseTuitionFeeVnd())
+                .salePrice(program.getSaleTuitionFeeVnd())
                 .recommendationReason(reason)
                 .build();
     }
@@ -226,5 +224,5 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
         };
     }
 
-    private record ScoredTrainingProgram(TrainingProgram program, double score) {}
+    private record ScoredTrainingProgram(InstructorLedCourse program, double score) {}
 }

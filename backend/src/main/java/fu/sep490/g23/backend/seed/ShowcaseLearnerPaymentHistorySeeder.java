@@ -4,7 +4,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
@@ -14,7 +13,6 @@ import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
@@ -54,7 +52,6 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
     private final PaymentOrderRepository paymentOrderRepository;
@@ -135,25 +132,21 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     }
 
     private void setPackagePrice(String slug, long priceVnd) {
-        learningPackageRepository.findBySlugAndDeletedFalse(slug).ifPresent(pack -> {
-            pack.setPrice(BigDecimal.valueOf(priceVnd));
-            learningPackageRepository.save(pack);
+        onlineCourseRepository.findBySlug(slug).ifPresent(course -> {
+            course.setPrice(BigDecimal.valueOf(priceVnd));
+            onlineCourseRepository.save(course);
         });
     }
 
     private CoursePurchase toPurchase(OnlineCourseEnrollment enrollment) {
-        LearningPackage pack = enrollment.getLearningPackage();
-        if (pack == null) {
-            return null;
-        }
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(pack).orElse(null);
+        OnlineCourse course = enrollment.getOnlineCourse();
         if (course == null) {
             return null;
         }
         LocalDateTime paidAt = enrollment.getRegisteredAt() == null
                 ? LocalDateTime.now().minusDays(20)
                 : enrollment.getRegisteredAt().plusHours(2);
-        return new CoursePurchase(course.getId(), pack.getSlug(), pack.getTitle(), toVnd(pack.getPrice()), paidAt);
+        return new CoursePurchase(course.getId(), course.getSlug(), course.getTitle(), toVnd(course.getPrice()), paidAt);
     }
 
     private PaymentOrder bundlePathOrder(User learner, List<CoursePurchase> courses, LearningPath path, long orderCode) {
@@ -185,8 +178,8 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
 
     private PaymentOrder classroomOrder(User learner, ClassEnrollment enrollment, long orderCode) {
         ClassSection offering = enrollment.getClassSection();
-        String title = offering != null && offering.getLearningPackage() != null
-                ? offering.getLearningPackage().getTitle()
+        String title = offering != null && offering.getInstructorLedCourse() != null
+                ? offering.getTitle()
                 : "Học phí lớp";
         long amount = toVnd(enrollment.getTuitionAmountPaid() == null
                 ? enrollment.getTuitionAmountDue()
@@ -243,8 +236,8 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     private void saveClassroomOrder(PaymentOrder order, ClassEnrollment enrollment) {
         PaymentOrder saved = paymentOrderRepository.save(order);
         ClassSection section = enrollment.getClassSection();
-        String title = section != null && section.getLearningPackage() != null
-                ? section.getLearningPackage().getTitle()
+        String title = section != null && section.getInstructorLedCourse() != null
+                ? section.getTitle()
                 : "Học phí lớp";
         paymentOrderItemRepository.save(PaymentOrderItem.builder()
                 .paymentOrder(saved)

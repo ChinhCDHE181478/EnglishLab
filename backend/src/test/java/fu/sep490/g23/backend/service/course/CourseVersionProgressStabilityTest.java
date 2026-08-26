@@ -4,7 +4,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
@@ -98,7 +97,8 @@ class CourseVersionProgressStabilityTest {
         User learner = User.builder().id(9L).email("not-started@englishlab.vn").build();
         OnlineCourse course = OnlineCourse.builder()
                 .id(3L)
-                .learningPackage(LearningPackage.builder().title("Khóa học chưa bắt đầu").slug("not-started").build())
+                .title("Khóa học chưa bắt đầu")
+                .slug("not-started")
                 .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
                         .lessons(new ArrayList<>(List.of(
                                 OnlineLesson.builder().id(1L).build(),

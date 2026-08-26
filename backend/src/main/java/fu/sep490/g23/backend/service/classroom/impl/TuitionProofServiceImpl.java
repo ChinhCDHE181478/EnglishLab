@@ -82,7 +82,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 .status(TuitionProofStatus.PENDING)
                 .build());
 
-        String classTitle = enrollment.getClassSection().getLearningPackage().getTitle();
+        String classTitle = enrollment.getClassSection().getTitle();
         notificationService.notifyTrainingStaff(
                 "CLASSROOM_TUITION_PROOF_SUBMITTED",
                 "Minh chứng thanh toán mới",
@@ -186,7 +186,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 "CLASSROOM_TUITION_PROOF_CONFIRMED",
                 "Minh chứng thanh toán được xác nhận",
                 "Minh chứng chuyển khoản " + proof.getAmount().toPlainString() + " VND cho lớp "
-                        + enrollment.getClassSection().getLearningPackage().getTitle()
+                        + enrollment.getClassSection().getTitle()
                         + " đã được xác nhận. Mã xác nhận: TP-" + proof.getId() + ".",
                 Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassSection().getId())
         );
@@ -214,7 +214,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 "CLASSROOM_TUITION_PROOF_REJECTED",
                 "Minh chứng thanh toán bị từ chối",
                 "Minh chứng chuyển khoản cho lớp "
-                        + enrollment.getClassSection().getLearningPackage().getTitle()
+                        + enrollment.getClassSection().getTitle()
                         + " bị từ chối: " + reason.trim(),
                 Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassSection().getId())
         );
@@ -258,7 +258,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 .id(proof.getId())
                 .enrollmentId(enrollment.getId())
                 .classSectionId(offering.getId())
-                .classroomTitle(offering.getLearningPackage().getTitle())
+                .classroomTitle(offering.getTitle())
                 .studentId(enrollment.getStudent().getId())
                 .studentName(enrollment.getStudent().getFullName())
                 .studentEmail(enrollment.getStudent().getEmail())

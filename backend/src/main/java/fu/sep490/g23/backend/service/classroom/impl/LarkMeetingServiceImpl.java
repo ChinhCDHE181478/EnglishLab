@@ -271,7 +271,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         }
 
         Map<String, Object> meetingSettings = new LinkedHashMap<>();
-        meetingSettings.put("topic", session.getClassSection().getLearningPackage().getTitle());
+        meetingSettings.put("topic", session.getClassSection().getTitle());
         meetingSettings.put("meeting_initial_type", 1);
         meetingSettings.put("auto_record", true);
         meetingSettings.put("assign_host_list", java.util.List.of(Map.of(
@@ -366,7 +366,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         );
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("summary", session.getClassSection().getLearningPackage().getTitle());
+        body.put("summary", session.getClassSection().getTitle());
         String description = buildDescription(session);
         if (properties.isAutoRecord() && session.getLarkMeetingUrl() != null) {
             description += "\nPhòng học Lark: " + session.getLarkMeetingUrl();

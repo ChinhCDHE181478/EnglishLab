@@ -8,21 +8,16 @@ import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.PackageType;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
@@ -55,9 +50,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
             Pattern.DOTALL
     );
 
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final FlashcardSetRepository flashcardSetRepository;
@@ -78,14 +71,6 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .readValue(new ClassPathResource(SEED_PATH).getInputStream(), CourseSeed.class);
 
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
-                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
-                        .code(PackageTypeCode.ONLINE_COURSE)
-                        .name("Online Course")
-                        .description("Self-paced online learning package")
-                        .active(true)
-                        .build()));
-
         CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS.name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
                         .code(CourseCategoryCode.IELTS.name())
@@ -95,33 +80,23 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
                         .active(true)
                         .build()));
 
-        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(seed.slug())
-                .orElseGet(() -> LearningPackage.builder()
-                        .slug(seed.slug())
-                        .packageType(packageType)
-                        .build());
-
-        learningPackage.setPackageType(packageType);
-        learningPackage.setTitle(seed.title());
-        learningPackage.setShortDescription(seed.description());
-        learningPackage.setDescription(seed.description());
-        learningPackage.setTargetScore("IELTS Band 7+");
-        learningPackage.setDuration(seed.totalDurationText() == null ? "8 giờ 9 phút" : seed.totalDurationText());
-        learningPackage.setStudyMode("Tự học online theo playlist IELTS Master");
-        learningPackage.setPrice(paidPrice(seed.price()));
-        learningPackage.setThumbnailUrl(seed.thumbnail());
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setDisplayOrder(6);
-        learningPackage.setFeatured(true);
-        learningPackage.setDeleted(false);
-        LearningPackage savedPackage = learningPackageRepository.save(learningPackage);
-
-        OnlineCourse onlineCourse = onlineCourseRepository.findByLearningPackage(savedPackage)
+        OnlineCourse onlineCourse = onlineCourseRepository.findBySlug(seed.slug())
                 .orElseGet(() -> OnlineCourse.builder()
-                        .learningPackage(savedPackage)
+                        .slug(seed.slug())
                         .build());
 
-        onlineCourse.setLearningPackage(savedPackage);
+        onlineCourse.setTitle(seed.title());
+        onlineCourse.setShortDescription(seed.description());
+        onlineCourse.setDescription(seed.description());
+        onlineCourse.setTargetScore("IELTS Band 7+");
+        onlineCourse.setDuration(seed.totalDurationText() == null ? "8 giờ 9 phút" : seed.totalDurationText());
+        onlineCourse.setStudyMode("Tự học online theo playlist IELTS Master");
+        onlineCourse.setPrice(paidPrice(seed.price()));
+        onlineCourse.setThumbnailUrl(seed.thumbnail());
+        onlineCourse.setStatus(PackageStatus.PUBLISHED);
+        onlineCourse.setDisplayOrder(6);
+        onlineCourse.setFeatured(true);
+        onlineCourse.setDeleted(false);
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.ADVANCED);
         onlineCourse.setRecommendedCurrentBandMin(5.5);
@@ -133,6 +108,8 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         onlineCourse.setRecommendedNextCourseSlug("e2-ielts-practice-tests");
         onlineCourse.setTotalLessons(seed.totalLessons() == null ? countLessons(seed.modules()) : seed.totalLessons());
         onlineCourse.setTotalHours(seed.totalDurationSeconds() == null ? 8 : Math.max(1, (int) Math.ceil(seed.totalDurationSeconds() / 3600.0)));
+        OnlineCourse savedOnlineCourse = onlineCourseRepository.save(onlineCourse);
+        onlineCourse = savedOnlineCourse;
 
         for (ModuleSeed moduleSeed : seed.modules()) {
             upsertModule(onlineCourse, seed.slug(), moduleSeed);

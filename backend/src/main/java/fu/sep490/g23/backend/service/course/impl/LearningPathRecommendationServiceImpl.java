@@ -43,7 +43,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         Map<Long, OnlineCourseEnrollment> enrollments = enrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        enrollment -> enrollment.getLearningPackage().getId(),
+                        enrollment -> enrollment.getOnlineCourse().getId(),
                         enrollment -> enrollment,
                         (first, ignored) -> first
                 ));
@@ -81,7 +81,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         for (int index = 0; index < refs.size(); index++) {
             LearningPathCourse ref = refs.get(index);
             OnlineCourse course = ref.getOnlineCourse();
-            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(course.getLearningPackage().getId()));
+            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(course.getId()));
             boolean completed = enrollment != null && (enrollment.getStatus() == EnrollmentStatus.COMPLETED
                     || defaultInt(enrollment.getProgressPercent()) >= 100);
             String stepStatus;
@@ -100,9 +100,9 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
             }
             courses.add(LearnerLearningPathCourseResponse.builder()
                     .courseId(course.getId())
-                    .slug(course.getLearningPackage().getSlug())
-                    .title(course.getLearningPackage().getTitle())
-                    .thumbnailUrl(course.getLearningPackage().getThumbnailUrl())
+                    .slug(course.getSlug())
+                    .title(course.getTitle())
+                    .thumbnailUrl(course.getThumbnailUrl())
                     .learningPathOrder(ref.getDisplayOrder())
                     .enrollmentStatus(enrollment == null ? "NOT_ENROLLED" : enrollment.getStatus().name())
                     .progressPercent(enrollment == null ? 0 : defaultInt(enrollment.getProgressPercent()))
@@ -138,7 +138,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
             PlacementRecommendationContext context
     ) {
         for (int index = 0; index < refs.size(); index++) {
-            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(refs.get(index).getOnlineCourse().getLearningPackage().getId()));
+            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(refs.get(index).getOnlineCourse().getId()));
             if (enrollment != null && enrollment.getStatus() != EnrollmentStatus.COMPLETED
                     && defaultInt(enrollment.getProgressPercent()) < 100) return index;
         }
@@ -173,7 +173,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         }
 
         for (int index = 0; index < refs.size(); index++) {
-            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(refs.get(index).getOnlineCourse().getLearningPackage().getId()));
+            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(refs.get(index).getOnlineCourse().getId()));
             if (enrollment == null || enrollment.getStatus() != EnrollmentStatus.COMPLETED) return index;
         }
         return Math.max(0, refs.size() - 1);
@@ -204,15 +204,15 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
 
     private boolean hasActiveEnrollment(PathCandidate candidate, Map<Long, OnlineCourseEnrollment> enrollments) {
         return candidate.refs().stream().anyMatch(ref -> {
-            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(ref.getOnlineCourse().getLearningPackage().getId()));
+            OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(ref.getOnlineCourse().getId()));
             return enrollment != null && enrollment.getStatus() == EnrollmentStatus.ACTIVE;
         });
     }
 
     private List<LearningPathCourse> refs(LearningPath path) {
         return pathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
-                .filter(ref -> ref.getOnlineCourse().getLearningPackage().getStatus() == PackageStatus.PUBLISHED
-                        && !ref.getOnlineCourse().getLearningPackage().isDeleted())
+                .filter(ref -> ref.getOnlineCourse().getStatus() == PackageStatus.PUBLISHED
+                        && !ref.getOnlineCourse().isDeleted())
                 .toList();
     }
 
@@ -230,7 +230,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
     }
 
     private boolean isCompleted(LearningPathCourse ref, Map<Long, OnlineCourseEnrollment> enrollments) {
-        OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(ref.getOnlineCourse().getLearningPackage().getId()));
+        OnlineCourseEnrollment enrollment = activeEnrollment(enrollments.get(ref.getOnlineCourse().getId()));
         return enrollment != null && (enrollment.getStatus() == EnrollmentStatus.COMPLETED
                 || defaultInt(enrollment.getProgressPercent()) >= 100);
     }

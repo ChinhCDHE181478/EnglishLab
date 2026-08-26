@@ -3,7 +3,6 @@ package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
@@ -95,7 +94,8 @@ class ClassroomContentServiceImplTest {
     private ClassSection offering() {
         return ClassSection.builder()
                 .id(1L)
-                .learningPackage(LearningPackage.builder().deleted(false).build())
+                .name("Class 1")
+                .code("class-1")
                 .build();
     }
 }

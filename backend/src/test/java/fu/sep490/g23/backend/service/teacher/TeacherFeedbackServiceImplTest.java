@@ -6,7 +6,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.teacher.TeacherCourseFeedback;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -58,7 +57,7 @@ class TeacherFeedbackServiceImplTest {
         teacher = User.builder().id(2L).email("teacher@example.com").fullName("Giáo viên").build();
         classroom = ClassSection.builder()
                 .id(10L)
-                .learningPackage(LearningPackage.builder().title("IELTS Foundation").build())
+                .name("IELTS Foundation")
                 .primaryTeacher(teacher)
                 .startDate(LocalDate.now().minusMonths(1))
                 .plannedEndDate(LocalDate.now().plusDays(3))

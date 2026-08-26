@@ -64,6 +64,30 @@ public class ClassroomAttendance {
     @JoinColumn(name = "marked_by_id")
     private User markedBy;
 
+    @Column(name = "dispute_reason", columnDefinition = "text")
+    private String disputeReason;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dispute_status", length = 20)
+    private AttendanceDisputeStatus disputeStatus;
+
+    @Column(name = "dispute_review_note", columnDefinition = "text")
+    private String disputeReviewNote;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dispute_reviewed_by_id")
+    private User disputeReviewedBy;
+
+    @Column(name = "dispute_reviewed_at")
+    private LocalDateTime disputeReviewedAt;
+
+    @Column(name = "provider_participant_key", length = 255)
+    private String providerParticipantKey;
+
+    @Column(name = "provider_participant_active", nullable = false)
+    @Builder.Default
+    private boolean providerParticipantActive = false;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -4,7 +4,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionPost;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReaction;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
@@ -20,7 +19,6 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionPostRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReactionRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +45,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
     private static final String E2_SLUG = "e2-ielts-practice-tests";
 
     private final UserRepository userRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final CourseDiscussionPostRepository postRepository;
@@ -91,18 +88,14 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
             User reviewer,
             boolean vocabulary
     ) {
-        var pack = learningPackageRepository.findBySlugAndDeletedFalse(slug).orElse(null);
-        if (pack == null) {
-            return;
-        }
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(pack).orElse(null);
+        OnlineCourse course = onlineCourseRepository.findBySlug(slug).orElse(null);
         if (course == null) {
             return;
         }
-        enroll(showcase, pack);
-        enroll(peerA, pack);
-        enroll(peerB, pack);
-        enroll(peerC, pack);
+        enroll(showcase, course);
+        enroll(peerA, course);
+        enroll(peerB, course);
+        enroll(peerC, course);
 
         OnlineLesson firstLesson = firstLesson(course);
 
@@ -289,11 +282,11 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
         return users;
     }
 
-    private void enroll(User learner, LearningPackage pack) {
-        enrollmentRepository.findByStudentAndLearningPackage(learner, pack)
+    private void enroll(User learner, OnlineCourse course) {
+        enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
                 .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
-                        .learningPackage(pack)
+                        .onlineCourse(course)
                         .status(EnrollmentStatus.ACTIVE)
                         .progressPercent(20)
                         .registeredAt(LocalDateTime.now().minusDays(18))

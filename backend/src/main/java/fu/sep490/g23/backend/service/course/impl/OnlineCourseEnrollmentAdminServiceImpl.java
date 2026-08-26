@@ -3,10 +3,8 @@ package fu.sep490.g23.backend.service.course.impl;
 import fu.sep490.g23.backend.dto.request.course.UpdateOnlineCourseEnrollmentRequest;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentAdminResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.course.OnlineCourseEnrollmentAdminService;
@@ -35,7 +33,7 @@ public class OnlineCourseEnrollmentAdminServiceImpl implements OnlineCourseEnrol
     public List<OnlineCourseEnrollmentAdminResponse> listEnrollments(EnrollmentStatus status, String keyword) {
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim().toLowerCase() : null;
         return enrollmentRepository.findAll().stream()
-                .filter(enrollment -> isOnlinePackage(enrollment.getLearningPackage()))
+                .filter(enrollment -> enrollment.getOnlineCourse() != null)
                 .filter(enrollment -> status == null || enrollment.getStatus() == status)
                 .filter(enrollment -> matchesKeyword(enrollment, normalizedKeyword))
                 .sorted(Comparator.comparing(OnlineCourseEnrollment::getRegisteredAt, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -48,20 +46,18 @@ public class OnlineCourseEnrollmentAdminServiceImpl implements OnlineCourseEnrol
     public Page<OnlineCourseEnrollmentAdminResponse> pageEnrollments(EnrollmentStatus status, String keyword, Pageable pageable) {
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim().toLowerCase() : null;
         Specification<OnlineCourseEnrollment> specification = (root, query, criteriaBuilder) -> {
-            var learningPackage = root.join("learningPackage", JoinType.INNER);
-            var packageType = learningPackage.join("packageType", JoinType.INNER);
+            var course = root.join("onlineCourse", JoinType.INNER);
             var student = root.join("student", JoinType.LEFT);
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
-            predicates.add(criteriaBuilder.equal(packageType.get("code"), PackageTypeCode.ONLINE_COURSE));
-            predicates.add(criteriaBuilder.isFalse(learningPackage.get("deleted")));
+            predicates.add(criteriaBuilder.isFalse(course.get("deleted")));
             if (status != null) predicates.add(criteriaBuilder.equal(root.get("status"), status));
             if (normalizedKeyword != null) {
                 String pattern = "%" + normalizedKeyword + "%";
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(student.get("fullName")), pattern),
                         criteriaBuilder.like(criteriaBuilder.lower(student.get("email")), pattern),
-                        criteriaBuilder.like(criteriaBuilder.lower(learningPackage.get("title")), pattern),
-                        criteriaBuilder.like(criteriaBuilder.lower(learningPackage.get("slug")), pattern)
+                        criteriaBuilder.like(criteriaBuilder.lower(course.get("title")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(course.get("slug")), pattern)
                 ));
             }
             return criteriaBuilder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
@@ -79,32 +75,27 @@ public class OnlineCourseEnrollmentAdminServiceImpl implements OnlineCourseEnrol
         accessHelper.assertManager(manager);
         OnlineCourseEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy ghi danh."));
-        if (!isOnlinePackage(enrollment.getLearningPackage())) {
+        if (enrollment.getOnlineCourse() == null) {
             throw new IllegalArgumentException("Ghi danh này không thuộc khóa học online.");
         }
         enrollment.setStatus(request.getStatus());
         return toResponse(enrollmentRepository.save(enrollment));
     }
 
-    private boolean isOnlinePackage(LearningPackage learningPackage) {
-        return learningPackage != null
-                && learningPackage.getPackageType() != null
-                && learningPackage.getPackageType().getCode() == PackageTypeCode.ONLINE_COURSE
-                && !learningPackage.isDeleted();
-    }
+    
 
     private boolean matchesKeyword(OnlineCourseEnrollment enrollment, String keyword) {
         if (keyword == null) {
             return true;
         }
         User student = enrollment.getStudent();
-        LearningPackage learningPackage = enrollment.getLearningPackage();
+        fu.sep490.g23.backend.entity.course.OnlineCourse course = enrollment.getOnlineCourse();
         return (student != null && (
                 contains(student.getFullName(), keyword)
                         || contains(student.getEmail(), keyword)))
-                || (learningPackage != null && (
-                contains(learningPackage.getTitle(), keyword)
-                        || contains(learningPackage.getSlug(), keyword)));
+                || (course != null && (
+                contains(course.getTitle(), keyword)
+                        || contains(course.getSlug(), keyword)));
     }
 
     private boolean contains(String value, String keyword) {
@@ -112,16 +103,16 @@ public class OnlineCourseEnrollmentAdminServiceImpl implements OnlineCourseEnrol
     }
 
     private OnlineCourseEnrollmentAdminResponse toResponse(OnlineCourseEnrollment enrollment) {
-        LearningPackage learningPackage = enrollment.getLearningPackage();
+        fu.sep490.g23.backend.entity.course.OnlineCourse course = enrollment.getOnlineCourse();
         User student = enrollment.getStudent();
         return OnlineCourseEnrollmentAdminResponse.builder()
                 .id(enrollment.getId())
                 .studentId(student == null ? null : student.getId())
                 .studentName(student == null ? null : student.getFullName())
                 .studentEmail(student == null ? null : student.getEmail())
-                .packageId(learningPackage == null ? null : learningPackage.getId())
-                .packageTitle(learningPackage == null ? null : learningPackage.getTitle())
-                .packageSlug(learningPackage == null ? null : learningPackage.getSlug())
+                .packageId(course == null ? null : course.getId())
+                .packageTitle(course == null ? null : course.getTitle())
+                .packageSlug(course == null ? null : course.getSlug())
                 .status(enrollment.getStatus())
                 .progressPercent(enrollment.getProgressPercent())
                 .registeredAt(enrollment.getRegisteredAt())

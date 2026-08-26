@@ -82,8 +82,8 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private List<VocabularyTermResponse> getEnrolledVersionTerms(User student, Long courseId, boolean starredOnly) {
         Map<String, VocabularyTermResponse> uniqueTerms = new LinkedHashMap<>();
         for (OnlineCourseEnrollment enrollment : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)) {
-            OnlineCourse course = onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).orElse(null);
-            if (course == null || course.getLearningPackage().isDeleted()
+            OnlineCourse course = enrollment.getOnlineCourse();
+            if (course == null || false
                     || (courseId != null && !course.getId().equals(courseId))) {
                 continue;
             }
@@ -102,18 +102,18 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private List<OnlineCourse> resolveCourses(FlashcardPracticeSource source, User student) {
         if (source == FlashcardPracticeSource.ENROLLED) {
             return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
-                    .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).orElse(null))
-                    .filter(course -> course != null && !course.getLearningPackage().isDeleted())
+                    .map(enrollment -> enrollment.getOnlineCourse())
+                    .filter(course -> course != null)
                     .toList();
         }
         if (source == FlashcardPracticeSource.WISHLIST) {
             return courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.WISHLIST).stream()
                     .map(CourseListItem::getOnlineCourse)
-                    .filter(course -> course.getLearningPackage().isPublished())
+                    .filter(course -> course.isPublished())
                     .toList();
         }
         return onlineCourseRepository.findAll().stream()
-                .filter(course -> course.getLearningPackage().isPublished())
+                .filter(course -> course.isPublished())
                 .toList();
     }
 
@@ -285,7 +285,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private VocabularyTermResponse.VocabularyTermResponseBuilder baseTerm(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson) {
         return VocabularyTermResponse.builder()
                 .courseId(course.getId())
-                .courseTitle(course.getLearningPackage().getTitle())
+                .courseTitle(course.getTitle())
                 .moduleId(module.getId())
                 .moduleTitle(module.getTitle())
                 .lessonId(lesson.getId())

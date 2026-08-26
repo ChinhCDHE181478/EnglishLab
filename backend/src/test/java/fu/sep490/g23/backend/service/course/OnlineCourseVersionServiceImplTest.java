@@ -10,7 +10,6 @@ import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
@@ -87,14 +86,10 @@ class OnlineCourseVersionServiceImplTest {
                 mapper,
                 previewValidator
         );
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(11L)
-                .title("IELTS Foundation")
-                .status(PackageStatus.PUBLISHED)
-                .build();
         course = OnlineCourse.builder()
                 .id(21L)
-                .learningPackage(learningPackage)
+                .title("IELTS Foundation")
+                .status(PackageStatus.PUBLISHED)
                 .modules(new ArrayList<>())
                 .build();
         versionOne = OnlineCourseVersion.builder()
@@ -268,7 +263,6 @@ class OnlineCourseVersionServiceImplTest {
         ));
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
-                .learningPackage(course.getLearningPackage())
                 .onlineCourse(course)
                 .courseVersion(versionTwo)
                 .progressPercent(80)
@@ -294,7 +288,6 @@ class OnlineCourseVersionServiceImplTest {
         ));
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
-                .learningPackage(course.getLearningPackage())
                 .onlineCourse(course)
                 .courseVersion(versionTwo)
                 .build();
@@ -337,7 +330,6 @@ class OnlineCourseVersionServiceImplTest {
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .student(student)
-                .learningPackage(course.getLearningPackage())
                 .onlineCourse(course)
                 .courseVersion(versionTwo)
                 .build();
@@ -397,8 +389,8 @@ class OnlineCourseVersionServiceImplTest {
         versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
         versionTwo.setAssessmentIdsJson("[92]");
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
+                .onlineCourse(course)
                 .courseVersion(versionOne)
-                .learningPackage(course.getLearningPackage())
                 .build();
 
         when(versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course))
@@ -643,7 +635,6 @@ class OnlineCourseVersionServiceImplTest {
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .onlineCourse(course)
-                .learningPackage(course.getLearningPackage())
                 .courseVersion(versionOne)
                 .build();
 

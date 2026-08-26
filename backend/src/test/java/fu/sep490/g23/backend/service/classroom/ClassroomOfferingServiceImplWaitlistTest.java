@@ -14,13 +14,10 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomOfferingServiceImpl;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
@@ -50,11 +47,8 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Mock private ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
-    @Mock private LearningPackageRepository learningPackageRepository;
-    @Mock private PackageTypeRepository packageTypeRepository;
     @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
-    @Mock private CurriculumProgramRepository curriculumProgramRepository;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
+    @Mock private InstructorLedCourseRepository curriculumProgramRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
     @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
@@ -157,7 +151,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
         User learner = User.builder().id(learnerId).email("learner@example.com").build();
         ClassSection offering = ClassSection.builder()
                 .id(offeringId)
-                .learningPackage(LearningPackage.builder().id(20L).build())
+                .name("Offering 20")
                 .build();
         ClassEnrollment assigned = ClassEnrollment.builder()
                 .id(30L)
@@ -219,7 +213,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
         User learner = User.builder().id(learnerId).email("learner@example.com").build();
         ClassSection offering = ClassSection.builder()
                 .id(offeringId)
-                .learningPackage(LearningPackage.builder().id(20L).build())
+                .name("Offering 20")
                 .build();
         ClassEnrollment assigned = ClassEnrollment.builder()
                 .id(30L)

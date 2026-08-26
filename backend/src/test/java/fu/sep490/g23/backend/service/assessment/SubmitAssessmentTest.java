@@ -10,7 +10,6 @@ import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
@@ -73,7 +72,6 @@ class SubmitAssessmentTest {
 
     private User student;
     private OnlineCourse course;
-    private LearningPackage learningPackage;
     private OnlineCourseEnrollment enrollment;
     private CourseAssessment assessment;
     private AssessmentSubmissionRequest request;
@@ -83,16 +81,12 @@ class SubmitAssessmentTest {
         student = new User();
         student.setEmail("student@test.com");
 
-        learningPackage = new LearningPackage();
-        learningPackage.setId(1L);
-
         course = new OnlineCourse();
         course.setId(10L);
-        course.setLearningPackage(learningPackage);
 
         enrollment = new OnlineCourseEnrollment();
         enrollment.setStudent(student);
-        enrollment.setLearningPackage(learningPackage);
+        enrollment.setOnlineCourse(course);
         enrollment.setStatus(EnrollmentStatus.ACTIVE);
 
         assessment = new CourseAssessment();
@@ -118,7 +112,7 @@ class SubmitAssessmentTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.of(enrollment));
         
         AiEvaluationResult mockAiResult = AiEvaluationResult.builder()
                 .estimatedScore(BigDecimal.valueOf(8.0))
@@ -194,7 +188,7 @@ class SubmitAssessmentTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.empty());
         when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
             AssessmentSubmission saved = invocation.getArgument(0);
             saved.setId(1001L);
@@ -251,7 +245,7 @@ class SubmitAssessmentTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.empty());
         when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
             AssessmentSubmission saved = invocation.getArgument(0);
             saved.setId(1000L);

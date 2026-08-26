@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface CourseUnitRepository extends JpaRepository<CourseUnit, Long> {
     List<CourseUnit> findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(Long instructorLedCourseId);
+
+    long countByInstructorLedCourseId(Long instructorLedCourseId);
 }

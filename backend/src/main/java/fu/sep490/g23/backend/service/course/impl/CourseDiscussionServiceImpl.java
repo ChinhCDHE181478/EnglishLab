@@ -332,7 +332,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private OnlineCourse findPublicCourse(Long courseId) {
         OnlineCourse course = onlineCourseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        if (course.getLearningPackage().isDeleted() || course.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
+        if (course.isDeleted() || course.getStatus() != PackageStatus.PUBLISHED) {
             throw new RuntimeException("Khóa học này hiện không khả dụng.");
         }
         return course;

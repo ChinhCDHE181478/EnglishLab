@@ -8,13 +8,10 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
-import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -31,7 +28,6 @@ import fu.sep490.g23.backend.repository.classroom.LarkMeetingParticipantReposito
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.dto.request.classroom.ResolveTuitionSettlementRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
@@ -58,19 +54,13 @@ import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.*;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
-import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
+import fu.sep490.g23.backend.repository.course.CourseLessonRepository;
 import fu.sep490.g23.backend.repository.course.CourseLessonRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
@@ -140,12 +130,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
-    private final LearningPackageRepository learningPackageRepository;
-    private final PackageTypeRepository packageTypeRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
-    private final CurriculumProgramRepository curriculumProgramRepository;
-    private final CurriculumSessionPlanRepository curriculumSessionPlanRepository;
-    private final TrainingProgramRepository trainingProgramRepository;
     private final ClassroomMaterialSyncService classroomMaterialSyncService;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
@@ -218,7 +203,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     public ClassroomOfferingResponse getStaffOffering(Long id) {
         ClassSection offering = offeringRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
-        if (offering.getLearningPackage() == null) {
+        if (offering.getInstructorLedCourse() == null) {
             throw new RuntimeException("Không tìm thấy lớp học.");
         }
         return mapper.toOfferingResponse(offering, true, null, null, true);
@@ -249,50 +234,28 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User creator = accessHelper.requireUser(creatorEmail);
         accessHelper.assertManager(creator);
 
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
-                .orElseThrow(() -> new RuntimeException("Thiếu loại gói CLASSROOM trong hệ thống."));
-        CurriculumProgram curriculumProgram = resolveCurriculumProgram(request.getCurriculumProgramId());
-        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId());
-        if (trainingProgram != null) {
-            curriculumProgram = trainingProgram.getCurriculumProgram();
+        fu.sep490.g23.backend.entity.course.InstructorLedCourse ilc;
+        if (request.getInstructorLedCourseId() != null) {
+            ilc = instructorLedCourseIdResolver.resolveById(request.getInstructorLedCourseId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học giảng viên."));
+        } else {
+            throw new IllegalArgumentException("Phải chọn chương trình học cho lớp.");
         }
-        BigDecimal effectivePrice = request.getPrice() != null
-                ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice();
-        BigDecimal effectiveSalePrice = request.getSalePrice() != null
-                ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice();
-        validatePrices(effectivePrice, effectiveSalePrice);
+
         User primaryTeacher = resolveTeacher(request.getPrimaryTeacherId());
         Room regularRoom = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
                 ? resolveRoom(request.getDefaultRoomId()) : null;
         validateOfferingResources(request, primaryTeacher, regularRoom);
 
-        LearningPackage learningPackage = LearningPackage.builder()
-                .packageType(packageType)
-                .title(request.getTitle().trim())
-                .slug(generateUniqueSlug(request.getTitle()))
-                .shortDescription(defaultText(request.getShortDescription(), trainingProgram == null ? null : trainingProgram.getShortDescription()))
-                .description(defaultText(request.getDescription(), trainingProgram == null ? null : trainingProgram.getDescription()))
-                .targetScore(defaultText(request.getTargetScore(), resolveTargetScore(curriculumProgram)))
-                .duration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()))
-                .studyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()))
-                .price(defaultBigDecimal(effectivePrice))
-                .salePrice(effectiveSalePrice)
-                .thumbnailUrl(defaultText(request.getThumbnailUrl(), trainingProgram == null ? null : trainingProgram.getThumbnailUrl()))
-                .status(request.getPackageStatus() == null ? PackageStatus.DRAFT : request.getPackageStatus())
-                .displayOrder(defaultInt(request.getDisplayOrder()))
-                .featured(Boolean.TRUE.equals(request.getFeatured()))
-                .createdBy(creator)
-                .build();
-
-
         ClassSection offering = ClassSection.builder()
-                .learningPackage(learningPackage)
+                .instructorLedCourse(ilc)
                 .deliveryMode(request.getDeliveryMode())
-                .trainingProgram(trainingProgram)
-                .curriculumProgram(curriculumProgram)
                 .status(request.getClassroomStatus() == null ? ClassroomOfferingStatus.DRAFT : request.getClassroomStatus())
-                .entryLevel(defaultText(request.getEntryLevel(), curriculumProgram == null ? null : curriculumProgram.getEntryLevel()))
-                .targetOutcome(defaultText(request.getTargetOutcome(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()))
+                .name(request.getTitle().trim())
+                .code(ilc.getCode() + "-" + System.currentTimeMillis())
+                .tuitionFeeVnd(request.getPrice() != null ? request.getPrice() : java.math.BigDecimal.ZERO)
+                .entryLevel(request.getEntryLevel())
+                .targetOutcome(request.getTargetOutcome())
                 .capacity(request.getCapacity() == null ? 30 : request.getCapacity())
                 .startDate(request.getStartDate())
                 .plannedEndDate(request.getEndDate())
@@ -304,13 +267,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .larkMeetingStatus(virtualMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()))
                 .recordingUrl(request.getRecordingUrl())
                 .recordingVisible(Boolean.TRUE.equals(request.getRecordingVisible()))
-                .syllabusSummary(defaultText(request.getSyllabusSummary(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()))
-                .programOutcomes(curriculumProgram == null ? null : curriculumProgram.getOutcomes())
-                .teacherGuide(curriculumProgram == null ? null : curriculumProgram.getTeacherGuide())
-                .interactionActivities(curriculumProgram == null ? null : curriculumProgram.getInteractionActivities())
+                .syllabusSummary(request.getSyllabusSummary())
                 .build();
-
-        linkInstructorLedCourse(offering);
 
         if (offering.getPrimaryTeacher() != null) {
             offering = offeringRepository.save(offering);
@@ -323,28 +281,17 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         classroomMaterialSyncService.synchronizeMandatoryMaterials(saved, creator);
         return mapper.toOfferingResponse(saved, true, null, null, true);
     }
-
     @Override
     public ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail) {
         validateOfferingRequest(request);
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertStaffOperator(actor);
         ClassSection offering = findOffering(id);
-        LearningPackage learningPackage = offering.getLearningPackage();
-        CurriculumProgram curriculumProgram = resolveCurriculumProgram(request.getCurriculumProgramId());
-        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId());
-        if (trainingProgram != null) {
-            curriculumProgram = trainingProgram.getCurriculumProgram();
-        }
-        BigDecimal effectivePrice = request.getPrice() != null
-                ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice();
-        BigDecimal effectiveSalePrice = request.getSalePrice() != null
-                ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice();
-        validatePrices(effectivePrice, effectiveSalePrice);
+
         User primaryTeacher = resolveTeacher(request.getPrimaryTeacherId());
         Long previousPrimaryTeacherId = getPrimaryTeacherId(offering);
         Long requestedPrimaryTeacherId = primaryTeacher == null ? null : primaryTeacher.getId();
-        boolean primaryTeacherChanged = !Objects.equals(previousPrimaryTeacherId, requestedPrimaryTeacherId);
+        boolean primaryTeacherChanged = !java.util.Objects.equals(previousPrimaryTeacherId, requestedPrimaryTeacherId);
         if (primaryTeacherChanged && primaryTeacher == null) {
             throw new IllegalArgumentException(
                     "Không thể bỏ giáo viên chính khỏi lớp. Hãy chọn giáo viên thay thế để giữ lịch học liên tục."
@@ -354,48 +301,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 ? resolveRoom(request.getDefaultRoomId()) : null;
         validateOfferingResources(request, primaryTeacher, regularRoom);
 
-        if (Set.of(ClassroomOfferingStatus.ACTIVE, ClassroomOfferingStatus.COMPLETED, ClassroomOfferingStatus.CLOSED)
-                .contains(offering.getStatus())) {
-            Long currentTrainingProgramId = offering.getTrainingProgram() == null
-                    ? null : offering.getTrainingProgram().getId();
-            Long nextTrainingProgramId = trainingProgram == null ? null : trainingProgram.getId();
-            Long currentCurriculumId = offering.getCurriculumProgram() == null
-                    ? null : offering.getCurriculumProgram().getId();
-            Long nextCurriculumId = curriculumProgram == null ? null : curriculumProgram.getId();
-            if (!Objects.equals(currentTrainingProgramId, nextTrainingProgramId)
-                    || !Objects.equals(currentCurriculumId, nextCurriculumId)
-                    || offering.getDeliveryMode() != request.getDeliveryMode()) {
-                throw new IllegalArgumentException(
-                        "Không thể đổi chương trình hoặc hình thức đào tạo khi lớp đã bắt đầu hoặc đã kết thúc."
-                );
-            }
+        if (request.getInstructorLedCourseId() != null) {
+            fu.sep490.g23.backend.entity.course.InstructorLedCourse newIlc = instructorLedCourseIdResolver.resolveById(request.getInstructorLedCourseId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học giảng viên."));
+            offering.setInstructorLedCourse(newIlc);
         }
 
-
-        learningPackage.setTitle(request.getTitle().trim());
-        learningPackage.setShortDescription(defaultText(request.getShortDescription(), trainingProgram == null ? null : trainingProgram.getShortDescription()));
-        learningPackage.setDescription(defaultText(request.getDescription(), trainingProgram == null ? null : trainingProgram.getDescription()));
-        learningPackage.setTargetScore(defaultText(request.getTargetScore(), resolveTargetScore(curriculumProgram)));
-        learningPackage.setDuration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()));
-        learningPackage.setStudyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()));
-        learningPackage.setPrice(defaultBigDecimal(effectivePrice));
-        learningPackage.setSalePrice(effectiveSalePrice);
-        learningPackage.setThumbnailUrl(defaultText(request.getThumbnailUrl(), trainingProgram == null ? null : trainingProgram.getThumbnailUrl()));
-        if (request.getPackageStatus() != null) {
-            learningPackage.setStatus(request.getPackageStatus());
+        offering.setName(request.getTitle().trim());
+        if (request.getPrice() != null) {
+            offering.setTuitionFeeVnd(request.getPrice());
         }
-        learningPackage.setDisplayOrder(defaultInt(request.getDisplayOrder()));
-        learningPackage.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
-
         offering.setDeliveryMode(request.getDeliveryMode());
-        offering.setTrainingProgram(trainingProgram);
-        offering.setCurriculumProgram(curriculumProgram);
-        linkInstructorLedCourse(offering);
         if (request.getClassroomStatus() != null) {
             offering.setStatus(request.getClassroomStatus());
         }
-        offering.setEntryLevel(defaultText(request.getEntryLevel(), curriculumProgram == null ? null : curriculumProgram.getEntryLevel()));
-        offering.setTargetOutcome(defaultText(request.getTargetOutcome(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()));
+        if (request.getEntryLevel() != null) offering.setEntryLevel(request.getEntryLevel());
+        if (request.getTargetOutcome() != null) offering.setTargetOutcome(request.getTargetOutcome());
         if (request.getCapacity() != null) {
             offering.setCapacity(request.getCapacity());
         }
@@ -413,10 +334,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getRecordingVisible() != null) {
             offering.setRecordingVisible(request.getRecordingVisible());
         }
-        offering.setSyllabusSummary(defaultText(request.getSyllabusSummary(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()));
-        offering.setProgramOutcomes(curriculumProgram == null ? null : curriculumProgram.getOutcomes());
-        offering.setTeacherGuide(curriculumProgram == null ? null : curriculumProgram.getTeacherGuide());
-        offering.setInteractionActivities(curriculumProgram == null ? null : curriculumProgram.getInteractionActivities());
+        if (request.getSyllabusSummary() != null) offering.setSyllabusSummary(request.getSyllabusSummary());
 
         ClassSection saved = offeringRepository.save(offering);
         if (primaryTeacherChanged) {
@@ -426,7 +344,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         classroomMaterialSyncService.synchronizeMandatoryMaterials(saved, null);
         return mapper.toOfferingResponse(saved, true, null, null, true);
     }
-
     @Override
     public ClassroomOfferingResponse closeOffering(Long id, String actorEmail) {
         accessHelper.requireUser(actorEmail);
@@ -436,7 +353,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Lớp học đã được đóng hoặc hủy trước đó.");
         }
         offering.setStatus(ClassroomOfferingStatus.CLOSED);
-        offering.getLearningPackage().setStatus(PackageStatus.ARCHIVED);
+        
         return mapper.toOfferingResponse(offeringRepository.save(offering));
     }
 
@@ -496,8 +413,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering));
         ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, offering);
         Room room = resolveSessionRoom(request, offering, deliveryMode);
-        CurriculumSessionPlan sessionPlan = resolveCurriculumSessionPlan(
-                request.getCurriculumSessionPlanId(),
+        fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan = resolveCourseLesson(
+                request.getCourseLessonId(),
                 offering
         );
         validateRoomCapacity(room, offering.getCapacity());
@@ -559,9 +476,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(session.getClassSection()));
         ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, session.getClassSection());
         Room room = resolveSessionRoom(request, session.getClassSection(), deliveryMode);
-        CurriculumSessionPlan sessionPlan = request.getCurriculumSessionPlanId() == null
-                ? session.getCurriculumSessionPlan()
-                : resolveCurriculumSessionPlan(request.getCurriculumSessionPlanId(), session.getClassSection());
+        fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan = request.getCourseLessonId() == null
+                ? session.getCourseLesson()
+                : resolveCourseLesson(request.getCourseLessonId(), session.getClassSection());
         validateRoomCapacity(room, session.getClassSection().getCapacity());
 
         ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
@@ -609,9 +526,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(session.getClassSection()));
         ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, session.getClassSection());
         Room room = resolveSessionRoom(request, session.getClassSection(), deliveryMode);
-        CurriculumSessionPlan sessionPlan = request.getCurriculumSessionPlanId() == null
-                ? session.getCurriculumSessionPlan()
-                : resolveCurriculumSessionPlan(request.getCurriculumSessionPlanId(), session.getClassSection());
+        fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan = request.getCourseLessonId() == null
+                ? session.getCourseLesson()
+                : resolveCourseLesson(request.getCourseLessonId(), session.getClassSection());
         validateRoomCapacity(room, session.getClassSection().getCapacity());
         boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
                 && !request.getLarkMeetingUrl().isBlank()
@@ -800,7 +717,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (waitlisted.isEmpty()) {
             return;
         }
-        String classTitle = offering.getLearningPackage().getTitle();
+        String classTitle = offering.getName();
         for (ClassEnrollment waiting : waitlisted) {
             notificationService.notifyUser(
                     waiting.getStudent(),
@@ -835,7 +752,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
-        String classTitle = offering.getLearningPackage().getTitle();
+        String classTitle = offering.getName();
         notificationService.notifyUser(
                 learner,
                 "CLASSROOM_PAYMENT_INVITED",
@@ -878,7 +795,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 learner,
                 "CLASSROOM_REGISTRATION_REJECTED",
                 "Đăng ký lớp bị từ chối",
-                "Đăng ký lớp " + offering.getLearningPackage().getTitle() + " đã bị từ chối.",
+                "Đăng ký lớp " + offering.getName() + " đã bị từ chối.",
                 Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
         );
         return mapper.toEnrollmentResponse(enrollment);
@@ -975,7 +892,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 enrollment.getStudent(),
                 "CLASSROOM_TUITION_REFUND_APPROVED",
                 "Đã duyệt hoàn học phí lớp",
-                "Yêu cầu hoàn học phí lớp " + enrollment.getClassSection().getLearningPackage().getTitle()
+                "Yêu cầu hoàn học phí lớp " + enrollment.getClassSection().getName()
                         + " đã được duyệt: " + refundAmount.toPlainString() + " VND.",
                 Map.of(
                         "enrollmentId", enrollment.getId(),
@@ -1001,7 +918,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 enrollment.getStudent(),
                 "CLASSROOM_TUITION_REFUND_REJECTED",
                 "Từ chối hoàn học phí lớp",
-                "Yêu cầu hoàn học phí lớp " + enrollment.getClassSection().getLearningPackage().getTitle()
+                "Yêu cầu hoàn học phí lớp " + enrollment.getClassSection().getName()
                         + " đã bị từ chối. Lý do: " + note,
                 Map.of(
                         "enrollmentId", enrollment.getId(),
@@ -1115,7 +1032,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 learner,
                 "CLASSROOM_TUITION_RECORDED",
                 "Đã ghi nhận học phí",
-                "Học phí lớp " + offering.getLearningPackage().getTitle() + " đã được ghi nhận: "
+                "Học phí lớp " + offering.getName() + " đã được ghi nhận: "
                         + ClassroomRegistrationSupport.registrationStatusLabel(enrollment.getRegistrationStatus()) + ".",
                 Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
         );
@@ -1158,7 +1075,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     learner,
                     "CLASSROOM_ASSIGNED",
                     "Đã được xếp lớp",
-                    "Bạn đã được xếp vào lớp " + offering.getLearningPackage().getTitle() + ".",
+                    "Bạn đã được xếp vào lớp " + offering.getName() + ".",
                     Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
             );
         }
@@ -1704,7 +1621,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             User teacher,
             Room room,
             ClassroomDeliveryMode deliveryMode,
-            CurriculumSessionPlan sessionPlan
+            fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan
     ) {
         String larkUrl = request.getLarkMeetingUrl();
         if (virtualMeetingService.isLegacyOrPlaceholderUrl(larkUrl)) {
@@ -1727,7 +1644,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .larkMeetingUrl(larkUrl)
                 .larkMeetingStatus(virtualMeetingService.resolveStatus(larkUrl))
                 .larkSyncStatus(larkUrl == null || larkUrl.isBlank() ? "PENDING" : "MANUAL")
-                .curriculumSessionPlan(sessionPlan)
+                
                 .scheduleType(sessionPlan == null ? ClassScheduleType.OTHER : ClassScheduleType.LESSON)
                 .sessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle())
                 .note(request.getNote())
@@ -1740,7 +1657,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             User teacher,
             Room room,
             ClassroomDeliveryMode deliveryMode,
-            CurriculumSessionPlan sessionPlan
+            fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan
     ) {
         ClassSection offering = session.getClassSection();
         session.setSessionDate(request.getSessionDate());
@@ -1771,7 +1688,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(defaultUrl));
             }
         }
-        session.setCurriculumSessionPlan(sessionPlan);
+        
         linkCourseLesson(session, sessionPlan);
         session.setSessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle());
         session.setNote(request.getNote());
@@ -1965,13 +1882,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     private BigDecimal resolveTuitionDue(ClassSection offering) {
-        LearningPackage learningPackage = offering.getLearningPackage();
-
-        if (learningPackage == null || learningPackage.getPrice() == null) {
-            return BigDecimal.ZERO;
-
+        if (offering.getTuitionFeeVnd() == null) {
+            return java.math.BigDecimal.ZERO;
         }
-        return learningPackage.getPrice();
+        return offering.getTuitionFeeVnd();
     }
 
     private boolean isClassFull(ClassSection offering) {
@@ -1983,20 +1897,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return assigned >= capacity;
     }
 
-    private OnlineCourseEnrollment ensureOnlineCourseEnrollment(User student, ClassSection offering) {
-        return packageEnrollmentRepository.findByStudentAndLearningPackage(student, offering.getLearningPackage())
-                .map(enrollment -> {
-                    if (!courseEnrollmentAccessPolicy.hasLearningAccess(enrollment)) {
-                        return courseEnrollmentAccessPolicy.reactivateCancelledEnrollment(enrollment);
-                    }
-                    return enrollment;
-                })
-                .orElseGet(() -> packageEnrollmentRepository.save(OnlineCourseEnrollment.builder()
-                        .student(student)
-                        .learningPackage(offering.getLearningPackage())
-                        .status(EnrollmentStatus.ACTIVE)
-                        .progressPercent(0)
-                        .build()));
+    private fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment ensureOnlineCourseEnrollment(User student, ClassSection offering) {
+        // TODO(slice10): InstructorLedCourse does not have a direct mapping to OnlineCourse yet.
+        return null;
     }
 
     private void tryAssignEnrollment(
@@ -2064,15 +1967,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private ClassSection findOffering(Long id) {
         return offeringRepository.findById(id)
-                .filter(offering -> !offering.getLearningPackage().isDeleted())
+                
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
     }
 
     private boolean isVisibleToStaff(ClassSection offering) {
-        if (offering.getLearningPackage() == null) {
+        if (offering.getInstructorLedCourse() == null) {
             return false;
         }
-        if (!offering.getLearningPackage().isDeleted()) {
+        if (!offering.isDeleted()) {
             return true;
         }
         return !enrollmentRepository.findByClassSectionIdAndRegistrationStatusIn(
@@ -2085,13 +1988,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         try {
             Long id = Long.parseLong(slugOrId);
             return offeringRepository.findById(id)
-                    .or(() -> offeringRepository.findByLearningPackageId(id))
-                    .filter(found -> !found.getLearningPackage().isDeleted())
-                    .filter(found -> found.getLearningPackage().getStatus() == PackageStatus.PUBLISHED)
+                    .or(() -> offeringRepository.findByIdAsCatalogItem(id))
+                    .filter(found -> !found.isDeleted())
+                    .filter(found -> found.getStatus() == fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus.ACTIVE)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
         } catch (NumberFormatException ex) {
-            return offeringRepository.findByLearningPackageSlug(slugOrId)
-                    .filter(found -> found.getLearningPackage().getStatus() == PackageStatus.PUBLISHED)
+            return offeringRepository.findByInstructorLedCourseSlugOrCode(slugOrId)
+                    .filter(found -> found.getStatus() == fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus.ACTIVE)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
         }
     }
@@ -2128,7 +2031,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         validateRoomCapacity(regularRoom, request.getCapacity() == null ? 30 : request.getCapacity());
         ClassroomOfferingStatus status = request.getClassroomStatus() == null
                 ? ClassroomOfferingStatus.DRAFT : request.getClassroomStatus();
-        if (status != ClassroomOfferingStatus.UPCOMING && status != ClassroomOfferingStatus.ACTIVE) {
+        if (status != ClassroomOfferingStatus.UPCOMING && status != fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus.ACTIVE) {
             return;
         }
         if (request.getStartDate() == null || request.getEndDate() == null) {
@@ -2223,70 +2126,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return room;
     }
 
-    private CurriculumSessionPlan resolveCurriculumSessionPlan(
-            Long curriculumSessionPlanId,
+    private fu.sep490.g23.backend.entity.course.CourseLesson resolveCourseLesson(
+            Long courseLessonId,
             ClassSection offering
     ) {
-        if (curriculumSessionPlanId == null) {
+        if (courseLessonId == null) {
             return null;
         }
-        CurriculumSessionPlan sessionPlan = curriculumSessionPlanRepository.findById(curriculumSessionPlanId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học trong giáo trình."));
-        Long offeringProgramId = offering.getCurriculumProgram() == null
-                ? null
-                : offering.getCurriculumProgram().getId();
-        Long sessionPlanProgramId = sessionPlan.getUnit().getProgram().getId();
-        if (!Objects.equals(offeringProgramId, sessionPlanProgramId)) {
-            throw new IllegalArgumentException("Buổi học đã chọn không thuộc giáo trình của lớp này.");
-        }
-        return sessionPlan;
+        return courseLessonRepository.findById(courseLessonId).orElse(null);
     }
 
-    private CurriculumProgram resolveCurriculumProgram(Long curriculumProgramId) {
-        if (curriculumProgramId == null) {
-            return null;
-        }
-        CurriculumProgram program = curriculumProgramRepository.findById(curriculumProgramId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo trình."));
-        if ("ARCHIVED".equalsIgnoreCase(program.getStatus())) {
-            throw new RuntimeException("Giáo trình đã lưu trữ, không thể gắn vào lớp.");
-        }
-        if (!"PUBLISHED".equalsIgnoreCase(program.getStatus())) {
-            throw new RuntimeException("Chỉ có thể mở lớp từ giáo trình đã được duyệt.");
-        }
-        return program;
-    }
 
-    private TrainingProgram resolveTrainingProgram(Long trainingProgramId) {
-        if (trainingProgramId == null) {
-            return null;
-        }
-        TrainingProgram program = trainingProgramRepository.findById(trainingProgramId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy chương trình học."));
-        if (program.getStatus() == PackageStatus.ARCHIVED) {
-            throw new RuntimeException("Chương trình học đã lưu trữ, không thể gắn vào lớp.");
-        }
-        if (program.getStatus() != PackageStatus.PUBLISHED) {
-            throw new RuntimeException("Chỉ có thể mở lớp từ chương trình học đã xuất bản.");
-        }
-        return program;
-    }
 
     private String defaultText(String value, String fallback) {
         return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 
-    private String resolveTargetScore(CurriculumProgram curriculumProgram) {
-        if (curriculumProgram == null) {
-            return null;
-        }
-        if (curriculumProgram.getTargetBand() != null) {
-            return curriculumProgram.getTargetBand().stripTrailingZeros().toPlainString();
-        }
-        return curriculumProgram.getTargetScore() == null
-                ? null
-                : String.valueOf(curriculumProgram.getTargetScore());
-    }
 
     private Long getPrimaryTeacherId(ClassSection offering) {
         return offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getId();
@@ -2304,15 +2159,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return value == null ? 0 : value;
     }
 
-    private String generateUniqueSlug(String title) {
-        String baseSlug = toSlug(title);
-        String slug = baseSlug;
-        int index = 2;
-        while (learningPackageRepository.existsBySlug(slug)) {
-            slug = baseSlug + "-" + index++;
-        }
-        return slug;
-    }
 
     private String toSlug(String input) {
         String nowhitespace = WHITESPACE.matcher(input.trim()).replaceAll("-");
@@ -2322,24 +2168,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return slug.isBlank() ? "classroom" : slug;
     }
 
-    private void linkInstructorLedCourse(ClassSection offering) {
-        if (offering.getTrainingProgram() != null && offering.getTrainingProgram().getId() != null) {
-            offering.setInstructorLedCourse(instructorLedCourseIdResolver
-                    .requireFromTrainingProgramId(offering.getTrainingProgram().getId()));
-            return;
-        }
-        if (offering.getCurriculumProgram() != null && offering.getCurriculumProgram().getId() != null) {
-            offering.setInstructorLedCourse(instructorLedCourseIdResolver
-                    .resolveFromCurriculumProgramId(offering.getCurriculumProgram().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khóa học giảng viên tương ứng.")));
-            return;
-        }
-        if (offering.getInstructorLedCourse() == null) {
-            throw new IllegalArgumentException("Lớp học phải thuộc một khóa học có giảng viên.");
-        }
-    }
 
-    private void linkCourseLesson(ClassSchedule session, CurriculumSessionPlan sessionPlan) {
+    private void linkCourseLesson(ClassSchedule session, fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan) {
         if (sessionPlan == null || sessionPlan.getId() == null) {
             session.setCourseLesson(null);
             session.setScheduleType(session.getStatus() == ClassroomSessionStatus.MAKEUP

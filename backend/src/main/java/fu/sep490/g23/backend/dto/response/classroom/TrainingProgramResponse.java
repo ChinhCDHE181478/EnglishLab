@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import lombok.Builder;
@@ -19,13 +20,18 @@ public class TrainingProgramResponse {
     private ClassroomDeliveryMode deliveryType;
     private ClassroomDeliveryMode deliveryMode;
     private String deliveryModeLabel;
-    private Long curriculumProgramId;
-    private String curriculumProgramTitle;
-    private String curriculumProgramCode;
-    private String curriculumProgramExamCategory;
+    @JsonProperty("curriculumProgramId")
+    private Long instructorLedCourseId;
+    @JsonProperty("curriculumProgramTitle")
+    private String instructorLedCourseTitle;
+    @JsonProperty("curriculumProgramCode")
+    private String instructorLedCourseCode;
+    @JsonProperty("curriculumProgramExamCategory")
+    private String instructorLedCourseExamType;
     private String programTrack;
     private String focusSkills;
-    private String curriculumProgramStatus;
+    @JsonProperty("curriculumProgramStatus")
+    private String instructorLedCourseStatus;
     private String shortDescription;
     private String description;
     private String entryLevel;

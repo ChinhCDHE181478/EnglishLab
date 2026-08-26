@@ -3,7 +3,6 @@ package fu.sep490.g23.backend.service.notification;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.mail.LearningReminderMailService;
@@ -50,7 +49,7 @@ class TeacherFeedbackReminderDispatcherTest {
         classroom = ClassSection.builder()
                 .id(9L)
                 .plannedEndDate(LocalDate.now())
-                .learningPackage(LearningPackage.builder().title("IELTS Evening").build())
+                .name("IELTS Evening")
                 .build();
     }
 

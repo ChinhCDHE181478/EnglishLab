@@ -1,15 +1,15 @@
 package fu.sep490.g23.backend.service.curriculum;
 
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumSessionPlanRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumUnitRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.InstructorLedCourseRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitContentRefRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseLessonRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.FlashcardSetRequest;
 import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseLessonResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseUnitResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
@@ -20,10 +20,10 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
 
-public interface CurriculumProgramService {
-    List<CurriculumProgramResponse> listPrograms(ClassroomDeliveryMode deliveryMode);
+public interface InstructorLedCourseManagementService {
+    List<InstructorLedCourseResponse> listPrograms(ClassroomDeliveryMode deliveryMode);
 
-    Page<CurriculumProgramResponse> pagePrograms(
+    Page<InstructorLedCourseResponse> pagePrograms(
             ClassroomDeliveryMode deliveryMode,
             String keyword,
             String examCategory,
@@ -32,37 +32,37 @@ public interface CurriculumProgramService {
             Pageable pageable
     );
 
-    CurriculumProgramResponse getProgram(Long id);
+    InstructorLedCourseResponse getProgram(Long id);
 
-    CurriculumProgramResponse createProgram(CurriculumProgramRequest request);
+    InstructorLedCourseResponse createProgram(InstructorLedCourseRequest request);
 
-    CurriculumProgramResponse updateProgram(Long id, CurriculumProgramRequest request);
+    InstructorLedCourseResponse updateProgram(Long id, InstructorLedCourseRequest request);
 
     void archiveProgram(Long id);
 
-    CurriculumProgramResponse cloneProgram(Long id);
+    InstructorLedCourseResponse cloneProgram(Long id);
 
-    CurriculumProgramResponse publishProgram(Long id, String actorEmail);
+    InstructorLedCourseResponse publishProgram(Long id, String actorEmail);
 
-    CurriculumUnitResponse createUnit(Long programId, CurriculumUnitRequest request);
+    CourseUnitResponse createUnit(Long programId, CourseUnitRequest request);
 
-    CurriculumUnitResponse updateUnit(Long unitId, CurriculumUnitRequest request);
+    CourseUnitResponse updateUnit(Long unitId, CourseUnitRequest request);
 
     void deleteUnit(Long unitId);
 
-    CurriculumSessionPlanResponse createSessionPlan(Long unitId, CurriculumSessionPlanRequest request);
+    CourseLessonResponse createSessionPlan(Long unitId, CourseLessonRequest request);
 
-    CurriculumSessionPlanResponse updateSessionPlan(Long sessionPlanId, CurriculumSessionPlanRequest request);
+    CourseLessonResponse updateSessionPlan(Long sessionPlanId, CourseLessonRequest request);
 
     void deleteSessionPlan(Long sessionPlanId);
 
-    CurriculumUnitResponse attachMaterial(Long unitId, CurriculumReferenceRequest request);
+    CourseUnitResponse attachMaterial(Long unitId, CourseUnitContentRefRequest request);
 
-    CurriculumUnitResponse attachExercise(Long unitId, CurriculumReferenceRequest request);
+    CourseUnitResponse attachExercise(Long unitId, CourseUnitContentRefRequest request);
 
-    CurriculumUnitResponse attachAssessment(Long unitId, CurriculumReferenceRequest request);
+    CourseUnitResponse attachAssessment(Long unitId, CourseUnitContentRefRequest request);
 
-    CurriculumUnitResponse attachFlashcard(Long unitId, CurriculumReferenceRequest request);
+    CourseUnitResponse attachFlashcard(Long unitId, CourseUnitContentRefRequest request);
 
     void detachReference(String type, Long referenceId);
 

@@ -1,9 +1,7 @@
 package fu.sep490.g23.backend.service.course;
 
 import fu.sep490.g23.backend.entity.course.CourseDiscussionPost;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionPostIdMap;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionPostType;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionPostIdMapRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionPostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,23 +17,20 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DiscussionPostIdResolver {
 
-    private final CourseDiscussionPostIdMapRepository idMapRepository;
     private final CourseDiscussionPostRepository postRepository;
 
     public Optional<Long> resolve(CourseDiscussionPostType legacyKind, Long legacyId) {
         if (legacyKind == null || legacyId == null) {
             return Optional.empty();
         }
-        return idMapRepository.findByLegacyKindAndLegacyId(legacyKind, legacyId)
-                .map(CourseDiscussionPostIdMap::getPostId);
+        return postRepository.findByIdAndPostType(legacyId, legacyKind).map(CourseDiscussionPost::getId);
     }
 
     public Optional<Long> reverseResolve(CourseDiscussionPostType legacyKind, Long postId) {
         if (legacyKind == null || postId == null) {
             return Optional.empty();
         }
-        return idMapRepository.findByLegacyKindAndPostId(legacyKind, postId)
-                .map(CourseDiscussionPostIdMap::getLegacyId);
+        return postRepository.findByIdAndPostType(postId, legacyKind).map(CourseDiscussionPost::getId);
     }
 
     /**

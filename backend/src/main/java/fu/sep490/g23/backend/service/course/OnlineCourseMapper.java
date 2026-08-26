@@ -11,7 +11,6 @@ import fu.sep490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
@@ -76,7 +75,7 @@ public class OnlineCourseMapper {
         CourseCategory category = course.getCategory();
         BigDecimal originalPrice = safePrice(course.getPrice());
         BigDecimal salePrice = resolveSalePrice(course);
-        Long packageId = course.getLearningPackage() == null ? null : course.getLearningPackage().getId();
+        Long packageId = null == null ? null : course.getId();
         List<OnlineCourseModule> effectiveModules = modules == null ? List.of() : modules;
         return OnlineCourseResponse.builder()
                 .id(course.getId())
@@ -124,15 +123,15 @@ public class OnlineCourseMapper {
     public OnlineCourseEnrollmentResponse toEnrollmentResponse(OnlineCourseEnrollment enrollment) {
         OnlineCourse course = enrollment.getOnlineCourse() != null
                 ? enrollment.getOnlineCourse()
-                : onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).orElse(null);
+                : enrollment.getOnlineCourse();
         Long courseId = course == null ? null : course.getId();
-        String title = course != null ? course.getTitle() : enrollment.getLearningPackage().getTitle();
-        String slug = course != null ? course.getSlug() : enrollment.getLearningPackage().getSlug();
-        String thumbnail = course != null ? course.getThumbnailUrl() : enrollment.getLearningPackage().getThumbnailUrl();
+        String title = course != null ? course.getTitle() : enrollment.getOnlineCourse() != null ? enrollment.getOnlineCourse().getTitle() : null;
+        String slug = course != null ? course.getSlug() : enrollment.getOnlineCourse() != null ? enrollment.getOnlineCourse().getSlug() : null;
+        String thumbnail = course != null ? course.getThumbnailUrl() : enrollment.getOnlineCourse() != null ? enrollment.getOnlineCourse().getThumbnailUrl() : null;
         List<LessonProgress> completedProgress = lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED);
         return OnlineCourseEnrollmentResponse.builder()
                 .id(enrollment.getId())
-                .packageId(enrollment.getLearningPackage().getId())
+                .packageId(enrollment.getId())
                 .courseId(courseId)
                 .courseVersionId(enrollment.getCourseVersion() == null ? null : enrollment.getCourseVersion().getId())
                 .courseVersionNumber(enrollment.getCourseVersion() == null ? null : enrollment.getCourseVersion().getVersionNumber())

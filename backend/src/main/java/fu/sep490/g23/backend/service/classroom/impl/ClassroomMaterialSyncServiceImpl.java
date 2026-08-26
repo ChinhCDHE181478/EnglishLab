@@ -5,8 +5,9 @@ import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnitContentRef;
+import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
@@ -76,13 +77,17 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
 
     private Map<Long, RequiredMaterial> collectRequiredMaterials(ClassSection offering) {
         Map<Long, RequiredMaterial> required = new LinkedHashMap<>();
-        if (offering.getCurriculumProgram() != null) {
-            for (CurriculumUnit unit : offering.getCurriculumProgram().getUnits()) {
-                for (CurriculumMaterialRef materialRef : unit.getMaterialRefs()) {
-                    CenterMaterialLibraryItem material = materialRef.getMaterial();
-                    if (material != null && material.getId() != null) {
-                        required.put(material.getId(), new RequiredMaterial(material, unit, "CURRICULUM_LIBRARY"));
-                    }
+        if (offering.getInstructorLedCourse() == null || offering.getInstructorLedCourse().getId() == null) {
+            return required;
+        }
+        for (CourseUnit unit : courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(
+                offering.getInstructorLedCourse().getId())) {
+            for (CourseUnitContentRef contentRef : unit.getContentRefs()) {
+                CenterMaterialLibraryItem material = contentRef.getContentType() == CourseUnitContentType.MATERIAL
+                        ? contentRef.getLearningResource()
+                        : null;
+                if (material != null && material.getId() != null) {
+                    required.put(material.getId(), new RequiredMaterial(material, unit, "CURRICULUM_LIBRARY"));
                 }
             }
         }
@@ -100,8 +105,7 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
         target.setVisibility("LEARNERS_IN_CLASS");
         target.setSourceType(required.sourceType());
         target.setCenterMaterialId(source.getId());
-        target.setCurriculumUnit(required.unit());
-        linkCourseUnit(target, required.unit());
+        target.setCourseUnit(required.unit());
         target.setSession(null);
         target.setReviewStatus(ContentReviewStatus.APPROVED);
         target.setReviewNote(null);
@@ -120,21 +124,9 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
                 && MANDATORY_SOURCE_TYPES.contains(material.getSourceType().toUpperCase());
     }
 
-    private void linkCourseUnit(ClassroomMaterial material, CurriculumUnit unit) {
-        if (unit == null || unit.getId() == null) {
-            material.setCourseUnit(null);
-            return;
-        }
-        if (courseUnitRepository.existsById(unit.getId())) {
-            material.setCourseUnit(courseUnitRepository.getReferenceById(unit.getId()));
-        } else {
-            material.setCourseUnit(null);
-        }
-    }
-
     private record RequiredMaterial(
             CenterMaterialLibraryItem material,
-            CurriculumUnit unit,
+            CourseUnit unit,
             String sourceType
     ) {
         private RequiredMaterial {

@@ -12,7 +12,6 @@ import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.LearnerLessonNoteRepository;
-import fu.sep490.g23.backend.repository.course.LearnerLessonReviewFlagRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineLessonRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
@@ -29,7 +28,6 @@ import java.util.List;
 @Transactional
 public class LearnerLearningExperienceServiceImpl implements LearnerLearningExperienceService {
     private final LearnerLessonNoteRepository noteRepository;
-    private final LearnerLessonReviewFlagRepository reviewFlagRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final UserRepository userRepository;
     private final OnlineCourseRepository onlineCourseRepository;
@@ -105,7 +103,6 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
                     progress.setNeedsReview(false);
                     lessonProgressRepository.save(progress);
                 });
-        reviewFlagRepository.findByUserAndLesson(user, context.lesson()).ifPresent(reviewFlagRepository::delete);
     }
 
     private LessonProgress ensureLessonProgress(OnlineCourseEnrollment enrollment, OnlineLesson lesson, User user) {
@@ -147,7 +144,7 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
                 .courseId(note.getCourse().getId())
                 .lessonId(note.getLesson().getId())
                 .lessonTitle(note.getLesson().getTitle())
-                .courseTitle(note.getCourse().getLearningPackage().getTitle())
+                .courseTitle(note.getCourse().getTitle())
                 .content(note.getContent())
                 .selectedText(note.getSelectedText())
                 .transcriptStartSeconds(note.getTranscriptStartSeconds())
@@ -160,9 +157,9 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
         OnlineCourse course = progress.getEnrollment() != null && progress.getEnrollment().getOnlineCourse() != null
                 ? progress.getEnrollment().getOnlineCourse()
                 : (progress.getLesson().getModule() == null ? null : progress.getLesson().getModule().getOnlineCourse());
-        String courseTitle = course == null || course.getLearningPackage() == null
+        String courseTitle = course == null || false
                 ? null
-                : course.getLearningPackage().getTitle();
+                : course.getTitle();
         return LearnerLessonReviewFlagResponse.builder()
                 .id(progress.getId())
                 .courseId(course == null ? null : course.getId())

@@ -19,22 +19,23 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomProposal;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposalMember;
 import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ConflictType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
+import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomProposalRepository;
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
+import fu.sep490.g23.backend.repository.course.CourseLessonRepository;
 import fu.sep490.g23.backend.security.TrainingRolePolicy;
 import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
@@ -64,24 +65,24 @@ import java.util.stream.Collectors;
 @Transactional
 public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     private final ClassroomProposalRepository proposalRepository;
-    private final TrainingProgramRepository trainingProgramRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
     private final RoomRepository roomRepository;
     private final ClassSectionRepository offeringRepository;
     private final UserRepository userRepository;
     private final ClassroomConflictService conflictService;
     private final ClassroomScheduleLockService scheduleLockService;
     private final ClassroomOfferingService classSectionService;
-    private final CurriculumSessionPlanRepository curriculumSessionPlanRepository;
+    private final CourseLessonRepository courseLessonRepository;
 
     @Override
     public ClassroomProposalResponse create(CreateClassroomProposalRequest payload, String staffEmail) {
         validateProposalPayload(payload);
         User staff = requireStaff(staffEmail);
-        TrainingProgram courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
+        InstructorLedCourse courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
         ClassroomProposal proposal = ClassroomProposal.builder()
                 .proposalCode("CP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .courseOffering(courseOffering)
-                .deliveryType(courseOffering.getDeliveryMode())
+                .deliveryType(payload.getDeliveryType())
                 .placementLevel(null)
                 .createdBy(staff)
                 .approvalStatus(ClassroomApprovalStatus.DRAFT)
@@ -109,7 +110,6 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         if (!proposal.getCourseOffering().getId().equals(payload.getCourseOfferingId())) {
             throw new IllegalArgumentException("Không thể đổi khóa học của đề xuất đã tạo.");
         }
-        proposal.setDeliveryType(proposal.getCourseOffering().getDeliveryMode());
         applyProposalFields(proposal, payload, 0);
         scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
@@ -131,10 +131,10 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     ) {
         validateProposalPayload(payload);
         requireStaff(staffEmail);
-        TrainingProgram courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
+        InstructorLedCourse courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
         ClassroomProposal proposal = ClassroomProposal.builder()
                 .courseOffering(courseOffering)
-                .deliveryType(courseOffering.getDeliveryMode())
+                .deliveryType(payload.getDeliveryType())
                 .approvalStatus(ClassroomApprovalStatus.DRAFT)
                 .build();
         applyProposalFields(proposal, payload, 0);
@@ -151,10 +151,10 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     ) {
         validateProposalPayload(payload);
         requireStaff(staffEmail);
-        TrainingProgram courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
+        InstructorLedCourse courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
         ClassroomProposal proposal = ClassroomProposal.builder()
                 .courseOffering(courseOffering)
-                .deliveryType(courseOffering.getDeliveryMode())
+                .deliveryType(payload.getDeliveryType())
                 .approvalStatus(ClassroomApprovalStatus.DRAFT)
                 .build();
         applyProposalFields(proposal, payload, 0);
@@ -255,10 +255,9 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         assertNoScheduleConflicts(proposal, proposal.getId());
 
         List<LocalDate> dates = sessionDates(proposal);
-        List<CurriculumSessionPlan> sessionPlans = proposal.getCourseOffering().getCurriculumProgram() == null
-                ? List.of()
-                : curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(
-                        proposal.getCourseOffering().getCurriculumProgram().getId()
+        List<CourseLesson> sessionPlans = courseLessonRepository
+                .findByCourseUnitInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(
+                        proposal.getCourseOffering().getId()
                 );
         if (!sessionPlans.isEmpty() && dates.size() != sessionPlans.size()) {
             throw new IllegalArgumentException(
@@ -274,7 +273,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         );
         for (int index = 0; index < dates.size(); index++) {
             LocalDate sessionDate = dates.get(index);
-            CurriculumSessionPlan sessionPlan = sessionPlans.isEmpty() ? null : sessionPlans.get(index);
+            CourseLesson sessionPlan = sessionPlans.isEmpty() ? null : sessionPlans.get(index);
             classSectionService.createSession(created.getId(), CreateClassroomSessionRequest.builder()
                     .sessionDate(sessionDate)
                     .startTime(proposal.getSessionStartTime())
@@ -284,7 +283,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     .deliveryMode(proposal.getDeliveryType())
                     .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
                     .larkMeetingUrl(null)
-                    .curriculumSessionPlanId(sessionPlan == null ? null : sessionPlan.getId())
+                    .courseLessonId(sessionPlan == null ? null : sessionPlan.getId())
                     .sessionContent(sessionPlan == null
                             ? proposal.getCourseOffering().getTitle()
                             : sessionPlan.getTitle())
@@ -556,7 +555,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     }
 
     private CreateClassroomOfferingRequest toOfferingRequest(ClassroomProposal proposal) {
-        TrainingProgram source = proposal.getCourseOffering();
+        InstructorLedCourse source = proposal.getCourseOffering();
         return CreateClassroomOfferingRequest.builder()
                 .title(proposal.getTitle())
                 .shortDescription(source.getShortDescription())
@@ -564,7 +563,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .deliveryMode(proposal.getDeliveryType())
                 .classroomStatus(ClassroomOfferingStatus.UPCOMING)
                 .packageStatus(PackageStatus.PUBLISHED)
-                .trainingProgramId(source.getId())
+                .instructorLedCourseId(source.getId())
                 .entryLevel(null)
                 .capacity(proposal.getCapacity())
                 .startDate(proposal.getPlannedStartDate())
@@ -662,10 +661,10 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
     }
 
-    private TrainingProgram requirePublishedOffering(Long id) {
-        TrainingProgram offering = trainingProgramRepository.findById(id)
+    private InstructorLedCourse requirePublishedOffering(Long id) {
+        InstructorLedCourse offering = instructorLedCourseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        if (offering.getStatus() != PackageStatus.PUBLISHED) {
+        if (offering.getPublicationStatus() != PackageStatus.PUBLISHED) {
             throw new IllegalArgumentException("Chỉ có thể đề xuất lớp từ khóa học đã xuất bản.");
         }
         return offering;

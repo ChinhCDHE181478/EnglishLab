@@ -10,13 +10,10 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomOfferingServiceImpl;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
@@ -48,11 +45,8 @@ class ClassroomOfferingServiceImplSettlementTest {
     @Mock private ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
-    @Mock private LearningPackageRepository learningPackageRepository;
-    @Mock private PackageTypeRepository packageTypeRepository;
     @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
-    @Mock private CurriculumProgramRepository curriculumProgramRepository;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
+    @Mock private InstructorLedCourseRepository curriculumProgramRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
     @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
@@ -72,8 +66,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     void resolveTuitionSettlement_ApprovesRefundAndWritesAuditPayment() {
         User actor = User.builder().id(30L).email("tm@example.com").fullName("TM").build();
         User student = User.builder().id(27L).email("hv@example.com").fullName("HV").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(1L).title("TOEIC A").build();
-        ClassSection offering = ClassSection.builder().id(12L).learningPackage(learningPackage).build();
+        ClassSection offering = ClassSection.builder().id(12L).name("TOEIC A").build();
         ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .student(student)
@@ -150,8 +143,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     void resolveTuitionSettlement_ApprovesFullRefundWhenCancelledEvenIfOverpaid() {
         User actor = User.builder().id(30L).email("tm@example.com").fullName("TM").build();
         User student = User.builder().id(27L).email("hv@example.com").fullName("HV").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(1L).title("TOEIC A").build();
-        ClassSection offering = ClassSection.builder().id(12L).learningPackage(learningPackage).build();
+        ClassSection offering = ClassSection.builder().id(12L).name("TOEIC A").build();
         ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .student(student)
@@ -186,8 +178,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     void resolveTuitionSettlement_RejectsRefundKeepsPaidAmount() {
         User actor = User.builder().id(30L).email("tm@example.com").fullName("TM").build();
         User student = User.builder().id(27L).email("hv@example.com").fullName("HV").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(1L).title("TOEIC A").build();
-        ClassSection offering = ClassSection.builder().id(12L).learningPackage(learningPackage).build();
+        ClassSection offering = ClassSection.builder().id(12L).name("TOEIC A").build();
         ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .student(student)

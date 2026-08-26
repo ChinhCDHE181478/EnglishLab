@@ -9,7 +9,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CurriculumSessionPlanRequest {
+public class CourseLessonRequest {
 
     @NotNull(message = "Số buổi không được để trống.")
     @Min(value = 1, message = "Số buổi phải bắt đầu từ 1.")

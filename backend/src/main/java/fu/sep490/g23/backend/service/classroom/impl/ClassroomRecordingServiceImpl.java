@@ -313,10 +313,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
     }
 
     private void setExpiry(ClassSchedule session) {
-        Integer availableDays = session.getClassSection().getCurriculumProgram() == null
-                ? null
-                : session.getClassSection().getCurriculumProgram().getRecordingAvailableDays();
-        int days = availableDays == null || availableDays <= 0 ? 30 : availableDays;
+        int days = 30;
         session.setRecordingExpiresAt(LocalDateTime.now().plusDays(days));
     }
 

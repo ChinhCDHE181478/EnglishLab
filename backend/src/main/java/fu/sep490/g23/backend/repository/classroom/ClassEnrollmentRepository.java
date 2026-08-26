@@ -48,6 +48,8 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
     List<ClassEnrollment> findByClassSectionIdAndStatusIn(Long classSectionId, Collection<ClassroomEnrollmentStatus> statuses);
 
+    List<ClassEnrollment> findAllByClassSectionId(Long classSectionId);
+
     List<ClassEnrollment> findByClassSectionIdAndRegistrationStatusIn(
             Long classSectionId,
             Collection<ClassroomRegistrationStatus> statuses

@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
@@ -50,8 +49,7 @@ class FlashcardPracticeVersionSnapshotTest {
     @Test
     void enrolledPracticeReadsVocabularyFromLatestPublishedVersion() {
         User learner = User.builder().id(1L).email("learner@test.com").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(2L).title("IELTS v1").deleted(false).build();
-        OnlineCourse course = OnlineCourse.builder().id(3L).learningPackage(learningPackage).build();
+        OnlineCourse course = OnlineCourse.builder().id(3L).title("IELTS v1").build();
         OnlineCourseVersion versionOne = OnlineCourseVersion.builder()
                 .id(4L)
                 .onlineCourse(course)
@@ -61,7 +59,7 @@ class FlashcardPracticeVersionSnapshotTest {
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(5L)
                 .student(learner)
-                .learningPackage(learningPackage)
+                .onlineCourse(course)
                 .courseVersion(versionOne)
                 .build();
         OnlineCourseResponse snapshot = OnlineCourseResponse.builder()
@@ -83,7 +81,6 @@ class FlashcardPracticeVersionSnapshotTest {
 
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
         when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner)).thenReturn(List.of(enrollment));
-        when(onlineCourseRepository.findByLearningPackage(learningPackage)).thenReturn(Optional.of(course));
         when(onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course)).thenReturn(snapshot);
         when(progressRepository.findByStudentAndCourse(learner, course)).thenReturn(List.of());
 

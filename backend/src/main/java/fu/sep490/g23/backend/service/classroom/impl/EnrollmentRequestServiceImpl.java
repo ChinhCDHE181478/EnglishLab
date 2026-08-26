@@ -17,7 +17,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.AuthToken;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.EnrollmentRequestStatusHistory;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
@@ -25,11 +25,12 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.security.TrainingRolePolicy;
@@ -78,7 +79,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
 
     private final CourseRegistrationRequestRepository enrollmentRequestRepository;
     private final EnrollmentRequestStatusHistoryRepository historyRepository;
-    private final TrainingProgramRepository trainingProgramRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
     private final ClassSectionRepository classSectionRepository;
     private final ClassScheduleRepository classScheduleRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
@@ -104,7 +105,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             );
         }
         ClassSection preferredClassSection = null;
-        TrainingProgram offering = requirePublishedProgram(request.getCourseOfferingId());
+        InstructorLedCourse offering = requirePublishedProgram(request.getCourseOfferingId());
         if (enrollmentRequestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(
                 learner,
                 offering,
@@ -206,14 +207,14 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         LocalDateTime now = LocalDateTime.now();
         CourseRegistrationRequest request = CourseRegistrationRequest.builder()
                 .learner(learner)
-                .courseOffering(target.getTrainingProgram())
+                .courseOffering(target.getInstructorLedCourse())
                 .assignedClassSection(target)
                 .contactName(learner.getFullName())
                 .contactEmail(learner.getEmail())
                 .contactPhone(payload.getPhoneNumber().trim())
-                .consultationTrack(target.getTrainingProgram() == null
+                .consultationTrack(target.getInstructorLedCourse() == null
                         ? null
-                        : target.getTrainingProgram().getCode())
+                        : target.getInstructorLedCourse().getCode())
                 .confirmedLevel(payload.getConfirmedLevel())
                 .status(EnrollmentRequestStatus.CLASS_ASSIGNED)
                 .requestSource(EnrollmentRequestSource.CENTER)
@@ -229,7 +230,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 EnrollmentRequestStatus.CLASS_ASSIGNED,
                 staff,
                 "Đã ghi danh trực tiếp tại trung tâm và xếp vào lớp "
-                        + target.getLearningPackage().getTitle() + "."
+                        + target.getTitle() + "."
         );
 
         if (setupEmailRequired) {
@@ -396,7 +397,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         request.setReviewedBy(staff);
         request.setReviewedAt(LocalDateTime.now());
         transition(request, EnrollmentRequestStatus.CLASS_ASSIGNED, staff,
-                "Staff đã xếp học viên vào lớp " + target.getLearningPackage().getTitle() + ".");
+                "Staff đã xếp học viên vào lớp " + target.getTitle() + ".");
         enrollmentRequestMailService.sendClassAssignment(request, target);
         return toResponse(request);
     }
@@ -425,7 +426,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         if (!TrainingRolePolicy.canApprove(manager)) {
             throw new IllegalArgumentException("Chỉ Manager mới có quyền xem báo cáo nhu cầu mở lớp.");
         }
-        Map<TrainingProgram, List<CourseRegistrationRequest>> grouped = enrollmentRequestRepository
+        Map<InstructorLedCourse, List<CourseRegistrationRequest>> grouped = enrollmentRequestRepository
                 .findAllByOrderByCreatedAtDesc()
                 .stream()
                 .filter(request -> request.getCourseOffering() != null)
@@ -472,7 +473,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         request.getLearner().getId(),
                         request.getPlacementAttempt().getId()
                 );
-        TrainingProgram offering = request.getCourseOffering();
+        InstructorLedCourse offering = request.getCourseOffering();
         ClassSection preferredClassSection = request.getPreferredClassSection();
         return CourseEnrollmentRequestResponse.builder()
                 .id(request.getId())
@@ -489,17 +490,17 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .courseOfferingId(offering == null ? null : offering.getId())
                 .courseOfferingTitle(offering == null ? null : offering.getTitle())
                 .requestedClassroomId(preferredClassSection == null ? null : preferredClassSection.getId())
-                .requestedClassroomTitle(preferredClassSection == null ? null : preferredClassSection.getLearningPackage().getTitle())
-                .requestedClassroomCode(preferredClassSection == null ? null : preferredClassSection.getLearningPackage().getSlug())
+                .requestedClassroomTitle(preferredClassSection == null ? null : preferredClassSection.getTitle())
+                .requestedClassroomCode(preferredClassSection == null ? null : preferredClassSection.getSlug())
                 .requestedClassroomStartDate(preferredClassSection == null ? null : preferredClassSection.getStartDate())
-                .requestedClassroomSchedule(preferredClassSection == null ? null : preferredClassSection.getLearningPackage().getStudyMode())
+                .requestedClassroomSchedule(preferredClassSection == null ? null : preferredClassSection.getStudyMode())
                 .requestedClassroomTeacherName(preferredClassSection == null || preferredClassSection.getPrimaryTeacher() == null
                         ? null
                         : preferredClassSection.getPrimaryTeacher().getFullName())
                 .requestedClassroomLocation(preferredClassSection == null
                         ? null
                         : preferredClassSection.getOfflineAddress())
-                .deliveryType(offering == null ? null : offering.getDeliveryMode())
+                .deliveryType(preferredClassSection == null ? null : preferredClassSection.getDeliveryMode())
                 .status(request.getStatus())
                 .statusLabel(statusLabel(request.getStatus()))
                 .requestSource(request.getRequestSource() == null
@@ -527,7 +528,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     }
 
     private EnrollmentDemandReportResponse toDemandReport(
-            TrainingProgram program,
+            InstructorLedCourse program,
             List<CourseRegistrationRequest> requests
     ) {
         long awaitingContact = countStatus(requests, EnrollmentRequestStatus.SUBMITTED);
@@ -541,7 +542,12 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .courseOfferingId(program.getId())
                 .courseOfferingCode(program.getCode())
                 .courseOfferingTitle(program.getTitle())
-                .deliveryMode(program.getDeliveryMode())
+                .deliveryMode(requests.stream()
+                        .map(CourseRegistrationRequest::getPreferredClassSection)
+                        .filter(java.util.Objects::nonNull)
+                        .map(ClassSection::getDeliveryMode)
+                        .findFirst()
+                        .orElse(null))
                 .classCapacity(ESTIMATED_CLASS_CAPACITY)
                 .totalRegistrations((long) requests.size())
                 .awaitingContact(awaitingContact)
@@ -573,10 +579,10 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .build();
     }
 
-    private TrainingProgram requirePublishedProgram(Long programId) {
-        TrainingProgram program = trainingProgramRepository.findById(programId)
+    private InstructorLedCourse requirePublishedProgram(Long programId) {
+        InstructorLedCourse program = instructorLedCourseRepository.findById(programId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học cần tư vấn."));
-        if (program.getStatus() != PackageStatus.PUBLISHED) {
+        if (program.getPublicationStatus() != PackageStatus.PUBLISHED) {
             throw new IllegalArgumentException("Khóa học này chưa mở nhận đăng ký tư vấn.");
         }
         return program;
@@ -636,11 +642,10 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     }
 
     private boolean isAssignableClassroom(ClassSection target) {
-        return target.getLearningPackage() != null
+        return target.getInstructorLedCourse() != null
                 && target.getStatus() == ClassroomOfferingStatus.UPCOMING
                 && target.getStartDate() != null
-                && target.getStartDate().isAfter(LocalDate.now())
-                && target.getLearningPackage().getStatus() == PackageStatus.PUBLISHED;
+                && target.getStartDate().isAfter(LocalDate.now());
     }
 
     private boolean isAvailableForLearner(ClassSection offering, Long learnerId) {

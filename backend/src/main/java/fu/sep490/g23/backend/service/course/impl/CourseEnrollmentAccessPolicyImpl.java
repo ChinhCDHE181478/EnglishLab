@@ -74,7 +74,6 @@ public class CourseEnrollmentAccessPolicyImpl implements CourseEnrollmentAccessP
 
     private OnlineCourseEnrollment findEnrollment(User student, OnlineCourse course, String missingMessage) {
         return enrollmentRepository.findByStudentAndOnlineCourse(student, course)
-                .or(() -> enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage()))
                 .orElseThrow(() -> new EnrollmentAccessException(EnrollmentErrorCode.NOT_ENROLLED, missingMessage));
     }
 

@@ -27,7 +27,7 @@ public class MockTestAttempt {
     private AssessmentBankItem assessmentBankItem;
 
     /** Legacy assessment_bank_items.id — required by existing NOT NULL FK; dual-written via reverse map. */
-    @Column(name = "assessment_bank_item_id", nullable = false)
+    @Transient
     private Long legacyAssessmentBankItemId;
 
     @ManyToOne(fetch = FetchType.LAZY)

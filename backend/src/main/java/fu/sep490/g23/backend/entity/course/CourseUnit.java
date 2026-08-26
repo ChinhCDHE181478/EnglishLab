@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.entity.course;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -62,15 +63,25 @@ public class CourseUnit {
     @Builder.Default
     private Integer sequenceNumber = 0;
 
-    @OneToMany(mappedBy = "courseUnit")
+    @OneToMany(mappedBy = "courseUnit", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sequenceNumber ASC, id ASC")
     @Builder.Default
     private List<CourseLesson> lessons = new ArrayList<>();
 
-    @OneToMany(mappedBy = "courseUnit")
+    @OneToMany(mappedBy = "courseUnit", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sequenceNumber ASC, id ASC")
     @Builder.Default
     private List<CourseUnitContentRef> contentRefs = new ArrayList<>();
+
+    public void addLesson(CourseLesson lesson) {
+        lessons.add(lesson);
+        lesson.setCourseUnit(this);
+    }
+
+    public void addContentRef(CourseUnitContentRef contentRef) {
+        contentRefs.add(contentRef);
+        contentRef.setCourseUnit(this);
+    }
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

@@ -7,19 +7,14 @@ import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.PackageType;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.course.YouTubeTranscriptService;
 import lombok.RequiredArgsConstructor;
@@ -44,9 +39,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private static final String BUNNY_LIBRARY_ID = "729032";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final YouTubeTranscriptService youTubeTranscriptService;
@@ -62,14 +55,6 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
             return;
         }
 
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
-                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
-                        .code(PackageTypeCode.ONLINE_COURSE)
-                        .name("Online Course")
-                        .description("Self-paced online learning package")
-                        .active(true)
-                        .build()));
-
         CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS.name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
                         .code(CourseCategoryCode.IELTS.name())
@@ -79,34 +64,23 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                         .active(true)
                         .build()));
 
-        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(COURSE_SLUG)
-                .orElseGet(() -> LearningPackage.builder()
-                        .slug(COURSE_SLUG)
-                        .packageType(packageType)
-                        .build());
-
-        learningPackage.setPackageType(packageType);
-        learningPackage.setTitle("E2 IELTS Practice");
-        learningPackage.setShortDescription("IELTS practice course curated from public E2 IELTS YouTube videos.");
-        learningPackage.setDescription("An IELTS practice course for Listening, Reading, and Speaking practice. Each video is organized as one module with a study guide, the original video lesson, and follow-up practice.");
-        learningPackage.setTargetScore("IELTS 5.5 - 7.0");
-        learningPackage.setDuration("5 hours 32 minutes");
-        learningPackage.setStudyMode("Self-paced online video course");
-        learningPackage.setPrice(BigDecimal.valueOf(1_190_000));
-        learningPackage.setThumbnailUrl("https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg");
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setDisplayOrder(5);
-        learningPackage.setFeatured(true);
-        learningPackage.setDeleted(false);
-        learningPackage = learningPackageRepository.save(learningPackage);
-        LearningPackage savedPackage = learningPackage;
-
-        OnlineCourse onlineCourse = onlineCourseRepository.findByLearningPackage(savedPackage)
+        OnlineCourse onlineCourse = onlineCourseRepository.findBySlug(COURSE_SLUG)
                 .orElseGet(() -> OnlineCourse.builder()
-                        .learningPackage(savedPackage)
+                        .slug(COURSE_SLUG)
                         .build());
 
-        onlineCourse.setLearningPackage(savedPackage);
+        onlineCourse.setTitle("E2 IELTS Practice");
+        onlineCourse.setShortDescription("IELTS practice course curated from public E2 IELTS YouTube videos.");
+        onlineCourse.setDescription("An IELTS practice course for Listening, Reading, and Speaking practice. Each video is organized as one module with a study guide, the original video lesson, and follow-up practice.");
+        onlineCourse.setTargetScore("IELTS 5.5 - 7.0");
+        onlineCourse.setDuration("5 hours 32 minutes");
+        onlineCourse.setStudyMode("Self-paced online video course");
+        onlineCourse.setPrice(BigDecimal.valueOf(1_190_000));
+        onlineCourse.setThumbnailUrl("https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg");
+        onlineCourse.setStatus(PackageStatus.PUBLISHED);
+        onlineCourse.setDisplayOrder(5);
+        onlineCourse.setFeatured(true);
+        onlineCourse.setDeleted(false);
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.INTERMEDIATE);
         onlineCourse.setRecommendedCurrentBandMin(6.0);
@@ -118,6 +92,8 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.setRecommendedNextCourseSlug(null);
         onlineCourse.setTotalLessons(18);
         onlineCourse.setTotalHours(6);
+        OnlineCourse savedOnlineCourse = onlineCourseRepository.save(onlineCourse);
+        onlineCourse = savedOnlineCourse;
 
         addModule(onlineCourse, 1,
                 "IELTS Listening Practice Test with Answers",

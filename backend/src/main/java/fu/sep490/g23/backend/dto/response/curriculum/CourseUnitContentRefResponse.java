@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class CurriculumReferenceResponse {
+public class CourseUnitContentRefResponse {
     private Long id;
     private String type;
     private Long resourceId;

@@ -13,10 +13,8 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.PackageType;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -24,8 +22,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,8 +52,7 @@ public class ReviewDataSeeder implements CommandLineRunner {
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final RoomRepository roomRepository;
-    private final PackageTypeRepository packageTypeRepository;
-    private final LearningPackageRepository learningPackageRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
     private final ClassSectionRepository offeringRepository;
     private final ClassScheduleRepository sessionRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
@@ -96,21 +92,13 @@ public class ReviewDataSeeder implements CommandLineRunner {
                 ensureUser("review.learner.baolong@englishlab.vn", "Trần Bảo Long", RoleEnum.LEARNER)
         );
 
-        PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
-                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
-                        .code(PackageTypeCode.CLASSROOM)
-                        .name("Lớp học")
-                        .description("Lớp học có giảng viên.")
-                        .active(true)
-                        .build()));
-
         ClassSection ieltsClass = ensureClassroom(
-                classroomType, manager, ieltsTeacher, ieltsRoom,
+                manager, ieltsTeacher, ieltsRoom,
                 "Review IELTS Intermediate - 2-4-6", "review-ielts-intermediate-246",
                 "IELTS 5.0 - 6.0", "Nâng kỹ năng Reading và Writing học thuật.", 5_900_000
         );
         ClassSection toeicClass = ensureClassroom(
-                classroomType, manager, toeicTeacher, toeicRoom,
+                manager, toeicTeacher, toeicRoom,
                 "Review TOEIC 650 - 3-5-7", "review-toeic-650-357",
                 "TOEIC 550 - 650", "Củng cố Listening và Reading để đạt 650+.", 4_900_000
         );
@@ -148,7 +136,6 @@ public class ReviewDataSeeder implements CommandLineRunner {
     }
 
     private ClassSection ensureClassroom(
-            PackageType classroomType,
             User manager,
             User teacher,
             Room room,
@@ -158,22 +145,25 @@ public class ReviewDataSeeder implements CommandLineRunner {
             String outcome,
             long price
     ) {
-        return offeringRepository.findByLearningPackageSlug(slug).orElseGet(() -> {
-            LearningPackage learningPackage = learningPackageRepository.save(LearningPackage.builder()
-                    .packageType(classroomType)
+        return offeringRepository.findByCode(slug).orElseGet(() -> {
+            InstructorLedCourse course = instructorLedCourseRepository.findBySlug(slug + "-course")
+                    .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
+                    .code(("REVIEW-" + slug).toUpperCase())
+                    .slug(slug + "-course")
                     .title(title)
-                    .slug(slug)
                     .shortDescription("Dữ liệu review cho lớp học tại EnglishLab.")
                     .description("Lớp học dùng để review các luồng vận hành, giáo viên và học viên.")
-                    .price(BigDecimal.valueOf(price))
-                    .status(PackageStatus.PUBLISHED)
-                    .duration("10 buổi")
-                    .studyMode("Offline")
+                    .baseTuitionFeeVnd(BigDecimal.valueOf(price))
+                    .publicationStatus(PackageStatus.PUBLISHED)
+                    .durationLabel("10 buổi")
                     .createdBy(manager)
-                    .build());
+                    .build()));
             LocalDate startDate = LocalDate.now().plusDays(7);
             ClassSection offering = offeringRepository.save(ClassSection.builder()
-                    .learningPackage(learningPackage)
+                    .name(title)
+                    .code(slug)
+                    .instructorLedCourse(course)
+                    .tuitionFeeVnd(BigDecimal.valueOf(price))
                     .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.UPCOMING)
                     .entryLevel(entryLevel)
@@ -218,8 +208,8 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .classSection(offering)
                     .status(ClassroomEnrollmentStatus.ENROLLED)
                     .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
-                    .tuitionAmountDue(offering.getLearningPackage().getPrice())
-                    .tuitionAmountPaid(offering.getLearningPackage().getPrice())
+                    .tuitionAmountDue(offering.getPrice())
+                    .tuitionAmountPaid(offering.getPrice())
                     .enrolledAt(LocalDateTime.now())
                     .assignedAt(LocalDateTime.now())
                     .assignedBy(manager)

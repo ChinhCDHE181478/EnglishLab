@@ -4,9 +4,10 @@ import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnitContentRef;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
+import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomMaterialSyncServiceImpl;
@@ -44,7 +45,7 @@ class ClassroomMaterialSyncServiceImplTest {
     @Test
     void synchronizesCurriculumMaterialsAsMandatory() {
         CenterMaterialLibraryItem unitMaterial = material(20L, "Unit 1 worksheet");
-        CurriculumUnit unit = unit(101L, "Unit 1", unitMaterial);
+        CourseUnit unit = unit(101L, "Unit 1", unitMaterial);
         ClassSection offering = offering(unit);
         when(materialRepository.findByClassSectionIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
 
@@ -59,7 +60,7 @@ class ClassroomMaterialSyncServiceImplTest {
                 .filter(item -> "CURRICULUM_LIBRARY".equals(item.getSourceType()))
                 .findFirst()
                 .orElseThrow();
-        assertThat(syncedUnitMaterial.getCurriculumUnit()).isSameAs(unit);
+        assertThat(syncedUnitMaterial.getCourseUnit()).isSameAs(unit);
         assertThat(syncedUnitMaterial.getReviewStatus()).isEqualTo(ContentReviewStatus.APPROVED);
         assertThat(syncedUnitMaterial.getVisibility()).isEqualTo("LEARNERS_IN_CLASS");
     }
@@ -67,7 +68,7 @@ class ClassroomMaterialSyncServiceImplTest {
     @Test
     void upgradesPreviouslyAttachedCenterMaterialWhenItBecomesRequired() {
         CenterMaterialLibraryItem unitMaterial = material(20L, "Tên mới từ giáo trình");
-        CurriculumUnit unit = unit(101L, "Unit 1", unitMaterial);
+        CourseUnit unit = unit(101L, "Unit 1", unitMaterial);
         ClassSection offering = offering(unit);
         ClassroomMaterial existing = ClassroomMaterial.builder()
                 .id(301L)
@@ -83,7 +84,7 @@ class ClassroomMaterialSyncServiceImplTest {
         verify(materialRepository).save(existing);
         assertThat(existing.getTitle()).isEqualTo("Tên mới từ giáo trình");
         assertThat(existing.getSourceType()).isEqualTo("CURRICULUM_LIBRARY");
-        assertThat(existing.getCurriculumUnit()).isSameAs(unit);
+        assertThat(existing.getCourseUnit()).isSameAs(unit);
     }
 
     @Test
@@ -109,26 +110,30 @@ class ClassroomMaterialSyncServiceImplTest {
         verify(materialRepository, never()).delete(supplement);
     }
 
-    private ClassSection offering(CurriculumUnit... units) {
-        CurriculumProgram curriculum = CurriculumProgram.builder()
-                .units(new ArrayList<>(List.of(units)))
-                .build();
+    private ClassSection offering(CourseUnit... units) {
+        InstructorLedCourse course = InstructorLedCourse.builder().id(10L).build();
+        for (CourseUnit unit : units) {
+            unit.setInstructorLedCourse(course);
+        }
+        when(courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(10L))
+                .thenReturn(List.of(units));
         return ClassSection.builder()
                 .id(1L)
-                .curriculumProgram(curriculum)
+                .instructorLedCourse(course)
                 .build();
     }
 
-    private CurriculumUnit unit(Long id, String title, CenterMaterialLibraryItem material) {
-        CurriculumUnit unit = CurriculumUnit.builder()
+    private CourseUnit unit(Long id, String title, CenterMaterialLibraryItem material) {
+        CourseUnit unit = CourseUnit.builder()
                 .id(id)
                 .title(title)
-                .materialRefs(new ArrayList<>())
+                .contentRefs(new ArrayList<>())
                 .build();
-        unit.getMaterialRefs().add(CurriculumMaterialRef.builder()
-                .unit(unit)
-                .material(material)
-                .displayOrder(0)
+        unit.getContentRefs().add(CourseUnitContentRef.builder()
+                .courseUnit(unit)
+                .contentType(CourseUnitContentType.MATERIAL)
+                .learningResource(material)
+                .sequenceNumber(0)
                 .build());
         return unit;
     }

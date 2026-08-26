@@ -7,8 +7,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.*;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -17,6 +15,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,21 +32,9 @@ public class ClassSection {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "package_id", nullable = false, unique = true)
-    private LearningPackage learningPackage;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "delivery_mode", nullable = false, length = 20)
     private ClassroomDeliveryMode deliveryMode;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "training_program_id")
-    private TrainingProgram trainingProgram;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "curriculum_program_id")
-    private CurriculumProgram curriculumProgram;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "instructor_led_course_id", nullable = false)
@@ -147,5 +134,41 @@ public class ClassSection {
     public void addSchedule(ClassSchedule schedule) {
         schedules.add(schedule);
         schedule.setClassSection(this);
+    }
+
+    public String getTitle() {
+        return name;
+    }
+
+    public String getSlug() {
+        return instructorLedCourse == null ? code : instructorLedCourse.getSlug();
+    }
+
+    public BigDecimal getPrice() {
+        return tuitionFeeVnd;
+    }
+
+    public BigDecimal getSalePrice() {
+        return instructorLedCourse == null ? null : instructorLedCourse.getSaleTuitionFeeVnd();
+    }
+
+    public String getShortDescription() {
+        return instructorLedCourse == null ? null : instructorLedCourse.getShortDescription();
+    }
+
+    public String getDescription() {
+        return instructorLedCourse == null ? null : instructorLedCourse.getDescription();
+    }
+
+    public String getThumbnailUrl() {
+        return instructorLedCourse == null ? null : instructorLedCourse.getThumbnailUrl();
+    }
+
+    public String getStudyMode() {
+        return deliveryMode == null ? null : deliveryMode.name();
+    }
+
+    public boolean isDeleted() {
+        return false;
     }
 }

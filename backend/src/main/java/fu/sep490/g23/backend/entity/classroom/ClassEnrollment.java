@@ -138,6 +138,36 @@ public class ClassEnrollment {
     @Column(length = 500)
     private String note;
 
+    @Column(name = "homework_score", precision = 6, scale = 2)
+    private BigDecimal homeworkScore;
+
+    @Column(name = "quiz_score", precision = 6, scale = 2)
+    private BigDecimal quizScore;
+
+    @Column(name = "attendance_percent", precision = 5, scale = 2)
+    private BigDecimal attendancePercent;
+
+    @Column(name = "participation_score", precision = 6, scale = 2)
+    private BigDecimal participationScore;
+
+    @Column(name = "final_result", precision = 6, scale = 2)
+    private BigDecimal finalResult;
+
+    @Column(name = "teacher_comment", columnDefinition = "text")
+    private String teacherComment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gradebook_status", nullable = false, length = 20)
+    @Builder.Default
+    private GradebookEntryStatus gradebookStatus = GradebookEntryStatus.PENDING;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gradebook_updated_by_id")
+    private User gradebookUpdatedBy;
+
+    @Column(name = "gradebook_updated_at")
+    private LocalDateTime gradebookUpdatedAt;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

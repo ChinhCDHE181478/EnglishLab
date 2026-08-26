@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.repository.course;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
@@ -24,25 +23,17 @@ public interface OnlineCourseEnrollmentRepository
         extends JpaRepository<OnlineCourseEnrollment, Long>, JpaSpecificationExecutor<OnlineCourseEnrollment> {
 
     @Override
-    @EntityGraph(attributePaths = {"student", "onlineCourse", "learningPackage", "learningPackage.packageType"})
+    @EntityGraph(attributePaths = {"student", "onlineCourse"})
     Page<OnlineCourseEnrollment> findAll(Specification<OnlineCourseEnrollment> specification, Pageable pageable);
-
-    boolean existsByStudentAndLearningPackage(User student, LearningPackage learningPackage);
 
     boolean existsByStudentAndOnlineCourse(User student, OnlineCourse onlineCourse);
 
-    Optional<OnlineCourseEnrollment> findByStudentAndLearningPackage(User student, LearningPackage learningPackage);
-
     Optional<OnlineCourseEnrollment> findByStudentAndOnlineCourse(User student, OnlineCourse onlineCourse);
 
-    @EntityGraph(attributePaths = {"learningPackage", "onlineCourse"})
+    @EntityGraph(attributePaths = {"onlineCourse"})
     List<OnlineCourseEnrollment> findByStudentOrderByRegisteredAtDesc(User student);
 
-    List<OnlineCourseEnrollment> findByLearningPackage(LearningPackage learningPackage);
-
     List<OnlineCourseEnrollment> findByOnlineCourse(OnlineCourse onlineCourse);
-
-    long countByLearningPackage(LearningPackage learningPackage);
 
     long countByOnlineCourse(OnlineCourse onlineCourse);
 

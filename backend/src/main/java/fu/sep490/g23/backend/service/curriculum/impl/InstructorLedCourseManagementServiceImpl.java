@@ -3,18 +3,18 @@ package fu.sep490.g23.backend.service.curriculum.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumSessionPlanRequest;
-import fu.sep490.g23.backend.dto.request.curriculum.CurriculumUnitRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.InstructorLedCourseRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitContentRefRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseLessonRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CourseUnitRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.FlashcardSetRequest;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.dto.response.assessment.RubricCriterionResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumReferenceResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseUnitContentRefResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseLessonResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseUnitResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
@@ -25,31 +25,28 @@ import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumAssessmentRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumFlashcardRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
+import fu.sep490.g23.backend.entity.course.CourseLesson;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnitContentRef;
+import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumAssessmentRefRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumExerciseRefRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumFlashcardRefRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumMaterialRefRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
+import fu.sep490.g23.backend.repository.course.CourseLessonRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
+import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
 import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
-import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
-import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
@@ -77,7 +74,7 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class CurriculumProgramServiceImpl implements CurriculumProgramService {
+public class InstructorLedCourseManagementServiceImpl implements InstructorLedCourseManagementService {
 
     private static final int PROGRAM_CODE_MAX_LENGTH = 120;
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
@@ -109,14 +106,11 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             "COMMUNICATION"
     );
 
-    private final CurriculumProgramRepository programRepository;
-    private final CurriculumUnitRepository unitRepository;
-    private final CurriculumSessionPlanRepository sessionPlanRepository;
-    private final ClassScheduleRepository classScheduleRepository;
-    private final CurriculumMaterialRefRepository materialRefRepository;
-    private final CurriculumExerciseRefRepository exerciseRefRepository;
-    private final CurriculumAssessmentRefRepository assessmentRefRepository;
-    private final CurriculumFlashcardRefRepository flashcardRefRepository;
+    private final InstructorLedCourseRepository programRepository;
+    private final CourseUnitRepository unitRepository;
+    private final CourseLessonRepository sessionPlanRepository;
+    private final CourseUnitContentRefRepository contentRefRepository;
+    private final ContentBankItemRepository contentBankItemRepository;
     private final CenterMaterialLibraryItemRepository materialRepository;
     private final ExerciseBankItemRepository exerciseRepository;
     private final AssessmentRubricRepository assessmentRubricRepository;
@@ -124,22 +118,19 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final FlashcardSetRepository flashcardSetRepository;
     private final ContentBankLinkSync contentBankLinkSync;
     private final ContentBankIdResolver contentBankIdResolver;
-    private final InstructorLedCourseSync instructorLedCourseSync;
     private final ClassroomAccessHelper accessHelper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
-    public List<CurriculumProgramResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
-        List<CurriculumProgram> programs = deliveryMode == null
-                ? programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()
-                : programRepository.findByDeliveryModeOrderByDisplayOrderAscUpdatedAtDescIdDesc(deliveryMode);
+    public List<InstructorLedCourseResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
+        List<InstructorLedCourse> programs = programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc();
         return programs.stream().map(program -> toProgramResponse(program, false)).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CurriculumProgramResponse> pagePrograms(
+    public Page<InstructorLedCourseResponse> pagePrograms(
             ClassroomDeliveryMode deliveryMode,
             String keyword,
             String examCategory,
@@ -147,12 +138,8 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             String status,
             Pageable pageable
     ) {
-        Specification<CurriculumProgram> specification = (root, query, criteriaBuilder) ->
+        Specification<InstructorLedCourse> specification = (root, query, criteriaBuilder) ->
                 criteriaBuilder.conjunction();
-        if (deliveryMode != null) {
-            specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("deliveryMode"), deliveryMode));
-        }
         if (StringUtils.hasText(keyword)) {
             String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
             specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
@@ -163,7 +150,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         }
         if (StringUtils.hasText(examCategory)) {
             specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("examCategory"), examCategory.trim().toUpperCase(Locale.ROOT)));
+                    criteriaBuilder.equal(root.get("examType"), examCategory.trim().toUpperCase(Locale.ROOT)));
         }
         if (StringUtils.hasText(entryLevel)) {
             String pattern = "%" + entryLevel.trim().toLowerCase(Locale.ROOT) + "%";
@@ -172,7 +159,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         }
         if (StringUtils.hasText(status)) {
             specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("status"), status.trim().toUpperCase(Locale.ROOT)));
+                    criteriaBuilder.equal(root.get("publicationStatus"), PackageStatus.valueOf(status.trim().toUpperCase(Locale.ROOT))));
         }
         return programRepository.findAll(specification, pageable)
                 .map(program -> toProgramResponse(program, false));
@@ -180,37 +167,33 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     @Override
     @Transactional(readOnly = true)
-    public CurriculumProgramResponse getProgram(Long id) {
+    public InstructorLedCourseResponse getProgram(Long id) {
         return toProgramResponse(findProgram(id), true);
     }
 
     @Override
-    public CurriculumProgramResponse createProgram(CurriculumProgramRequest request) {
+    public InstructorLedCourseResponse createProgram(InstructorLedCourseRequest request) {
         String code = resolveNewProgramCode(request);
         String slug = uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), null);
-        CurriculumProgram program = CurriculumProgram.builder()
+        InstructorLedCourse program = InstructorLedCourse.builder()
                 .title(requireText(request.getTitle(), "Tên giáo trình không được để trống."))
                 .code(code)
                 .slug(slug)
-                .deliveryMode(request.getDeliveryMode())
-                .outcomes(trimOrNull(request.getOutcomes()))
+                .learningOutcomes(trimOrNull(request.getOutcomes()))
                 .teacherGuide(trimOrNull(request.getTeacherGuide()))
-                .interactionActivities(trimOrNull(request.getInteractionActivities()))
-                .totalSessions(defaultInt(request.getTotalSessions()))
-                .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
+                .publicationStatus(parsePublicationStatus(request.getStatus()))
                 .displayOrder(defaultInt(request.getDisplayOrder()))
                 .build();
         applyEnglishProfile(program, request);
-        applyVirtualConfig(program, request);
-        if ("PUBLISHED".equals(program.getStatus())) {
+        if (program.getPublicationStatus() == PackageStatus.PUBLISHED) {
             throw new RuntimeException("Giáo trình mới tạo chưa có Unit và buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
         }
         return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
     @Override
-    public CurriculumProgramResponse updateProgram(Long id, CurriculumProgramRequest request) {
-        CurriculumProgram program = findProgram(id);
+    public InstructorLedCourseResponse updateProgram(Long id, InstructorLedCourseRequest request) {
+        InstructorLedCourse program = findProgram(id);
         String code = StringUtils.hasText(request.getCode())
                 ? normalizeProgramCode(request.getCode())
                 : program.getCode();
@@ -220,131 +203,89 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         program.setTitle(requireText(request.getTitle(), "Tên giáo trình không được để trống."));
         program.setCode(code);
         program.setSlug(uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), id));
-        program.setDeliveryMode(request.getDeliveryMode());
         applyEnglishProfile(program, request);
-        program.setOutcomes(trimOrNull(request.getOutcomes()));
+        program.setLearningOutcomes(trimOrNull(request.getOutcomes()));
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
-        program.setInteractionActivities(trimOrNull(request.getInteractionActivities()));
-        program.setTotalSessions(resolveTotalSessions(program, request.getTotalSessions()));
-        String previousStatus = program.getStatus();
-        String nextStatus = defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT);
-        if ("PUBLISHED".equals(nextStatus) && !"PUBLISHED".equals(previousStatus)) {
+        PackageStatus previousStatus = program.getPublicationStatus();
+        PackageStatus nextStatus = parsePublicationStatus(request.getStatus());
+        if (nextStatus == PackageStatus.PUBLISHED && previousStatus != PackageStatus.PUBLISHED) {
             validateReadyForPublish(program);
         }
-        program.setStatus(nextStatus);
+        program.setPublicationStatus(nextStatus);
         program.setDisplayOrder(defaultInt(request.getDisplayOrder()));
-        applyVirtualConfig(program, request);
         return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
     @Override
     public void archiveProgram(Long id) {
-        CurriculumProgram program = findProgram(id);
+        InstructorLedCourse program = findProgram(id);
         long activeClassrooms = countActiveClassrooms(program);
         if (activeClassrooms > 0) {
             throw new RuntimeException(
                     "Không thể lưu trữ: giáo trình đang được " + activeClassrooms
                             + " lớp sắp khai giảng hoặc đang diễn ra sử dụng.");
         }
-        program.setStatus("ARCHIVED");
+        program.setPublicationStatus(PackageStatus.ARCHIVED);
         saveAndSyncProgram(program);
     }
 
     @Override
-    public CurriculumProgramResponse cloneProgram(Long id) {
-        CurriculumProgram source = findProgram(id);
-        CurriculumProgram clone = CurriculumProgram.builder()
+    public InstructorLedCourseResponse cloneProgram(Long id) {
+        InstructorLedCourse source = findProgram(id);
+        InstructorLedCourse clone = InstructorLedCourse.builder()
                 .title(source.getTitle() + " (Bản sao)")
                 .code(uniqueProgramCode(source.getCode()))
                 .slug(uniqueProgramSlug(source.getSlug() + "-copy", null))
-                .deliveryMode(source.getDeliveryMode())
-                .examCategory(source.getExamCategory())
+                .examType(source.getExamType())
                 .programTrack(source.getProgramTrack())
                 .focusSkills(source.getFocusSkills())
                 .targetBand(source.getTargetBand())
                 .targetScore(source.getTargetScore())
                 .entryLevel(source.getEntryLevel())
                 .entryPlacementLevel(source.getEntryPlacementLevel())
-                .outcomes(source.getOutcomes())
+                .learningOutcomes(source.getLearningOutcomes())
                 .teacherGuide(source.getTeacherGuide())
-                .interactionActivities(source.getInteractionActivities())
-                .totalSessions(resolveTotalSessions(source, source.getTotalSessions()))
-                .status("DRAFT")
+                .publicationStatus(PackageStatus.DRAFT)
                 .displayOrder(source.getDisplayOrder())
-                .virtualPlatform(source.getVirtualPlatform())
-                .recordingAllowed(source.getRecordingAllowed())
-                .recordingAvailableDays(source.getRecordingAvailableDays())
-                .materialsDownloadable(source.getMaterialsDownloadable())
-                .sessionOpenBeforeMinutes(source.getSessionOpenBeforeMinutes())
-                .sessionCloseAfterMinutes(source.getSessionCloseAfterMinutes())
-                .deviceCheckRequired(source.getDeviceCheckRequired())
-                .micRequired(source.getMicRequired())
-                .speakerRequired(source.getSpeakerRequired())
-                .cameraRequired(source.getCameraRequired())
-                .autoAttendanceEnabled(source.getAutoAttendanceEnabled())
-                .minAttendanceMinutes(source.getMinAttendanceMinutes())
                 .build();
 
-        for (CurriculumUnit unit : source.getUnits()) {
-            CurriculumUnit unitClone = CurriculumUnit.builder()
-                    .displayOrder(unit.getDisplayOrder())
+        for (CourseUnit unit : source.getUnits()) {
+            CourseUnit unitClone = CourseUnit.builder()
+                    .sequenceNumber(unit.getSequenceNumber())
                     .title(unit.getTitle())
                     .description(unit.getDescription())
-                    .sessionPlan(unit.getSessionPlan())
+                    .learningObjectives(unit.getLearningObjectives())
                     .build();
             clone.addUnit(unitClone);
-            unit.getMaterialRefs().forEach(ref -> unitClone.getMaterialRefs().add(CurriculumMaterialRef.builder()
-                    .unit(unitClone)
-                    .material(ref.getMaterial())
-                    .displayOrder(ref.getDisplayOrder())
+            unit.getContentRefs().forEach(ref -> unitClone.addContentRef(CourseUnitContentRef.builder()
+                    .contentType(ref.getContentType())
+                    .learningResource(ref.getLearningResource())
+                    .contentBankItem(ref.getContentBankItem())
+                    .sequenceNumber(ref.getSequenceNumber())
                     .note(ref.getNote())
                     .build()));
-            unit.getExerciseRefs().forEach(ref -> unitClone.getExerciseRefs().add(CurriculumExerciseRef.builder()
-                    .unit(unitClone)
-                    .exercise(ref.getExercise())
-                    .legacyExerciseId(ref.getLegacyExerciseId())
-                    .displayOrder(ref.getDisplayOrder())
-                    .note(ref.getNote())
-                    .build()));
-            unit.getAssessmentRefs().forEach(ref -> unitClone.getAssessmentRefs().add(CurriculumAssessmentRef.builder()
-                    .unit(unitClone)
-                    .assessment(ref.getAssessment())
-                    .legacyAssessmentId(ref.getLegacyAssessmentId())
-                    .displayOrder(ref.getDisplayOrder())
-                    .note(ref.getNote())
-                    .build()));
-            unit.getFlashcardRefs().forEach(ref -> unitClone.getFlashcardRefs().add(CurriculumFlashcardRef.builder()
-                    .unit(unitClone)
-                    .flashcardSet(ref.getFlashcardSet())
-                    .legacyFlashcardSetId(ref.getLegacyFlashcardSetId())
-                    .displayOrder(ref.getDisplayOrder())
-                    .note(ref.getNote())
-                    .build()));
-            unit.getSessionPlans().forEach(sessionPlan -> unitClone.addSessionPlan(CurriculumSessionPlan.builder()
-                    .sessionNumber(sessionPlan.getSessionNumber())
-                    .displayOrder(sessionPlan.getDisplayOrder())
+            unit.getLessons().forEach(sessionPlan -> unitClone.addLesson(CourseLesson.builder()
+                    .sequenceNumber(sessionPlan.getSequenceNumber())
                     .title(sessionPlan.getTitle())
                     .description(sessionPlan.getDescription())
                     .learningObjectives(sessionPlan.getLearningObjectives())
                     .build()));
         }
-        CurriculumProgram saved = programRepository.save(clone);
-        instructorLedCourseSync.syncCurriculumProgramFields(saved);
-        instructorLedCourseSync.syncCurriculumProgramTree(saved);
+        InstructorLedCourse saved = programRepository.save(clone);
         return toProgramResponse(saved, true);
     }
 
     @Override
-    public CurriculumProgramResponse publishProgram(Long id, String actorEmail) {
-        CurriculumProgram program = findProgram(id);
-        if ("PUBLISHED".equals(program.getStatus())) {
+    public InstructorLedCourseResponse publishProgram(Long id, String actorEmail) {
+        InstructorLedCourse program = findProgram(id);
+        if (program.getPublicationStatus() == PackageStatus.PUBLISHED) {
             throw new RuntimeException("Giáo trình đã được xuất bản.");
         }
         validateReadyForPublish(program);
         User actor = accessHelper.requireUser(actorEmail);
-        program.setStatus("PUBLISHED");
+        program.setPublicationStatus(PackageStatus.PUBLISHED);
         program.setReviewNote(null);
-        program.setSubmittedBy(actor);
+        program.setCreatedBy(actor);
         program.setSubmittedAt(LocalDateTime.now());
         program.setReviewedBy(actor);
         program.setReviewedAt(LocalDateTime.now());
@@ -353,192 +294,175 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     }
 
     @Override
-    public CurriculumUnitResponse createUnit(Long programId, CurriculumUnitRequest request) {
-        CurriculumProgram program = findProgram(programId);
-        CurriculumUnit unit = CurriculumUnit.builder()
-                .program(program)
-                .displayOrder(defaultInt(request.getDisplayOrder()))
+    public CourseUnitResponse createUnit(Long programId, CourseUnitRequest request) {
+        InstructorLedCourse program = findProgram(programId);
+        CourseUnit unit = CourseUnit.builder()
+                .instructorLedCourse(program)
+                .sequenceNumber(defaultInt(request.getDisplayOrder()))
                 .title(requireText(request.getTitle(), "Tên Unit không được để trống."))
                 .description(trimOrNull(request.getDescription()))
-                .sessionPlan(trimOrNull(request.getSessionPlan()))
+                .learningObjectives(trimOrNull(request.getSessionPlan()))
                 .build();
         program.addUnit(unit);
-        CurriculumUnit saved = unitRepository.save(unit);
-        instructorLedCourseSync.syncUnit(saved);
+        CourseUnit saved = unitRepository.save(unit);
         return toUnitResponse(saved);
     }
 
     @Override
-    public CurriculumUnitResponse updateUnit(Long unitId, CurriculumUnitRequest request) {
-        CurriculumUnit unit = findUnit(unitId);
-        unit.setDisplayOrder(defaultInt(request.getDisplayOrder()));
+    public CourseUnitResponse updateUnit(Long unitId, CourseUnitRequest request) {
+        CourseUnit unit = findUnit(unitId);
+        unit.setSequenceNumber(defaultInt(request.getDisplayOrder()));
         unit.setTitle(requireText(request.getTitle(), "Tên Unit không được để trống."));
         unit.setDescription(trimOrNull(request.getDescription()));
-        unit.setSessionPlan(trimOrNull(request.getSessionPlan()));
-        CurriculumUnit saved = unitRepository.save(unit);
-        instructorLedCourseSync.syncUnit(saved);
+        unit.setLearningObjectives(trimOrNull(request.getSessionPlan()));
+        CourseUnit saved = unitRepository.save(unit);
         return toUnitResponse(saved);
     }
 
     @Override
     public void deleteUnit(Long unitId) {
-        CurriculumUnit unit = findUnit(unitId);
-        if (classScheduleRepository.existsByCurriculumSessionPlanUnitId(unitId)) {
-            throw new IllegalArgumentException("Unit đã có buổi học được sử dụng trong lớp và không thể xóa.");
-        }
-        CurriculumProgram program = unit.getProgram();
+        CourseUnit unit = findUnit(unitId);
+        InstructorLedCourse program = unit.getInstructorLedCourse();
         unitRepository.delete(unit);
         unitRepository.flush();
-        instructorLedCourseSync.deleteUnit(unitId);
         synchronizeTotalSessions(program);
     }
 
     @Override
-    public CurriculumSessionPlanResponse createSessionPlan(
+    public CourseLessonResponse createSessionPlan(
             Long unitId,
-            CurriculumSessionPlanRequest request
+            CourseLessonRequest request
     ) {
-        CurriculumUnit unit = findUnit(unitId);
+        CourseUnit unit = findUnit(unitId);
         validateSessionPlanRequest(request);
-        assertSessionNumberAvailable(unit.getProgram().getId(), request.getSessionNumber(), null);
-        CurriculumSessionPlan sessionPlan = CurriculumSessionPlan.builder()
-                .unit(unit)
-                .sessionNumber(request.getSessionNumber())
-                .displayOrder(defaultInt(request.getDisplayOrder()))
+        assertSessionNumberAvailable(unit.getInstructorLedCourse().getId(), request.getSessionNumber(), null);
+        CourseLesson sessionPlan = CourseLesson.builder()
+                .courseUnit(unit)
+                .sequenceNumber(request.getSessionNumber())
                 .title(requireText(request.getTitle(), "Tiêu đề buổi học không được để trống."))
                 .description(trimOrNull(request.getDescription()))
                 .learningObjectives(trimOrNull(request.getLearningObjectives()))
                 .build();
         sessionPlan = sessionPlanRepository.save(sessionPlan);
-        instructorLedCourseSync.syncSessionPlan(sessionPlan);
-        synchronizeTotalSessions(unit.getProgram());
+        synchronizeTotalSessions(unit.getInstructorLedCourse());
         return toSessionPlanResponse(sessionPlan);
     }
 
     @Override
-    public CurriculumSessionPlanResponse updateSessionPlan(
+    public CourseLessonResponse updateSessionPlan(
             Long sessionPlanId,
-            CurriculumSessionPlanRequest request
+            CourseLessonRequest request
     ) {
-        CurriculumSessionPlan sessionPlan = findSessionPlan(sessionPlanId);
+        CourseLesson sessionPlan = findSessionPlan(sessionPlanId);
         validateSessionPlanRequest(request);
         assertSessionNumberAvailable(
-                sessionPlan.getUnit().getProgram().getId(),
+                sessionPlan.getCourseUnit().getInstructorLedCourse().getId(),
                 request.getSessionNumber(),
                 sessionPlanId
         );
-        sessionPlan.setSessionNumber(request.getSessionNumber());
-        sessionPlan.setDisplayOrder(defaultInt(request.getDisplayOrder()));
+        sessionPlan.setSequenceNumber(request.getSessionNumber());
         sessionPlan.setTitle(requireText(request.getTitle(), "Tiêu đề buổi học không được để trống."));
         sessionPlan.setDescription(trimOrNull(request.getDescription()));
         sessionPlan.setLearningObjectives(trimOrNull(request.getLearningObjectives()));
         sessionPlan = sessionPlanRepository.save(sessionPlan);
-        instructorLedCourseSync.syncSessionPlan(sessionPlan);
         return toSessionPlanResponse(sessionPlan);
     }
 
     @Override
     public void deleteSessionPlan(Long sessionPlanId) {
-        CurriculumSessionPlan sessionPlan = findSessionPlan(sessionPlanId);
-        if (classScheduleRepository.existsByCurriculumSessionPlanId(sessionPlanId)) {
-            throw new IllegalArgumentException(
-                    "Buổi " + sessionPlan.getSessionNumber() + " đã được sử dụng trong lớp học và không thể xóa."
-            );
-        }
-        CurriculumProgram program = sessionPlan.getUnit().getProgram();
+        CourseLesson sessionPlan = findSessionPlan(sessionPlanId);
+        InstructorLedCourse program = sessionPlan.getCourseUnit().getInstructorLedCourse();
         sessionPlanRepository.delete(sessionPlan);
         sessionPlanRepository.flush();
-        instructorLedCourseSync.deleteSessionPlan(sessionPlanId);
         synchronizeTotalSessions(program);
     }
 
     @Override
-    public CurriculumUnitResponse attachMaterial(Long unitId, CurriculumReferenceRequest request) {
-        CurriculumUnit unit = findUnit(unitId);
+    public CourseUnitResponse attachMaterial(Long unitId, CourseUnitContentRefRequest request) {
+        CourseUnit unit = findUnit(unitId);
         CenterMaterialLibraryItem material = materialRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trong kho."));
-        if (!materialRefRepository.existsByUnitIdAndMaterialId(unitId, material.getId())) {
-            CurriculumMaterialRef ref = materialRefRepository.save(CurriculumMaterialRef.builder()
-                    .unit(unit)
-                    .material(material)
-                    .displayOrder(defaultInt(request.getDisplayOrder()))
+        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndLearningResourceId(
+                unitId, CourseUnitContentType.MATERIAL, material.getId())) {
+            contentRefRepository.save(CourseUnitContentRef.builder()
+                    .courseUnit(unit)
+                    .contentType(CourseUnitContentType.MATERIAL)
+                    .learningResource(material)
+                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
-            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
 
     @Override
-    public CurriculumUnitResponse attachExercise(Long unitId, CurriculumReferenceRequest request) {
-        CurriculumUnit unit = findUnit(unitId);
+    public CourseUnitResponse attachExercise(Long unitId, CourseUnitContentRefRequest request) {
+        CourseUnit unit = findUnit(unitId);
         Long resolvedId = contentBankIdResolver.resolve(ContentBankType.EXERCISE, request.getResourceId())
                 .orElse(request.getResourceId());
-        ExerciseBankItem exercise = exerciseRepository.findById(resolvedId)
+        ContentBankItem exercise = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.EXERCISE)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
-        if (!exerciseRefRepository.existsByUnitIdAndExerciseId(unitId, exercise.getId())) {
-            CurriculumExerciseRef ref = exerciseRefRepository.save(CurriculumExerciseRef.builder()
-                    .unit(unit)
-                    .exercise(exercise)
-                    .legacyExerciseId(contentBankLinkSync.legacyIdForExercise(exercise))
-                    .displayOrder(defaultInt(request.getDisplayOrder()))
+        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
+                unitId, CourseUnitContentType.EXERCISE, exercise.getId())) {
+            contentRefRepository.save(CourseUnitContentRef.builder()
+                    .courseUnit(unit)
+                    .contentType(CourseUnitContentType.EXERCISE)
+                    .contentBankItem(exercise)
+                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
-            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
 
     @Override
-    public CurriculumUnitResponse attachAssessment(Long unitId, CurriculumReferenceRequest request) {
-        CurriculumUnit unit = findUnit(unitId);
+    public CourseUnitResponse attachAssessment(Long unitId, CourseUnitContentRefRequest request) {
+        CourseUnit unit = findUnit(unitId);
         Long resolvedId = contentBankIdResolver.resolve(ContentBankType.ASSESSMENT, request.getResourceId())
                 .orElse(request.getResourceId());
-        AssessmentBankItem assessment = assessmentBankRepository.findById(resolvedId)
+        ContentBankItem assessment = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.ASSESSMENT)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
-        if (!assessmentRefRepository.existsByUnitIdAndAssessmentId(unitId, assessment.getId())) {
-            CurriculumAssessmentRef ref = assessmentRefRepository.save(CurriculumAssessmentRef.builder()
-                    .unit(unit)
-                    .assessment(assessment)
-                    .legacyAssessmentId(contentBankLinkSync.legacyIdForAssessment(assessment))
-                    .displayOrder(defaultInt(request.getDisplayOrder()))
+        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
+                unitId, CourseUnitContentType.ASSESSMENT, assessment.getId())) {
+            contentRefRepository.save(CourseUnitContentRef.builder()
+                    .courseUnit(unit)
+                    .contentType(CourseUnitContentType.ASSESSMENT)
+                    .contentBankItem(assessment)
+                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
-            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
 
     @Override
-    public CurriculumUnitResponse attachFlashcard(Long unitId, CurriculumReferenceRequest request) {
-        CurriculumUnit unit = findUnit(unitId);
+    public CourseUnitResponse attachFlashcard(Long unitId, CourseUnitContentRefRequest request) {
+        CourseUnit unit = findUnit(unitId);
         Long resolvedId = contentBankIdResolver.resolve(ContentBankType.FLASHCARD, request.getResourceId())
                 .orElse(request.getResourceId());
-        FlashcardSet flashcardSet = flashcardSetRepository.findById(resolvedId)
+        ContentBankItem flashcardSet = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.FLASHCARD)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
-        if (!flashcardRefRepository.existsByUnitIdAndFlashcardSetId(unitId, flashcardSet.getId())) {
-            CurriculumFlashcardRef ref = flashcardRefRepository.save(CurriculumFlashcardRef.builder()
-                    .unit(unit)
-                    .flashcardSet(flashcardSet)
-                    .legacyFlashcardSetId(contentBankLinkSync.legacyIdForFlashcard(flashcardSet))
-                    .displayOrder(defaultInt(request.getDisplayOrder()))
+        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
+                unitId, CourseUnitContentType.FLASHCARD, flashcardSet.getId())) {
+            contentRefRepository.save(CourseUnitContentRef.builder()
+                    .courseUnit(unit)
+                    .contentType(CourseUnitContentType.FLASHCARD)
+                    .contentBankItem(flashcardSet)
+                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
-            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
 
     @Override
     public void detachReference(String type, Long referenceId) {
-        switch (normalizeRefType(type)) {
-            case "MATERIAL" -> materialRefRepository.deleteById(referenceId);
-            case "EXERCISE" -> exerciseRefRepository.deleteById(referenceId);
-            case "ASSESSMENT" -> assessmentRefRepository.deleteById(referenceId);
-            case "FLASHCARD" -> flashcardRefRepository.deleteById(referenceId);
-            default -> throw new RuntimeException("Loại tài nguyên không hợp lệ.");
+        CourseUnitContentRef ref = contentRefRepository.findById(referenceId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy liên kết nội dung."));
+        if (!ref.getContentType().name().equals(normalizeRefType(type))) {
+            throw new RuntimeException("Loại tài nguyên không khớp với liên kết.");
         }
-        instructorLedCourseSync.deleteResourceRef(referenceId);
+        contentRefRepository.delete(ref);
     }
 
     @Override
@@ -815,23 +739,22 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         flashcardSetRepository.save(set);
     }
 
-    private CurriculumProgram saveAndSyncProgram(CurriculumProgram program) {
-        CurriculumProgram saved = programRepository.save(program);
-        instructorLedCourseSync.syncCurriculumProgramFields(saved);
+    private InstructorLedCourse saveAndSyncProgram(InstructorLedCourse program) {
+        InstructorLedCourse saved = programRepository.save(program);
         return saved;
     }
 
-    private CurriculumProgram findProgram(Long id) {
+    private InstructorLedCourse findProgram(Long id) {
         return programRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo trình."));
     }
 
-    private CurriculumUnit findUnit(Long id) {
+    private CourseUnit findUnit(Long id) {
         return unitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Unit trong giáo trình."));
     }
 
-    private CurriculumSessionPlan findSessionPlan(Long id) {
+    private CourseLesson findSessionPlan(Long id) {
         return sessionPlanRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học trong giáo trình."));
     }
@@ -846,48 +769,33 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
     }
 
-    private CurriculumProgramResponse toProgramResponse(CurriculumProgram program, boolean includeUnits) {
-        return CurriculumProgramResponse.builder()
+    private InstructorLedCourseResponse toProgramResponse(InstructorLedCourse program, boolean includeUnits) {
+        return InstructorLedCourseResponse.builder()
                 .id(program.getId())
                 .title(program.getTitle())
                 .code(program.getCode())
                 .slug(program.getSlug())
-                .deliveryMode(program.getDeliveryMode())
-                .deliveryModeLabel(deliveryModeLabel(program.getDeliveryMode()))
-                .examCategory(program.getExamCategory())
+                .examCategory(program.getExamType())
                 .programTrack(program.getProgramTrack())
                 .focusSkills(program.getFocusSkills())
                 .targetBand(program.getTargetBand())
                 .targetScore(program.getTargetScore())
                 .entryLevel(program.getEntryLevel())
                 .entryPlacementLevel(program.getEntryPlacementLevel())
-                .outcomes(program.getOutcomes())
+                .outcomes(program.getLearningOutcomes())
                 .teacherGuide(program.getTeacherGuide())
-                .interactionActivities(program.getInteractionActivities())
-                .totalSessions(resolveTotalSessions(program, program.getTotalSessions()))
+                .totalSessions(resolveTotalSessions(program))
                 .totalUnits(program.getUnits().size())
-                .status(program.getStatus())
-                .statusLabel(programStatusLabel(program.getStatus()))
+                .status(program.getPublicationStatus().name())
+                .statusLabel(programStatusLabel(program.getPublicationStatus().name()))
                 .reviewNote(program.getReviewNote())
-                .submittedByName(program.getSubmittedBy() == null ? null : program.getSubmittedBy().getFullName())
+                .submittedByName(program.getCreatedBy() == null ? null : program.getCreatedBy().getFullName())
                 .submittedAt(program.getSubmittedAt())
                 .reviewedByName(program.getReviewedBy() == null ? null : program.getReviewedBy().getFullName())
                 .reviewedAt(program.getReviewedAt())
                 .displayOrder(program.getDisplayOrder())
-                .classroomUsageCount(program.getClassSections().size())
-                .activeClassroomCount((int) countActiveClassrooms(program))
-                .virtualPlatform(program.getVirtualPlatform())
-                .recordingAllowed(program.getRecordingAllowed())
-                .recordingAvailableDays(program.getRecordingAvailableDays())
-                .materialsDownloadable(program.getMaterialsDownloadable())
-                .sessionOpenBeforeMinutes(program.getSessionOpenBeforeMinutes())
-                .sessionCloseAfterMinutes(program.getSessionCloseAfterMinutes())
-                .deviceCheckRequired(program.getDeviceCheckRequired())
-                .micRequired(program.getMicRequired())
-                .speakerRequired(program.getSpeakerRequired())
-                .cameraRequired(program.getCameraRequired())
-                .autoAttendanceEnabled(program.getAutoAttendanceEnabled())
-                .minAttendanceMinutes(program.getMinAttendanceMinutes())
+                .classroomUsageCount(0)
+                .activeClassroomCount(0)
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
                 .units(includeUnits ? program.getUnits().stream().map(this::toUnitResponse).toList() : null)
@@ -895,53 +803,24 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .build();
     }
 
-    private List<CurriculumProgramResponse.ClassroomUsage> toClassroomUsages(CurriculumProgram program) {
-        return program.getClassSections().stream()
-                .sorted(Comparator.comparing(
-                        ClassSection::getStartDate,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(offering -> CurriculumProgramResponse.ClassroomUsage.builder()
-                        .id(offering.getId())
-                        .title(offering.getLearningPackage() == null ? null : offering.getLearningPackage().getTitle())
-                        .status(offering.getStatus() == null ? null : offering.getStatus().name())
-                        .statusLabel(offeringStatusLabel(offering.getStatus()))
-                        .startDate(offering.getStartDate())
-                        .build())
-                .toList();
+    private List<InstructorLedCourseResponse.ClassroomUsage> toClassroomUsages(InstructorLedCourse program) {
+        return List.of();
     }
 
-    private void applyVirtualConfig(CurriculumProgram program, CurriculumProgramRequest request) {
-        if (program.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
-            return;
-        }
-        program.setVirtualPlatform(trimUpperOrNull(request.getVirtualPlatform()));
-        program.setRecordingAllowed(request.getRecordingAllowed());
-        program.setRecordingAvailableDays(request.getRecordingAvailableDays());
-        program.setMaterialsDownloadable(request.getMaterialsDownloadable());
-        program.setSessionOpenBeforeMinutes(request.getSessionOpenBeforeMinutes());
-        program.setSessionCloseAfterMinutes(request.getSessionCloseAfterMinutes());
-        program.setDeviceCheckRequired(request.getDeviceCheckRequired());
-        program.setMicRequired(request.getMicRequired());
-        program.setSpeakerRequired(request.getSpeakerRequired());
-        program.setCameraRequired(request.getCameraRequired());
-        program.setAutoAttendanceEnabled(request.getAutoAttendanceEnabled());
-        program.setMinAttendanceMinutes(request.getMinAttendanceMinutes());
-    }
-
-    private void validateReadyForPublish(CurriculumProgram program) {
-        if (("IELTS".equals(program.getExamCategory()) || "TOEIC".equals(program.getExamCategory()))
+    private void validateReadyForPublish(InstructorLedCourse program) {
+        if (("IELTS".equals(program.getExamType()) || "TOEIC".equals(program.getExamType()))
                 && program.getEntryPlacementLevel() == null) {
             throw new IllegalArgumentException("Hãy chọn trình độ Placement đầu vào trước khi xuất bản giáo trình.");
         }
         validateEnglishProfile(
-                program.getExamCategory(),
+                program.getExamType(),
                 program.getProgramTrack(),
                 program.getFocusSkills(),
                 program.getTargetBand(),
                 program.getTargetScore(),
                 program.getEntryLevel()
         );
-        if (!StringUtils.hasText(program.getOutcomes())) {
+        if (!StringUtils.hasText(program.getLearningOutcomes())) {
             throw new RuntimeException("Giáo trình phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.");
         }
         if (program.getUnits() == null || program.getUnits().isEmpty()) {
@@ -949,8 +828,10 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         }
         validateStructuredSessionPlans(program);
         boolean hasUnpublishedMaterial = program.getUnits().stream()
-                .flatMap(unit -> unit.getMaterialRefs().stream())
-                .map(CurriculumMaterialRef::getMaterial)
+                .flatMap(unit -> unit.getContentRefs().stream())
+                .filter(ref -> ref.getContentType() == CourseUnitContentType.MATERIAL)
+                .map(CourseUnitContentRef::getLearningResource)
+                .filter(java.util.Objects::nonNull)
                 .anyMatch(material -> !"PUBLISHED".equalsIgnoreCase(material.getStatus()));
         if (hasUnpublishedMaterial) {
             throw new RuntimeException("Giáo trình chỉ được sử dụng học liệu trung tâm đã xuất bản.");
@@ -958,20 +839,17 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         validateFocusedSkillAssessments(program);
     }
 
-    private void validateStructuredSessionPlans(CurriculumProgram program) {
-        List<CurriculumSessionPlan> sessionPlans = program.getUnits().stream()
-                .flatMap(unit -> unit.getSessionPlans().stream())
-                .sorted(Comparator.comparing(CurriculumSessionPlan::getSessionNumber))
+    private void validateStructuredSessionPlans(InstructorLedCourse program) {
+        List<CourseLesson> sessionPlans = program.getUnits().stream()
+                .flatMap(unit -> unit.getLessons().stream())
+                .sorted(Comparator.comparing(CourseLesson::getSequenceNumber))
                 .toList();
         if (sessionPlans.isEmpty()) {
-            if (program.getTotalSessions() == null || program.getTotalSessions() <= 0) {
-                throw new RuntimeException("Giáo trình chưa khai báo số buổi học. Hãy cập nhật trước khi xuất bản.");
-            }
-            return;
+            throw new RuntimeException("Giáo trình chưa có bài học. Hãy cập nhật trước khi xuất bản.");
         }
 
         program.getUnits().stream()
-                .filter(unit -> unit.getSessionPlans().isEmpty())
+                .filter(unit -> unit.getLessons().isEmpty())
                 .findFirst()
                 .ifPresent(unit -> {
                     throw new IllegalArgumentException(
@@ -980,19 +858,19 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 });
 
         Set<Integer> uniqueNumbers = new LinkedHashSet<>();
-        for (CurriculumSessionPlan sessionPlan : sessionPlans) {
-            if (!uniqueNumbers.add(sessionPlan.getSessionNumber())) {
+        for (CourseLesson sessionPlan : sessionPlans) {
+            if (!uniqueNumbers.add(sessionPlan.getSequenceNumber())) {
                 throw new IllegalArgumentException(
-                        "Buổi " + sessionPlan.getSessionNumber() + " đang bị trùng trong giáo trình."
+                        "Buổi " + sessionPlan.getSequenceNumber() + " đang bị trùng trong giáo trình."
                 );
             }
         }
 
         for (int index = 0; index < sessionPlans.size(); index++) {
             int expectedNumber = index + 1;
-            if (!Integer.valueOf(expectedNumber).equals(sessionPlans.get(index).getSessionNumber())) {
+            if (!Integer.valueOf(expectedNumber).equals(sessionPlans.get(index).getSequenceNumber())) {
                 String currentNumbers = sessionPlans.stream()
-                        .map(CurriculumSessionPlan::getSessionNumber)
+                        .map(CourseLesson::getSequenceNumber)
                         .map(String::valueOf)
                         .collect(java.util.stream.Collectors.joining(", "));
                 throw new IllegalArgumentException(
@@ -1002,14 +880,9 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             }
         }
 
-        if (!Integer.valueOf(sessionPlans.size()).equals(program.getTotalSessions())) {
-            throw new IllegalArgumentException(
-                    "Tổng số buổi của giáo trình phải bằng " + sessionPlans.size() + " buổi đã tạo."
-            );
-        }
     }
 
-    private void validateSessionPlanRequest(CurriculumSessionPlanRequest request) {
+    private void validateSessionPlanRequest(CourseLessonRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu buổi học không được để trống.");
         }
@@ -1023,32 +896,30 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     }
 
     private void assertSessionNumberAvailable(Long programId, Integer sessionNumber, Long excludeId) {
-        if (sessionPlanRepository.existsDuplicateSessionNumber(programId, sessionNumber, excludeId)) {
+        if (sessionPlanRepository.existsDuplicateSequenceNumber(programId, sessionNumber, excludeId)) {
             throw new IllegalArgumentException(
                     "Buổi " + sessionNumber + " đã tồn tại trong giáo trình."
             );
         }
     }
 
-    private void synchronizeTotalSessions(CurriculumProgram program) {
-        int totalSessions = Math.toIntExact(sessionPlanRepository.countByProgramId(program.getId()));
-        program.setTotalSessions(totalSessions);
-        programRepository.save(program);
+    private void synchronizeTotalSessions(InstructorLedCourse program) {
+        // Session count is derived from CourseLesson and is not persisted on the course aggregate.
     }
 
-    private int resolveTotalSessions(CurriculumProgram program, Integer legacyTotalSessions) {
+    private int resolveTotalSessions(InstructorLedCourse program) {
         if (program != null && program.getUnits() != null) {
             int structuredCount = program.getUnits().stream()
-                    .mapToInt(unit -> unit.getSessionPlans() == null ? 0 : unit.getSessionPlans().size())
+                    .mapToInt(unit -> unit.getLessons() == null ? 0 : unit.getLessons().size())
                     .sum();
             if (structuredCount > 0) {
                 return structuredCount;
             }
         }
-        return defaultInt(legacyTotalSessions);
+        return 0;
     }
 
-    private void applyEnglishProfile(CurriculumProgram program, CurriculumProgramRequest request) {
+    private void applyEnglishProfile(InstructorLedCourse program, InstructorLedCourseRequest request) {
         String examCategory = normalizeExamCategory(request.getExamCategory());
         String programTrack = trimUpperOrNull(request.getProgramTrack());
         String focusSkills = normalizeFocusSkills(request.getFocusSkills());
@@ -1060,7 +931,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 request.getTargetScore(),
                 request.getEntryLevel()
         );
-        program.setExamCategory(examCategory);
+        program.setExamType(examCategory);
         program.setProgramTrack(programTrack);
         program.setFocusSkills(focusSkills);
         program.setTargetBand(request.getTargetBand());
@@ -1192,15 +1063,19 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         return "GENERAL_ENGLISH".equals(examCategory) ? "General English" : examCategory;
     }
 
-    private void validateFocusedSkillAssessments(CurriculumProgram program) {
-        if ("GENERAL_ENGLISH".equals(program.getExamCategory())) {
+    private void validateFocusedSkillAssessments(InstructorLedCourse program) {
+        if ("GENERAL_ENGLISH".equals(program.getExamType())) {
             return;
         }
         Set<AssessmentSkill> testedSkills = program.getUnits().stream()
-                .flatMap(unit -> unit.getAssessmentRefs().stream())
-                .map(CurriculumAssessmentRef::getAssessment)
-                .map(AssessmentBankItem::getSkill)
+                .flatMap(unit -> unit.getContentRefs().stream())
+                .filter(ref -> ref.getContentType() == CourseUnitContentType.ASSESSMENT)
+                .map(CourseUnitContentRef::getContentBankItem)
                 .filter(java.util.Objects::nonNull)
+                .map(ContentBankItem::getSkill)
+                .filter(java.util.Objects::nonNull)
+                .map(String::toUpperCase)
+                .map(AssessmentSkill::valueOf)
                 .collect(java.util.stream.Collectors.toSet());
         for (String skill : program.getFocusSkills().split(",")) {
             try {
@@ -1244,6 +1119,15 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         };
     }
 
+    private PackageStatus parsePublicationStatus(String status) {
+        String normalized = defaultText(status, "DRAFT").trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "APPROVED" -> PackageStatus.PUBLISHED;
+            case "PENDING_APPROVAL" -> PackageStatus.PENDING_REVIEW;
+            default -> PackageStatus.valueOf(normalized);
+        };
+    }
+
     private String offeringStatusLabel(ClassroomOfferingStatus status) {
         if (status == null) {
             return null;
@@ -1258,14 +1142,11 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         };
     }
 
-    private long countActiveClassrooms(CurriculumProgram program) {
-        return program.getClassSections().stream()
-                .filter(offering -> offering.getStatus() == ClassroomOfferingStatus.UPCOMING
-                        || offering.getStatus() == ClassroomOfferingStatus.ACTIVE)
-                .count();
+    private long countActiveClassrooms(InstructorLedCourse program) {
+        return 0L;
     }
 
-    private String resolveNewProgramCode(CurriculumProgramRequest request) {
+    private String resolveNewProgramCode(InstructorLedCourseRequest request) {
         if (StringUtils.hasText(request.getCode())) {
             String requestedCode = normalizeProgramCode(request.getCode());
             if (programRepository.existsByCodeIgnoreCase(requestedCode)) {
@@ -1311,38 +1192,38 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         return code;
     }
 
-    private CurriculumUnitResponse toUnitResponse(CurriculumUnit unit) {
-        return CurriculumUnitResponse.builder()
+    private CourseUnitResponse toUnitResponse(CourseUnit unit) {
+        List<CourseUnitContentRef> refs = unit.getContentRefs() == null ? List.of() : unit.getContentRefs();
+        return CourseUnitResponse.builder()
                 .id(unit.getId())
-                .programId(unit.getProgram().getId())
-                .displayOrder(unit.getDisplayOrder())
+                .programId(unit.getInstructorLedCourse().getId())
+                .displayOrder(unit.getSequenceNumber())
                 .title(unit.getTitle())
                 .description(unit.getDescription())
-                .sessionPlan(unit.getSessionPlan())
-                .sessionPlans(unit.getSessionPlans().stream()
-                        .sorted(Comparator.comparing(CurriculumSessionPlan::getSessionNumber)
-                                .thenComparing(CurriculumSessionPlan::getDisplayOrder)
-                                .thenComparing(CurriculumSessionPlan::getId, Comparator.nullsLast(Long::compareTo)))
+                .sessionPlan(unit.getLearningObjectives())
+                .sessionPlans(unit.getLessons().stream()
+                        .sorted(Comparator.comparing(CourseLesson::getSequenceNumber)
+                                .thenComparing(CourseLesson::getId, Comparator.nullsLast(Long::compareTo)))
                         .map(this::toSessionPlanResponse)
                         .toList())
                 .createdAt(unit.getCreatedAt())
                 .updatedAt(unit.getUpdatedAt())
-                .materials(unit.getMaterialRefs().stream().map(this::toMaterialRef).toList())
-                .exercises(unit.getExerciseRefs().stream().map(this::toExerciseRef).toList())
-                .assessments(unit.getAssessmentRefs().stream().map(this::toAssessmentRef).toList())
-                .flashcards(unit.getFlashcardRefs().stream().map(this::toFlashcardRef).toList())
+                .materials(toContentRefResponses(refs, CourseUnitContentType.MATERIAL))
+                .exercises(toContentRefResponses(refs, CourseUnitContentType.EXERCISE))
+                .assessments(toContentRefResponses(refs, CourseUnitContentType.ASSESSMENT))
+                .flashcards(toContentRefResponses(refs, CourseUnitContentType.FLASHCARD))
                 .build();
     }
 
-    private CurriculumSessionPlanResponse toSessionPlanResponse(CurriculumSessionPlan sessionPlan) {
-        CurriculumUnit unit = sessionPlan.getUnit();
-        return CurriculumSessionPlanResponse.builder()
+    private CourseLessonResponse toSessionPlanResponse(CourseLesson sessionPlan) {
+        CourseUnit unit = sessionPlan.getCourseUnit();
+        return CourseLessonResponse.builder()
                 .id(sessionPlan.getId())
                 .unitId(unit.getId())
                 .unitTitle(unit.getTitle())
-                .programId(unit.getProgram().getId())
-                .sessionNumber(sessionPlan.getSessionNumber())
-                .displayOrder(sessionPlan.getDisplayOrder())
+                .programId(unit.getInstructorLedCourse().getId())
+                .sessionNumber(sessionPlan.getSequenceNumber())
+                .displayOrder(sessionPlan.getSequenceNumber())
                 .title(sessionPlan.getTitle())
                 .description(sessionPlan.getDescription())
                 .learningObjectives(sessionPlan.getLearningObjectives())
@@ -1351,65 +1232,31 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .build();
     }
 
-    private CurriculumReferenceResponse toMaterialRef(CurriculumMaterialRef ref) {
-        CenterMaterialLibraryItem material = ref.getMaterial();
-        return CurriculumReferenceResponse.builder()
-                .id(ref.getId())
-                .type("MATERIAL")
-                .resourceId(material.getId())
-                .title(material.getTitle())
-                .subtitle(material.getMaterialType())
-                .skill(material.getSkill())
-                .status(material.getStatus())
-                .fileUrl(material.getFileUrl())
-                .displayOrder(ref.getDisplayOrder())
-                .note(ref.getNote())
-                .build();
+    private List<CourseUnitContentRefResponse> toContentRefResponses(
+            List<CourseUnitContentRef> refs,
+            CourseUnitContentType type
+    ) {
+        return refs.stream()
+                .filter(ref -> ref.getContentType() == type)
+                .map(this::toContentRefResponse)
+                .toList();
     }
 
-    private CurriculumReferenceResponse toExerciseRef(CurriculumExerciseRef ref) {
-        ExerciseBankItem exercise = ref.getExercise();
-        return CurriculumReferenceResponse.builder()
+    private CourseUnitContentRefResponse toContentRefResponse(CourseUnitContentRef ref) {
+        CenterMaterialLibraryItem material = ref.getLearningResource();
+        ContentBankItem item = ref.getContentBankItem();
+        return CourseUnitContentRefResponse.builder()
                 .id(ref.getId())
-                .type("EXERCISE")
-                .resourceId(exercise.getId())
-                .title(exercise.getTitle())
-                .subtitle(exercise.getExerciseType())
-                .skill(exercise.getSkill())
-                .status(exercise.isActive() ? "ACTIVE" : "INACTIVE")
-                .displayOrder(ref.getDisplayOrder())
+                .type(ref.getContentType().name())
+                .resourceId(material != null ? material.getId() : item == null ? null : item.getId())
+                .title(material != null ? material.getTitle() : item == null ? null : item.getTitle())
+                .subtitle(material != null ? material.getMaterialType() : item == null ? null : item.getExamCategory())
+                .skill(material != null ? material.getSkill() : item == null ? null : item.getSkill())
+                .status(material != null ? material.getStatus() : item == null ? null : item.getStatus())
+                .fileUrl(material == null ? null : material.getFileUrl())
+                .displayOrder(ref.getSequenceNumber())
                 .note(ref.getNote())
-                .build();
-    }
-
-    private CurriculumReferenceResponse toAssessmentRef(CurriculumAssessmentRef ref) {
-        AssessmentBankItem assessment = ref.getAssessment();
-        return CurriculumReferenceResponse.builder()
-                .id(ref.getId())
-                .type("ASSESSMENT")
-                .resourceId(assessment.getId())
-                .title(assessment.getTitle())
-                .subtitle(assessment.getType() == null ? null : assessment.getType().name())
-                .skill(assessment.getSkill() == null ? null : assessment.getSkill().name())
-                .status(assessment.getStatus())
-                .displayOrder(ref.getDisplayOrder())
-                .note(ref.getNote())
-                .build();
-    }
-
-    private CurriculumReferenceResponse toFlashcardRef(CurriculumFlashcardRef ref) {
-        FlashcardSet set = ref.getFlashcardSet();
-        return CurriculumReferenceResponse.builder()
-                .id(ref.getId())
-                .type("FLASHCARD")
-                .resourceId(set.getId())
-                .title(set.getTitle())
-                .subtitle(set.getExamCategory())
-                .skill(set.getSkill())
-                .status(set.getStatus())
-                .displayOrder(ref.getDisplayOrder())
-                .note(ref.getNote())
-                .contentJson(set.getCardsJson())
+                .contentJson(item == null ? null : toJson(item.getPayloadJsonb()))
                 .build();
     }
 
@@ -1551,6 +1398,14 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     private String trimOrNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String toJson(Map<String, Object> value) {
+        try {
+            return objectMapper.writeValueAsString(value == null ? Map.of() : value);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
+            throw new IllegalArgumentException("Không thể chuyển đổi cấu hình nội dung.", exception);
+        }
     }
 
     private String trimUpperOrNull(String value) {
