@@ -1,20 +1,13 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 
 import fu.sep490.g23.backend.dto.request.classroom.UpdateRecordingRequest;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
-import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.service.classroom.ClassroomRecordingService;
-import fu.sep490.g23.backend.service.classroom.LarkMeetingService;
-import fu.sep490.g23.backend.service.classroom.LarkProperties;
-import fu.sep490.g23.backend.service.classroom.LarkRecordingInfo;
 import fu.sep490.g23.backend.service.classroom.GoogleMeetProperties;
 import fu.sep490.g23.backend.service.classroom.VirtualMeetingRecordingInfo;
 import fu.sep490.g23.backend.service.classroom.VirtualMeetingService;
@@ -36,252 +29,111 @@ import java.util.List;
 @Transactional
 @Slf4j
 public class ClassroomRecordingServiceImpl implements ClassroomRecordingService {
-
-    private final ClassSectionRepository offeringRepository;
-    private final ClassScheduleRepository sessionRepository;
+    private final ClassSectionRepository classSectionRepository;
+    private final ClassScheduleRepository classScheduleRepository;
     private final ClassroomMapper mapper;
-    private final LarkMeetingService larkMeetingService;
-    private final LarkProperties larkProperties;
     private final VirtualMeetingService virtualMeetingService;
     private final GoogleMeetProperties googleMeetProperties;
 
     @Override
-    public ClassroomOfferingResponse updateOfferingRecording(Long offeringId, UpdateRecordingRequest request) {
-        ClassSection offering = offeringRepository.findById(offeringId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
+    public ClassroomSessionResponse updateSessionRecording(Long scheduleId, UpdateRecordingRequest request) {
+        ClassSchedule schedule = requireSchedule(scheduleId);
         if (request.getRecordingUrl() != null) {
-            String recordingUrl = trimOrNull(request.getRecordingUrl());
-            validateRecordingUrl(recordingUrl);
-            offering.setRecordingUrl(recordingUrl);
-        }
-        if (request.getRecordingVisible() != null) {
-            if (request.getRecordingVisible() && !StringUtils.hasText(offering.getRecordingUrl())) {
-                throw new RuntimeException("Chưa có đường dẫn recording hợp lệ để công bố cho học viên.");
-            }
-            offering.setRecordingVisible(request.getRecordingVisible());
-        }
-        return mapper.toOfferingResponse(offeringRepository.save(offering), true, null, null, true);
-    }
-
-    @Override
-    public ClassroomSessionResponse updateSessionRecording(Long sessionId, UpdateRecordingRequest request) {
-        ClassSchedule session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
-        if (request.getRecordingUrl() != null) {
-            String recordingUrl = trimOrNull(request.getRecordingUrl());
-            validateRecordingUrl(recordingUrl);
-            session.setRecordingUrl(recordingUrl);
-            if (recordingUrl == null) {
-                clearRecordingMetadata(session);
+            String url = trimOrNull(request.getRecordingUrl());
+            validateRecordingUrl(url);
+            schedule.setRecordingUrl(url);
+            if (url == null) {
+                clearRecording(schedule);
             } else {
-                session.setRecordingProvider("MANUAL");
-                session.setRecordingSyncStatus(RecordingSyncStatus.READY);
-                session.setRecordingSyncedAt(LocalDateTime.now());
-                session.setRecordingSyncError(null);
-                setExpiry(session);
+                schedule.setRecordingStatus(RecordingSyncStatus.READY);
+                schedule.setRecordingSyncedAt(LocalDateTime.now());
+                schedule.setRecordingSyncError(null);
             }
         }
         if (request.getRecordingVisible() != null) {
-            if (request.getRecordingVisible() && !StringUtils.hasText(session.getRecordingUrl())) {
-                throw new RuntimeException("Chưa có đường dẫn recording hợp lệ để công bố cho học viên.");
+            if (request.getRecordingVisible() && !StringUtils.hasText(schedule.getRecordingUrl())) {
+                throw new IllegalArgumentException("Chưa có đường dẫn ghi hình hợp lệ để công bố.");
             }
-            session.setRecordingVisible(request.getRecordingVisible());
-            session.setRecordingPublishedAt(request.getRecordingVisible() ? LocalDateTime.now() : null);
+            schedule.setRecordingVisible(request.getRecordingVisible());
         }
-        return mapper.toManagerSessionResponse(sessionRepository.save(session));
+        return mapper.toManagerSessionResponse(classScheduleRepository.save(schedule));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClassroomSessionResponse> listManagerSessions(Long offeringId) {
-        if (!offeringRepository.existsById(offeringId)) {
-            throw new RuntimeException("Không tìm thấy lớp học.");
+    public List<ClassroomSessionResponse> listManagerSessions(Long classSectionId) {
+        if (!classSectionRepository.existsById(classSectionId)) {
+            throw new IllegalArgumentException("Không tìm thấy lớp học.");
         }
-        return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offeringId).stream()
-                .map(mapper::toManagerSessionResponse)
-                .toList();
+        return classScheduleRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(classSectionId)
+                .stream().map(mapper::toManagerSessionResponse).toList();
     }
 
     @Override
-    public ClassroomSessionResponse syncRecording(Long sessionId) {
-        ClassSchedule session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
-        if (isGoogleMeetSession(session)) {
-            syncGoogleMeetRecording(session);
-        } else {
-            syncLarkRecording(session);
-        }
-        return mapper.toManagerSessionResponse(sessionRepository.save(session));
-    }
-
-    @Override
-    public ClassroomSessionResponse syncLarkRecording(Long sessionId) {
-        return syncRecording(sessionId);
-    }
-
-    @Scheduled(
-            fixedDelayString = "${englishlab.lark.recording-sync-delay-ms:60000}",
-            initialDelayString = "${englishlab.lark.recording-sync-delay-ms:60000}"
-    )
-    public void reconcilePendingRecordings() {
-        if (!larkMeetingService.isEnabled()) {
-            return;
-        }
-        LocalDateTime retryBefore = LocalDateTime.now().minusSeconds(
-                Math.max(30, larkProperties.getRecordingSyncDelayMs() / 1000)
-        );
-        List<ClassSchedule> pending = sessionRepository.findRecordingsPendingSync(
-                EnumSet.of(RecordingSyncStatus.PROCESSING, RecordingSyncStatus.FAILED),
-                Math.max(1, larkProperties.getRecordingMaxSyncAttempts()),
-                retryBefore
-        );
-        pending.stream().limit(50).forEach(session -> {
-            try {
-                if (isGoogleMeetSession(session)) {
-                    return;
-                }
-                syncLarkRecording(session);
-                sessionRepository.save(session);
-            } catch (RuntimeException ex) {
-                log.warn("Không đồng bộ được recording Lark cho sessionId={}: {}", session.getId(), ex.getMessage());
-            }
-        });
+    public ClassroomSessionResponse syncRecording(Long scheduleId) {
+        ClassSchedule schedule = requireSchedule(scheduleId);
+        syncGoogleMeetRecording(schedule);
+        return mapper.toManagerSessionResponse(classScheduleRepository.save(schedule));
     }
 
     @Scheduled(
             fixedDelayString = "${englishlab.google-meet.recording-sync-delay-ms:60000}",
             initialDelayString = "${englishlab.google-meet.recording-sync-delay-ms:60000}"
     )
-    public void reconcilePendingGoogleMeetRecordings() {
-        if (!virtualMeetingService.isEnabled()) {
-            return;
-        }
+    public void reconcilePendingRecordings() {
+        if (!virtualMeetingService.isEnabled()) return;
         LocalDateTime retryBefore = LocalDateTime.now().minusSeconds(
-                Math.max(30, googleMeetProperties.getRecordingSyncDelayMs() / 1000)
-        );
-        List<ClassSchedule> pending = sessionRepository.findGoogleMeetRecordingsPendingSync(
-                EnumSet.of(
-                        RecordingSyncStatus.SCHEDULED,
-                        RecordingSyncStatus.RECORDING,
-                        RecordingSyncStatus.PROCESSING,
-                        RecordingSyncStatus.FAILED
-                ),
-                Math.max(1, googleMeetProperties.getRecordingMaxSyncAttempts()),
-                retryBefore
-        );
-        pending.stream()
-                .filter(session -> session.getSessionDate() == null || !session.getSessionDate().isAfter(LocalDate.now()))
+                Math.max(30, googleMeetProperties.getRecordingSyncDelayMs() / 1000));
+        classScheduleRepository.findGoogleMeetRecordingsPendingSync(
+                        EnumSet.of(RecordingSyncStatus.PROCESSING, RecordingSyncStatus.FAILED),
+                        Math.max(1, googleMeetProperties.getRecordingMaxSyncAttempts()),
+                        retryBefore)
+                .stream()
+                .filter(schedule -> schedule.getSessionDate() == null
+                        || !schedule.getSessionDate().isAfter(LocalDate.now()))
                 .limit(50)
-                .forEach(session -> {
-                    syncGoogleMeetRecording(session);
-                    sessionRepository.save(session);
+                .forEach(schedule -> {
+                    syncGoogleMeetRecording(schedule);
+                    classScheduleRepository.save(schedule);
                 });
     }
 
-    @Scheduled(fixedDelayString = "${englishlab.lark.recording-expiry-check-delay-ms:300000}")
-    public void unpublishExpiredRecordings() {
-        List<ClassSchedule> expired = sessionRepository
-                .findByRecordingVisibleTrueAndRecordingExpiresAtBefore(LocalDateTime.now());
-        expired.forEach(session -> {
-            session.setRecordingVisible(false);
-            session.setRecordingPublishedAt(null);
-        });
-        if (!expired.isEmpty()) {
-            sessionRepository.saveAll(expired);
-        }
-    }
-
-    @Scheduled(
-            fixedDelayString = "${englishlab.lark.reserve-reconciliation-delay-ms:3600000}",
-            initialDelayString = "${englishlab.lark.reserve-reconciliation-initial-delay-ms:120000}"
-    )
-    public void reconcileUpcomingAutoRecordMeetings() {
-        if (!larkMeetingService.isEnabled() || !larkProperties.isAutoRecord()) {
-            return;
-        }
-        LocalDate today = LocalDate.now();
-        List<ClassSchedule> candidates = sessionRepository
-                .findByDeliveryModeAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
-                        ClassroomDeliveryMode.VIRTUAL,
-                        today,
-                        today.plusDays(29)
-                );
-        candidates.stream()
-                .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
-                .filter(session -> !StringUtils.hasText(session.getLarkReserveId())
-                        || "FAILED".equals(session.getLarkSyncStatus()))
-                .limit(50)
-                .forEach(session -> {
-                    try {
-                        larkMeetingService.syncMeeting(session);
-                    } catch (RuntimeException ex) {
-                        session.setLarkSyncStatus("FAILED");
-                        session.setLarkSyncError(limit(ex.getMessage(), 1000));
-                        log.warn("Không tạo được phòng Lark tự ghi hình cho sessionId={}: {}",
-                                session.getId(), ex.getMessage());
-                    }
-                    sessionRepository.save(session);
-                });
-    }
-
-    private void syncLarkRecording(ClassSchedule session) {
-        session.setRecordingLastAttemptAt(LocalDateTime.now());
-        session.setRecordingSyncAttempts((session.getRecordingSyncAttempts() == null ? 0 : session.getRecordingSyncAttempts()) + 1);
+    private void syncGoogleMeetRecording(ClassSchedule schedule) {
+        schedule.setRecordingLastAttemptAt(LocalDateTime.now());
+        schedule.setRecordingSyncAttempts((schedule.getRecordingSyncAttempts() == null
+                ? 0 : schedule.getRecordingSyncAttempts()) + 1);
         try {
-            LarkRecordingInfo recording = larkMeetingService.getRecording(session);
+            VirtualMeetingRecordingInfo recording = virtualMeetingService.getRecording(schedule);
             validateRecordingUrl(recording.url());
-            session.setRecordingUrl(recording.url());
-            session.setRecordingDurationMs(recording.durationMs());
-            session.setRecordingProvider("LARK");
-            session.setRecordingSyncStatus(RecordingSyncStatus.READY);
-            session.setRecordingSyncedAt(LocalDateTime.now());
-            session.setRecordingSyncError(null);
-            setExpiry(session);
-            if (larkProperties.isRecordingAutoPublish()) {
-                session.setRecordingVisible(true);
-                session.setRecordingPublishedAt(LocalDateTime.now());
-            }
-        } catch (RuntimeException ex) {
-            boolean stillProcessing = ex.getMessage() != null && ex.getMessage().contains("124002");
-            session.setRecordingSyncStatus(stillProcessing ? RecordingSyncStatus.PROCESSING : RecordingSyncStatus.FAILED);
-            session.setRecordingSyncError(stillProcessing
-                    ? "Lark đang xử lý file recording. Hệ thống sẽ tự thử lại."
-                    : limit(ex.getMessage(), 1000));
-        }
-    }
-
-    private void syncGoogleMeetRecording(ClassSchedule session) {
-        session.setRecordingLastAttemptAt(LocalDateTime.now());
-        session.setRecordingSyncAttempts((session.getRecordingSyncAttempts() == null ? 0 : session.getRecordingSyncAttempts()) + 1);
-        try {
-            VirtualMeetingRecordingInfo recording = virtualMeetingService.getRecording(session);
-            validateRecordingUrl(recording.url());
-            session.setRecordingUrl(recording.url());
-            session.setRecordingDurationMs(recording.durationMs());
-            session.setRecordingProvider("GOOGLE_MEET");
-            session.setRecordingSyncStatus(RecordingSyncStatus.READY);
-            session.setRecordingSyncedAt(LocalDateTime.now());
-            session.setRecordingSyncError(null);
-            setExpiry(session);
-            if (googleMeetProperties.isRecordingAutoPublish()) {
-                session.setRecordingVisible(true);
-                session.setRecordingPublishedAt(LocalDateTime.now());
-            }
-        } catch (RuntimeException ex) {
-            boolean stillProcessing = ex.getMessage() != null && (
-                    ex.getMessage().contains("đang xử lý")
-                            || ex.getMessage().contains("chưa có bản ghi hội nghị")
-            );
-            session.setRecordingSyncStatus(stillProcessing ? RecordingSyncStatus.PROCESSING : RecordingSyncStatus.FAILED);
-            session.setRecordingSyncError(stillProcessing
+            schedule.setRecordingUrl(recording.url());
+            schedule.setRecordingStatus(RecordingSyncStatus.READY);
+            schedule.setRecordingSyncedAt(LocalDateTime.now());
+            schedule.setRecordingSyncError(null);
+            if (googleMeetProperties.isRecordingAutoPublish()) schedule.setRecordingVisible(true);
+        } catch (RuntimeException exception) {
+            boolean processing = exception.getMessage() != null
+                    && (exception.getMessage().contains("đang xử lý")
+                    || exception.getMessage().contains("chưa có bản ghi"));
+            schedule.setRecordingStatus(processing
+                    ? RecordingSyncStatus.PROCESSING : RecordingSyncStatus.FAILED);
+            schedule.setRecordingSyncError(processing
                     ? "Google Meet đang xử lý file ghi hình. Hệ thống sẽ tự thử lại."
-                    : limit(ex.getMessage(), 1000));
+                    : limit(exception.getMessage(), 1000));
         }
     }
 
-    private boolean isGoogleMeetSession(ClassSchedule session) {
-        return StringUtils.hasText(session.getLarkMeetingId())
-                && session.getLarkMeetingId().startsWith("spaces/");
+    private ClassSchedule requireSchedule(Long id) {
+        return classScheduleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy buổi học."));
+    }
+
+    private void clearRecording(ClassSchedule schedule) {
+        schedule.setRecordingVisible(false);
+        schedule.setRecordingStatus(RecordingSyncStatus.NOT_AVAILABLE);
+        schedule.setRecordingSyncedAt(null);
+        schedule.setRecordingLastAttemptAt(null);
+        schedule.setRecordingSyncError(null);
+        schedule.setRecordingSyncAttempts(0);
     }
 
     private String trimOrNull(String value) {
@@ -295,30 +147,13 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
             if (!"https".equalsIgnoreCase(uri.getScheme()) || !StringUtils.hasText(uri.getHost())) {
                 throw new IllegalArgumentException();
             }
-        } catch (IllegalArgumentException ex) {
-            throw new RuntimeException("Recording phải là đường dẫn HTTPS hợp lệ.");
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Đường dẫn ghi hình phải là HTTPS hợp lệ.");
         }
     }
 
-    private void clearRecordingMetadata(ClassSchedule session) {
-        session.setRecordingVisible(false);
-        session.setRecordingProvider(null);
-        session.setRecordingDurationMs(null);
-        session.setRecordingSyncStatus(RecordingSyncStatus.NOT_AVAILABLE);
-        session.setRecordingSyncedAt(null);
-        session.setRecordingSyncError(null);
-        session.setRecordingSyncAttempts(0);
-        session.setRecordingPublishedAt(null);
-        session.setRecordingExpiresAt(null);
-    }
-
-    private void setExpiry(ClassSchedule session) {
-        int days = 30;
-        session.setRecordingExpiresAt(LocalDateTime.now().plusDays(days));
-    }
-
     private String limit(String value, int maxLength) {
-        if (!StringUtils.hasText(value)) return "Không đồng bộ được recording từ Lark.";
+        if (!StringUtils.hasText(value)) return "Không đồng bộ được bản ghi từ Google Meet.";
         return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 }

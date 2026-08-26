@@ -169,13 +169,13 @@ public class CenterSheetCourseCatalog {
                         .description("Module " + order + ": " + moduleTitle)
                         .sequenceNumber(order)
                         .build();
-                module.addLesson(article(moduleTitle + " - Orientation", 1, true,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Orientation", 1, true,
                         "# " + moduleTitle + "\n\nMục tiêu: nắm chiến lược, từ vựng chủ đề và lỗi thường gặp.\n\n## Trước khi học\nViết 4 câu trả lời nhanh về chủ đề này, không dùng từ điển.\n\n## Cách học\n1. Đọc overview.\n2. Học collocation.\n3. Làm bài tập output."));
-                module.addLesson(article(moduleTitle + " - Strategy", 2, true,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Strategy", 2, true,
                         "# Strategy\n\n- Đọc câu hỏi trước.\n- Gạch keyword.\n- Đoán loại thông tin (số, tên, danh từ).\n- Kiểm tra spelling.\n\nVí dụ: If the note says *opening time*, listen for a clock time such as 18:00."));
-                module.addLesson(article(moduleTitle + " - Vocabulary", 3, false,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Vocabulary", 3, false,
                         "# Vocabulary bank\n\n1. **evening class** — lớp ca tối\n2. **intake** — đợt tuyển sinh\n3. **placement test** — bài xếp lớp\n4. **collocation** — cụm từ đi kèm\n5. **band descriptor** — mô tả band điểm\n\nViết 1 đoạn 80 từ dùng ít nhất 4 cụm trên."));
-                module.addLesson(article(moduleTitle + " - Practice", 4, false,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Practice", 4, false,
                         "# Practice\n\n1. Trả lời 3 câu Speaking trong 45 giây.\n2. Viết 1 đoạn Writing 120 từ.\n3. Ghi 5 lỗi bản thân hay mắc và cách sửa."));
                 draftVersion.addModule(module);
                 order++;
@@ -206,14 +206,22 @@ public class CenterSheetCourseCatalog {
                         .build()));
     }
 
-    private OnlineLesson article(String title, int order, boolean preview, String content) {
+    private OnlineLesson article(
+            String courseSlug,
+            int moduleOrder,
+            String title,
+            int lessonOrder,
+            boolean preview,
+            String content
+    ) {
         return OnlineLesson.builder()
+                .stableLessonKey("%s-m%d-l%d".formatted(courseSlug, moduleOrder, lessonOrder))
                 .title(title)
                 .description(title)
                 .contentType("ARTICLE")
                 .contentText(content)
                 .durationMinutes(12)
-                .sequenceNumber(order)
+                .sequenceNumber(lessonOrder)
                 .preview(preview)
                 .build();
     }

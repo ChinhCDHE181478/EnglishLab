@@ -8,5 +8,4 @@ public interface VirtualAttendanceService {
 
     void finalizeVirtualAttendance(ClassSchedule session);
 
-    void syncLarkParticipantAttendance(ClassSchedule session);
 }

@@ -280,9 +280,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     + (intake == 0 ? "K1 " : intake == 1 ? "K2 " : "K3 ")
                     + (mwf ? "T2-4-6 " : "T3-5-7 ")
                     + (eveningTwo ? "Ca 2" : "Ca 1");
-            ClassSection offering = upsertOffering(
-                    slug, title, online, start, end, teacher, room, eveningTwo);
             InstructorLedCourse program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
+            ClassSection offering = upsertOffering(
+                    slug, title, online, start, end, teacher, room, eveningTwo, program);
             attachCourse(offering, program);
             ensureTeacherAssignment(offering, teacher);
             seedSessions(offering, teacher, room, mwf, eveningTwo, online);
@@ -329,16 +329,19 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             LocalDate end,
             User teacher,
             Room room,
-            boolean eveningTwo
+            boolean eveningTwo,
+            InstructorLedCourse instructorLedCourse
     ) {
         String cover = online ? "/course-covers/classroom-online.png" : "/course-covers/classroom-offline.png";
         return offeringRepository.findByInstructorLedCourseSlugOrCode(slug).map(existing -> {
             existing.setName(title);
+            existing.setInstructorLedCourse(instructorLedCourse);
             existing.setPrimaryTeacher(teacher);
             existing.setRegularRoom(room);
             return offeringRepository.save(existing);
         }).orElseGet(() -> {
             ClassSection offering = ClassSection.builder()
+                    .instructorLedCourse(instructorLedCourse)
                     .name(title)
                     .code(slug)
                     .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
@@ -488,6 +491,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .classSection(offering)
                         .status(ClassroomEnrollmentStatus.ENROLLED)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
+                        .agreedTuitionFeeVnd(offering.getTuitionFeeVnd())
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(4_690_000))
                         .tuitionDepositPaid(BigDecimal.valueOf(1_000_000))
@@ -1439,6 +1443,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             return;
         }
         User teacher = teachers.get(1);
+        InstructorLedCourse program = ensureSheetTrainingProgram(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
         ClassSection offering = upsertOffering(
                 "center-sheet-class-31",
                 "IELTS Center K4 T2-4-6 Ca 1",
@@ -1447,13 +1453,13 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 LocalDate.now().plusWeeks(12),
                 teacher,
                 roomRepository.findByActiveTrue().stream().findFirst().orElse(null),
-                false
+                false,
+                program
         );
         offering.setCapacity(10);
         offering.setStatus(ClassroomOfferingStatus.UPCOMING);
         offeringRepository.save(offering);
-        attachCourse(offering, ensureSheetTrainingProgram(
-                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE));
+        attachCourse(offering, program);
         ensureTeacherAssignment(offering, teacher);
         ensureClassEnrollment(offering, learners.get(1), teacher, LocalDate.now());
         ensureClassEnrollment(offering, learners.get(2), teacher, LocalDate.now());

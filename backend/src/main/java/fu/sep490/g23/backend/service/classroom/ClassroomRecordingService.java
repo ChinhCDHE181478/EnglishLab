@@ -1,20 +1,15 @@
 package fu.sep490.g23.backend.service.classroom;
 
 import fu.sep490.g23.backend.dto.request.classroom.UpdateRecordingRequest;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
 
 import java.util.List;
 
 public interface ClassroomRecordingService {
-    ClassroomOfferingResponse updateOfferingRecording(Long offeringId, UpdateRecordingRequest request);
-
     ClassroomSessionResponse updateSessionRecording(Long sessionId, UpdateRecordingRequest request);
 
     List<ClassroomSessionResponse> listManagerSessions(Long offeringId);
 
     ClassroomSessionResponse syncRecording(Long sessionId);
 
-    /** Kept temporarily for existing callers. The provider is resolved from the session. */
-    ClassroomSessionResponse syncLarkRecording(Long sessionId);
 }

@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.entity.classroom;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 
@@ -79,8 +79,8 @@ public class ClassSection {
     private User primaryTeacher;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "virtual_meeting_owner_id")
-    private User virtualMeetingOwner;
+    @JoinColumn(name = "google_meet_owner_id")
+    private User googleMeetOwner;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "regular_room_id")
@@ -92,20 +92,19 @@ public class ClassSection {
     @Column(name = "location_note", length = 500)
     private String locationNote;
 
-    @Column(name = "default_lark_meeting_url", length = 700)
-    private String defaultLarkMeetingUrl;
+    @Column(name = "google_meet_space_name", length = 255)
+    private String googleMeetSpaceName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "lark_meeting_status", length = 30)
+    @Column(name = "google_meet_status", nullable = false, length = 30)
     @Builder.Default
-    private LarkMeetingStatus larkMeetingStatus = LarkMeetingStatus.NOT_CREATED;
+    private GoogleMeetStatus googleMeetStatus = GoogleMeetStatus.NOT_CREATED;
 
-    @Column(name = "recording_url", length = 700)
-    private String recordingUrl;
+    @Column(name = "google_meet_url", length = 700)
+    private String googleMeetUrl;
 
-    @Column(name = "recording_visible", nullable = false)
-    @Builder.Default
-    private boolean recordingVisible = false;
+    @Column(name = "google_meet_sync_error", length = 1000)
+    private String googleMeetSyncError;
 
     @Column(name = "syllabus_summary", columnDefinition = "text")
     private String syllabusSummary;

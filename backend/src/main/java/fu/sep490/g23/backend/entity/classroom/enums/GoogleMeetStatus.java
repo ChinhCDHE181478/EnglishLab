@@ -1,8 +1,8 @@
 package fu.sep490.g23.backend.entity.classroom.enums;
 
-public enum RecordingSyncStatus {
-    NOT_AVAILABLE,
-    PROCESSING,
+public enum GoogleMeetStatus {
+    NOT_CREATED,
+    CREATING,
     READY,
     FAILED
 }

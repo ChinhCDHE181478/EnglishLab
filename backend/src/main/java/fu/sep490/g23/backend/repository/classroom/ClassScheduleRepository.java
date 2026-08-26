@@ -34,15 +34,14 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     long countByTeacherIdAndStatus(Long teacherId, ClassroomSessionStatus status);
 
-    List<ClassSchedule> findByDeliveryModeAndStatusIn(
-            ClassroomDeliveryMode deliveryMode,
-            Collection<ClassroomSessionStatus> statuses
-    );
-
-    List<ClassSchedule> findByDeliveryModeAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
-            ClassroomDeliveryMode deliveryMode,
-            LocalDate fromDate,
-            LocalDate toDate
+    @Query("""
+            SELECT s FROM ClassSchedule s
+            WHERE COALESCE(s.deliveryModeOverride, s.classSection.deliveryMode) = :deliveryMode
+              AND s.status IN :statuses
+            """)
+    List<ClassSchedule> findByEffectiveDeliveryModeAndStatusIn(
+            @Param("deliveryMode") ClassroomDeliveryMode deliveryMode,
+            @Param("statuses") Collection<ClassroomSessionStatus> statuses
     );
 
     List<ClassSchedule> findByStatusInAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
@@ -66,46 +65,8 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     @Query("""
             SELECT s FROM ClassSchedule s
-            WHERE s.deliveryMode = :deliveryMode
-              AND s.status IN :sessionStatuses
-              AND s.sessionDate >= :fromDate
-              AND (s.larkSyncStatus IS NULL OR s.larkSyncStatus IN :syncStatuses)
-            ORDER BY s.updatedAt ASC, s.id ASC
-            """)
-    List<ClassSchedule> findVirtualMeetingsPendingSync(
-            @Param("deliveryMode") ClassroomDeliveryMode deliveryMode,
-            @Param("sessionStatuses") Collection<ClassroomSessionStatus> sessionStatuses,
-            @Param("syncStatuses") Collection<String> syncStatuses,
-            @Param("fromDate") LocalDate fromDate,
-            Pageable pageable
-    );
-
-    Optional<ClassSchedule> findByLarkMeetingId(String larkMeetingId);
-
-    Optional<ClassSchedule> findByLarkMeetingNo(String larkMeetingNo);
-
-    List<ClassSchedule> findByLarkEmptySinceIsNotNullAndLarkEmptySinceBefore(LocalDateTime cutoff);
-
-    List<ClassSchedule> findByRecordingVisibleTrueAndRecordingExpiresAtBefore(LocalDateTime now);
-
-    @Query("""
-            SELECT s FROM ClassSchedule s
-            WHERE s.recordingSyncStatus IN :statuses
-              AND s.larkMeetingId IS NOT NULL
-              AND s.recordingSyncAttempts < :maxAttempts
-              AND (s.recordingLastAttemptAt IS NULL OR s.recordingLastAttemptAt <= :retryBefore)
-            ORDER BY s.recordingLastAttemptAt ASC, s.id ASC
-            """)
-    List<ClassSchedule> findRecordingsPendingSync(
-            @Param("statuses") Collection<RecordingSyncStatus> statuses,
-            @Param("maxAttempts") int maxAttempts,
-            @Param("retryBefore") LocalDateTime retryBefore
-    );
-
-    @Query("""
-            SELECT s FROM ClassSchedule s
-            WHERE s.recordingSyncStatus IN :statuses
-              AND s.larkMeetingId LIKE 'spaces/%'
+            WHERE s.recordingStatus IN :statuses
+              AND s.classSection.googleMeetSpaceName LIKE 'spaces/%'
               AND s.recordingSyncAttempts < :maxAttempts
               AND (s.recordingLastAttemptAt IS NULL OR s.recordingLastAttemptAt <= :retryBefore)
             ORDER BY s.recordingLastAttemptAt ASC, s.id ASC

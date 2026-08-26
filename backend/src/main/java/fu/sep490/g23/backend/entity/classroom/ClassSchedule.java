@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.entity.classroom;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -54,50 +53,12 @@ public class ClassSchedule {
     private ClassroomSessionStatus status = ClassroomSessionStatus.SCHEDULED;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "delivery_mode", nullable = false, length = 20)
-    private ClassroomDeliveryMode deliveryMode;
+    @Column(name = "delivery_mode_override", length = 20)
+    private ClassroomDeliveryMode deliveryModeOverride;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
     private Room room;
-
-    @Column(name = "meeting_url", length = 700)
-    private String meetingUrl;
-
-    @Column(name = "lark_meeting_url", length = 700)
-    private String larkMeetingUrl;
-
-    @Column(name = "lark_calendar_id", length = 255)
-    private String larkCalendarId;
-
-    @Column(name = "lark_event_id", length = 255)
-    private String larkEventId;
-
-    @Column(name = "lark_meeting_id", length = 255)
-    private String larkMeetingId;
-
-    @Column(name = "lark_meeting_no", length = 30)
-    private String larkMeetingNo;
-
-    @Column(name = "lark_reserve_id", length = 255)
-    private String larkReserveId;
-
-    @Column(name = "lark_empty_since")
-    private LocalDateTime larkEmptySince;
-
-    @Column(name = "lark_sync_status", length = 30)
-    private String larkSyncStatus;
-
-    @Column(name = "lark_sync_error", length = 1000)
-    private String larkSyncError;
-
-    @Column(name = "lark_synced_at")
-    private LocalDateTime larkSyncedAt;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "lark_meeting_status", length = 30)
-    @Builder.Default
-    private LarkMeetingStatus larkMeetingStatus = LarkMeetingStatus.NOT_CREATED;
 
     @Column(name = "recording_url", length = 700)
     private String recordingUrl;
@@ -108,19 +69,13 @@ public class ClassSchedule {
 
     @Enumerated(EnumType.STRING)
     @Column(
-            name = "recording_sync_status",
+            name = "recording_status",
             nullable = false,
             length = 30,
             columnDefinition = "VARCHAR(30) DEFAULT 'NOT_AVAILABLE'"
     )
     @Builder.Default
-    private RecordingSyncStatus recordingSyncStatus = RecordingSyncStatus.NOT_AVAILABLE;
-
-    @Column(name = "recording_provider", length = 30)
-    private String recordingProvider;
-
-    @Column(name = "recording_duration_ms")
-    private Long recordingDurationMs;
+    private RecordingSyncStatus recordingStatus = RecordingSyncStatus.NOT_AVAILABLE;
 
     @Column(name = "recording_synced_at")
     private LocalDateTime recordingSyncedAt;
@@ -135,12 +90,6 @@ public class ClassSchedule {
     @Builder.Default
     private Integer recordingSyncAttempts = 0;
 
-    @Column(name = "recording_published_at")
-    private LocalDateTime recordingPublishedAt;
-
-    @Column(name = "recording_expires_at")
-    private LocalDateTime recordingExpiresAt;
-
     @Column(name = "session_content", columnDefinition = "text")
     private String sessionContent;
 
@@ -148,17 +97,8 @@ public class ClassSchedule {
     @JoinColumn(name = "course_lesson_id")
     private CourseLesson courseLesson;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "schedule_type", nullable = false, length = 30)
-    @Builder.Default
-    private ClassScheduleType scheduleType = ClassScheduleType.OTHER;
-
     @Column(length = 500)
     private String note;
-
-    @Column(name = "locked", nullable = false)
-    @Builder.Default
-    private boolean locked = false;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -174,5 +114,21 @@ public class ClassSchedule {
 
     public LocalDateTime getEndDateTime() {
         return LocalDateTime.of(sessionDate, endTime);
+    }
+
+    public User getEffectiveTeacher() {
+        return teacher != null ? teacher : classSection.getPrimaryTeacher();
+    }
+
+    public Room getEffectiveRoom() {
+        return room != null ? room : classSection.getRegularRoom();
+    }
+
+    public ClassroomDeliveryMode getEffectiveDeliveryMode() {
+        return deliveryModeOverride != null ? deliveryModeOverride : classSection.getDeliveryMode();
+    }
+
+    public boolean isImmutable() {
+        return status == ClassroomSessionStatus.COMPLETED || status == ClassroomSessionStatus.CANCELLED;
     }
 }
