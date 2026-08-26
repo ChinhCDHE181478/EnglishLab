@@ -55,7 +55,7 @@ import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -188,27 +188,27 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
         log.info("[CenterSheet] Nap du lieu quy mo trung tam (local sheet DB), flag={}", sheetEnabled);
         try {
-            User contentManager = ensureUser("content.manager@englishlab.vn", "Quản lý Content", RoleEnum.CONTENT_MANAGER);
-        ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
-        ensureUser("classroom.manager@englishlab.vn", "Quản lý lớp học", RoleEnum.MANAGER);
-        ensureUser("staff@englishlab.vn", "Nhân viên đào tạo", RoleEnum.STAFF);
+            User contentManager = ensureUser("content.manager@englishlab.vn", "Quản lý Content", RoleCodes.CONTENT_MANAGER);
+        ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleCodes.ADMIN);
+        ensureUser("classroom.manager@englishlab.vn", "Quản lý lớp học", RoleCodes.MANAGER);
+        ensureUser("staff@englishlab.vn", "Nhân viên đào tạo", RoleCodes.STAFF);
         User staff = userRepository.findByEmail("staff@englishlab.vn").orElseThrow();
 
-        User alien = ensureExistingOrCreate(TEACHER_EMAIL, "Trần Minh Huy", RoleEnum.TEACHER);
+        User alien = ensureExistingOrCreate(TEACHER_EMAIL, "Trần Minh Huy", RoleCodes.TEACHER);
         List<User> teachers = new ArrayList<>();
         teachers.add(alien);
         for (int i = 0; i < TEACHER_NAMES.length; i++) {
-            teachers.add(ensureUser("gv.sheet.%02d@englishlab.vn".formatted(i + 1), TEACHER_NAMES[i], RoleEnum.TEACHER));
+            teachers.add(ensureUser("gv.sheet.%02d@englishlab.vn".formatted(i + 1), TEACHER_NAMES[i], RoleCodes.TEACHER));
         }
 
-        User showcaseLearner = ensureExistingOrCreate(LEARNER_EMAIL, "Lê Ngọc Anh", RoleEnum.LEARNER);
+        User showcaseLearner = ensureExistingOrCreate(LEARNER_EMAIL, "Lê Ngọc Anh", RoleCodes.LEARNER);
         onboardingSupport.ensureReady(showcaseLearner);
 
         List<User> learners = new ArrayList<>();
         learners.add(showcaseLearner);
         for (int i = 1; i <= 299; i++) {
             String name = LAST_NAMES[i % LAST_NAMES.length] + " " + FIRST_NAMES[i % FIRST_NAMES.length] + " " + i;
-            learners.add(ensureUser("hs.sheet.%03d@englishlab.vn".formatted(i), name, RoleEnum.LEARNER));
+            learners.add(ensureUser("hs.sheet.%03d@englishlab.vn".formatted(i), name, RoleCodes.LEARNER));
         }
 
         courseCatalog.seed(contentManager);
@@ -897,7 +897,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         List<User> prospects = new ArrayList<>();
         for (int i = 1; i <= 36; i++) {
             String name = LAST_NAMES[i % LAST_NAMES.length] + " " + FIRST_NAMES[i % FIRST_NAMES.length] + " Tư vấn " + i;
-            prospects.add(ensureUser("hs.consult.%03d@englishlab.vn".formatted(i), name, RoleEnum.LEARNER));
+            prospects.add(ensureUser("hs.consult.%03d@englishlab.vn".formatted(i), name, RoleCodes.LEARNER));
         }
         EnrollmentRequestStatus[] statuses = {
                 EnrollmentRequestStatus.SUBMITTED,
@@ -1415,7 +1415,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         changeRequestRepository.save(ClassroomChangeRequest.builder()
                 .requestType(ClassroomChangeRequestType.RESCHEDULE_SESSION)
                 .requester(alien)
-                .requesterRole(RoleEnum.TEACHER)
+                .requesterRole(RoleCodes.TEACHER)
                 .classSection(offering)
                 .targetClassSchedule(session)
                 .reason("Trùng lịch họp phụ huynh, xin dời buổi học ca 1.")
@@ -1424,7 +1424,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         changeRequestRepository.save(ClassroomChangeRequest.builder()
                 .requestType(ClassroomChangeRequestType.CHANGE_ROOM)
                 .requester(alien)
-                .requesterRole(RoleEnum.TEACHER)
+                .requesterRole(RoleCodes.TEACHER)
                 .classSection(offering)
                 .reason("Phòng P001 đang bảo trì loa, xin chuyển phòng.")
                 .status(ClassroomChangeRequestStatus.PENDING)
@@ -1487,9 +1487,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         gradebookEntryRepository.save(entry);
     }
 
-    private User ensureUser(String email, String fullName, RoleEnum role) {
+    private User ensureUser(String email, String fullName, String roleCode) {
         return userRepository.findByEmail(email).map(existing -> {
-            userRoleService.ensureRole(existing, role);
+            userRoleService.ensureRole(existing, roleCode);
             existing.setFullName(fullName);
             existing.setEmailVerified(true);
             return userRepository.save(existing);
@@ -1502,12 +1502,12 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .profileCompleted(true)
                     .passwordSet(true)
                     .build();
-            userRoleService.assignRole(created, role);
+            userRoleService.assignRole(created, roleCode);
             return userRepository.save(created);
         });
     }
 
-    private User ensureExistingOrCreate(String email, String fullName, RoleEnum role) {
-        return ensureUser(email, fullName, role);
+    private User ensureExistingOrCreate(String email, String fullName, String roleCode) {
+        return ensureUser(email, fullName, roleCode);
     }
 }

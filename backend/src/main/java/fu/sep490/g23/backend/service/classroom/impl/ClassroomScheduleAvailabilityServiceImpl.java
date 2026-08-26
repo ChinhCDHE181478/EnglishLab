@@ -6,7 +6,7 @@ import fu.sep490.g23.backend.dto.response.classroom.AvailableTeacherOptionRespon
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -72,7 +72,7 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
             return List.of();
         }
 
-        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleEnum.TEACHER)).stream()
+        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleCodes.TEACHER)).stream()
                 .filter(teacher -> sessionRepository.findTeacherConflicts(
                         teacher.getId(),
                         sessionDate,
@@ -103,7 +103,7 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
                         || currentPrimaryTeacherId.equals(session.getTeacher().getId()))
                 .toList();
 
-        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleEnum.TEACHER)).stream()
+        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleCodes.TEACHER)).stream()
                 .filter(teacher -> upcomingSessions.stream().allMatch(session -> sessionRepository.findTeacherConflicts(
                         teacher.getId(),
                         session.getSessionDate(),

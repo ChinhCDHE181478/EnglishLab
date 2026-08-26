@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -75,21 +75,21 @@ public class ReviewDataSeeder implements CommandLineRunner {
         Room toeicRoom = ensureRoom("TOEIC 01", 30);
         ensureRoom("Speaking Studio", 12);
 
-        User manager = ensureUser("review.manager@englishlab.vn", "Nguyễn Hoài An", RoleEnum.MANAGER);
-        ensureUser("review.staff@englishlab.vn", "Vũ Ngọc Mai", RoleEnum.STAFF);
-        User ieltsTeacher = ensureUser("review.teacher.ielts@englishlab.vn", "Nguyễn Khánh Linh", RoleEnum.TEACHER);
-        User toeicTeacher = ensureUser("review.teacher.toeic@englishlab.vn", "Trần Minh Quân", RoleEnum.TEACHER);
-        ensureUser("review.teacher.speaking@englishlab.vn", "Phạm Thu Hương", RoleEnum.TEACHER);
-        ensureUser("review.teacher.communication@englishlab.vn", "Lê Hoàng Nam", RoleEnum.TEACHER);
+        User manager = ensureUser("review.manager@englishlab.vn", "Nguyễn Hoài An", RoleCodes.MANAGER);
+        ensureUser("review.staff@englishlab.vn", "Vũ Ngọc Mai", RoleCodes.STAFF);
+        User ieltsTeacher = ensureUser("review.teacher.ielts@englishlab.vn", "Nguyễn Khánh Linh", RoleCodes.TEACHER);
+        User toeicTeacher = ensureUser("review.teacher.toeic@englishlab.vn", "Trần Minh Quân", RoleCodes.TEACHER);
+        ensureUser("review.teacher.speaking@englishlab.vn", "Phạm Thu Hương", RoleCodes.TEACHER);
+        ensureUser("review.teacher.communication@englishlab.vn", "Lê Hoàng Nam", RoleCodes.TEACHER);
         List<User> ieltsLearners = List.of(
-                ensureUser("review.learner.minhanh@englishlab.vn", "Phạm Minh Anh", RoleEnum.LEARNER),
-                ensureUser("review.learner.giahuy@englishlab.vn", "Hoàng Gia Huy", RoleEnum.LEARNER),
-                ensureUser("review.learner.ngocmai@englishlab.vn", "Trần Ngọc Mai", RoleEnum.LEARNER)
+                ensureUser("review.learner.minhanh@englishlab.vn", "Phạm Minh Anh", RoleCodes.LEARNER),
+                ensureUser("review.learner.giahuy@englishlab.vn", "Hoàng Gia Huy", RoleCodes.LEARNER),
+                ensureUser("review.learner.ngocmai@englishlab.vn", "Trần Ngọc Mai", RoleCodes.LEARNER)
         );
         List<User> toeicLearners = List.of(
-                ensureUser("review.learner.quanghuy@englishlab.vn", "Nguyễn Quang Huy", RoleEnum.LEARNER),
-                ensureUser("review.learner.thuha@englishlab.vn", "Lê Thu Hà", RoleEnum.LEARNER),
-                ensureUser("review.learner.baolong@englishlab.vn", "Trần Bảo Long", RoleEnum.LEARNER)
+                ensureUser("review.learner.quanghuy@englishlab.vn", "Nguyễn Quang Huy", RoleCodes.LEARNER),
+                ensureUser("review.learner.thuha@englishlab.vn", "Lê Thu Hà", RoleCodes.LEARNER),
+                ensureUser("review.learner.baolong@englishlab.vn", "Trần Bảo Long", RoleCodes.LEARNER)
         );
 
         ClassSection ieltsClass = ensureClassroom(
@@ -121,16 +121,16 @@ public class ReviewDataSeeder implements CommandLineRunner {
                         .build()));
     }
 
-    private User ensureUser(String email, String fullName, RoleEnum role) {
+    private User ensureUser(String email, String fullName, String roleCode) {
         return userRepository.findByEmail(email).orElseGet(() -> {
             User user = User.builder()
                     .email(email)
                     .fullName(fullName)
                     .password(passwordEncoder.encode(PASSWORD))
                     .emailVerified(true)
-                    .profileCompleted(role != RoleEnum.LEARNER)
+                    .profileCompleted(!RoleCodes.LEARNER.equals(roleCode))
                     .build();
-            userRoleService.assignRole(user, role);
+            userRoleService.assignRole(user, roleCode);
             return userRepository.save(user);
         });
     }

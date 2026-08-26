@@ -11,7 +11,7 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
@@ -74,7 +74,8 @@ class ClassroomGradebookServiceImplTest {
     @Test
     void updateEntry_UpdatesDynamicHomeworkScoresAndMarksPendingEntryAsGraded() {
         when(accessHelper.requireUser("teacher@example.com"))
-                .thenReturn(User.builder().id(41L).role(RoleEnum.TEACHER).build());
+                .thenReturn(User.builder().id(41L)
+                        .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.TEACHER)).build());
         when(offeringRepository.findById(21L)).thenReturn(Optional.of(entry.getClassSection()));
         when(enrollmentRepository.findByStudentIdAndClassSectionId(31L, 21L))
                 .thenReturn(Optional.of(ClassEnrollment.builder()
@@ -142,7 +143,8 @@ class ClassroomGradebookServiceImplTest {
     @Test
     void unpublishGradebook_MarksPublishedEntriesAsGraded() {
         when(accessHelper.requireUser("teacher@example.com"))
-                .thenReturn(User.builder().id(41L).role(RoleEnum.TEACHER).build());
+                .thenReturn(User.builder().id(41L)
+                        .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.TEACHER)).build());
         entry.setStatus(GradebookEntryStatus.PUBLISHED);
         when(gradebookEntryRepository.findByClassSectionId(21L)).thenReturn(List.of(entry));
         when(gradebookEntryRepository.saveAll(List.of(entry))).thenReturn(List.of(entry));

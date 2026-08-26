@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.admin.AuditLogRepository;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
@@ -226,7 +226,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                     .targetScore("7.0")
                     .studyGoal("Hoàn thành khóa học demo để kiểm tra chứng nhận.")
                     .build();
-            userRoleService.assignRole(created, RoleEnum.LEARNER);
+            userRoleService.assignRole(created, RoleCodes.LEARNER);
             existing = userRepository.save(created);
         } else if (existing.getFullName() == null || existing.getFullName().isBlank() || existing.getFullName().equalsIgnoreCase("Học viên EnglishLab")) {
             existing.setFullName("Học viên Chứng nhận Demo");

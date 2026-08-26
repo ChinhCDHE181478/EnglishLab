@@ -1,21 +1,16 @@
 package fu.sep490.g23.backend.entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import java.util.List;
-
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -132,15 +127,14 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean teacherPublicProfile = false;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role_code", nullable = false, length = 40)
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_code", referencedColumnName = "code")
+    )
     @Builder.Default
-    private Set<RoleEnum> roles = new LinkedHashSet<>();
-
-    @Transient
-    private RoleEnum role;
+    private Set<Role> roles = new LinkedHashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -152,52 +146,45 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Set<RoleEnum> assignedRoles = getRoleCodes();
-        if (assignedRoles.isEmpty()) {
-            assignedRoles = Set.of(getRole());
-        }
+        Set<Role> assignedRoles = roles == null ? Set.of() : roles;
         return assignedRoles.stream()
-                .map(item -> new SimpleGrantedAuthority("ROLE_" + item.name()))
+                .filter(Role::isActive)
+                .map(Role::getCode)
+                .map(code -> new SimpleGrantedAuthority("ROLE_" + code))
                 .toList();
     }
 
-    public RoleEnum getRole() {
-        if (roles != null && !roles.isEmpty()) {
-            return roles.stream()
-                    .min(Comparator.comparingInt(User::rolePriority))
-                    .orElse(role == null ? RoleEnum.LEARNER : role);
-        }
-        return role == null ? RoleEnum.LEARNER : role;
-    }
-
-    public void setRole(RoleEnum role) {
-        this.role = role;
-    }
-
-    public Set<RoleEnum> getRoleCodes() {
+    public Set<String> getRoleCodes() {
         if (roles == null) {
             return Set.of();
         }
-        return new LinkedHashSet<>(roles);
+        return roles.stream().map(Role::getCode)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
     }
 
-    public boolean hasRole(RoleEnum expectedRole) {
-        return getRoleCodes().contains(expectedRole) || (getRoleCodes().isEmpty() && getRole() == expectedRole);
+    public String getPrimaryRoleCode() {
+        return getRoleCodes().stream()
+                .min(Comparator.comparingInt(User::rolePriority))
+                .orElse(RoleCodes.LEARNER);
     }
 
-    public boolean hasAnyRole(Collection<RoleEnum> expectedRoles) {
-        return expectedRoles.stream().anyMatch(this::hasRole);
+    public boolean hasRole(String expectedRoleCode) {
+        if (expectedRoleCode == null) {
+            return false;
+        }
+        if (getRoleCodes().contains(expectedRoleCode)) {
+            return true;
+        }
+        return false;
     }
 
-    private static int rolePriority(RoleEnum role) {
-        return switch (role) {
-            case ADMIN -> 0;
-            case MANAGER -> 1;
-            case STAFF -> 2;
-            case CONTENT_MANAGER -> 3;
-            case TEACHER -> 4;
-            case LEARNER -> 5;
-        };
+    public boolean hasAnyRoleCodes(Collection<String> expectedRoleCodes) {
+        return expectedRoleCodes.stream().anyMatch(this::hasRole);
+    }
+
+    private static int rolePriority(String roleCode) {
+        int priority = RoleCodes.DISPLAY_PRIORITY.indexOf(roleCode);
+        return priority < 0 ? RoleCodes.DISPLAY_PRIORITY.size() : priority;
     }
 
     @Override

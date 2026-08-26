@@ -18,7 +18,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
@@ -97,9 +97,9 @@ class EnrollmentRequestServiceImplTest {
                 userRoleService,
                 passwordEncoder
         );
-        learner = user(10L, "learner@example.com", RoleEnum.LEARNER);
-        staff = user(50L, "staff@example.com", RoleEnum.STAFF);
-        manager = user(60L, "manager@example.com", RoleEnum.MANAGER);
+        learner = user(10L, "learner@example.com", RoleCodes.LEARNER);
+        staff = user(50L, "staff@example.com", RoleCodes.STAFF);
+        manager = user(60L, "manager@example.com", RoleCodes.MANAGER);
         program = InstructorLedCourse.builder()
                 .id(20L)
                 .code("IELTS-FOUNDATION")
@@ -272,7 +272,7 @@ class EnrollmentRequestServiceImplTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User saved = invocation.getArgument(0);
             saved.setId(70L);
-            saved.setRole(RoleEnum.LEARNER);
+            saved.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER));
             return saved;
         });
         when(classroomEnrollmentRepository
@@ -290,7 +290,7 @@ class EnrollmentRequestServiceImplTest {
         assertThat(response.isLearnerAccountCreated()).isTrue();
         assertThat(response.isAccountSetupEmailSent()).isTrue();
         assertThat(response.getAssignedClassroomId()).isEqualTo(classroom.getId());
-        verify(userRoleService).assignRole(any(User.class), eq(RoleEnum.LEARNER));
+        verify(userRoleService).assignRole(any(User.class), eq(RoleCodes.LEARNER));
         verify(authMailService).sendStaffCreatedAccountEmail(any(User.class), eq("123456"));
         verify(enrollmentRequestMailService).sendClassAssignment(any(CourseRegistrationRequest.class), eq(classroom));
     }
@@ -417,9 +417,9 @@ class EnrollmentRequestServiceImplTest {
         });
     }
 
-    private User user(Long id, String email, RoleEnum role) {
+    private User user(Long id, String email, String roleCode) {
         User user = User.builder().id(id).fullName(email).email(email).build();
-        user.setRole(role);
+        user.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(roleCode));
         return user;
     }
 }

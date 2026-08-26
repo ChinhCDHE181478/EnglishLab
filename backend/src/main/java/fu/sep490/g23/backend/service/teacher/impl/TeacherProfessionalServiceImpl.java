@@ -13,7 +13,7 @@ import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepo
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.teacher.TeacherCredential;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -48,7 +48,7 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     public List<TeacherProfessionalResponse> listTeachers(String actorEmail) {
         User actor = requireActor(actorEmail);
         requireOperationsViewer(actor);
-        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleEnum.TEACHER)).stream()
+        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleCodes.TEACHER)).stream()
                 .sorted(Comparator.comparing(User::getFullName, String.CASE_INSENSITIVE_ORDER))
                 .map(teacher -> buildResponse(teacher, canManagePerformance(actor), false))
                 .toList();
@@ -384,19 +384,19 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     }
 
     private void requireTeacherRole(User user) {
-        if (!user.hasRole(RoleEnum.TEACHER)) {
+        if (!user.hasRole(RoleCodes.TEACHER)) {
             throw new IllegalArgumentException("Người dùng đã chọn không có vai trò giáo viên.");
         }
     }
 
     private void requireOperationsViewer(User user) {
-        if (!user.hasAnyRole(Set.of(RoleEnum.STAFF, RoleEnum.MANAGER, RoleEnum.ADMIN))) {
+        if (!user.hasAnyRoleCodes(Set.of(RoleCodes.STAFF, RoleCodes.MANAGER, RoleCodes.ADMIN))) {
             throw new RuntimeException("Bạn không có quyền xem hồ sơ đội ngũ giáo viên.");
         }
     }
 
     private void requireStaff(User user) {
-        if (!user.hasAnyRole(Set.of(RoleEnum.STAFF, RoleEnum.ADMIN))) {
+        if (!user.hasAnyRoleCodes(Set.of(RoleCodes.STAFF, RoleCodes.ADMIN))) {
             throw new RuntimeException("Chỉ Staff được quản lý hồ sơ và minh chứng giáo viên.");
         }
     }
@@ -408,7 +408,7 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     }
 
     private boolean canManagePerformance(User user) {
-        return user.hasAnyRole(Set.of(RoleEnum.MANAGER, RoleEnum.ADMIN));
+        return user.hasAnyRoleCodes(Set.of(RoleCodes.MANAGER, RoleCodes.ADMIN));
     }
 
     private String clean(String value) {

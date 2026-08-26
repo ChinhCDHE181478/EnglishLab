@@ -13,7 +13,7 @@ import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -96,12 +96,12 @@ class ClassroomChangeRequestServiceImplTest {
         teacher = User.builder()
                 .id(41L)
                 .fullName("Teacher Test")
-                .role(RoleEnum.TEACHER)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.TEACHER))
                 .build();
         staff = User.builder()
                 .id(99L)
                 .fullName("Nhân viên đào tạo")
-                .role(RoleEnum.STAFF)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.STAFF))
                 .build();
     }
 

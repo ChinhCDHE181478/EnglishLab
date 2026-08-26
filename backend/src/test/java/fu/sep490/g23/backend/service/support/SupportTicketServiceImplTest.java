@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.dto.request.support.LearnerSupportTicketStatusReque
 import fu.sep490.g23.backend.dto.request.support.SupportTicketReplyRequest;
 import fu.sep490.g23.backend.dto.request.support.UpdateSupportTicketRequest;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.support.SupportTicket;
 import fu.sep490.g23.backend.entity.support.enums.SupportTicketCategory;
 import fu.sep490.g23.backend.entity.support.enums.SupportTicketPriority;
@@ -52,9 +52,9 @@ class SupportTicketServiceImplTest {
                 userRepository,
                 appNotificationService
         );
-        learner = user(1L, "learner@test.vn", "Learner", RoleEnum.LEARNER);
-        otherLearner = user(2L, "other@test.vn", "Other", RoleEnum.LEARNER);
-        manager = user(3L, "staff@test.vn", "Nhân viên đào tạo", RoleEnum.STAFF);
+        learner = user(1L, "learner@test.vn", "Learner", RoleCodes.LEARNER);
+        otherLearner = user(2L, "other@test.vn", "Other", RoleCodes.LEARNER);
+        manager = user(3L, "staff@test.vn", "Nhân viên đào tạo", RoleCodes.STAFF);
     }
 
     @Test
@@ -170,9 +170,9 @@ class SupportTicketServiceImplTest {
         return request;
     }
 
-    private User user(Long id, String email, String name, RoleEnum role) {
+    private User user(Long id, String email, String name, String roleCode) {
         User user = User.builder().id(id).email(email).fullName(name).build();
-        user.setRole(role);
+        user.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(roleCode));
         return user;
     }
 }

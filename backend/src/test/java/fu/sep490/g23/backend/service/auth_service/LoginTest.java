@@ -4,7 +4,7 @@ import java.util.Set;
 import fu.sep490.g23.backend.dto.request.LoginRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.security.JwtService;
@@ -54,7 +54,7 @@ public class LoginTest {
                 .password("encoded_password")
                 .fullName("Test User")
                 .emailVerified(true)
-                .role(RoleEnum.LEARNER)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
                 .build();
 
         loginRequest = new LoginRequest();

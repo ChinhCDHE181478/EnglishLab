@@ -52,7 +52,7 @@ import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.curriculum.*;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
@@ -175,12 +175,12 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
             return;
         }
 
-        User learner = ensureUser(LEARNER_EMAIL, "Học viên EnglishLab", RoleEnum.LEARNER);
-        User learnerTwo = ensureUser(DEMO_LEARNER_TWO_EMAIL, "Phạm Minh Anh", RoleEnum.LEARNER);
-        User learnerThree = ensureUser(DEMO_LEARNER_THREE_EMAIL, "Hoàng Gia Huy", RoleEnum.LEARNER);
-        User learnerFour = ensureUser(DEMO_LEARNER_FOUR_EMAIL, "Trần Ngọc Mai", RoleEnum.LEARNER);
+        User learner = ensureUser(LEARNER_EMAIL, "Học viên EnglishLab", RoleCodes.LEARNER);
+        User learnerTwo = ensureUser(DEMO_LEARNER_TWO_EMAIL, "Phạm Minh Anh", RoleCodes.LEARNER);
+        User learnerThree = ensureUser(DEMO_LEARNER_THREE_EMAIL, "Hoàng Gia Huy", RoleCodes.LEARNER);
+        User learnerFour = ensureUser(DEMO_LEARNER_FOUR_EMAIL, "Trần Ngọc Mai", RoleCodes.LEARNER);
         List<User> learners = List.of(learner, learnerTwo, learnerThree, learnerFour);
-        User teacher = ensureUser(TEACHER_EMAIL, "Nguyễn Văn Teacher", RoleEnum.TEACHER);
+        User teacher = ensureUser(TEACHER_EMAIL, "Nguyễn Văn Teacher", RoleCodes.TEACHER);
         InstructorLedCourse curriculum = ensureCurriculum(teacher);
         List<CourseUnit> units = courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(curriculum.getId());
         synchronizeCourseResources(units, teacher);
@@ -1009,7 +1009,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .build()));
     }
 
-    private User ensureUser(String email, String fullName, RoleEnum role) {
+    private User ensureUser(String email, String fullName, String roleCode) {
         User user = userRepository.findByEmail(email).orElseGet(() -> {
             User created = User.builder()
                     .email(email)
@@ -1017,11 +1017,11 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                     .password(passwordEncoder.encode("Password123!"))
                     .emailVerified(true)
                     .build();
-            userRoleService.assignRole(created, role);
+            userRoleService.assignRole(created, roleCode);
             return userRepository.save(created);
         });
-        userRoleService.ensureRole(user, role);
-        return role == RoleEnum.LEARNER ? onboardingSupport.ensureReady(user) : user;
+        userRoleService.ensureRole(user, roleCode);
+        return RoleCodes.LEARNER.equals(roleCode) ? onboardingSupport.ensureReady(user) : user;
     }
 
     private record UnitSeed(String title, String description, String fileName, String tags) {

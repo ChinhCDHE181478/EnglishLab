@@ -108,7 +108,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         ClassroomChangeRequest changeRequest = ClassroomChangeRequest.builder()
                 .requestType(request.getRequestType())
                 .requester(requester)
-                .requesterRole(requester.getRole())
+                .requesterRole(requester.getPrimaryRoleCode())
                 .classSection(offering)
                 .targetClassSchedule(targetClassSchedule)
                 .oldValuesJson(oldValuesJson)

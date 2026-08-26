@@ -26,7 +26,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
@@ -96,7 +96,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     @Override
     public CourseEnrollmentRequestResponse submit(CreateCourseEnrollmentRequest request, String learnerEmail) {
         User learner = requireUser(learnerEmail);
-        if (!learner.hasRole(RoleEnum.LEARNER)) {
+        if (!learner.hasRole(RoleCodes.LEARNER)) {
             throw new IllegalArgumentException("Chỉ học viên mới có thể gửi yêu cầu đăng ký khóa học.");
         }
         if (request.getClassroomId() != null) {
@@ -166,10 +166,10 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                     .emailVerified(true)
                     .profileCompleted(false)
                     .build();
-            userRoleService.assignRole(learner, RoleEnum.LEARNER);
+            userRoleService.assignRole(learner, RoleCodes.LEARNER);
             learner = userRepository.save(learner);
         } else {
-            if (!learner.hasRole(RoleEnum.LEARNER)) {
+            if (!learner.hasRole(RoleCodes.LEARNER)) {
                 throw new IllegalArgumentException(
                         "Email này đang thuộc tài khoản nội bộ và không thể dùng để mở hồ sơ học viên."
                 );

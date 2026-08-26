@@ -28,7 +28,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ConflictType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -162,7 +162,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
 
         proposal.setRoom(null);
         List<ClassroomPickerOptionResponse> availableTeachers = userRepository
-                .findDistinctByRoles_CodeIn(Set.of(RoleEnum.TEACHER))
+                .findDistinctByRoles_CodeIn(Set.of(RoleCodes.TEACHER))
                 .stream()
                 .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .filter(teacher -> {
@@ -679,7 +679,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         if (id == null) return null;
         User teacher = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên."));
-        if (!teacher.hasRole(RoleEnum.TEACHER)) {
+        if (!teacher.hasRole(RoleCodes.TEACHER)) {
             throw new IllegalArgumentException("Người được chọn không có vai trò Giáo viên.");
         }
         return teacher;

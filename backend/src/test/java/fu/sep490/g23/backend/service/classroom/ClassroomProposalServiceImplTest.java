@@ -25,7 +25,7 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.course.CourseUnit;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -97,10 +97,10 @@ class ClassroomProposalServiceImplTest {
                 classroomOfferingService,
                 courseLessonRepository
         );
-        learner = user(1L, "learner@example.com", RoleEnum.LEARNER);
-        staff = user(2L, "staff@example.com", RoleEnum.STAFF);
-        manager = user(3L, "manager@example.com", RoleEnum.MANAGER);
-        teacher = user(4L, "teacher@example.com", RoleEnum.TEACHER);
+        learner = user(1L, "learner@example.com", RoleCodes.LEARNER);
+        staff = user(2L, "staff@example.com", RoleCodes.STAFF);
+        manager = user(3L, "manager@example.com", RoleCodes.MANAGER);
+        teacher = user(4L, "teacher@example.com", RoleCodes.TEACHER);
         courseOffering = InstructorLedCourse.builder()
                 .id(10L)
                 .code("IELTS-FOUNDATION")
@@ -417,9 +417,9 @@ class ClassroomProposalServiceImplTest {
         return LocalDate.now().plusDays(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
     }
 
-    private User user(Long id, String email, RoleEnum role) {
+    private User user(Long id, String email, String roleCode) {
         User user = User.builder().id(id).fullName(email).email(email).build();
-        user.setRole(role);
+        user.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(roleCode));
         return user;
     }
 }

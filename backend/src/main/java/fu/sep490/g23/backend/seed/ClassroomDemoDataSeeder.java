@@ -45,7 +45,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 
 import fu.sep490.g23.backend.entity.classroom.*;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
@@ -141,16 +141,16 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             return;
         }
 
-        User teacher1 = ensureUser("classroom.teacher1@englishlab.vn", "Nguyễn Văn Teacher", RoleEnum.TEACHER);
-        User teacher2 = ensureUser(TEACHER2_EMAIL, TEACHER2_FULL_NAME, RoleEnum.TEACHER);
-        User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleEnum.LEARNER);
-        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleEnum.LEARNER);
-        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleEnum.LEARNER);
-        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Ngọc Mai", RoleEnum.LEARNER);
-        User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleEnum.MANAGER);
-        ensureUser("staff@englishlab.vn", "Nhân Viên Đào Tạo", RoleEnum.STAFF);
-        User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleEnum.CONTENT_MANAGER);
-        User admin = ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
+        User teacher1 = ensureUser("classroom.teacher1@englishlab.vn", "Nguyễn Văn Teacher", RoleCodes.TEACHER);
+        User teacher2 = ensureUser(TEACHER2_EMAIL, TEACHER2_FULL_NAME, RoleCodes.TEACHER);
+        User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleCodes.LEARNER);
+        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleCodes.LEARNER);
+        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleCodes.LEARNER);
+        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Ngọc Mai", RoleCodes.LEARNER);
+        User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleCodes.MANAGER);
+        ensureUser("staff@englishlab.vn", "Nhân Viên Đào Tạo", RoleCodes.STAFF);
+        User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleCodes.CONTENT_MANAGER);
+        User admin = ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleCodes.ADMIN);
 
         Room roomA = roomRepository.findByActiveTrue().stream()
                 .filter(room -> "Phòng A101".equalsIgnoreCase(room.getName()))
@@ -386,7 +386,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         changeRequestRepository.save(ClassroomChangeRequest.builder()
                 .requestType(ClassroomChangeRequestType.RESCHEDULE_SESSION)
                 .requester(teacher)
-                .requesterRole(teacher.getRole())
+                .requesterRole(teacher.getPrimaryRoleCode())
                 .classSection(offering)
                 .targetClassSchedule(conflictSession)
                 .oldValuesJson("{\"sessionDate\":\"" + conflictSession.getSessionDate() + "\"}")
@@ -863,7 +863,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         if (teacher.getPassword() == null || teacher.getPassword().isBlank()) {
             teacher.setPassword(passwordEncoder.encode("Password123!"));
         }
-        userRoleService.replaceRoles(teacher, RoleEnum.TEACHER);
+        userRoleService.replaceRoles(teacher, RoleCodes.TEACHER);
         userRepository.save(teacher);
     }
 
@@ -1072,9 +1072,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
     */
 
-    private User ensureUser(String email, String fullName, RoleEnum role) {
+    private User ensureUser(String email, String fullName, String roleCode) {
         User user = userRepository.findByEmail(email).map(existing -> {
-            userRoleService.replaceRoles(existing, role);
+            userRoleService.replaceRoles(existing, roleCode);
             existing.setFullName(fullName);
             return userRepository.save(existing);
         }).orElseGet(() -> {
@@ -1084,10 +1084,10 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                     .password(passwordEncoder.encode("Password123!"))
                     .emailVerified(true)
                     .build();
-            userRoleService.assignRole(created, role);
+            userRoleService.assignRole(created, roleCode);
             return userRepository.save(created);
         });
-        if (role == RoleEnum.LEARNER) {
+        if (RoleCodes.LEARNER.equals(roleCode)) {
             return demoLearnerOnboardingSupport.ensureReady(user);
         }
         return user;
@@ -1099,9 +1099,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             if (teacher1 == null) return;
 
             User manager = userRepository.findByEmail("classroom.manager@englishlab.vn").orElse(null);
-            User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleEnum.LEARNER);
-            User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleEnum.LEARNER);
-            User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleEnum.LEARNER);
+            User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleCodes.LEARNER);
+            User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleCodes.LEARNER);
+            User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleCodes.LEARNER);
 
             Optional<ClassSection> offeringOpt = offeringRepository.findByInstructorLedCourseSlugOrCode(SLUG_OFFLINE_IN_PROGRESS);
             if (offeringOpt.isEmpty()) return;

@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -50,7 +50,7 @@ class TeacherClassroomAuthorizationServiceImplTest {
                 assignmentRepository
         );
         offering = ClassSection.builder().id(21L).build();
-        teacher = user(7L, "teacher@example.com", RoleEnum.TEACHER);
+        teacher = user(7L, "teacher@example.com", RoleCodes.TEACHER);
     }
 
     @Test
@@ -101,7 +101,7 @@ class TeacherClassroomAuthorizationServiceImplTest {
 
     @Test
     void allowsManagerToOperateAcrossClassrooms() {
-        User manager = user(9L, "manager@example.com", RoleEnum.MANAGER);
+        User manager = user(9L, "manager@example.com", RoleCodes.MANAGER);
         when(accessHelper.requireUser(manager.getEmail())).thenReturn(manager);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
 
@@ -109,9 +109,9 @@ class TeacherClassroomAuthorizationServiceImplTest {
                 .doesNotThrowAnyException();
     }
 
-    private User user(Long id, String email, RoleEnum role) {
+    private User user(Long id, String email, String roleCode) {
         User user = User.builder().id(id).email(email).fullName(email).build();
-        user.setRole(role);
+        user.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(roleCode));
         return user;
     }
 }

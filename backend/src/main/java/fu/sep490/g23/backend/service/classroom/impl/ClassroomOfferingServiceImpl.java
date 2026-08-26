@@ -56,7 +56,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
@@ -2108,7 +2108,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên."));
-        if (!teacher.hasRole(RoleEnum.TEACHER)) {
+        if (!teacher.hasRole(RoleCodes.TEACHER)) {
             throw new IllegalArgumentException("Tài khoản được chọn không có vai trò giáo viên.");
         }
         return teacher;

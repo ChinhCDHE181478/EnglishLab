@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.dto.request.RegisterRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.service.auth.impl.AuthServiceImpl;
@@ -84,7 +84,7 @@ public class RegisterTest {
                 .id(1L)
                 .email("newuser@example.com")
                 .fullName("New User")
-                .role(RoleEnum.LEARNER)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
                 .build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
@@ -101,7 +101,7 @@ public class RegisterTest {
         assertEquals("newuser@example.com", response.getUser().getEmail());
 
         verify(userRepository, times(1)).save(any(User.class));
-        verify(userRoleService, times(1)).assignRole(any(User.class), eq(RoleEnum.LEARNER));
+        verify(userRoleService, times(1)).assignRole(any(User.class), eq(RoleCodes.LEARNER));
         verify(authMailService, times(1)).sendVerificationEmail(savedUser, "123456");
     }
 
@@ -113,7 +113,7 @@ public class RegisterTest {
     void register_Success_ExistingUnverifiedUser_UpdatesAndResendsEmail() {
         // Arrange
         existingUser.setEmailVerified(false);
-        existingUser.setRole(RoleEnum.LEARNER);
+        existingUser.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER));
 
         when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(existingUser));
         when(passwordEncoder.encode("StrongPass123!")).thenReturn("encoded_pass_2");
@@ -134,7 +134,7 @@ public class RegisterTest {
         assertEquals("New User", existingUser.getFullName());
         assertEquals("encoded_pass_2", existingUser.getPassword());
 
-        verify(userRoleService, times(1)).replaceRoles(existingUser, RoleEnum.LEARNER);
+        verify(userRoleService, times(1)).replaceRoles(existingUser, RoleCodes.LEARNER);
         verify(userRepository, times(1)).save(existingUser);
         verify(authMailService, times(1)).sendVerificationEmail(existingUser, "654321");
     }
@@ -169,7 +169,8 @@ public class RegisterTest {
         registerRequest.setFullName("  New User  ");
         when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
 
-        User savedUser = User.builder().id(1L).email("newuser@example.com").role(RoleEnum.LEARNER).build();
+        User savedUser = User.builder().id(1L).email("newuser@example.com")
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER)).build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         when(authTokenService.issueEmailVerificationTokenForRegistration(any())).thenReturn(new AuthToken());
 

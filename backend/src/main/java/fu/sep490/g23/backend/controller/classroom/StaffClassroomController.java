@@ -27,7 +27,7 @@ import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
@@ -105,7 +105,7 @@ public class StaffClassroomController {
 
     @GetMapping("/teachers")
     public ResponseEntity<List<ClassroomPickerOptionResponse>> listTeachers() {
-        List<ClassroomPickerOptionResponse> options = userRepository.findDistinctByRoles_CodeIn(Set.of(RoleEnum.TEACHER))
+        List<ClassroomPickerOptionResponse> options = userRepository.findDistinctByRoles_CodeIn(Set.of(RoleCodes.TEACHER))
                 .stream()
                 .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .map(user -> ClassroomPickerOptionResponse.builder()

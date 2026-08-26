@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -69,7 +69,7 @@ public class TeacherClassroomAuthorizationServiceImpl implements TeacherClassroo
     }
 
     private void assertAssigned(User actor, ClassSection offering) {
-        if (actor.hasRole(RoleEnum.ADMIN) || actor.hasRole(RoleEnum.MANAGER)) {
+        if (actor.hasRole(RoleCodes.ADMIN) || actor.hasRole(RoleCodes.MANAGER)) {
             return;
         }
         LocalDate today = LocalDate.now();

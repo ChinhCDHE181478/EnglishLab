@@ -61,7 +61,7 @@ import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.curriculum.*;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
@@ -224,8 +224,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         }
         log.info("[ChinhTestSeeder] Bắt đầu đồng bộ giáo trình và dữ liệu lớp học cho {}...", LEARNER_EMAIL);
 
-        User learner = ensureUser(LEARNER_EMAIL, "Chinh CDHE181478", RoleEnum.LEARNER);
-        User teacher = ensureUser(TEACHER_EMAIL, "Nguyễn Văn Teacher", RoleEnum.TEACHER);
+        User learner = ensureUser(LEARNER_EMAIL, "Chinh CDHE181478", RoleCodes.LEARNER);
+        User teacher = ensureUser(TEACHER_EMAIL, "Nguyễn Văn Teacher", RoleCodes.TEACHER);
 
         // 1. Tạo hoặc đồng bộ Giáo trình chuẩn (Curriculum + Flashcards + Bài luyện tập)
         InstructorLedCourse curriculum = ensureCurriculum(teacher);
@@ -704,7 +704,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 {"student.test3@englishlab.vn", "Lê Minh Khang"}
         };
         for (String[] data : studentsData) {
-            User student = ensureUser(data[0], data[1], RoleEnum.LEARNER);
+            User student = ensureUser(data[0], data[1], RoleCodes.LEARNER);
             ensureEnrollment(offering, student, teacher);
         }
     }
@@ -1194,7 +1194,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     // ── User helper ───────────────────────────────────────────────────────────
 
-    private User ensureUser(String email, String fullName, RoleEnum role) {
+    private User ensureUser(String email, String fullName, String roleCode) {
         User user = userRepository.findByEmail(email).orElseGet(() -> {
             User created = User.builder()
                     .email(email)
@@ -1202,10 +1202,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                     .password(passwordEncoder.encode("Password123!"))
                     .emailVerified(true)
                     .build();
-            userRoleService.assignRole(created, role);
+            userRoleService.assignRole(created, roleCode);
             return userRepository.save(created);
         });
-        userRoleService.ensureRole(user, role);
-        return role == RoleEnum.LEARNER ? onboardingSupport.ensureReady(user) : user;
+        userRoleService.ensureRole(user, roleCode);
+        return RoleCodes.LEARNER.equals(roleCode) ? onboardingSupport.ensureReady(user) : user;
     }
 }

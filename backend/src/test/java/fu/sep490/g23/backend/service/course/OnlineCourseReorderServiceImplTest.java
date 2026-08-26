@@ -10,7 +10,7 @@ import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.service.course.impl.OnlineCourseServiceImpl;
@@ -50,7 +50,8 @@ class OnlineCourseReorderServiceImplTest {
     void reorderModulesNormalizesAndPersistsInTwoPhases() {
         OnlineCourse course = draftCourse();
         OnlineCourseVersion editableVersion = editableVersionFor(course);
-        User contentManager = User.builder().email("content@englishlab.vn").role(RoleEnum.CONTENT_MANAGER).build();
+        User contentManager = User.builder().email("content@englishlab.vn")
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.CONTENT_MANAGER)).build();
         List<ModuleResponse> responseModules = List.of(
                 ModuleResponse.builder().id(12L).displayOrder(1).build(),
                 ModuleResponse.builder().id(11L).displayOrder(2).build()
@@ -78,7 +79,8 @@ class OnlineCourseReorderServiceImplTest {
     void duplicateOrderIsRejectedBeforeDatabaseMutation() {
         OnlineCourse course = draftCourse();
         OnlineCourseVersion editableVersion = editableVersionFor(course);
-        User contentManager = User.builder().email("content@englishlab.vn").role(RoleEnum.CONTENT_MANAGER).build();
+        User contentManager = User.builder().email("content@englishlab.vn")
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.CONTENT_MANAGER)).build();
         when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
         when(onlineCourseRepository.findWithModulesById(1L)).thenReturn(Optional.of(course));
         when(onlineCourseVersionService.requireEditableVersion(course)).thenReturn(editableVersion);
@@ -96,7 +98,8 @@ class OnlineCourseReorderServiceImplTest {
 
     @Test
     void learnerCannotBypassReorderPermissionAtServiceLayer() {
-        User learner = User.builder().email("learner@englishlab.vn").role(RoleEnum.LEARNER).build();
+        User learner = User.builder().email("learner@englishlab.vn")
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER)).build();
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
 
         assertThatThrownBy(() -> service.reorderModules(

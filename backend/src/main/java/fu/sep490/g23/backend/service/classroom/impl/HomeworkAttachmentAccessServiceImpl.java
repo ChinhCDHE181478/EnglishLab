@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
@@ -110,7 +110,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
             return canAccessClassContent(requester, material.get().getClassSection());
         }
 
-        return requester.hasRole(RoleEnum.CONTENT_MANAGER)
+        return requester.hasRole(RoleCodes.CONTENT_MANAGER)
                 && centerMaterialRepository.findFirstByFileUrlEndingWith(suffix).isPresent();
     }
 
@@ -123,7 +123,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
     }
 
     private boolean canAccessClassContent(User requester, ClassSection offering) {
-        if (requester.hasRole(RoleEnum.CONTENT_MANAGER) || canTeachClass(requester, offering)) {
+        if (requester.hasRole(RoleCodes.CONTENT_MANAGER) || canTeachClass(requester, offering)) {
             return true;
         }
         return enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
@@ -134,7 +134,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
     }
 
     private boolean canTeachClass(User requester, ClassSection offering) {
-        if (!requester.hasRole(RoleEnum.TEACHER)) {
+        if (!requester.hasRole(RoleCodes.TEACHER)) {
             return false;
         }
         if (offering.getPrimaryTeacher() != null && offering.getPrimaryTeacher().getId().equals(requester.getId())) {

@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
@@ -57,7 +57,7 @@ class ClassroomScheduleAvailabilityServiceImplTest {
         when(offeringRepository.findById(any())).thenReturn(Optional.of(ClassSection.builder().id(7L).build()));
         when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(7L))
                 .thenReturn(List.of(first, second));
-        when(userRepository.findDistinctByRoles_CodeIn(List.of(RoleEnum.TEACHER)))
+        when(userRepository.findDistinctByRoles_CodeIn(List.of(RoleCodes.TEACHER)))
                 .thenReturn(List.of(freeTeacher, busyTeacher));
         when(sessionRepository.findTeacherConflicts(
                 eq(freeTeacher.getId()), any(), any(), any(), anyCollection(), any()

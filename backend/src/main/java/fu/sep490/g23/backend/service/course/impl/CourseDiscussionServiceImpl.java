@@ -21,7 +21,7 @@ import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCat
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionPostRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReactionRepository;
@@ -377,7 +377,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     }
 
     private boolean canModerate(User user) {
-        return user.hasAnyRole(EnumSet.of(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.CONTENT_MANAGER));
+        return user.hasAnyRoleCodes(Set.of(RoleCodes.ADMIN, RoleCodes.MANAGER, RoleCodes.CONTENT_MANAGER));
     }
 
     private void ensureDiscussionAccess(User user, OnlineCourse course) {
