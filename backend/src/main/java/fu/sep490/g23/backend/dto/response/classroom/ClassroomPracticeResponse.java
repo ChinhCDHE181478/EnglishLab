@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class ClassroomPracticeResponse {
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private String classroomTitle;
     private Long unitId;
     private Integer unitDisplayOrder;

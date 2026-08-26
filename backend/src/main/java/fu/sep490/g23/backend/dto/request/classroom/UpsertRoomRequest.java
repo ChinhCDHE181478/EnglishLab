@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.dto.request.classroom;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +9,8 @@ import lombok.Setter;
 public class UpsertRoomRequest {
     @NotBlank(message = "Tên phòng không được để trống.")
     private String name;
-    private Long campusId;
+    private String locationName;
+    private String locationAddress;
     private Integer capacity;
     private Boolean active;
 }

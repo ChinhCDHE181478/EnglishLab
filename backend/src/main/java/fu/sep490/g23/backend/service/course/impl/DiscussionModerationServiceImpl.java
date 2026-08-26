@@ -3,23 +3,20 @@ package fu.sep490.g23.backend.service.course.impl;
 import fu.sep490.g23.backend.dto.request.course.DiscussionModerationActionRequest;
 import fu.sep490.g23.backend.dto.response.course.DiscussionModerationReportResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionPost;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionPostType;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionReplyRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionThreadRepository;
-import fu.sep490.g23.backend.service.course.DiscussionModerationService;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
+import fu.sep490.g23.backend.service.course.DiscussionModerationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -30,8 +27,6 @@ import java.util.List;
 @Transactional
 public class DiscussionModerationServiceImpl implements DiscussionModerationService {
     private final CourseDiscussionReportRepository reportRepository;
-    private final CourseDiscussionThreadRepository threadRepository;
-    private final CourseDiscussionReplyRepository replyRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
 
@@ -66,13 +61,11 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
     @Override
     public DiscussionModerationReportResponse hide(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail) {
         CourseDiscussionReport report = findActionableReport(reportId, CourseDiscussionReportStatus.PENDING, CourseDiscussionReportStatus.DISMISSED);
-        if (report.getTargetType() == CourseDiscussionReportTarget.THREAD) {
-            findThread(report.getTargetId()).setStatus(CourseDiscussionStatus.HIDDEN);
-        } else {
-            findReply(report.getTargetId()).setStatus(CourseDiscussionStatus.HIDDEN);
-        }
+        requirePost(report).setStatus(CourseDiscussionStatus.HIDDEN);
         review(report, CourseDiscussionReportStatus.ACTION_TAKEN, request, reviewerEmail);
-        auditLogService.record(reviewerEmail,"DISCUSSION_CONTENT_HIDDEN",report.getTargetType().name(),report.getTargetId().toString(),"Ẩn nội dung từ báo cáo #"+reportId);
+        auditLogService.record(reviewerEmail, "DISCUSSION_CONTENT_HIDDEN", report.getTargetType().name(),
+                String.valueOf(report.getPost() != null ? report.getPost().getId() : report.getTargetId()),
+                "Ẩn nội dung từ báo cáo #" + reportId);
         return toResponse(report);
     }
 
@@ -80,14 +73,12 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
     public DiscussionModerationReportResponse dismiss(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail) {
         CourseDiscussionReport report = findActionableReport(reportId, CourseDiscussionReportStatus.PENDING, CourseDiscussionReportStatus.ACTION_TAKEN);
         if (report.getStatus() == CourseDiscussionReportStatus.ACTION_TAKEN) {
-            if (report.getTargetType() == CourseDiscussionReportTarget.THREAD) {
-                findThread(report.getTargetId()).setStatus(CourseDiscussionStatus.OPEN);
-            } else {
-                findReply(report.getTargetId()).setStatus(CourseDiscussionStatus.OPEN);
-            }
+            requirePost(report).setStatus(CourseDiscussionStatus.OPEN);
         }
         review(report, CourseDiscussionReportStatus.DISMISSED, request, reviewerEmail);
-        auditLogService.record(reviewerEmail,"DISCUSSION_REPORT_DISMISSED",report.getTargetType().name(),report.getTargetId().toString(),"Bỏ qua báo cáo #"+reportId);
+        auditLogService.record(reviewerEmail, "DISCUSSION_REPORT_DISMISSED", report.getTargetType().name(),
+                String.valueOf(report.getPost() != null ? report.getPost().getId() : report.getTargetId()),
+                "Bỏ qua báo cáo #" + reportId);
         return toResponse(report);
     }
 
@@ -109,51 +100,36 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
         return report;
     }
 
-    private CourseDiscussionThread findThread(Long id) {
-        return threadRepository.findById(id).orElseThrow(() -> new RuntimeException("Nội dung thảo luận không còn tồn tại."));
-    }
-
-    private CourseDiscussionReply findReply(Long id) {
-        return replyRepository.findById(id).orElseThrow(() -> new RuntimeException("Câu trả lời không còn tồn tại."));
+    private CourseDiscussionPost requirePost(CourseDiscussionReport report) {
+        CourseDiscussionPost post = report.getPost();
+        if (post == null) {
+            throw new RuntimeException("Nội dung thảo luận không còn tồn tại.");
+        }
+        return post;
     }
 
     private DiscussionModerationReportResponse toResponse(CourseDiscussionReport report) {
-        CourseDiscussionThread thread;
-        String content;
-        String author;
-        CourseDiscussionStatus targetStatus;
-        int reportCount;
-        if (report.getTargetType() == CourseDiscussionReportTarget.THREAD) {
-            thread = findThread(report.getTargetId());
-            content = thread.getTitle() + " — " + thread.getContent();
-            author = displayName(thread.getAuthor());
-            targetStatus = thread.getStatus();
-            reportCount = thread.getReportedCount();
-        } else {
-            CourseDiscussionReply reply = findReply(report.getTargetId());
-            thread = reply.getThread();
-            content = reply.getContent();
-            author = displayName(reply.getAuthor());
-            targetStatus = reply.getStatus();
-            reportCount = reply.getReportedCount();
-        }
+        CourseDiscussionPost post = requirePost(report);
+        String content = post.getPostType() == CourseDiscussionPostType.THREAD
+                ? post.getTitle() + " — " + post.getContent()
+                : post.getContent();
         return DiscussionModerationReportResponse.builder()
                 .reportId(report.getId())
                 .targetType(report.getTargetType())
-                .targetId(report.getTargetId())
+                .targetId(post.getId())
                 .reasonCategory(report.getReasonCategory())
                 .reason(report.getReason())
                 .reporterName(displayName(report.getReporter()))
                 .reporterEmail(report.getReporter().getEmail())
                 .createdAt(report.getCreatedAt())
-                .courseId(thread.getCourse().getId())
-                .courseTitle(thread.getCourse().getLearningPackage().getTitle())
-                .lessonId(thread.getLesson() == null ? null : thread.getLesson().getId())
-                .lessonTitle(thread.getLesson() == null ? null : thread.getLesson().getTitle())
-                .targetAuthor(author)
+                .courseId(post.getCourse().getId())
+                .courseTitle(post.getCourse().getTitle())
+                .lessonId(post.getLesson() == null ? null : post.getLesson().getId())
+                .lessonTitle(post.getLesson() == null ? null : post.getLesson().getTitle())
+                .targetAuthor(displayName(post.getAuthor()))
                 .contentPreview(preview(content))
-                .currentTargetStatus(targetStatus)
-                .reportCount(reportCount)
+                .currentTargetStatus(post.getStatus())
+                .reportCount(post.getReportedCount())
                 .status(report.getStatus())
                 .reviewedBy(report.getReviewedBy() == null ? null : displayName(report.getReviewedBy()))
                 .reviewedAt(report.getReviewedAt())

@@ -79,7 +79,7 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
 
     public void deleteCategory(Long id) {
         CourseCategory category = findCategory(id);
-        long courseCount = onlineCourseRepository.countByCategoryAndLearningPackageDeletedFalse(category);
+        long courseCount = onlineCourseRepository.countByCategoryAndDeletedFalse(category);
         if (courseCount > 0) {
             throw new IllegalStateException(
                     "Không thể xóa danh mục đang được " + courseCount + " khóa học sử dụng. Hãy chuyển các khóa học sang danh mục khác trước."
@@ -101,7 +101,7 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
                 .description(category.getDescription())
                 .displayOrder(category.getDisplayOrder())
                 .active(category.isActive())
-                .courseCount(onlineCourseRepository.countByCategoryAndLearningPackageDeletedFalse(category))
+                .courseCount(onlineCourseRepository.countByCategoryAndDeletedFalse(category))
                 .build();
     }
 

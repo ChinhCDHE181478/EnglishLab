@@ -1,11 +1,10 @@
 package fu.sep490.g23.backend.service.course;
 
-import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionPost;
 
 public interface CourseDiscussionNotificationService {
 
-    void notifyQuestionSent(CourseDiscussionThread thread);
+    void notifyQuestionSent(CourseDiscussionPost thread);
 
-    void notifyNewReply(CourseDiscussionReply reply);
+    void notifyNewReply(CourseDiscussionPost reply);
 }

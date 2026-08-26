@@ -3,13 +3,13 @@ package fu.sep490.g23.backend.service.classroom.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.GoogleMeetProperties;
 import fu.sep490.g23.backend.service.classroom.TeacherGoogleMeetConnectionService;
 import fu.sep490.g23.backend.service.classroom.VirtualMeetingRecordingInfo;
@@ -38,7 +38,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
 
     private final GoogleMeetProperties properties;
     private final TeacherGoogleMeetConnectionService connectionService;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
@@ -49,7 +49,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
     public GoogleMeetServiceImpl(
             GoogleMeetProperties properties,
             TeacherGoogleMeetConnectionService connectionService,
-            ClassroomSessionRepository sessionRepository
+            ClassScheduleRepository sessionRepository
     ) {
         this.properties = properties;
         this.connectionService = connectionService;
@@ -102,7 +102,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
     }
 
     @Override
-    public void syncMeeting(ClassroomSession session) {
+    public void syncMeeting(ClassSchedule session) {
         validateConfiguration();
         if (isGoogleMeetUrl(session.getLarkMeetingUrl())
                 && session.getLarkMeetingId() != null
@@ -113,7 +113,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
             return;
         }
 
-        ClassroomSession sharedRoomSession = findSharedRoomSession(session);
+        ClassSchedule sharedRoomSession = findSharedRoomSession(session);
         if (sharedRoomSession != null) {
             reuseSharedRoom(session, sharedRoomSession);
             return;
@@ -151,7 +151,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
     }
 
     @Override
-    public VirtualMeetingRecordingInfo getRecording(ClassroomSession session) {
+    public VirtualMeetingRecordingInfo getRecording(ClassSchedule session) {
         validateConfiguration();
         if (session.getLarkMeetingId() == null || !session.getLarkMeetingId().startsWith("spaces/")) {
             throw new IllegalStateException("Buổi học chưa có Google Meet space hợp lệ.");
@@ -186,7 +186,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         throw new IllegalStateException("Google Meet đang xử lý file recording.");
     }
 
-    private JsonNode findConferenceForSession(JsonNode conferences, ClassroomSession session) {
+    private JsonNode findConferenceForSession(JsonNode conferences, ClassSchedule session) {
         JsonNode records = conferences.path("conferenceRecords");
         if (!records.isArray() || records.isEmpty()) {
             return objectMapper.createObjectNode();
@@ -224,12 +224,12 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
     }
 
     @Override
-    public void inviteInternalAttendee(ClassroomSession session, String email) {
+    public void inviteInternalAttendee(ClassSchedule session, String email) {
         // Learners join via the meeting link and wait for the host to admit them.
     }
 
     @Override
-    public void deleteMeeting(ClassroomSession session) {
+    public void deleteMeeting(ClassSchedule session) {
         if (!properties.isEnabled()
                 || session.getLarkMeetingId() == null
                 || !session.getLarkMeetingId().startsWith("spaces/")) {
@@ -240,8 +240,8 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         sendMeetRequest("POST", "/" + session.getLarkMeetingId() + ":endActiveConference", "{}", meetingOwner, refreshToken);
     }
 
-    private User requireMeetingOwner(ClassroomSession session) {
-        ClassroomOffering offering = session.getClassroomOffering();
+    private User requireMeetingOwner(ClassSchedule session) {
+        ClassSection offering = session.getClassSection();
         User teacher = offering == null ? null : offering.getPrimaryTeacher();
         if (teacher == null) teacher = session.getTeacher();
         if (teacher == null) {
@@ -250,7 +250,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         return teacher;
     }
 
-    private void markSynced(ClassroomSession session) {
+    private void markSynced(ClassSchedule session) {
         session.setLarkMeetingStatus(LarkMeetingStatus.SCHEDULED);
         session.setLarkSyncStatus("SYNCED");
         session.setLarkSyncError(null);
@@ -397,12 +397,12 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         }
     }
 
-    private ClassroomSession findSharedRoomSession(ClassroomSession session) {
-        ClassroomOffering offering = session.getClassroomOffering();
+    private ClassSchedule findSharedRoomSession(ClassSchedule session) {
+        ClassSection offering = session.getClassSection();
         if (sessionRepository == null || offering == null || offering.getId() == null) {
             return null;
         }
-        return sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+        return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId())
                 .stream()
                 .filter(candidate -> candidate.getId() == null || !candidate.getId().equals(session.getId()))
                 .filter(candidate -> candidate.getLarkMeetingId() != null
@@ -412,7 +412,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 .orElse(null);
     }
 
-    private void reuseSharedRoom(ClassroomSession session, ClassroomSession sharedRoomSession) {
+    private void reuseSharedRoom(ClassSchedule session, ClassSchedule sharedRoomSession) {
         session.setLarkMeetingId(sharedRoomSession.getLarkMeetingId());
         session.setLarkMeetingNo(sharedRoomSession.getLarkMeetingNo());
         session.setLarkMeetingUrl(sharedRoomSession.getLarkMeetingUrl());
@@ -430,11 +430,11 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
      * A classroom owns one Google Meet space. Keep every active virtual session
      * aligned with that space so staff never has to create a room per session.
      */
-    private void propagateSharedRoom(ClassroomSession sourceSession) {
-        ClassroomOffering offering = sourceSession.getClassroomOffering();
+    private void propagateSharedRoom(ClassSchedule sourceSession) {
+        ClassSection offering = sourceSession.getClassSection();
         if (sessionRepository == null || offering == null || offering.getId() == null) return;
 
-        sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+        sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId())
                 .stream()
                 .filter(candidate -> candidate.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL)
                 .filter(candidate -> candidate.getStatus() != ClassroomSessionStatus.COMPLETED
@@ -442,24 +442,24 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 .forEach(candidate -> copySharedRoom(sourceSession, candidate));
     }
 
-    private void copySharedRoom(ClassroomSession sourceSession, ClassroomSession targetSession) {
-        targetSession.setLarkMeetingId(sourceSession.getLarkMeetingId());
-        targetSession.setLarkMeetingNo(sourceSession.getLarkMeetingNo());
-        targetSession.setLarkMeetingUrl(sourceSession.getLarkMeetingUrl());
-        targetSession.setRecordingProvider(sourceSession.getRecordingProvider());
-        targetSession.setRecordingSyncStatus(sourceSession.getRecordingSyncStatus());
-        targetSession.setRecordingSyncError(sourceSession.getRecordingSyncError());
-        markSynced(targetSession);
+    private void copySharedRoom(ClassSchedule sourceSession, ClassSchedule targetClassSchedule) {
+        targetClassSchedule.setLarkMeetingId(sourceSession.getLarkMeetingId());
+        targetClassSchedule.setLarkMeetingNo(sourceSession.getLarkMeetingNo());
+        targetClassSchedule.setLarkMeetingUrl(sourceSession.getLarkMeetingUrl());
+        targetClassSchedule.setRecordingProvider(sourceSession.getRecordingProvider());
+        targetClassSchedule.setRecordingSyncStatus(sourceSession.getRecordingSyncStatus());
+        targetClassSchedule.setRecordingSyncError(sourceSession.getRecordingSyncError());
+        markSynced(targetClassSchedule);
     }
 
-    private void setClassroomDefaultRoom(ClassroomSession session, String meetingUri) {
-        ClassroomOffering offering = session.getClassroomOffering();
+    private void setClassroomDefaultRoom(ClassSchedule session, String meetingUri) {
+        ClassSection offering = session.getClassSection();
         if (offering == null) return;
         offering.setDefaultLarkMeetingUrl(meetingUri);
         offering.setLarkMeetingStatus(LarkMeetingStatus.SCHEDULED);
     }
 
-    private void configureRecording(ClassroomSession session, boolean autoRecordingUnavailable) {
+    private void configureRecording(ClassSchedule session, boolean autoRecordingUnavailable) {
         session.setRecordingProvider("GOOGLE_MEET");
         if (properties.isAutoRecording() && !autoRecordingUnavailable) {
             session.setRecordingSyncStatus(RecordingSyncStatus.SCHEDULED);
@@ -478,7 +478,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 || message.contains("updateAutoRecordingGeneration"));
     }
 
-    private void restrictExistingSpace(ClassroomSession session) {
+    private void restrictExistingSpace(ClassSchedule session) {
         User meetingOwner = requireMeetingOwner(session);
         String refreshToken = connectionService.requireRefreshToken(meetingOwner);
         JsonNode space;

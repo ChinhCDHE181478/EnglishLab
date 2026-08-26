@@ -1,13 +1,13 @@
 package fu.sep490.g23.backend.service.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomLifecycleServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,8 +31,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ClassroomLifecycleServiceImplTest {
 
-    @Mock private ClassroomSessionRepository sessionRepository;
-    @Mock private ClassroomOfferingRepository offeringRepository;
+    @Mock private ClassScheduleRepository sessionRepository;
+    @Mock private ClassSectionRepository offeringRepository;
     @Mock private VirtualAttendanceService virtualAttendanceService;
 
     private ClassroomLifecycleServiceImpl service;
@@ -49,14 +49,14 @@ class ClassroomLifecycleServiceImplTest {
     @Test
     void overdueOpenSessionAndItsClassAreCompleted() {
         LocalDateTime now = LocalDateTime.of(2026, 8, 11, 10, 0);
-        ClassroomOffering offering = offering(7L, ClassroomOfferingStatus.ACTIVE, LocalDate.of(2026, 7, 31));
-        ClassroomSession session = session(
+        ClassSection offering = offering(7L, ClassroomOfferingStatus.ACTIVE, LocalDate.of(2026, 7, 31));
+        ClassSchedule session = session(
                 70L,
                 LocalDate.of(2026, 7, 10),
                 ClassroomSessionStatus.OPEN,
                 ClassroomDeliveryMode.VIRTUAL
         );
-        session.setClassroomOffering(offering);
+        session.setClassSection(offering);
 
         when(sessionRepository.findSessionsEndedBefore(
                 anyCollection(),
@@ -64,7 +64,7 @@ class ClassroomLifecycleServiceImplTest {
                 eq(LocalTime.of(9, 30))
         )).thenReturn(List.of(session));
         when(offeringRepository.findByStatusIn(anyCollection())).thenReturn(List.of(offering));
-        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
                 .thenReturn(List.of(session));
 
         service.reconcileStatuses(now);
@@ -81,9 +81,9 @@ class ClassroomLifecycleServiceImplTest {
     @Test
     void upcomingClassBecomesActiveWhenStartDateArrives() {
         LocalDateTime now = LocalDateTime.of(2026, 8, 11, 10, 0);
-        ClassroomOffering offering = offering(8L, ClassroomOfferingStatus.UPCOMING, LocalDate.of(2026, 9, 30));
+        ClassSection offering = offering(8L, ClassroomOfferingStatus.UPCOMING, LocalDate.of(2026, 9, 30));
         offering.setStartDate(LocalDate.of(2026, 8, 11));
-        ClassroomSession futureSession = session(
+        ClassSchedule futureSession = session(
                 80L,
                 LocalDate.of(2026, 8, 12),
                 ClassroomSessionStatus.SCHEDULED,
@@ -93,7 +93,7 @@ class ClassroomLifecycleServiceImplTest {
         when(sessionRepository.findSessionsEndedBefore(anyCollection(), eq(now.toLocalDate()), eq(LocalTime.of(9, 30))))
                 .thenReturn(List.of());
         when(offeringRepository.findByStatusIn(anyCollection())).thenReturn(List.of(offering));
-        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
                 .thenReturn(List.of(futureSession));
 
         service.reconcileStatuses(now);
@@ -104,14 +104,14 @@ class ClassroomLifecycleServiceImplTest {
     @Test
     void futureMakeupSessionKeepsClassActiveAfterPlannedEndDate() {
         LocalDateTime now = LocalDateTime.of(2026, 8, 11, 10, 0);
-        ClassroomOffering offering = offering(9L, ClassroomOfferingStatus.ACTIVE, LocalDate.of(2026, 8, 10));
-        ClassroomSession completed = session(
+        ClassSection offering = offering(9L, ClassroomOfferingStatus.ACTIVE, LocalDate.of(2026, 8, 10));
+        ClassSchedule completed = session(
                 90L,
                 LocalDate.of(2026, 8, 9),
                 ClassroomSessionStatus.COMPLETED,
                 ClassroomDeliveryMode.OFFLINE
         );
-        ClassroomSession makeup = session(
+        ClassSchedule makeup = session(
                 91L,
                 LocalDate.of(2026, 8, 12),
                 ClassroomSessionStatus.MAKEUP,
@@ -121,7 +121,7 @@ class ClassroomLifecycleServiceImplTest {
         when(sessionRepository.findSessionsEndedBefore(anyCollection(), eq(now.toLocalDate()), eq(LocalTime.of(9, 30))))
                 .thenReturn(List.of());
         when(offeringRepository.findByStatusIn(anyCollection())).thenReturn(List.of(offering));
-        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
                 .thenReturn(List.of(completed, makeup));
 
         service.reconcileStatuses(now);
@@ -132,8 +132,8 @@ class ClassroomLifecycleServiceImplTest {
     @Test
     void classRemainsActiveThroughoutItsEndDate() {
         LocalDateTime now = LocalDateTime.of(2026, 8, 11, 22, 0);
-        ClassroomOffering offering = offering(10L, ClassroomOfferingStatus.ACTIVE, now.toLocalDate());
-        ClassroomSession completed = session(
+        ClassSection offering = offering(10L, ClassroomOfferingStatus.ACTIVE, now.toLocalDate());
+        ClassSchedule completed = session(
                 100L,
                 now.toLocalDate(),
                 ClassroomSessionStatus.COMPLETED,
@@ -143,7 +143,7 @@ class ClassroomLifecycleServiceImplTest {
         when(sessionRepository.findSessionsEndedBefore(anyCollection(), eq(now.toLocalDate()), eq(LocalTime.of(21, 30))))
                 .thenReturn(List.of());
         when(offeringRepository.findByStatusIn(anyCollection())).thenReturn(List.of(offering));
-        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId()))
                 .thenReturn(List.of(completed));
 
         service.reconcileStatuses(now);
@@ -172,22 +172,22 @@ class ClassroomLifecycleServiceImplTest {
                 .containsExactlyInAnyOrder(ClassroomSessionStatus.OPEN, ClassroomSessionStatus.IN_PROGRESS);
     }
 
-    private ClassroomOffering offering(Long id, ClassroomOfferingStatus status, LocalDate endDate) {
-        return ClassroomOffering.builder()
+    private ClassSection offering(Long id, ClassroomOfferingStatus status, LocalDate endDate) {
+        return ClassSection.builder()
                 .id(id)
                 .status(status)
                 .startDate(endDate.minusMonths(1))
-                .endDate(endDate)
+                .plannedEndDate(endDate)
                 .build();
     }
 
-    private ClassroomSession session(
+    private ClassSchedule session(
             Long id,
             LocalDate date,
             ClassroomSessionStatus status,
             ClassroomDeliveryMode deliveryMode
     ) {
-        return ClassroomSession.builder()
+        return ClassSchedule.builder()
                 .id(id)
                 .sessionDate(date)
                 .startTime(LocalTime.of(19, 30))

@@ -5,14 +5,13 @@ import fu.sep490.g23.backend.dto.response.commerce.CommerceCourseItemResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.commerce.CourseListItem;
 import fu.sep490.g23.backend.entity.commerce.enums.CourseListType;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +31,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
 
     private final CourseListItemRepository courseListItemRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -142,11 +141,10 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     private OnlineCourse requireVisibleCourse(Long courseId) {
         OnlineCourse course = onlineCourseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        LearningPackage learningPackage = course.getLearningPackage();
-        if (learningPackage == null || learningPackage.isDeleted()) {
+        if (course.isDeleted()) {
             throw new RuntimeException("Khóa học không còn khả dụng.");
         }
-        if (learningPackage.getStatus() != PackageStatus.PUBLISHED) {
+        if (course.getStatus() != PackageStatus.PUBLISHED) {
             throw new RuntimeException("Khóa học chưa được xuất bản.");
         }
         return course;
@@ -159,7 +157,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     }
 
     private void assertNotEnrolled(User student, OnlineCourse course) {
-        packageEnrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
+        packageEnrollmentRepository.findByStudentAndOnlineCourse(student, course)
                 .filter(enrollment -> enrollment.getStatus() == EnrollmentStatus.ACTIVE
                         || enrollment.getStatus() == EnrollmentStatus.COMPLETED)
                 .ifPresent(ignored -> {
@@ -172,35 +170,34 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     }
 
     private boolean isRegistered(User student, OnlineCourse course) {
-        return packageEnrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
+        return packageEnrollmentRepository.findByStudentAndOnlineCourse(student, course)
                 .filter(enrollment -> enrollment.getStatus() == EnrollmentStatus.ACTIVE
                         || enrollment.getStatus() == EnrollmentStatus.COMPLETED)
                 .isPresent();
     }
 
     private CommerceCourseItemResponse buildCommerceItem(OnlineCourse course, java.time.LocalDateTime addedAt, boolean registered) {
-        LearningPackage learningPackage = course.getLearningPackage();
-        BigDecimal originalPrice = safePrice(learningPackage.getPrice());
-        BigDecimal salePrice = resolveSalePrice(learningPackage);
+        BigDecimal originalPrice = safePrice(course.getPrice());
+        BigDecimal salePrice = resolveSalePrice(course);
         Integer discountPercent = computeDiscountPercent(originalPrice, salePrice);
         return CommerceCourseItemResponse.builder()
                 .id(course.getId())
-                .slug(learningPackage.getSlug())
-                .title(learningPackage.getTitle())
-                .thumbnailUrl(learningPackage.getThumbnailUrl())
+                .slug(course.getSlug())
+                .title(course.getTitle())
+                .thumbnailUrl(course.getThumbnailUrl())
                 .category(course.getCategory() == null ? null : course.getCategory().getCode())
                 .categoryName(course.getCategory() == null ? null : course.getCategory().getName())
-                .duration(learningPackage.getDuration())
+                .duration(course.getDuration())
                 .totalLessons(course.getTotalLessons())
                 .targetBand(course.getTargetBand())
                 .targetOutcome(course.getTargetOutcome())
-                .shortDescription(learningPackage.getShortDescription())
+                .shortDescription(course.getShortDescription())
                 .price(salePrice)
                 .salePrice(salePrice)
                 .originalPrice(originalPrice)
                 .discountPercent(discountPercent)
                 .registered(registered)
-                .status(learningPackage.getStatus().name())
+                .status(course.getStatus().name())
                 .addedAt(addedAt)
                 .build();
     }
@@ -209,11 +206,11 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
         return value == null ? BigDecimal.ZERO : value;
     }
 
-    private BigDecimal resolveSalePrice(LearningPackage learningPackage) {
-        if (learningPackage.getSalePrice() != null && learningPackage.getSalePrice().compareTo(BigDecimal.ZERO) >= 0) {
-            return learningPackage.getSalePrice();
+    private BigDecimal resolveSalePrice(OnlineCourse course) {
+        if (course.getSalePrice() != null && course.getSalePrice().compareTo(BigDecimal.ZERO) >= 0) {
+            return course.getSalePrice();
         }
-        return safePrice(learningPackage.getPrice());
+        return safePrice(course.getPrice());
     }
 
     private Integer computeDiscountPercent(BigDecimal originalPrice, BigDecimal salePrice) {

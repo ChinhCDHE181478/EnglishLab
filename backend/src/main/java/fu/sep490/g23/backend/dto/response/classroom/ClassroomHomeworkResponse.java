@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -16,10 +17,12 @@ import java.time.LocalDateTime;
 @Builder
 public class ClassroomHomeworkResponse {
     private Long id;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private Long sessionId;
-    private Long curriculumUnitId;
-    private String curriculumUnitTitle;
+    @JsonProperty("curriculumUnitId")
+    private Long courseUnitId;
+    @JsonProperty("curriculumUnitTitle")
+    private String courseUnitTitle;
     private String title;
     private String instruction;
     private LocalDateTime deadline;

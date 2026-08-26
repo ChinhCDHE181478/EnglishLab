@@ -1,7 +1,5 @@
 package fu.sep490.g23.backend.controller.classroom;
-import fu.sep490.g23.backend.dto.request.classroom.UpsertCampusRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomRoomDetailResponse;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomCampusResponse;
 import fu.sep490.g23.backend.dto.request.classroom.UpsertRoomRequest;
 
 import fu.sep490.g23.backend.service.classroom.ClassroomInfrastructureService;
@@ -19,27 +17,9 @@ public class StaffInfrastructureController {
 
     private final ClassroomInfrastructureService infrastructureService;
 
-    @GetMapping("/campuses")
-    public ResponseEntity<List<ClassroomCampusResponse>> listCampuses() {
-        return ResponseEntity.ok(infrastructureService.listCampuses());
-    }
-
-    @PostMapping("/campuses")
-    public ResponseEntity<ClassroomCampusResponse> createCampus(@Valid @RequestBody UpsertCampusRequest request) {
-        return ResponseEntity.ok(infrastructureService.createCampus(request));
-    }
-
-    @PutMapping("/campuses/{id}")
-    public ResponseEntity<ClassroomCampusResponse> updateCampus(
-            @PathVariable Long id,
-            @Valid @RequestBody UpsertCampusRequest request
-    ) {
-        return ResponseEntity.ok(infrastructureService.updateCampus(id, request));
-    }
-
     @GetMapping("/rooms")
-    public ResponseEntity<List<ClassroomRoomDetailResponse>> listRooms(@RequestParam(required = false) Long campusId) {
-        return ResponseEntity.ok(infrastructureService.listRooms(campusId));
+    public ResponseEntity<List<ClassroomRoomDetailResponse>> listRooms() {
+        return ResponseEntity.ok(infrastructureService.listRooms());
     }
 
     @PostMapping("/rooms")

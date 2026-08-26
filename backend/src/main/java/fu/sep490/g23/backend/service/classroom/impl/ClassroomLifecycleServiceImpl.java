@@ -1,13 +1,13 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomLifecycleService;
 import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
 import lombok.RequiredArgsConstructor;
@@ -39,8 +39,8 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
             ClassroomOfferingStatus.ACTIVE
     );
 
-    private final ClassroomSessionRepository sessionRepository;
-    private final ClassroomOfferingRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final ClassSectionRepository offeringRepository;
     private final VirtualAttendanceService virtualAttendanceService;
 
     @Scheduled(
@@ -54,13 +54,13 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
     @Override
     public void reconcileStatuses(LocalDateTime now) {
         LocalDateTime cutoff = now.minusMinutes(SESSION_COMPLETION_GRACE_MINUTES);
-        List<ClassroomSession> endedSessions = sessionRepository.findSessionsEndedBefore(
+        List<ClassSchedule> endedSessions = sessionRepository.findSessionsEndedBefore(
                 ENDABLE_SESSION_STATUSES,
                 cutoff.toLocalDate(),
                 cutoff.toLocalTime()
         );
 
-        for (ClassroomSession session : endedSessions) {
+        for (ClassSchedule session : endedSessions) {
             if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
                 try {
                     virtualAttendanceService.finalizeVirtualAttendance(session);
@@ -78,11 +78,11 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
         }
         sessionRepository.saveAll(endedSessions);
 
-        List<ClassroomOffering> offerings = offeringRepository.findByStatusIn(RUNNING_OFFERING_STATUSES);
-        for (ClassroomOffering offering : offerings) {
-            List<ClassroomSession> sessions = sessionRepository
-                    .findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
-            if (shouldCompleteOffering(offering, sessions, now)) {
+        List<ClassSection> offerings = offeringRepository.findByStatusIn(RUNNING_OFFERING_STATUSES);
+        for (ClassSection offering : offerings) {
+            List<ClassSchedule> schedules = sessionRepository
+                    .findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+            if (shouldCompleteOffering(offering, schedules, now)) {
                 offering.setStatus(ClassroomOfferingStatus.COMPLETED);
             } else if (offering.getStatus() == ClassroomOfferingStatus.UPCOMING
                     && offering.getStartDate() != null
@@ -94,11 +94,11 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
     }
 
     private boolean shouldCompleteOffering(
-            ClassroomOffering offering,
-            List<ClassroomSession> sessions,
+            ClassSection offering,
+            List<ClassSchedule> schedules,
             LocalDateTime now
     ) {
-        List<ClassroomSession> nonCancelledSessions = sessions.stream()
+        List<ClassSchedule> nonCancelledSessions = schedules.stream()
                 .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
                 .toList();
         boolean hasSessionTodayOrLater = nonCancelledSessions.stream()
@@ -106,8 +106,8 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
         if (hasSessionTodayOrLater) {
             return false;
         }
-        if (offering.getEndDate() != null) {
-            return offering.getEndDate().isBefore(now.toLocalDate());
+        if (offering.getPlannedEndDate() != null) {
+            return offering.getPlannedEndDate().isBefore(now.toLocalDate());
         }
         return !nonCancelledSessions.isEmpty()
                 && nonCancelledSessions.stream().allMatch(session ->

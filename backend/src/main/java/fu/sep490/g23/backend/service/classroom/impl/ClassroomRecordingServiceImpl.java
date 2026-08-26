@@ -3,13 +3,13 @@ package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.dto.request.classroom.UpdateRecordingRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.service.classroom.ClassroomRecordingService;
 import fu.sep490.g23.backend.service.classroom.LarkMeetingService;
@@ -37,8 +37,8 @@ import java.util.List;
 @Slf4j
 public class ClassroomRecordingServiceImpl implements ClassroomRecordingService {
 
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final ClassroomMapper mapper;
     private final LarkMeetingService larkMeetingService;
     private final LarkProperties larkProperties;
@@ -47,7 +47,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
 
     @Override
     public ClassroomOfferingResponse updateOfferingRecording(Long offeringId, UpdateRecordingRequest request) {
-        ClassroomOffering offering = offeringRepository.findById(offeringId)
+        ClassSection offering = offeringRepository.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
         if (request.getRecordingUrl() != null) {
             String recordingUrl = trimOrNull(request.getRecordingUrl());
@@ -65,7 +65,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
 
     @Override
     public ClassroomSessionResponse updateSessionRecording(Long sessionId, UpdateRecordingRequest request) {
-        ClassroomSession session = sessionRepository.findById(sessionId)
+        ClassSchedule session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
         if (request.getRecordingUrl() != null) {
             String recordingUrl = trimOrNull(request.getRecordingUrl());
@@ -97,14 +97,14 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         if (!offeringRepository.existsById(offeringId)) {
             throw new RuntimeException("Không tìm thấy lớp học.");
         }
-        return sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offeringId).stream()
+        return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offeringId).stream()
                 .map(mapper::toManagerSessionResponse)
                 .toList();
     }
 
     @Override
     public ClassroomSessionResponse syncRecording(Long sessionId) {
-        ClassroomSession session = sessionRepository.findById(sessionId)
+        ClassSchedule session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
         if (isGoogleMeetSession(session)) {
             syncGoogleMeetRecording(session);
@@ -130,7 +130,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         LocalDateTime retryBefore = LocalDateTime.now().minusSeconds(
                 Math.max(30, larkProperties.getRecordingSyncDelayMs() / 1000)
         );
-        List<ClassroomSession> pending = sessionRepository.findRecordingsPendingSync(
+        List<ClassSchedule> pending = sessionRepository.findRecordingsPendingSync(
                 EnumSet.of(RecordingSyncStatus.PROCESSING, RecordingSyncStatus.FAILED),
                 Math.max(1, larkProperties.getRecordingMaxSyncAttempts()),
                 retryBefore
@@ -159,7 +159,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         LocalDateTime retryBefore = LocalDateTime.now().minusSeconds(
                 Math.max(30, googleMeetProperties.getRecordingSyncDelayMs() / 1000)
         );
-        List<ClassroomSession> pending = sessionRepository.findGoogleMeetRecordingsPendingSync(
+        List<ClassSchedule> pending = sessionRepository.findGoogleMeetRecordingsPendingSync(
                 EnumSet.of(
                         RecordingSyncStatus.SCHEDULED,
                         RecordingSyncStatus.RECORDING,
@@ -180,7 +180,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
 
     @Scheduled(fixedDelayString = "${englishlab.lark.recording-expiry-check-delay-ms:300000}")
     public void unpublishExpiredRecordings() {
-        List<ClassroomSession> expired = sessionRepository
+        List<ClassSchedule> expired = sessionRepository
                 .findByRecordingVisibleTrueAndRecordingExpiresAtBefore(LocalDateTime.now());
         expired.forEach(session -> {
             session.setRecordingVisible(false);
@@ -200,7 +200,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
             return;
         }
         LocalDate today = LocalDate.now();
-        List<ClassroomSession> candidates = sessionRepository
+        List<ClassSchedule> candidates = sessionRepository
                 .findByDeliveryModeAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
                         ClassroomDeliveryMode.VIRTUAL,
                         today,
@@ -224,7 +224,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
                 });
     }
 
-    private void syncLarkRecording(ClassroomSession session) {
+    private void syncLarkRecording(ClassSchedule session) {
         session.setRecordingLastAttemptAt(LocalDateTime.now());
         session.setRecordingSyncAttempts((session.getRecordingSyncAttempts() == null ? 0 : session.getRecordingSyncAttempts()) + 1);
         try {
@@ -250,7 +250,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         }
     }
 
-    private void syncGoogleMeetRecording(ClassroomSession session) {
+    private void syncGoogleMeetRecording(ClassSchedule session) {
         session.setRecordingLastAttemptAt(LocalDateTime.now());
         session.setRecordingSyncAttempts((session.getRecordingSyncAttempts() == null ? 0 : session.getRecordingSyncAttempts()) + 1);
         try {
@@ -279,7 +279,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         }
     }
 
-    private boolean isGoogleMeetSession(ClassroomSession session) {
+    private boolean isGoogleMeetSession(ClassSchedule session) {
         return StringUtils.hasText(session.getLarkMeetingId())
                 && session.getLarkMeetingId().startsWith("spaces/");
     }
@@ -300,7 +300,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         }
     }
 
-    private void clearRecordingMetadata(ClassroomSession session) {
+    private void clearRecordingMetadata(ClassSchedule session) {
         session.setRecordingVisible(false);
         session.setRecordingProvider(null);
         session.setRecordingDurationMs(null);
@@ -312,11 +312,8 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         session.setRecordingExpiresAt(null);
     }
 
-    private void setExpiry(ClassroomSession session) {
-        Integer availableDays = session.getClassroomOffering().getCurriculumProgram() == null
-                ? null
-                : session.getClassroomOffering().getCurriculumProgram().getRecordingAvailableDays();
-        int days = availableDays == null || availableDays <= 0 ? 30 : availableDays;
+    private void setExpiry(ClassSchedule session) {
+        int days = 30;
         session.setRecordingExpiresAt(LocalDateTime.now().plusDays(days));
     }
 

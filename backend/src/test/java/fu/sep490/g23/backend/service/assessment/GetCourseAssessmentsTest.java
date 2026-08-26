@@ -7,17 +7,16 @@ import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.AssessmentSubmission;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +45,7 @@ class GetCourseAssessmentsTest {
     private OnlineCourseRepository onlineCourseRepository;
 
     @Mock
-    private PackageEnrollmentRepository enrollmentRepository;
+    private OnlineCourseEnrollmentRepository enrollmentRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -65,8 +64,7 @@ class GetCourseAssessmentsTest {
 
     private User student;
     private OnlineCourse course;
-    private LearningPackage learningPackage;
-    private PackageEnrollment enrollment;
+    private OnlineCourseEnrollment enrollment;
     private CourseAssessment assessment;
 
     @BeforeEach
@@ -74,16 +72,12 @@ class GetCourseAssessmentsTest {
         student = new User();
         student.setEmail("student@test.com");
 
-        learningPackage = new LearningPackage();
-        learningPackage.setId(1L);
-
         course = new OnlineCourse();
         course.setId(10L);
-        course.setLearningPackage(learningPackage);
 
-        enrollment = new PackageEnrollment();
+        enrollment = new OnlineCourseEnrollment();
         enrollment.setStudent(student);
-        enrollment.setLearningPackage(learningPackage);
+        enrollment.setOnlineCourse(course);
         enrollment.setStatus(EnrollmentStatus.ACTIVE);
 
         assessment = new CourseAssessment();

@@ -27,7 +27,8 @@ public class TrainingProgramRequest {
     private ClassroomDeliveryMode deliveryType;
 
     @NotNull(message = "Chương trình đào tạo không được để trống")
-    private Long curriculumProgramId;
+    @JsonAlias("curriculumProgramId")
+    private Long instructorLedCourseId;
 
     @Size(max = 500)
     private String shortDescription;

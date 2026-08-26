@@ -10,11 +10,10 @@ import fu.sep490.g23.backend.entity.assessment.enums.*;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +39,6 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
 
     private final AssessmentRubricRepository rubricRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
 
     @Value("${app.seed.test.enabled:false}")
@@ -57,8 +55,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         AssessmentRubric speakingRubric = upsertIeltsSpeakingRubric();
         AssessmentRubric vocabularyRubric = upsertVocabularyRubric();
 
-        learningPackageRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus")
-                .flatMap(onlineCourseRepository::findByLearningPackage)
+        onlineCourseRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus")
                 .ifPresent(course -> {
                     configurePath(course, 1, "IELTS 5.5 to 7.0 Self-Paced Path", 5.5, 7.0,
                             "Learner can use band-7 topic vocabulary, collocations, and examples in IELTS Speaking/Writing responses.",
@@ -66,8 +63,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                     seedVocabularyAssessments(course, vocabularyRubric);
                 });
 
-        learningPackageRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
-                .flatMap(onlineCourseRepository::findByLearningPackage)
+        onlineCourseRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
                 .ifPresent(course -> {
                     configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 6.0, 7.0,
                             "Learner can complete IELTS-style practice tests, analyze mistakes, and follow AI recommendations for final review.",
@@ -158,11 +154,11 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private void seedVocabularyAssessments(OnlineCourse course, AssessmentRubric rubric) {
-        List<CourseModule> modules = course.getModules().stream()
-                .sorted(Comparator.comparing(CourseModule::getDisplayOrder))
+        List<OnlineCourseModule> modules = course.getModules().stream()
+                .sorted(Comparator.comparing(OnlineCourseModule::getDisplayOrder))
                 .toList();
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
-        for (CourseModule module : modules) {
+        for (OnlineCourseModule module : modules) {
             CourseAssessment assessment = findSeededModuleAssessment(existingAssessments, module, "AI Vocabulary Output Check - ")
                     .orElseGet(() -> CourseAssessment.builder()
                             .onlineCourse(course)
@@ -189,11 +185,11 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private void seedPracticeTestAssessments(OnlineCourse course, AssessmentRubric writingRubric, AssessmentRubric speakingRubric) {
-        List<CourseModule> modules = course.getModules().stream()
-                .sorted(Comparator.comparing(CourseModule::getDisplayOrder))
+        List<OnlineCourseModule> modules = course.getModules().stream()
+                .sorted(Comparator.comparing(OnlineCourseModule::getDisplayOrder))
                 .toList();
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
-        for (CourseModule module : modules) {
+        for (OnlineCourseModule module : modules) {
             AssessmentSkill skill = resolvePracticeSkill(module);
             AssessmentRubric rubric = resolvePracticeRubric(skill, writingRubric, speakingRubric);
             AiEvaluationMode evaluationMode = resolvePracticeEvaluationMode(skill);
@@ -247,14 +243,14 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         courseAssessmentRepository.save(finalMock);
     }
 
-    private AssessmentSkill resolvePracticeSkill(CourseModule module) {
+    private AssessmentSkill resolvePracticeSkill(OnlineCourseModule module) {
         if (module != null && Integer.valueOf(1).equals(module.getDisplayOrder())) {
             return AssessmentSkill.WRITING;
         }
         return detectSkill(module == null ? null : module.getTitle());
     }
 
-    private String practiceAssessmentTitle(AssessmentSkill skill, CourseModule module) {
+    private String practiceAssessmentTitle(AssessmentSkill skill, OnlineCourseModule module) {
         String moduleTitle = module == null ? "" : module.getTitle();
         if (skill == AssessmentSkill.WRITING) {
             return "Bài Writing cuối mô-đun - " + moduleTitle;
@@ -319,7 +315,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         };
     }
 
-    private String practiceInstructions(AssessmentSkill skill, CourseModule module) {
+    private String practiceInstructions(AssessmentSkill skill, OnlineCourseModule module) {
         return switch (skill) {
             case LISTENING -> listeningInstructions();
             case READING -> readingInstructions();
@@ -377,12 +373,12 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         }
     }
 
-    private String speakingInstructions(CourseModule module) {
+    private String speakingInstructions(OnlineCourseModule module) {
         String plainInstructions = "Kiểm tra micro trước, sau đó làm lần lượt IELTS Speaking Part 1, Part 2 và Part 3 trước khi nộp bản ghi âm.";
         return plainInstructions + UI_CONFIG_MARKER + speakingUiConfig(module);
     }
 
-    private String speakingUiConfig(CourseModule module) {
+    private String speakingUiConfig(OnlineCourseModule module) {
         String title = module == null || module.getTitle() == null ? "" : module.getTitle().toLowerCase();
         if (title.contains("100 ielts speaking questions")) {
             return """
@@ -505,7 +501,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                 """;
     }
 
-    private Optional<CourseAssessment> findSeededModuleAssessment(List<CourseAssessment> assessments, CourseModule module, String seededTitlePrefix) {
+    private Optional<CourseAssessment> findSeededModuleAssessment(List<CourseAssessment> assessments, OnlineCourseModule module, String seededTitlePrefix) {
         List<CourseAssessment> matches = assessments.stream()
                 .filter(item -> item.getModule() != null
                         && item.getModule().getId() != null

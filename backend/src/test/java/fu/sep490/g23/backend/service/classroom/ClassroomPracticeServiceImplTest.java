@@ -4,15 +4,19 @@ import fu.sep490.g23.backend.dto.request.classroom.CompletePracticeRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
+import fu.sep490.g23.backend.entity.course.CourseUnitContentRef;
+import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.repository.classroom.*;
+import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
+import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomPracticeServiceImpl;
+import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,10 +35,13 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ClassroomPracticeServiceImplTest {
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     @Mock private ClassroomAccessHelper accessHelper;
+    @Mock private ContentBankLinkSync contentBankLinkSync;
+    @Mock private CourseUnitContentRefRepository contentRefRepository;
+    @Mock private ExerciseBankItemRepository exerciseRepository;
     @InjectMocks private ClassroomPracticeServiceImpl service;
 
     @Test
@@ -43,21 +50,29 @@ class ClassroomPracticeServiceImplTest {
         ExerciseBankItem exercise = ExerciseBankItem.builder()
                 .id(3L).title("Practice").skill("READING").prompt("{}")
                 .answerKey("{\"1\":\"B\",\"2\":\"A\"}").active(true).build();
-        CurriculumUnit unit = CurriculumUnit.builder().id(4L).displayOrder(1).title("Unit 1").build();
-        unit.setExerciseRefs(List.of(CurriculumExerciseRef.builder().unit(unit).exercise(exercise).build()));
-        CurriculumProgram program = CurriculumProgram.builder().id(5L).title("Program").units(List.of(unit)).build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(6L)
-                .learningPackage(LearningPackage.builder().title("Lớp TOEIC").build())
-                .curriculumProgram(program).build();
+        CourseUnit unit = CourseUnit.builder().id(4L).sequenceNumber(1).title("Unit 1").build();
+        CourseUnitContentRef exerciseRef = CourseUnitContentRef.builder()
+                .courseUnit(unit)
+                .contentType(CourseUnitContentType.EXERCISE)
+                .contentBankItem(ContentBankItem.builder().id(3L).title("Practice").build())
+                .build();
+        InstructorLedCourse course = InstructorLedCourse.builder().id(5L).title("Program").build();
+        ClassSection offering = ClassSection.builder().id(6L).name("Lớp TOEIC")
+                .instructorLedCourse(course).build();
         CompletePracticeRequest request = new CompletePracticeRequest();
         request.setAnswersJson("{\"1\":\"B\",\"2\":\"C\"}");
         request.setStartedAt(Instant.parse("2026-08-06T10:15:30Z"));
 
         when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
-        when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), any()))
+        when(enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(any(), any(), any()))
                 .thenReturn(true);
         when(offeringRepository.findById(6L)).thenReturn(Optional.of(offering));
-        when(attemptHistoryRepository.countByClassroomOfferingIdAndStudentIdAndExerciseId(6L, 7L, 3L))
+        when(contentRefRepository.findByCourseUnitInstructorLedCourseIdAndContentTypeOrderByCourseUnitSequenceNumberAscSequenceNumberAscIdAsc(
+                5L, CourseUnitContentType.EXERCISE))
+                .thenReturn(List.of(exerciseRef));
+        when(exerciseRepository.findById(3L)).thenReturn(Optional.of(exercise));
+        when(contentBankLinkSync.legacyIdForExercise(exercise)).thenReturn(3L);
+        when(attemptHistoryRepository.countByClassSectionIdAndStudentIdAndExerciseId(6L, 7L, 3L))
                 .thenReturn(1L);
         when(attemptHistoryRepository.save(any(ClassroomPracticeAttemptHistory.class)))
                 .thenAnswer(invocation -> {

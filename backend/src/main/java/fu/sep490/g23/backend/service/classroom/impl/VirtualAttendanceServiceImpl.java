@@ -2,7 +2,7 @@ package fu.sep490.g23.backend.service.classroom.impl;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.LarkMeetingParticipant;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -29,7 +29,7 @@ public class VirtualAttendanceServiceImpl implements VirtualAttendanceService {
     private final UserRepository userRepository;
 
     @Override
-    public void recordVirtualJoin(ClassroomSession session, User learner) {
+    public void recordVirtualJoin(ClassSchedule session, User learner) {
         LocalDateTime now = LocalDateTime.now();
         ClassroomAttendance attendance = attendanceRepository
                 .findBySessionIdAndStudentId(session.getId(), learner.getId())
@@ -48,7 +48,7 @@ public class VirtualAttendanceServiceImpl implements VirtualAttendanceService {
     }
 
     @Override
-    public void finalizeVirtualAttendance(ClassroomSession session) {
+    public void finalizeVirtualAttendance(ClassSchedule session) {
         LocalDateTime now = LocalDateTime.now();
         List<ClassroomAttendance> records = attendanceRepository.findBySessionId(session.getId());
         for (ClassroomAttendance attendance : records) {
@@ -71,8 +71,8 @@ public class VirtualAttendanceServiceImpl implements VirtualAttendanceService {
     }
 
     @Override
-    public void syncLarkParticipantAttendance(ClassroomSession session) {
-        List<LarkMeetingParticipant> participants = participantRepository.findByClassroomSessionId(session.getId());
+    public void syncLarkParticipantAttendance(ClassSchedule session) {
+        List<LarkMeetingParticipant> participants = participantRepository.findByClassScheduleId(session.getId());
         for (LarkMeetingParticipant participant : participants) {
             Long userId = participant.getUserId();
             if (userId == null) {
@@ -116,7 +116,7 @@ public class VirtualAttendanceServiceImpl implements VirtualAttendanceService {
         }
     }
 
-    private ClassroomAttendanceStatus resolveJoinStatus(ClassroomSession session, LocalDateTime joinTime) {
+    private ClassroomAttendanceStatus resolveJoinStatus(ClassSchedule session, LocalDateTime joinTime) {
         LocalDateTime start = session.getStartDateTime();
         if (joinTime.isAfter(start.plusMinutes(10))) {
             return ClassroomAttendanceStatus.LATE;

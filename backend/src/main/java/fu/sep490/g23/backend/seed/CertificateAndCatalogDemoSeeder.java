@@ -2,29 +2,27 @@ package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.admin.AuditLog;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.PackageType;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.admin.AuditLogRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -53,12 +51,11 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final AuditLogRepository auditLogRepository;
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
-    private final LearningPackageRepository learningPackageRepository;
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
     @Value("${app.seed.test.enabled:false}")
@@ -74,8 +71,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         seedFoundationCatalogCourses();
         assignCatalogToLongContentManager();
         seedAuditLogs();
-        learningPackageRepository.findBySlugAndDeletedFalse(CATALOG_DEMO_SLUG)
-                .flatMap(onlineCourseRepository::findByLearningPackage)
+        onlineCourseRepository.findBySlug(CATALOG_DEMO_SLUG)
                 .ifPresent(this::prepareCatalogAndCertificateDemo);
     }
 
@@ -94,8 +90,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     }
 
     private void normalizePrimaryPathOrder(String slug, int order) {
-        learningPackageRepository.findBySlugAndDeletedFalse(slug)
-                .flatMap(onlineCourseRepository::findByLearningPackage)
+        onlineCourseRepository.findBySlug(slug)
                 .ifPresent(course -> {
                     course.setLearningPathCode(PRIMARY_PATH_CODE);
                     course.setLearningPathName(PRIMARY_PATH_NAME);
@@ -107,8 +102,8 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private void assignCatalogToLongContentManager() {
         userRepository.findByEmail(LONG_CONTENT_MANAGER_EMAIL).ifPresent(manager ->
                 onlineCourseRepository.findAll().forEach(course -> {
-                    if (course.getLearningPackage() != null) {
-                        course.getLearningPackage().setCreatedBy(manager);
+                    if (course.isPublished()) {
+                        course.setCreatedBy(manager);
                     }
                 })
         );
@@ -118,18 +113,17 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         User manager = userRepository.findByEmail(LONG_CONTENT_MANAGER_EMAIL).orElse(null);
         if (manager == null) return;
 
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE).orElse(null);
         CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS.name()).orElse(null);
-        if (packageType == null || category == null) return;
+        if (category == null) return;
 
         upsertFoundationCourse(
-                manager, packageType, category,
+                manager, category,
                 "ielts-foundation-listening", "IELTS Foundation Listening", 2,
                 "Build listening confidence with short IELTS-style practice and guided review.",
                 "/course-covers/ielts-listening.png"
         );
         upsertFoundationCourse(
-                manager, packageType, category,
+                manager, category,
                 "ielts-foundation-speaking", "IELTS Foundation Speaking", 3,
                 "Practice clear answers, useful vocabulary, and confident speaking routines.",
                 "/course-covers/ielts-speaking.png"
@@ -138,7 +132,6 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
 
     private void upsertFoundationCourse(
             User manager,
-            PackageType packageType,
             CourseCategory category,
             String slug,
             String title,
@@ -146,33 +139,21 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
             String description,
             String thumbnailUrl
     ) {
-        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(slug)
-                .orElse(null);
-        if (learningPackage == null) {
-            learningPackage = LearningPackage.builder().slug(slug).packageType(packageType).build();
-        }
-        learningPackage.setPackageType(packageType);
-        learningPackage.setCreatedBy(manager);
-        learningPackage.setTitle(title);
-        learningPackage.setShortDescription(description);
-        learningPackage.setDescription(description);
-        learningPackage.setTargetScore("IELTS Band 5.5");
-        learningPackage.setDuration("4 weeks");
-        learningPackage.setStudyMode("Self-paced online");
-        learningPackage.setPrice(java.math.BigDecimal.ZERO);
-        learningPackage.setThumbnailUrl(thumbnailUrl);
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setDisplayOrder(20 + pathOrder);
-        learningPackage.setFeatured(true);
-        learningPackage.setDeleted(false);
-        learningPackage = learningPackageRepository.save(learningPackage);
-
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(learningPackage)
-                .orElse(null);
-        if (course == null) {
-            course = OnlineCourse.builder().learningPackage(learningPackage).build();
-        }
-        course.setLearningPackage(learningPackage);
+        OnlineCourse course = onlineCourseRepository.findBySlug(slug)
+                .orElseGet(() -> OnlineCourse.builder().slug(slug).build());
+        course.setCreatedBy(manager);
+        course.setTitle(title);
+        course.setShortDescription(description);
+        course.setDescription(description);
+        course.setTargetScore("IELTS Band 5.5");
+        course.setDuration("4 weeks");
+        course.setStudyMode("Self-paced online");
+        course.setPrice(java.math.BigDecimal.ZERO);
+        course.setThumbnailUrl(thumbnailUrl);
+        course.setStatus(PackageStatus.PUBLISHED);
+        course.setDisplayOrder(20 + pathOrder);
+        course.setFeatured(true);
+        course.setDeleted(false);
         course.setCategory(category);
         course.setLevel(CourseLevel.BEGINNER);
         course.setRecommendedCurrentBandMin(3.0);
@@ -183,27 +164,45 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         course.setTargetOutcome(description);
         course.setTotalLessons(1);
         course.setTotalHours(4);
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        course = savedCourse;
 
         if (course.getModules().isEmpty()) {
-            CourseModule module = CourseModule.builder()
+            OnlineCourseVersion draftVersion = ensureDraftVersion(course);
+            OnlineCourseModule module = OnlineCourseModule.builder()
                     .title("Foundation study plan")
                     .description("A guided starting module for this learning path.")
-                    .displayOrder(1)
+                    .sequenceNumber(1)
                     .build();
-            module.addLesson(Lesson.builder()
+            module.addLesson(OnlineLesson.builder()
                     .title("Welcome to " + title)
                     .description("Start your foundation study plan.")
                     .contentType("TEXT")
                     .contentText("Follow the study guide and complete the practice activities.")
                     .durationMinutes(30)
-                    .displayOrder(1)
+                    .sequenceNumber(1)
                     .preview(true)
-                    .lessonKey("%s-m1-l1".formatted(slug))
+                    .stableLessonKey("%s-m1-l1".formatted(slug))
                     .build());
-            course.addModule(module);
+            draftVersion.addModule(module);
+            onlineCourseVersionRepository.save(draftVersion);
         }
         onlineCourseRepository.save(course);
         onlineCourseVersionService.refreshPublishedSnapshot(course);
+    }
+
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
     }
 
     private void prepareCatalogAndCertificateDemo(OnlineCourse course) {
@@ -227,7 +226,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                     .targetScore("7.0")
                     .studyGoal("Hoàn thành khóa học demo để kiểm tra chứng nhận.")
                     .build();
-            userRoleService.assignRole(created, RoleEnum.LEARNER);
+            userRoleService.assignRole(created, RoleCodes.LEARNER);
             existing = userRepository.save(created);
         } else if (existing.getFullName() == null || existing.getFullName().isBlank() || existing.getFullName().equalsIgnoreCase("Học viên EnglishLab")) {
             existing.setFullName("Học viên Chứng nhận Demo");
@@ -235,10 +234,9 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         }
         final User learner = existing;
 
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, course.getLearningPackage())
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
+                .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
-                        .learningPackage(course.getLearningPackage())
                         .registeredAt(LocalDateTime.now().minusDays(14))
                         .build()));
         enrollment.setStatus(EnrollmentStatus.COMPLETED);
@@ -250,19 +248,17 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     }
 
     private void enrollForDiscussionDemo(User learner, String courseSlug) {
-        learningPackageRepository.findBySlugAndDeletedFalse(courseSlug)
-                .flatMap(onlineCourseRepository::findByLearningPackage)
-                .ifPresent(course -> enrollmentRepository.findByStudentAndLearningPackage(learner, course.getLearningPackage())
-                        .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+        onlineCourseRepository.findBySlug(courseSlug)
+                .ifPresent(course -> enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
+                        .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                                 .student(learner)
-                                .learningPackage(course.getLearningPackage())
                                 .status(EnrollmentStatus.ACTIVE)
                                 .progressPercent(10)
-                                .registeredAt(LocalDateTime.now().minusDays(3))
+.registeredAt(LocalDateTime.now().minusDays(3))
                                 .build())));
     }
 
-    private void completeLesson(User learner, PackageEnrollment enrollment, Lesson lesson) {
+    private void completeLesson(User learner, OnlineCourseEnrollment enrollment, OnlineLesson lesson) {
         LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
                 .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
         progress.setEnrollment(enrollment);

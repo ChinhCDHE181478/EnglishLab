@@ -161,7 +161,7 @@ public final class ItClassroomFixture {
         copyNumber(detail, payload, "curriculumProgramId", "curriculumProgramId");
         copyNumber(detail, payload, "primaryTeacherId", "primaryTeacherId");
         copyNumber(detail, payload, "roomId", "defaultRoomId");
-        copyNumber(detail, payload, "maxCapacity", "maxCapacity");
+        copyNumber(detail, payload, "capacity", "capacity");
         copyNumber(detail, payload, "displayOrder", "displayOrder");
         copyNumber(detail, payload, "price", "price");
         copyNumber(detail, payload, "salePrice", "salePrice");
@@ -181,7 +181,7 @@ public final class ItClassroomFixture {
     private static boolean isAssignable(JsonNode offering) {
         String startDate = offering.path("startDate").asText("");
         boolean startsLater = !startDate.isBlank() && LocalDate.parse(startDate).isAfter(LocalDate.now());
-        boolean hasSeat = offering.path("enrolledCount").asInt() < offering.path("maxCapacity").asInt(0);
+        boolean hasSeat = offering.path("enrolledCount").asInt() < offering.path("capacity").asInt(0);
         return "UPCOMING".equals(offering.path("classroomStatus").asText())
                 && "PUBLISHED".equals(offering.path("packageStatus").asText())
                 && startsLater

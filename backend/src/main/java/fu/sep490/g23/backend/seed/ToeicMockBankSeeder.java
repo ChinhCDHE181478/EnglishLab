@@ -7,7 +7,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
-import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 public class ToeicMockBankSeeder implements CommandLineRunner {
 
     private final AssessmentBankItemRepository assessmentBankItemRepository;
-    private final CurriculumProgramService curriculumProgramService;
+    private final InstructorLedCourseManagementService instructorLedCourseManagementService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -75,6 +75,6 @@ public class ToeicMockBankSeeder implements CommandLineRunner {
         request.setTimeLimitMinutes(minutes);
         request.setStatus("PUBLISHED");
         request.setDisplayOrder(20);
-        curriculumProgramService.createAssessmentBankItem(request);
+        instructorLedCourseManagementService.createAssessmentBankItem(request);
     }
 }

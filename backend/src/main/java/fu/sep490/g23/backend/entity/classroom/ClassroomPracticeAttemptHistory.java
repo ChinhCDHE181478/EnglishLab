@@ -23,16 +23,20 @@ public class ClassroomPracticeAttemptHistory {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exercise_id", nullable = false)
+    @JoinColumn(name = "exercise_content_bank_item_id")
     private ExerciseBankItem exercise;
+
+    /** Legacy exercise_bank_items id retained for Slice-3 dual column; drop in Slice 10. */
+    @Transient
+    private Long legacyExerciseId;
 
     @Column(name = "attempt_number", nullable = false)
     private Integer attemptNumber;

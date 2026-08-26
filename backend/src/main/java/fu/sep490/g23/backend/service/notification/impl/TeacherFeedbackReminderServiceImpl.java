@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.service.notification.impl;
 
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.notification.TeacherFeedbackReminderDispatcher;
 import fu.sep490.g23.backend.service.notification.TeacherFeedbackReminderService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 @Slf4j
 public class TeacherFeedbackReminderServiceImpl implements TeacherFeedbackReminderService {
-    private final ClassroomOfferingRepository offeringRepository;
+    private final ClassSectionRepository offeringRepository;
     private final TeacherFeedbackReminderDispatcher reminderDispatcher;
 
     @Value("${englishlab.teacher-feedback.opens-days-before-end:7}")
@@ -32,7 +32,7 @@ public class TeacherFeedbackReminderServiceImpl implements TeacherFeedbackRemind
     )
     public void dispatchTeacherFeedbackReminders() {
         LocalDate today = LocalDate.now();
-        offeringRepository.findByEndDateBetween(
+        offeringRepository.findByPlannedEndDateBetween(
                 today.minusDays(Math.max(0, closesDaysAfterEnd)),
                 today.plusDays(Math.max(0, opensDaysBeforeEnd))
         ).forEach(classroom -> {

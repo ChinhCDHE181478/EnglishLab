@@ -5,13 +5,13 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentRespo
 import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
 import fu.sep490.g23.backend.dto.response.classroom.TuitionProofResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPaymentProof;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
@@ -41,12 +41,12 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
 
     private final ClassroomTuitionPaymentProofRepository proofRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     private final HomeworkAttachmentStorageService attachmentStorageService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
-    private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomOfferingService classSectionService;
 
     @Override
     public TuitionProofResponse submitProof(
@@ -59,7 +59,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
             String publicUrlBase
     ) {
         User learner = accessHelper.requireUser(learnerEmail);
-        ClassroomEnrollment enrollment = requireActiveEnrollment(offeringId, learner.getId());
+        ClassEnrollment enrollment = requireActiveEnrollment(offeringId, learner.getId());
 
         if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST) {
             throw new RuntimeException("Bạn đang ở trong danh sách chờ và chưa cần thanh toán học phí.");
@@ -82,7 +82,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 .status(TuitionProofStatus.PENDING)
                 .build());
 
-        String classTitle = enrollment.getClassroomOffering().getLearningPackage().getTitle();
+        String classTitle = enrollment.getClassSection().getTitle();
         notificationService.notifyTrainingStaff(
                 "CLASSROOM_TUITION_PROOF_SUBMITTED",
                 "Minh chứng thanh toán mới",
@@ -91,7 +91,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 Map.of(
                         "proofId", proof.getId(),
                         "enrollmentId", enrollment.getId(),
-                        "classroomId", enrollment.getClassroomOffering().getId()
+                        "classroomId", enrollment.getClassSection().getId()
                 )
         );
         notificationService.notifyUser(
@@ -99,7 +99,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 "CLASSROOM_TUITION_PROOF_SUBMITTED",
                 "Đã gửi minh chứng thanh toán",
                 "Minh chứng thanh toán lớp " + classTitle + " đang chờ Nhân viên đào tạo xác nhận.",
-                Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassroomOffering().getId())
+                Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassSection().getId())
         );
         return toResponse(proof);
     }
@@ -108,8 +108,8 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     @Transactional(readOnly = true)
     public List<TuitionProofResponse> getMyProofs(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        ClassroomEnrollment enrollment = enrollmentRepository
-                .findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+        ClassEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndClassSectionId(learner.getId(), offeringId)
                 .orElse(null);
         if (enrollment == null) {
             return List.of();
@@ -124,8 +124,8 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     @Transactional(readOnly = true)
     public List<ClassroomTuitionPaymentResponse> getMyTuitionHistory(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        ClassroomEnrollment enrollment = enrollmentRepository
-                .findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+        ClassEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndClassSectionId(learner.getId(), offeringId)
                 .orElse(null);
         if (enrollment == null) {
             return List.of();
@@ -167,14 +167,14 @@ public class TuitionProofServiceImpl implements TuitionProofService {
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertStaffOperator(actor);
         ClassroomTuitionPaymentProof proof = findPendingProof(proofId);
-        ClassroomEnrollment enrollment = proof.getEnrollment();
+        ClassEnrollment enrollment = proof.getEnrollment();
 
         RecordTuitionPaymentRequest paymentRequest = new RecordTuitionPaymentRequest();
         paymentRequest.setAmount(proof.getAmount());
         paymentRequest.setPaymentKind(proof.getPaymentKind());
         paymentRequest.setNote("Xác nhận từ minh chứng chuyển khoản #" + proof.getId());
         paymentRequest.setAssignIfFullyPaid(true);
-        classroomOfferingService.recordTuitionPayment(enrollment.getId(), paymentRequest, actorEmail);
+        classSectionService.recordTuitionPayment(enrollment.getId(), paymentRequest, actorEmail);
 
         proof.setStatus(TuitionProofStatus.CONFIRMED);
         proof.setReviewedBy(actor);
@@ -186,9 +186,9 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 "CLASSROOM_TUITION_PROOF_CONFIRMED",
                 "Minh chứng thanh toán được xác nhận",
                 "Minh chứng chuyển khoản " + proof.getAmount().toPlainString() + " VND cho lớp "
-                        + enrollment.getClassroomOffering().getLearningPackage().getTitle()
+                        + enrollment.getClassSection().getTitle()
                         + " đã được xác nhận. Mã xác nhận: TP-" + proof.getId() + ".",
-                Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassroomOffering().getId())
+                Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassSection().getId())
         );
         return toResponse(proof);
     }
@@ -201,7 +201,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
             throw new RuntimeException("Vui lòng nhập lý do từ chối minh chứng.");
         }
         ClassroomTuitionPaymentProof proof = findPendingProof(proofId);
-        ClassroomEnrollment enrollment = proof.getEnrollment();
+        ClassEnrollment enrollment = proof.getEnrollment();
 
         proof.setStatus(TuitionProofStatus.REJECTED);
         proof.setReviewNote(reason.trim());
@@ -214,15 +214,15 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 "CLASSROOM_TUITION_PROOF_REJECTED",
                 "Minh chứng thanh toán bị từ chối",
                 "Minh chứng chuyển khoản cho lớp "
-                        + enrollment.getClassroomOffering().getLearningPackage().getTitle()
+                        + enrollment.getClassSection().getTitle()
                         + " bị từ chối: " + reason.trim(),
-                Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassroomOffering().getId())
+                Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassSection().getId())
         );
         return toResponse(proof);
     }
 
-    private ClassroomEnrollment requireActiveEnrollment(Long offeringId, Long learnerId) {
-        return enrollmentRepository.findByStudentIdAndClassroomOfferingId(learnerId, offeringId)
+    private ClassEnrollment requireActiveEnrollment(Long offeringId, Long learnerId) {
+        return enrollmentRepository.findByStudentIdAndClassSectionId(learnerId, offeringId)
                 .filter(item -> ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
                 .orElseThrow(() -> new RuntimeException("Bạn chưa có đăng ký hiệu lực cho lớp này."));
     }
@@ -252,13 +252,13 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     }
 
     private TuitionProofResponse toResponse(ClassroomTuitionPaymentProof proof) {
-        ClassroomEnrollment enrollment = proof.getEnrollment();
-        ClassroomOffering offering = enrollment.getClassroomOffering();
+        ClassEnrollment enrollment = proof.getEnrollment();
+        ClassSection offering = enrollment.getClassSection();
         return TuitionProofResponse.builder()
                 .id(proof.getId())
                 .enrollmentId(enrollment.getId())
-                .classroomOfferingId(offering.getId())
-                .classroomTitle(offering.getLearningPackage().getTitle())
+                .classSectionId(offering.getId())
+                .classroomTitle(offering.getTitle())
                 .studentId(enrollment.getStudent().getId())
                 .studentName(enrollment.getStudent().getFullName())
                 .studentEmail(enrollment.getStudent().getEmail())

@@ -7,20 +7,17 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomOfferingServiceImpl;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
@@ -44,19 +41,16 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ClassroomOfferingServiceImplWaitlistTest {
 
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomSessionRepository sessionRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassScheduleRepository sessionRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
-    @Mock private LearningPackageRepository learningPackageRepository;
-    @Mock private PackageTypeRepository packageTypeRepository;
-    @Mock private PackageEnrollmentRepository packageEnrollmentRepository;
-    @Mock private CurriculumProgramRepository curriculumProgramRepository;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
+    @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
+    @Mock private InstructorLedCourseRepository curriculumProgramRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
-    @Mock private ClassroomRoomRepository roomRepository;
+    @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
     @Mock private ClassroomConflictService conflictService;
@@ -73,7 +67,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Test
     void syncVirtualSessionMeetingCreatesManagedLarkRoomForStaff() {
         User staff = User.builder().id(1L).email("staff@example.com").fullName("Staff").build();
-        ClassroomSession session = ClassroomSession.builder()
+        ClassSchedule session = ClassSchedule.builder()
                 .id(9L)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
                 .status(ClassroomSessionStatus.SCHEDULED)
@@ -89,7 +83,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
         when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
         when(virtualMeetingService.isEnabled()).thenReturn(true);
         doAnswer(invocation -> {
-            ClassroomSession target = invocation.getArgument(0);
+            ClassSchedule target = invocation.getArgument(0);
             target.setLarkMeetingUrl(expected.getLarkMeetingUrl());
             target.setLarkMeetingNo(expected.getLarkMeetingNo());
             target.setLarkSyncStatus("SYNCED");
@@ -109,7 +103,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
 
     @Test
     void retryPendingVirtualMeetingsAutomaticallyCreatesMissingRoom() {
-        ClassroomSession session = ClassroomSession.builder()
+        ClassSchedule session = ClassSchedule.builder()
                 .id(10L)
                 .sessionDate(LocalDate.now().plusDays(1))
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
@@ -125,7 +119,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 any(Pageable.class)
         )).thenReturn(List.of(session));
         doAnswer(invocation -> {
-            ClassroomSession target = invocation.getArgument(0);
+            ClassSchedule target = invocation.getArgument(0);
             target.setLarkMeetingUrl("https://meet.google.com/abc-defg-hij");
             target.setLarkSyncStatus("SYNCED");
             target.setLarkSyncError(null);
@@ -155,14 +149,14 @@ class ClassroomOfferingServiceImplWaitlistTest {
         long learnerId = 7L;
         long offeringId = 10L;
         User learner = User.builder().id(learnerId).email("learner@example.com").build();
-        ClassroomOffering offering = ClassroomOffering.builder()
+        ClassSection offering = ClassSection.builder()
                 .id(offeringId)
-                .learningPackage(LearningPackage.builder().id(20L).build())
+                .name("Offering 20")
                 .build();
-        ClassroomEnrollment assigned = ClassroomEnrollment.builder()
+        ClassEnrollment assigned = ClassEnrollment.builder()
                 .id(30L)
                 .student(learner)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                 .build();
         ClassroomOfferingResponse mapped = ClassroomOfferingResponse.builder()
@@ -175,7 +169,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 learnerId,
                 ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
         )).thenReturn(List.of(assigned));
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learnerId, offeringId))
+        when(enrollmentRepository.findByStudentIdAndClassSectionId(learnerId, offeringId))
                 .thenReturn(Optional.of(assigned));
         when(mapper.toOfferingResponse(offering, false, learnerId, assigned, false)).thenReturn(mapped);
 
@@ -193,14 +187,14 @@ class ClassroomOfferingServiceImplWaitlistTest {
         long learnerId = 7L;
         long offeringId = 10L;
         User learner = User.builder().id(learnerId).email("learner@example.com").build();
-        ClassroomEnrollment pending = ClassroomEnrollment.builder()
+        ClassEnrollment pending = ClassEnrollment.builder()
                 .student(learner)
-                .classroomOffering(ClassroomOffering.builder().id(offeringId).build())
+                .classSection(ClassSection.builder().id(offeringId).build())
                 .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
                 .build();
 
         when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learnerId, offeringId))
+        when(enrollmentRepository.findByStudentIdAndClassSectionId(learnerId, offeringId))
                 .thenReturn(Optional.of(pending));
 
         RuntimeException error = assertThrows(
@@ -217,14 +211,14 @@ class ClassroomOfferingServiceImplWaitlistTest {
         long learnerId = 7L;
         long offeringId = 10L;
         User learner = User.builder().id(learnerId).email("learner@example.com").build();
-        ClassroomOffering offering = ClassroomOffering.builder()
+        ClassSection offering = ClassSection.builder()
                 .id(offeringId)
-                .learningPackage(LearningPackage.builder().id(20L).build())
+                .name("Offering 20")
                 .build();
-        ClassroomEnrollment assigned = ClassroomEnrollment.builder()
+        ClassEnrollment assigned = ClassEnrollment.builder()
                 .id(30L)
                 .student(learner)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                 .build();
         ClassroomOfferingResponse mapped = ClassroomOfferingResponse.builder()
@@ -235,7 +229,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 .build();
 
         when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learnerId, offeringId))
+        when(enrollmentRepository.findByStudentIdAndClassSectionId(learnerId, offeringId))
                 .thenReturn(Optional.of(assigned));
         when(offeringRepository.findById(offeringId)).thenReturn(Optional.of(offering));
         when(mapper.toOfferingResponse(offering, true, learnerId, assigned, true)).thenReturn(mapped);
@@ -251,16 +245,16 @@ class ClassroomOfferingServiceImplWaitlistTest {
     void reorderWaitlist_UpdatesEveryPositionInRequestedOrder() {
         long offeringId = 10L;
         User actor = User.builder().id(99L).email("manager@example.com").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(offeringId).build();
-        ClassroomEnrollment first = waitlistedEnrollment(1L, offering, 1);
-        ClassroomEnrollment second = waitlistedEnrollment(2L, offering, 2);
+        ClassSection offering = ClassSection.builder().id(offeringId).build();
+        ClassEnrollment first = waitlistedEnrollment(1L, offering, 1);
+        ClassEnrollment second = waitlistedEnrollment(2L, offering, 2);
         ReorderWaitlistRequest request = new ReorderWaitlistRequest();
         request.setEnrollmentIds(List.of(2L, 1L));
 
         when(accessHelper.requireUser("manager@example.com")).thenReturn(actor);
         when(offeringRepository.findByIdForUpdate(offeringId)).thenReturn(Optional.of(offering));
         when(enrollmentRepository
-                .findByClassroomOfferingIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
+                .findByClassSectionIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
                         offeringId,
                         ClassroomRegistrationStatus.WAITLIST
                 ))
@@ -282,14 +276,14 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Test
     void reorderWaitlist_RejectsIncompleteQueue() {
         long offeringId = 10L;
-        ClassroomOffering offering = ClassroomOffering.builder().id(offeringId).build();
+        ClassSection offering = ClassSection.builder().id(offeringId).build();
         ReorderWaitlistRequest request = new ReorderWaitlistRequest();
         request.setEnrollmentIds(List.of(1L));
 
         when(accessHelper.requireUser("manager@example.com")).thenReturn(new User());
         when(offeringRepository.findByIdForUpdate(offeringId)).thenReturn(Optional.of(offering));
         when(enrollmentRepository
-                .findByClassroomOfferingIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
+                .findByClassSectionIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
                         offeringId,
                         ClassroomRegistrationStatus.WAITLIST
                 ))
@@ -328,11 +322,11 @@ class ClassroomOfferingServiceImplWaitlistTest {
     void assignToClass_RejectsEnrollmentBeforeFullPayment() {
         User manager = User.builder().id(99L).email("manager@example.com").build();
         User learner = User.builder().id(7L).email("learner@example.com").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassSection offering = ClassSection.builder().id(10L).build();
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(31L)
                 .student(learner)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
                 .build();
 
@@ -352,9 +346,9 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Test
     void recordTuitionPayment_RejectsWaitlistedEnrollment() {
         User manager = User.builder().id(99L).email("manager@example.com").build();
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(32L)
-                .classroomOffering(ClassroomOffering.builder().id(10L).build())
+                .classSection(ClassSection.builder().id(10L).build())
                 .registrationStatus(ClassroomRegistrationStatus.WAITLIST)
                 .build();
         RecordTuitionPaymentRequest request = new RecordTuitionPaymentRequest();
@@ -373,14 +367,14 @@ class ClassroomOfferingServiceImplWaitlistTest {
         verifyNoInteractions(tuitionPaymentRepository);
     }
 
-    private ClassroomEnrollment waitlistedEnrollment(
+    private ClassEnrollment waitlistedEnrollment(
             Long id,
-            ClassroomOffering offering,
+            ClassSection offering,
             Integer priority
     ) {
-        return ClassroomEnrollment.builder()
+        return ClassEnrollment.builder()
                 .id(id)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(ClassroomRegistrationStatus.WAITLIST)
                 .waitlistPriority(priority)
                 .build();

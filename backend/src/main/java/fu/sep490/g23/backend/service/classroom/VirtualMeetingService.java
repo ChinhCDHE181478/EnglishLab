@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.service.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 
 /**
@@ -21,11 +21,11 @@ public interface VirtualMeetingService {
 
     boolean isLegacyOrPlaceholderUrl(String meetingUrl);
 
-    void syncMeeting(ClassroomSession session);
+    void syncMeeting(ClassSchedule session);
 
-    void inviteInternalAttendee(ClassroomSession session, String email);
+    void inviteInternalAttendee(ClassSchedule session, String email);
 
-    void deleteMeeting(ClassroomSession session);
+    void deleteMeeting(ClassSchedule session);
 
-    VirtualMeetingRecordingInfo getRecording(ClassroomSession session);
+    VirtualMeetingRecordingInfo getRecording(ClassSchedule session);
 }

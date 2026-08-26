@@ -18,7 +18,7 @@ public class CreateChangeRequestRequest {
     private ClassroomChangeRequestType requestType;
 
     @NotNull(message = "Lớp học không được để trống")
-    private Long classroomOfferingId;
+    private Long classSectionId;
 
     private Long targetSessionId;
 

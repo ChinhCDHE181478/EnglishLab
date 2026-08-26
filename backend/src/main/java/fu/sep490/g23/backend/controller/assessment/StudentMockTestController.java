@@ -4,7 +4,7 @@ import fu.sep490.g23.backend.dto.request.assessment.MockTestSubmissionRequest;
 import fu.sep490.g23.backend.dto.response.assessment.MockTestAttemptResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
 import fu.sep490.g23.backend.service.assessment.MockTestService;
-import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,12 +23,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentMockTestController {
 
-    private final CurriculumProgramService curriculumProgramService;
+    private final InstructorLedCourseManagementService instructorLedCourseManagementService;
     private final MockTestService mockTestService;
 
     @GetMapping
     public ResponseEntity<List<AssessmentBankItemResponse>> listMockTests(Authentication authentication) {
-        return ResponseEntity.ok(curriculumProgramService.listPublishedMockTests());
+        return ResponseEntity.ok(instructorLedCourseManagementService.listPublishedMockTests());
     }
 
     @GetMapping("/{id}")
@@ -36,7 +36,7 @@ public class StudentMockTestController {
             @PathVariable Long id,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(curriculumProgramService.getPublishedMockTest(id));
+        return ResponseEntity.ok(instructorLedCourseManagementService.getPublishedMockTest(id));
     }
 
     @PostMapping("/{id}/submit")

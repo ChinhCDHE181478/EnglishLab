@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.request.classroom;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import jakarta.validation.constraints.NotNull;
@@ -32,7 +33,8 @@ public class CreateClassroomSessionRequest {
     private ClassroomSessionStatus status;
     private ClassroomDeliveryMode deliveryMode;
     private Long roomId;
-    private Long curriculumSessionPlanId;
+    @JsonAlias("curriculumSessionPlanId")
+    private Long courseLessonId;
 
     @Size(max = 700, message = "Đường dẫn phòng học trực tuyến không được vượt quá 700 ký tự")
     private String larkMeetingUrl;

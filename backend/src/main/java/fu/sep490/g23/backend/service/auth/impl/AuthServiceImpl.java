@@ -8,7 +8,7 @@ import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.dto.response.UserResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.security.JwtService;
@@ -55,11 +55,11 @@ public class AuthServiceImpl implements AuthService {
                     .password(passwordEncoder.encode(request.getPassword()))
                     .emailVerified(false)
                     .build();
-            userRoleService.assignRole(user, RoleEnum.LEARNER);
+            userRoleService.assignRole(user, RoleCodes.LEARNER);
         } else {
             user.setFullName(request.getFullName().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            userRoleService.replaceRoles(user, RoleEnum.LEARNER);
+            userRoleService.replaceRoles(user, RoleCodes.LEARNER);
             user.setEmailVerified(false);
         }
 
@@ -194,8 +194,8 @@ public class AuthServiceImpl implements AuthService {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
-                .roles(user.getRoleCodes().stream().map(Enum::name).sorted().toList())
+                .role(user.getPrimaryRoleCode())
+                .roles(user.getRoleCodes().stream().sorted().toList())
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())

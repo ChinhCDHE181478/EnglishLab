@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class TuitionProofResponse {
     private Long id;
     private Long enrollmentId;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private String classroomTitle;
     private Long studentId;
     private String studentName;

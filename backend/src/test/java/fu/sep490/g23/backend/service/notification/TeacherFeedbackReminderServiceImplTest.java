@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.service.notification;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.notification.impl.TeacherFeedbackReminderServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TeacherFeedbackReminderServiceImplTest {
 
-    @Mock private ClassroomOfferingRepository offeringRepository;
+    @Mock private ClassSectionRepository offeringRepository;
     @Mock private TeacherFeedbackReminderDispatcher reminderDispatcher;
 
     private TeacherFeedbackReminderServiceImpl service;
@@ -37,9 +37,9 @@ class TeacherFeedbackReminderServiceImplTest {
 
     @Test
     void dispatchContinuesWithNextClassroomWhenOneTransactionFails() {
-        ClassroomOffering first = ClassroomOffering.builder().id(1L).build();
-        ClassroomOffering second = ClassroomOffering.builder().id(2L).build();
-        when(offeringRepository.findByEndDateBetween(any(LocalDate.class), any(LocalDate.class)))
+        ClassSection first = ClassSection.builder().id(1L).build();
+        ClassSection second = ClassSection.builder().id(2L).build();
+        when(offeringRepository.findByPlannedEndDateBetween(any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(List.of(first, second));
         doThrow(new RuntimeException("database failure"))
                 .when(reminderDispatcher)

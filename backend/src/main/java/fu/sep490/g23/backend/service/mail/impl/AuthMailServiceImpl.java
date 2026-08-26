@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.service.mail.impl;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.service.mail.AuthMailService;
 import fu.sep490.g23.backend.service.mail.EmailTemplateUtil;
 import jakarta.mail.internet.InternetAddress;
@@ -71,7 +71,7 @@ public class AuthMailServiceImpl implements AuthMailService {
 
     @Override
     public void sendStaffCreatedAccountEmail(User user, String code) {
-        boolean teacher = user != null && user.hasRole(RoleEnum.TEACHER);
+        boolean teacher = user != null && user.hasRole(RoleCodes.TEACHER);
         String nextPath = teacher ? "&next=" + encode("/teacher/professional-profile?connect=google-meet") : "";
         sendCodeEmail(
                 user,

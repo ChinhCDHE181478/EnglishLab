@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.service.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 
 public interface LarkMeetingService {
@@ -14,13 +14,13 @@ public interface LarkMeetingService {
 
     boolean isDemoUrl(String meetingUrl);
 
-    void syncMeeting(ClassroomSession session);
+    void syncMeeting(ClassSchedule session);
 
-    void inviteAttendee(ClassroomSession session, String email);
+    void inviteAttendee(ClassSchedule session, String email);
 
-    void inviteInternalAttendee(ClassroomSession session, String email);
+    void inviteInternalAttendee(ClassSchedule session, String email);
 
-    void deleteMeeting(ClassroomSession session);
+    void deleteMeeting(ClassSchedule session);
 
-    LarkRecordingInfo getRecording(ClassroomSession session);
+    LarkRecordingInfo getRecording(ClassSchedule session);
 }

@@ -7,13 +7,12 @@ import fu.sep490.g23.backend.dto.response.admin.AdminDashboardResponse;
 
 import fu.sep490.g23.backend.dto.request.admin.*;
 import fu.sep490.g23.backend.dto.response.admin.*;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface AdminUserService {
     AdminDashboardResponse getDashboard();
-    Page<AdminUserResponse> getUsers(String keyword, RoleEnum role, Pageable pageable);
+    Page<AdminUserResponse> getUsers(String keyword, String role, Pageable pageable);
     AdminUserResponse createUser(UpsertAdminUserRequest request, String requesterEmail);
     AdminUserResponse updateUser(Long id, UpsertAdminUserRequest request, String requesterEmail);
     AdminUserResponse updateRoles(Long id, UpdateUserRolesRequest request, String requesterEmail);

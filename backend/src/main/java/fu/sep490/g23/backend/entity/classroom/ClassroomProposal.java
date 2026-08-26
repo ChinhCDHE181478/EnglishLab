@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.entity.classroom;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -18,6 +19,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -55,7 +57,7 @@ public class ClassroomProposal {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "course_offering_id", nullable = false)
-    private TrainingProgram courseOffering;
+    private InstructorLedCourse courseOffering;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "delivery_type", nullable = false, length = 20)
@@ -89,7 +91,7 @@ public class ClassroomProposal {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
-    private ClassroomRoom room;
+    private Room room;
 
     @Column(name = "offline_address", length = 500)
     private String offlineAddress;
@@ -128,9 +130,9 @@ public class ClassroomProposal {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_classroom_id")
-    private ClassroomOffering approvedClassroom;
+    private ClassSection approvedClassroom;
 
-    @OneToMany(mappedBy = "proposal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Transient
     @Builder.Default
     private List<ClassroomProposalMember> members = new ArrayList<>();
 

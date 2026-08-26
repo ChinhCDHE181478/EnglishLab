@@ -2,12 +2,11 @@ package fu.sep490.g23.backend.service.course;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.Lesson;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
@@ -15,7 +14,7 @@ import fu.sep490.g23.backend.dto.response.course.CourseCompletionStatus;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.impl.CourseProgressServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +43,7 @@ class CourseVersionProgressStabilityTest {
     private AssessmentSubmissionRepository assessmentSubmissionRepository;
 
     @Mock
-    private PackageEnrollmentRepository enrollmentRepository;
+    private OnlineCourseEnrollmentRepository enrollmentRepository;
 
     @Mock
     private OnlineCourseVersionService onlineCourseVersionService;
@@ -57,9 +56,9 @@ class CourseVersionProgressStabilityTest {
         User learner = User.builder().id(7L).email("learner@englishlab.vn").build();
         OnlineCourse courseWithTwentyLiveLessons = OnlineCourse.builder()
                 .id(1L)
-                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
                         .lessons(new ArrayList<>(java.util.stream.IntStream.range(0, 20)
-                                .mapToObj(index -> Lesson.builder().id((long) index + 1).build())
+                                .mapToObj(index -> OnlineLesson.builder().id((long) index + 1).build())
                                 .toList()))
                         .build())))
                 .build();
@@ -70,7 +69,7 @@ class CourseVersionProgressStabilityTest {
                 .totalRequiredLessons(10)
                 .totalRequiredAssessments(0)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(55L)
                 .student(learner)
                 .courseVersion(enrollmentVersion)
@@ -82,7 +81,7 @@ class CourseVersionProgressStabilityTest {
         when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED)).thenReturn(8L);
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
 
-        PackageEnrollment refreshed = progressService.refreshEnrollmentProgress(
+        OnlineCourseEnrollment refreshed = progressService.refreshEnrollmentProgress(
                 enrollment,
                 courseWithTwentyLiveLessons,
                 learner
@@ -98,11 +97,12 @@ class CourseVersionProgressStabilityTest {
         User learner = User.builder().id(9L).email("not-started@englishlab.vn").build();
         OnlineCourse course = OnlineCourse.builder()
                 .id(3L)
-                .learningPackage(LearningPackage.builder().title("Khóa học chưa bắt đầu").slug("not-started").build())
-                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                .title("Khóa học chưa bắt đầu")
+                .slug("not-started")
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
                         .lessons(new ArrayList<>(List.of(
-                                Lesson.builder().id(1L).build(),
-                                Lesson.builder().id(2L).build()
+                                OnlineLesson.builder().id(1L).build(),
+                                OnlineLesson.builder().id(2L).build()
                         )))
                         .build())))
                 .build();
@@ -113,7 +113,7 @@ class CourseVersionProgressStabilityTest {
                 .totalRequiredLessons(2)
                 .totalRequiredAssessments(0)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(57L)
                 .student(learner)
                 .courseVersion(enrollmentVersion)
@@ -138,10 +138,10 @@ class CourseVersionProgressStabilityTest {
     @Test
     void historicalAssessmentSubmissionStillCountsAfterAssessmentRowIsVersioned() {
         User learner = User.builder().id(8L).email("learner2@englishlab.vn").build();
-        Lesson lesson = Lesson.builder().id(1L).build();
+        OnlineLesson lesson = OnlineLesson.builder().id(1L).build();
         OnlineCourse course = OnlineCourse.builder()
                 .id(2L)
-                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
                         .lessons(new ArrayList<>(List.of(lesson)))
                         .build())))
                 .build();
@@ -152,7 +152,7 @@ class CourseVersionProgressStabilityTest {
                 .totalRequiredLessons(1)
                 .totalRequiredAssessments(1)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(56L)
                 .student(learner)
                 .courseVersion(baselineVersion)
@@ -177,7 +177,7 @@ class CourseVersionProgressStabilityTest {
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
         when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
 
-        PackageEnrollment refreshed = progressService.refreshEnrollmentProgress(enrollment, course, learner);
+        OnlineCourseEnrollment refreshed = progressService.refreshEnrollmentProgress(enrollment, course, learner);
 
         assertThat(refreshed.getProgressPercent()).isEqualTo(100);
         assertThat(refreshed.getStatus()).isEqualTo(EnrollmentStatus.COMPLETED);

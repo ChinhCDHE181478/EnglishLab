@@ -55,7 +55,7 @@ public class StaffClassroomIT {
                   "courseOfferingId":%d,
                   "capacity":20,
                   "plannedStartDate":"%s",
-                  "plannedEndDate":"%s",
+                  "endDate":"%s",
                   "weekdays":["MONDAY","WEDNESDAY"],
                   "sessionStartTime":"18:00:00",
                   "sessionEndTime":"20:00:00",
@@ -95,7 +95,7 @@ public class StaffClassroomIT {
         var body = mapper().createObjectNode();
         body.put("title", updatedTitle);
         body.put("deliveryMode", detail.path("deliveryMode").asText());
-        body.put("maxCapacity", detail.path("maxCapacity").asInt(20));
+        body.put("capacity", detail.path("capacity").asInt(20));
         body.put("primaryTeacherId", detail.path("primaryTeacherId").asLong());
         body.put("shortDescription", "IT_CLASS_03 persisted update");
         copyIfPresent(detail, body, "classroomStatus", "classroomStatus");

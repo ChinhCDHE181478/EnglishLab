@@ -6,7 +6,8 @@ import fu.sep490.g23.backend.dto.response.classroom.CenterMaterialLibraryItemRes
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumMaterialRefRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
+import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.CenterMaterialLibraryService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ import java.util.Map;
 public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibraryService {
 
     private final CenterMaterialLibraryItemRepository repository;
-    private final CurriculumMaterialRefRepository curriculumMaterialRefRepository;
+    private final CourseUnitContentRefRepository courseUnitContentRefRepository;
     private final ClassroomAccessHelper accessHelper;
 
     @Override
@@ -129,7 +130,10 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
 
         CenterMaterialLibraryItem item = repository.findById(materialId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trung tâm."));
-        if (curriculumMaterialRefRepository.existsByMaterialId(materialId)) {
+        if (courseUnitContentRefRepository.existsByContentTypeAndLearningResourceId(
+                CourseUnitContentType.MATERIAL,
+                materialId
+        )) {
             throw new IllegalArgumentException(
                     "Học liệu đang được sử dụng trong giáo trình. Hãy gỡ khỏi unit trước khi xóa."
             );

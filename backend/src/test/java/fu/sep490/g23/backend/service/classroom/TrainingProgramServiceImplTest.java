@@ -1,12 +1,10 @@
 package fu.sep490.g23.backend.service.classroom;
 
 import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.service.classroom.impl.TrainingProgramServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,47 +21,47 @@ import static org.mockito.Mockito.when;
 class TrainingProgramServiceImplTest {
 
     @Mock
-    private TrainingProgramRepository programRepository;
+    private InstructorLedCourseRepository programRepository;
 
-    @Mock
-    private CurriculumProgramRepository curriculumProgramRepository;
 
     private TrainingProgramServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new TrainingProgramServiceImpl(programRepository, curriculumProgramRepository);
+        service = new TrainingProgramServiceImpl(programRepository);
     }
 
     @Test
     void returnsAcademicSummaryFromLinkedCurriculum() {
-        CurriculumProgram curriculum = CurriculumProgram.builder()
+        InstructorLedCourse curriculum = InstructorLedCourse.builder()
                 .id(11L)
                 .title("TOEIC 650")
                 .code("TOEIC-650")
-                .examCategory("TOEIC")
+                .examType("TOEIC")
                 .entryLevel("TOEIC 350+")
                 .targetScore(650)
-                .outcomes("Hoàn thành đủ 7 Part TOEIC.")
-                .status("PUBLISHED")
+                .learningOutcomes("Hoàn thành đủ 7 Part TOEIC.")
+                .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
-        TrainingProgram program = TrainingProgram.builder()
+        InstructorLedCourse program = InstructorLedCourse.builder()
                 .id(21L)
                 .title("TOEIC 650 Offline")
                 .code("OFFLINE-TOEIC-650")
                 .slug("toeic-650-offline")
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .curriculumProgram(curriculum)
-                .status(PackageStatus.DRAFT)
+                .examType(curriculum.getExamType())
+                .entryLevel(curriculum.getEntryLevel())
+                .targetScore(curriculum.getTargetScore())
+                .learningOutcomes(curriculum.getLearningOutcomes())
+                .publicationStatus(PackageStatus.DRAFT)
                 .build();
         when(programRepository.findById(21L)).thenReturn(Optional.of(program));
 
         TrainingProgramResponse response = service.getProgram(21L);
 
-        assertThat(response.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.OFFLINE);
-        assertThat(response.getDeliveryMode()).isEqualTo(ClassroomDeliveryMode.OFFLINE);
+        assertThat(response.getDeliveryType()).isNull();
+        assertThat(response.getDeliveryMode()).isNull();
         assertThat(response.getEntryLevel()).isEqualTo(curriculum.getEntryLevel());
         assertThat(response.getTargetScore()).isEqualTo("650");
-        assertThat(response.getTargetOutcome()).isEqualTo(curriculum.getOutcomes());
+        assertThat(response.getTargetOutcome()).isEqualTo(curriculum.getLearningOutcomes());
     }
 }

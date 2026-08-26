@@ -42,7 +42,7 @@ class ClassroomRequestValidationTest {
         CreateClassroomOfferingRequest request = CreateClassroomOfferingRequest.builder()
                 .title("IELTS Evening")
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .maxCapacity(20)
+                .capacity(20)
                 .startDate(LocalDate.of(2026, 9, 1))
                 .endDate(LocalDate.of(2026, 8, 31))
                 .price(new BigDecimal("1000000"))
@@ -81,7 +81,7 @@ class ClassroomRequestValidationTest {
         request.setDeliveryType(fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode.OFFLINE);
         request.setCapacity(20);
         request.setPlannedStartDate(LocalDate.of(2026, 9, 1));
-        request.setPlannedEndDate(LocalDate.of(2026, 8, 31));
+        request.setEndDate(LocalDate.of(2026, 8, 31));
         request.setWeekdays(List.of(DayOfWeek.MONDAY));
         request.setSessionStartTime(LocalTime.of(20, 0));
         request.setSessionEndTime(LocalTime.of(18, 0));

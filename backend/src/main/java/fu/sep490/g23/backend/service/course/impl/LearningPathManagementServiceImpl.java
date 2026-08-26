@@ -13,14 +13,14 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.LearningPathManagementService;
 import fu.sep490.g23.backend.service.course.LearningPathRecommendationService;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
@@ -52,7 +52,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
     private final LearningPathCourseRepository learningPathCourseRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final UserRepository userRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final PlacementTestAttemptRepository placementAttemptRepository;
     private final PlacementRecommendationContextFactory recommendationContextFactory;
     private final LearningPathRecommendationService learningPathRecommendationService;
@@ -202,11 +202,11 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
     }
 
     private LearnerLearningPathResponse.PathOverview toLearnerPath(
-            LearningPath path, Map<Long, PackageEnrollment> enrollmentsByPackageId) {
+            LearningPath path, Map<Long, OnlineCourseEnrollment> enrollmentsByPackageId) {
         List<LearningPathCourse> refs = learningPathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId())
                 .stream()
-                .filter(ref -> ref.getOnlineCourse().getLearningPackage().getStatus() == PackageStatus.PUBLISHED
-                        && !ref.getOnlineCourse().getLearningPackage().isDeleted())
+                .filter(ref -> ref.getOnlineCourse().getStatus() == PackageStatus.PUBLISHED
+                        )
                 .toList();
         boolean prerequisiteCompleted = true;
         List<LearnerLearningPathCourseResponse> courses = new ArrayList<>();
@@ -214,7 +214,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         Long nextCourseId = null;
         for (LearningPathCourse ref : refs) {
             OnlineCourse course = ref.getOnlineCourse();
-            PackageEnrollment enrollment = activeEnrollment(enrollmentsByPackageId.get(course.getLearningPackage().getId()));
+            OnlineCourseEnrollment enrollment = activeEnrollment(enrollmentsByPackageId.get(course.getId()));
             boolean completed = enrollment != null && (enrollment.getStatus() == EnrollmentStatus.COMPLETED
                     || defaultInt(enrollment.getProgressPercent()) >= 100);
             boolean accessible = enrollment != null || prerequisiteCompleted;
@@ -224,9 +224,9 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
             }
             courses.add(LearnerLearningPathCourseResponse.builder()
                     .courseId(course.getId())
-                    .slug(course.getLearningPackage().getSlug())
-                    .title(course.getLearningPackage().getTitle())
-                    .thumbnailUrl(course.getLearningPackage().getThumbnailUrl())
+                    .slug(course.getSlug())
+                    .title(course.getTitle())
+                    .thumbnailUrl(course.getThumbnailUrl())
                     .learningPathOrder(ref.getDisplayOrder())
                     .enrollmentStatus(enrollment == null ? "NOT_ENROLLED" : enrollment.getStatus().name())
                     .progressPercent(enrollment == null ? 0 : defaultInt(enrollment.getProgressPercent()))
@@ -256,9 +256,9 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
                 .map(ref -> LearningPathCourseResponse.builder()
                         .courseId(ref.getOnlineCourse().getId())
-                        .slug(ref.getOnlineCourse().getLearningPackage().getSlug())
-                        .title(ref.getOnlineCourse().getLearningPackage().getTitle())
-                        .thumbnailUrl(ref.getOnlineCourse().getLearningPackage().getThumbnailUrl())
+                        .slug(ref.getOnlineCourse().getSlug())
+                        .title(ref.getOnlineCourse().getTitle())
+                        .thumbnailUrl(ref.getOnlineCourse().getThumbnailUrl())
                         .targetOutcome(ref.getOnlineCourse().getTargetOutcome())
                         .displayOrder(ref.getDisplayOrder())
                         .build())
@@ -282,26 +282,26 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
                         .filter(enrollment -> enrollment.getStatus() == EnrollmentStatus.ACTIVE
                                 || enrollment.getStatus() == EnrollmentStatus.COMPLETED)
-                        .map(enrollment -> enrollment.getLearningPackage().getId())
+                        .map(enrollment -> enrollment.getOnlineCourse().getId())
                         .collect(java.util.stream.Collectors.toSet());
         List<LearningPathOfferCourseResponse> courses = learningPathCourseRepository
                 .findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
-                .filter(ref -> ref.getOnlineCourse().getLearningPackage() != null
-                        && ref.getOnlineCourse().getLearningPackage().isPublished())
+                .filter(ref -> ref.getOnlineCourse() != null
+                        && (ref.getOnlineCourse().getStatus() == fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED))
                 .map(ref -> {
                     OnlineCourse course = ref.getOnlineCourse();
-                    BigDecimal originalPrice = safePrice(course.getLearningPackage().getPrice());
-                    BigDecimal currentPrice = resolveCurrentPrice(originalPrice, course.getLearningPackage().getSalePrice());
+                    BigDecimal originalPrice = safePrice(course.getPrice());
+                    BigDecimal currentPrice = resolveCurrentPrice(originalPrice, course.getSalePrice());
                     return LearningPathOfferCourseResponse.builder()
                             .courseId(course.getId())
-                            .slug(course.getLearningPackage().getSlug())
-                            .title(course.getLearningPackage().getTitle())
-                            .thumbnailUrl(course.getLearningPackage().getThumbnailUrl())
-                            .shortDescription(course.getLearningPackage().getShortDescription())
+                            .slug(course.getSlug())
+                            .title(course.getTitle())
+                            .thumbnailUrl(course.getThumbnailUrl())
+                            .shortDescription(course.getShortDescription())
                             .displayOrder(ref.getDisplayOrder())
                             .originalPrice(originalPrice)
                             .currentPrice(currentPrice)
-                            .owned(ownedPackageIds.contains(course.getLearningPackage().getId()))
+                            .owned(ownedPackageIds.contains(course.getId()))
                             .build();
                 })
                 .toList();
@@ -361,7 +361,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         return safePrice(value).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
-    private PackageEnrollment activeEnrollment(PackageEnrollment enrollment) {
+    private OnlineCourseEnrollment activeEnrollment(OnlineCourseEnrollment enrollment) {
         return enrollment == null || enrollment.getStatus() == EnrollmentStatus.CANCELLED ? null : enrollment;
     }
 

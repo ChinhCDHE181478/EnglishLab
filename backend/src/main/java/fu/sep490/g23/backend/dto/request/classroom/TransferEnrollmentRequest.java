@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class TransferEnrollmentRequest {
     @NotNull(message = "Lớp đích không hợp lệ.")
-    private Long targetClassroomOfferingId;
+    private Long targetClassSectionId;
 
     private String note;
 }

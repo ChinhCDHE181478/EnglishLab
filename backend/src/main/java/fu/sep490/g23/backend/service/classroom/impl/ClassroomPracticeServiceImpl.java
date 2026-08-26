@@ -1,7 +1,9 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptHistoryRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
+import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,13 +12,15 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResp
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
+import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
+import fu.sep490.g23.backend.entity.course.CourseUnitContentRef;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomPracticeService;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
+import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,20 +35,23 @@ import java.util.stream.Collectors;
 public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     private static final Set<ClassroomRegistrationStatus> HAS_LEARNING_ACCESS = ClassroomRegistrationSupport.HAS_LEARNING_ACCESS;
 
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     private final ClassroomAccessHelper accessHelper;
+    private final ContentBankLinkSync contentBankLinkSync;
+    private final CourseUnitContentRefRepository contentRefRepository;
+    private final ExerciseBankItemRepository exerciseRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassroomPracticeResponse> listForLearner(Long offeringId, String learnerEmail) {
         User learner = requireLearnerAccess(offeringId, learnerEmail);
-        ClassroomOffering offering = requireOffering(offeringId);
+        ClassSection offering = requireOffering(offeringId);
         Map<Long, ClassroomPracticeAttemptHistory> attempts = latestAttempts(offeringId, learner.getId());
         return practiceRefs(offering).stream()
-                .map(ref -> toResponse(offering, ref, attempts.get(ref.getExercise().getId()), learner.getId()))
+                .map(ref -> toResponse(offering, ref, attempts.get(ref.exercise().getId()), learner.getId()))
                 .toList();
     }
 
@@ -53,13 +60,13 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     public List<ClassroomPracticeResponse> listAllForLearner(String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
         return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), HAS_LEARNING_ACCESS).stream()
-                .map(ClassroomEnrollment::getClassroomOffering)
+                .map(ClassEnrollment::getClassSection)
                 .filter(Objects::nonNull)
                 .distinct()
                 .flatMap(offering -> {
                     Map<Long, ClassroomPracticeAttemptHistory> attempts = latestAttempts(offering.getId(), learner.getId());
                     return practiceRefs(offering).stream()
-                            .map(ref -> toResponse(offering, ref, attempts.get(ref.getExercise().getId()), learner.getId()));
+                            .map(ref -> toResponse(offering, ref, attempts.get(ref.exercise().getId()), learner.getId()));
                 })
                 .sorted(Comparator
                         .comparing(ClassroomPracticeResponse::getClassroomTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
@@ -77,10 +84,10 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     ) {
         submitAttempt(offeringId, exerciseId, request, learnerEmail);
         User learner = requireLearnerAccess(offeringId, learnerEmail);
-        ClassroomOffering offering = requireOffering(offeringId);
-        CurriculumExerciseRef ref = requirePracticeRef(offering, exerciseId);
+        ClassSection offering = requireOffering(offeringId);
+        PracticeRef ref = requirePracticeRef(offering, exerciseId);
         ClassroomPracticeAttemptHistory attempt = attemptHistoryRepository
-                .findByClassroomOfferingIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
+                .findByClassSectionIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
                         offeringId, learner.getId(), exerciseId
                 ).stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lượt luyện tập vừa hoàn thành."));
@@ -95,20 +102,21 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
             String learnerEmail
     ) {
         User learner = requireLearnerAccess(offeringId, learnerEmail);
-        ClassroomOffering offering = requireOffering(offeringId);
-        CurriculumExerciseRef ref = requirePracticeRef(offering, exerciseId);
+        ClassSection offering = requireOffering(offeringId);
+        PracticeRef ref = requirePracticeRef(offering, exerciseId);
         validateSubmission(request);
 
         LocalDateTime completedAt = LocalDateTime.now();
         long historyCount = attemptHistoryRepository
-                .countByClassroomOfferingIdAndStudentIdAndExerciseId(offeringId, learner.getId(), exerciseId);
+                .countByClassSectionIdAndStudentIdAndExerciseId(offeringId, learner.getId(), exerciseId);
 
-        ScoreResult score = score(request.getAnswersJson(), ref.getExercise().getAnswerKey());
+        ScoreResult score = score(request.getAnswersJson(), ref.exercise().getAnswerKey());
         int attemptNumber = Math.toIntExact(historyCount + 1);
         ClassroomPracticeAttemptHistory history = ClassroomPracticeAttemptHistory.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .student(learner)
-                .exercise(ref.getExercise())
+                .exercise(ref.exercise())
+                .legacyExerciseId(requireLegacyExerciseId(ref.exercise()))
                 .attemptNumber(attemptNumber)
                 .responseText(request.getResponseText())
                 .answersJson(request.getAnswersJson())
@@ -128,10 +136,10 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     @Transactional(readOnly = true)
     public List<ClassroomPracticeAttemptResponse> listAttempts(Long offeringId, Long exerciseId, String learnerEmail) {
         User learner = requireLearnerAccess(offeringId, learnerEmail);
-        ClassroomOffering offering = requireOffering(offeringId);
+        ClassSection offering = requireOffering(offeringId);
         requirePracticeRef(offering, exerciseId);
         List<ClassroomPracticeAttemptResponse> history = attemptHistoryRepository
-                .findByClassroomOfferingIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
+                .findByClassSectionIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
                         offeringId, learner.getId(), exerciseId
                 ).stream()
                 .map(this::toAttemptResponse)
@@ -141,57 +149,64 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
 
     private User requireLearnerAccess(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        boolean hasAccess = enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+        boolean hasAccess = enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
                 learner.getId(), offeringId, HAS_LEARNING_ACCESS);
         if (!hasAccess) throw new RuntimeException("Bạn không thuộc lớp học này.");
         return learner;
     }
 
-    private ClassroomOffering requireOffering(Long offeringId) {
+    private ClassSection requireOffering(Long offeringId) {
         return offeringRepository.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
     }
 
-    private List<CurriculumExerciseRef> practiceRefs(ClassroomOffering offering) {
-        if (offering.getCurriculumProgram() == null) return List.of();
-        return offering.getCurriculumProgram().getUnits().stream()
-                .sorted(Comparator.comparing(unit -> Optional.ofNullable(unit.getDisplayOrder()).orElse(0)))
-                .flatMap(unit -> unit.getExerciseRefs().stream()
-                        .filter(ref -> ref.getExercise() != null && ref.getExercise().isActive())
-                        .sorted(Comparator.comparing(ref -> Optional.ofNullable(ref.getDisplayOrder()).orElse(0))))
+    private List<PracticeRef> practiceRefs(ClassSection offering) {
+        if (offering.getInstructorLedCourse() == null || offering.getInstructorLedCourse().getId() == null) {
+            return List.of();
+        }
+        return contentRefRepository
+                .findByCourseUnitInstructorLedCourseIdAndContentTypeOrderByCourseUnitSequenceNumberAscSequenceNumberAscIdAsc(
+                        offering.getInstructorLedCourse().getId(), CourseUnitContentType.EXERCISE)
+                .stream()
+                .filter(ref -> ref.getContentBankItem() != null)
+                .map(ref -> new PracticeRef(
+                        ref,
+                        exerciseRepository.findById(ref.getContentBankItem().getId()).orElse(null)
+                ))
+                .filter(ref -> ref.exercise() != null && ref.exercise().isActive())
                 .toList();
     }
 
-    private CurriculumExerciseRef requirePracticeRef(ClassroomOffering offering, Long exerciseId) {
+    private PracticeRef requirePracticeRef(ClassSection offering, Long exerciseId) {
         return practiceRefs(offering).stream()
-                .filter(candidate -> candidate.getExercise().getId().equals(exerciseId))
+                .filter(candidate -> candidate.exercise().getId().equals(exerciseId))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Bài luyện tập không thuộc giáo trình của lớp học này."));
     }
 
     private ClassroomPracticeResponse toResponse(
-            ClassroomOffering offering,
-            CurriculumExerciseRef ref,
+            ClassSection offering,
+            PracticeRef ref,
             ClassroomPracticeAttemptHistory attempt,
             Long learnerId
     ) {
         List<ClassroomPracticeAttemptHistory> history = attemptHistoryRepository
-                .findByClassroomOfferingIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
-                        offering.getId(), learnerId, ref.getExercise().getId()
+                .findByClassSectionIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
+                        offering.getId(), learnerId, ref.exercise().getId()
                 );
         ClassroomPracticeAttemptHistory latest = history.isEmpty() ? null : history.getFirst();
         return ClassroomPracticeResponse.builder()
-                .classroomOfferingId(offering.getId())
+                .classSectionId(offering.getId())
                 .classroomTitle(resolveClassroomTitle(offering))
-                .unitId(ref.getUnit().getId())
-                .unitDisplayOrder(ref.getUnit().getDisplayOrder())
-                .unitTitle(ref.getUnit().getTitle())
-                .exerciseId(ref.getExercise().getId())
-                .title(ref.getExercise().getTitle())
-                .skill(ref.getExercise().getSkill())
-                .exerciseType(ref.getExercise().getExerciseType())
-                .instruction(ref.getExercise().getPrompt())
-                .note(ref.getNote())
+                .unitId(ref.link().getCourseUnit().getId())
+                .unitDisplayOrder(ref.link().getCourseUnit().getSequenceNumber())
+                .unitTitle(ref.link().getCourseUnit().getTitle())
+                .exerciseId(ref.exercise().getId())
+                .title(ref.exercise().getTitle())
+                .skill(ref.exercise().getSkill())
+                .exerciseType(ref.exercise().getExerciseType())
+                .instruction(ref.exercise().getPrompt())
+                .note(ref.link().getNote())
                 .completed(attempt != null)
                 .responseText(attempt == null ? null : attempt.getResponseText())
                 .completedAt(attempt == null ? null : attempt.getCompletedAt())
@@ -203,7 +218,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     private ClassroomPracticeAttemptResponse toAttemptResponse(ClassroomPracticeAttemptHistory attempt) {
         return ClassroomPracticeAttemptResponse.builder()
                 .id(attempt.getId())
-                .classroomOfferingId(attempt.getClassroomOffering().getId())
+                .classSectionId(attempt.getClassSection().getId())
                 .exerciseId(attempt.getExercise().getId())
                 .exerciseTitle(attempt.getExercise().getTitle())
                 .attemptNumber(attempt.getAttemptNumber())
@@ -221,7 +236,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
 
     private Map<Long, ClassroomPracticeAttemptHistory> latestAttempts(Long offeringId, Long learnerId) {
         return attemptHistoryRepository
-                .findByClassroomOfferingIdAndStudentIdOrderByCompletedAtDesc(offeringId, learnerId)
+                .findByClassSectionIdAndStudentIdOrderByCompletedAtDesc(offeringId, learnerId)
                 .stream()
                 .collect(Collectors.toMap(
                         attempt -> attempt.getExercise().getId(),
@@ -235,6 +250,14 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
         if (request == null || (isBlank(request.getResponseText()) && isBlank(request.getAnswersJson()))) {
             throw new IllegalArgumentException("Bạn cần hoàn thành bài làm trước khi nộp lượt luyện tập.");
         }
+    }
+
+    private Long requireLegacyExerciseId(fu.sep490.g23.backend.entity.assessment.ExerciseBankItem exercise) {
+        Long legacyId = contentBankLinkSync.legacyIdForExercise(exercise);
+        if (legacyId == null) {
+            throw new IllegalStateException("Thiếu ánh xạ legacy cho bài tập luyện. Chạy lại migration Slice 3 hoặc tạo map.");
+        }
+        return legacyId;
     }
 
     private ScoreResult score(String answersJson, String answerKeyJson) {
@@ -264,16 +287,22 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
         return value == null || value.isBlank();
     }
 
-    private String resolveClassroomTitle(ClassroomOffering offering) {
-        if (offering.getLearningPackage() != null && offering.getLearningPackage().getTitle() != null) {
-            return offering.getLearningPackage().getTitle();
+    private String resolveClassroomTitle(ClassSection offering) {
+        if (offering.getInstructorLedCourse() != null && offering.getTitle() != null) {
+            return offering.getTitle();
         }
-        if (offering.getTrainingProgram() != null && offering.getTrainingProgram().getTitle() != null) {
-            return offering.getTrainingProgram().getTitle();
+        if (offering.getInstructorLedCourse() != null && offering.getInstructorLedCourse().getTitle() != null) {
+            return offering.getInstructorLedCourse().getTitle();
         }
         return "Lớp học #" + offering.getId();
     }
 
     private record ScoreResult(Integer correctAnswers, Integer totalQuestions, Double scorePercent) {
+    }
+
+    private record PracticeRef(
+            CourseUnitContentRef link,
+            fu.sep490.g23.backend.entity.assessment.ExerciseBankItem exercise
+    ) {
     }
 }

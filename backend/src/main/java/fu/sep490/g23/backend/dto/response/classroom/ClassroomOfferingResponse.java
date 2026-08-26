@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.dto.response.classroom;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
@@ -6,7 +7,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse;
 import lombok.Builder;
 import lombok.Data;
 
@@ -35,16 +36,23 @@ public class ClassroomOfferingResponse {
     private String trainingProgramSlug;
     private String trainingProgramStatus;
     private TrainingProgramResponse trainingProgram;
-    private Long curriculumProgramId;
-    private String curriculumProgramTitle;
-    private String curriculumProgramCode;
-    private String curriculumProgramSlug;
-    private String curriculumProgramExamCategory;
-    private String curriculumProgramStatus;
-    private CurriculumProgramResponse curriculumProgram;
+    @JsonProperty("curriculumProgramId")
+    private Long instructorLedCourseId;
+    @JsonProperty("curriculumProgramTitle")
+    private String instructorLedCourseTitle;
+    @JsonProperty("curriculumProgramCode")
+    private String instructorLedCourseCode;
+    @JsonProperty("curriculumProgramSlug")
+    private String instructorLedCourseSlug;
+    @JsonProperty("curriculumProgramExamCategory")
+    private String instructorLedCourseExamType;
+    @JsonProperty("curriculumProgramStatus")
+    private String instructorLedCourseStatus;
+    @JsonProperty("curriculumProgram")
+    private InstructorLedCourseResponse instructorLedCourse;
     private String entryLevel;
     private String targetOutcome;
-    private Integer maxCapacity;
+    private Integer capacity;
     private Integer enrolledCount;
     private LocalDate startDate;
     private LocalDate endDate;

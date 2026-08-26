@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherGoogleMeetConnectionResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.teacher.TeacherGoogleMeetConnection;
 import fu.sep490.g23.backend.entity.teacher.enums.GoogleMeetConnectionStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -218,7 +218,7 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
     }
 
     private boolean canConnectGoogleMeet(User user) {
-        return user.hasAnyRole(java.util.Set.of(RoleEnum.TEACHER));
+        return user.hasRole(RoleCodes.TEACHER);
     }
 
     private String frontendReturnUrlFor(User user) {

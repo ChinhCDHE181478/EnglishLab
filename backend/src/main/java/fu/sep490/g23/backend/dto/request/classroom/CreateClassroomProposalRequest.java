@@ -36,7 +36,7 @@ public class CreateClassroomProposalRequest {
     private LocalDate plannedStartDate;
 
     @NotNull(message = "Ngày kết thúc không được để trống")
-    private LocalDate plannedEndDate;
+    private LocalDate endDate;
 
     @jakarta.validation.constraints.NotEmpty(message = "Cần chọn ít nhất một ngày học trong tuần")
     private List<DayOfWeek> weekdays;
@@ -61,7 +61,7 @@ public class CreateClassroomProposalRequest {
 
     @AssertTrue(message = "Ngày kết thúc phải từ ngày bắt đầu trở đi")
     public boolean isDateRangeValid() {
-        return plannedStartDate == null || plannedEndDate == null || !plannedEndDate.isBefore(plannedStartDate);
+        return plannedStartDate == null || endDate == null || !endDate.isBefore(plannedStartDate);
     }
 
     @AssertTrue(message = "Giờ kết thúc phải sau giờ bắt đầu")

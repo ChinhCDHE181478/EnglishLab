@@ -4,19 +4,19 @@ import fu.sep490.g23.backend.dto.request.classroom.UpdateGradebookRequest;
 import fu.sep490.g23.backend.dto.request.classroom.UpdateGradebookHomeworkScoreRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomGradebookResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomGradebookServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +37,8 @@ import static org.mockito.Mockito.when;
 class ClassroomGradebookServiceImplTest {
 
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomHomeworkRepository homeworkRepository;
     @Mock private ClassroomHomeworkSubmissionRepository submissionRepository;
     @Mock private ClassroomAccessHelper accessHelper;
@@ -60,11 +60,11 @@ class ClassroomGradebookServiceImplTest {
                 new ClassroomHomeworkScoreCalculator()
         );
 
-        ClassroomOffering offering = ClassroomOffering.builder().id(21L).build();
+        ClassSection offering = ClassSection.builder().id(21L).build();
         User student = User.builder().id(31L).fullName("Learner Test").build();
         entry = ClassroomGradebookEntry.builder()
                 .id(51L)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .student(student)
                 .status(GradebookEntryStatus.PENDING)
                 .build();
@@ -74,18 +74,19 @@ class ClassroomGradebookServiceImplTest {
     @Test
     void updateEntry_UpdatesDynamicHomeworkScoresAndMarksPendingEntryAsGraded() {
         when(accessHelper.requireUser("teacher@example.com"))
-                .thenReturn(User.builder().id(41L).role(RoleEnum.TEACHER).build());
-        when(offeringRepository.findById(21L)).thenReturn(Optional.of(entry.getClassroomOffering()));
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(31L, 21L))
-                .thenReturn(Optional.of(ClassroomEnrollment.builder()
-                        .classroomOffering(entry.getClassroomOffering())
+                .thenReturn(User.builder().id(41L)
+                        .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.TEACHER)).build());
+        when(offeringRepository.findById(21L)).thenReturn(Optional.of(entry.getClassSection()));
+        when(enrollmentRepository.findByStudentIdAndClassSectionId(31L, 21L))
+                .thenReturn(Optional.of(ClassEnrollment.builder()
+                        .classSection(entry.getClassSection())
                         .student(entry.getStudent())
                         .build()));
-        when(gradebookEntryRepository.findByClassroomOfferingIdAndStudentId(21L, 31L))
+        when(gradebookEntryRepository.findByClassSectionIdAndStudentId(21L, 31L))
                 .thenReturn(Optional.of(entry));
         ClassroomHomework homework = ClassroomHomework.builder()
                 .id(61L)
-                .classroomOffering(entry.getClassroomOffering())
+                .classSection(entry.getClassSection())
                 .title("Unit 5")
                 .maxScore(BigDecimal.TEN)
                 .build();
@@ -95,7 +96,7 @@ class ClassroomGradebookServiceImplTest {
                 .student(entry.getStudent())
                 .status(HomeworkSubmissionStatus.SUBMITTED)
                 .build();
-        when(homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(21L))
+        when(homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(21L))
                 .thenReturn(List.of(homework));
         when(submissionRepository.findAllForStudentGradebook(21L, 31L))
                 .thenReturn(List.of(submission));
@@ -142,9 +143,10 @@ class ClassroomGradebookServiceImplTest {
     @Test
     void unpublishGradebook_MarksPublishedEntriesAsGraded() {
         when(accessHelper.requireUser("teacher@example.com"))
-                .thenReturn(User.builder().id(41L).role(RoleEnum.TEACHER).build());
+                .thenReturn(User.builder().id(41L)
+                        .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.TEACHER)).build());
         entry.setStatus(GradebookEntryStatus.PUBLISHED);
-        when(gradebookEntryRepository.findByClassroomOfferingId(21L)).thenReturn(List.of(entry));
+        when(gradebookEntryRepository.findByClassSectionId(21L)).thenReturn(List.of(entry));
         when(gradebookEntryRepository.saveAll(List.of(entry))).thenReturn(List.of(entry));
         when(mapper.toGradebookResponse(entry)).thenAnswer(invocation -> ClassroomGradebookResponse.builder()
                 .id(entry.getId())
@@ -168,7 +170,7 @@ class ClassroomGradebookServiceImplTest {
     void getMyGradebook_ReturnsNoContentWhenEntryDoesNotExist() {
         User learner = entry.getStudent();
         when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
-        when(gradebookEntryRepository.findByClassroomOfferingIdAndStudentId(21L, learner.getId()))
+        when(gradebookEntryRepository.findByClassSectionIdAndStudentId(21L, learner.getId()))
                 .thenReturn(Optional.empty());
 
         ClassroomGradebookResponse response = service.getMyGradebook(21L, "learner@example.com");
@@ -180,7 +182,7 @@ class ClassroomGradebookServiceImplTest {
     void getMyGradebook_ReturnsNoContentWhenEntryIsNotPublished() {
         User learner = entry.getStudent();
         when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
-        when(gradebookEntryRepository.findByClassroomOfferingIdAndStudentId(21L, learner.getId()))
+        when(gradebookEntryRepository.findByClassSectionIdAndStudentId(21L, learner.getId()))
                 .thenReturn(Optional.of(entry));
 
         ClassroomGradebookResponse response = service.getMyGradebook(21L, "learner@example.com");

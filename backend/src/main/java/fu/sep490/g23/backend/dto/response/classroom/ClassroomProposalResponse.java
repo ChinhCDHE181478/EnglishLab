@@ -27,7 +27,7 @@ public class ClassroomProposalResponse {
     private Integer learnerCount;
     private Map<PlacementLevel, Long> levelDistribution;
     private LocalDate plannedStartDate;
-    private LocalDate plannedEndDate;
+    private LocalDate endDate;
     private List<DayOfWeek> weekdays;
     private LocalTime sessionStartTime;
     private LocalTime sessionEndTime;

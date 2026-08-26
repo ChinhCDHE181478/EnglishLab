@@ -8,8 +8,9 @@ import fu.sep490.g23.backend.entity.classroom.enums.*;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -33,16 +34,16 @@ public class ClassroomHomework {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
-    private ClassroomSession session;
+    private ClassSchedule session;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "curriculum_unit_id")
-    private CurriculumUnit curriculumUnit;
+    @JoinColumn(name = "course_unit_id")
+    private CourseUnit courseUnit;
 
     @Column(nullable = false, length = 220)
     private String title;
@@ -91,12 +92,26 @@ public class ClassroomHomework {
     private AssessmentSkill skill;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rubric_id")
+    @JoinColumn(name = "rubric_content_bank_item_id")
     private AssessmentRubric rubric;
 
+    @Transient
+    private Long legacyRubricId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assessment_bank_item_id")
+    @JoinColumn(name = "assessment_content_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
+
+    @Transient
+    private Long legacyAssessmentBankItemId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_content_bank_item_id", insertable = false, updatable = false)
+    private ContentBankItem assessmentContentBankItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rubric_content_bank_item_id", insertable = false, updatable = false)
+    private ContentBankItem rubricContentBankItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")

@@ -9,10 +9,10 @@ import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
@@ -22,14 +22,14 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomHomeworkServiceImpl;
 import fu.sep490.g23.backend.service.mail.ClassroomHomeworkMailService;
@@ -56,11 +56,11 @@ class ClassroomHomeworkServiceImplTest {
 
     @Mock private ClassroomHomeworkRepository homeworkRepository;
     @Mock private ClassroomHomeworkSubmissionRepository submissionRepository;
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomSessionRepository sessionRepository;
-    @Mock private CurriculumUnitRepository curriculumUnitRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassScheduleRepository sessionRepository;
+    @Mock private CourseUnitRepository courseUnitRepository;
     @Mock private AssessmentBankItemRepository assessmentBankItemRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
@@ -71,6 +71,7 @@ class ClassroomHomeworkServiceImplTest {
     @Mock private ClassroomHomeworkScoreCalculator homeworkScoreCalculator;
     @Mock private ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
     @Mock private HomeworkTextAnnotationCodec homeworkTextAnnotationCodec;
+    @Mock private fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync contentBankLinkSync;
 
     @InjectMocks private ClassroomHomeworkServiceImpl service;
 
@@ -79,8 +80,8 @@ class ClassroomHomeworkServiceImplTest {
         User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
         User submittedStudent = User.builder().id(2L).fullName("An Nguyễn").email("an@example.com").build();
         User missingStudent = User.builder().id(3L).fullName("Bình Trần").email("binh@example.com").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
-        ClassroomHomework homework = ClassroomHomework.builder().id(20L).classroomOffering(offering).build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
+        ClassroomHomework homework = ClassroomHomework.builder().id(20L).classSection(offering).build();
         ClassroomHomeworkSubmission submission = ClassroomHomeworkSubmission.builder()
                 .id(30L)
                 .homework(homework)
@@ -98,12 +99,12 @@ class ClassroomHomeworkServiceImplTest {
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(homeworkRepository.findById(homework.getId())).thenReturn(Optional.of(homework));
         when(submissionRepository.findByHomeworkId(homework.getId())).thenReturn(List.of(submission));
-        when(enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(
+        when(enrollmentRepository.findByClassSectionIdAndRegistrationStatusIn(
                 offering.getId(), ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
         )).thenReturn(List.of(
-                ClassroomEnrollment.builder().student(missingStudent).classroomOffering(offering)
+                ClassEnrollment.builder().student(missingStudent).classSection(offering)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED).build(),
-                ClassroomEnrollment.builder().student(submittedStudent).classroomOffering(offering)
+                ClassEnrollment.builder().student(submittedStudent).classSection(offering)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED).build()
         ));
         when(mapper.toHomeworkSubmissionResponse(homework, submittedStudent, submission)).thenReturn(submittedResponse);
@@ -122,10 +123,10 @@ class ClassroomHomeworkServiceImplTest {
     @Test
     void submit_AutoGradesObjectiveHomeworkAndSynchronizesResult() {
         User learner = User.builder().id(2L).fullName("An Nguyễn").email("an@example.com").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
         ClassroomHomework homework = ClassroomHomework.builder()
                 .id(20L)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .status(HomeworkStatus.OPEN)
                 .activityType(HomeworkActivityType.SKILL_PRACTICE)
                 .maxScore(BigDecimal.TEN)
@@ -133,7 +134,7 @@ class ClassroomHomeworkServiceImplTest {
 
         when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
         when(homeworkRepository.findById(homework.getId())).thenReturn(Optional.of(homework));
-        when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+        when(enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
                 learner.getId(), offering.getId(), ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
         )).thenReturn(true);
         when(submissionRepository.findByHomeworkIdAndStudentId(homework.getId(), learner.getId()))
@@ -143,7 +144,7 @@ class ClassroomHomeworkServiceImplTest {
         when(homeworkObjectiveGrader.supports(homework)).thenReturn(true);
         when(homeworkObjectiveGrader.score(homework, "{\"responses\":{\"1\":\"A\"}}"))
                 .thenReturn(new ClassroomHomeworkObjectiveGrader.ObjectiveScore(BigDecimal.TEN, 1, 1));
-        when(homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()))
+        when(homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()))
                 .thenReturn(List.of(homework));
         when(submissionRepository.findAllForStudentGradebook(offering.getId(), learner.getId()))
                 .thenReturn(List.of());
@@ -196,7 +197,7 @@ class ClassroomHomeworkServiceImplTest {
     @Test
     void create_PreservesSpeakingSkillForTeacherGradedRecording() {
         User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
         CreateHomeworkRequest request = CreateHomeworkRequest.builder()
                 .title("Speaking response")
                 .activityType(HomeworkActivityType.TEXT_RESPONSE)
@@ -220,7 +221,7 @@ class ClassroomHomeworkServiceImplTest {
     @Test
     void create_RejectsFlashcardReviewWithReadingSkill() {
         User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
         CreateHomeworkRequest request = CreateHomeworkRequest.builder()
                 .title("Invalid flashcard review")
                 .activityType(HomeworkActivityType.FLASHCARD_REVIEW)
@@ -241,7 +242,7 @@ class ClassroomHomeworkServiceImplTest {
     @Test
     void create_AllowsVocabularyQuizWithObjectiveAnswerKey() {
         User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
         CreateHomeworkRequest request = CreateHomeworkRequest.builder()
                 .title("Vocabulary quiz")
                 .activityType(HomeworkActivityType.SKILL_PRACTICE)
@@ -303,7 +304,7 @@ class ClassroomHomeworkServiceImplTest {
     @Test
     void create_UsesTeacherSelectedRubricForAiHomework() {
         User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
         AssessmentRubric defaultRubric = AssessmentRubric.builder()
                 .id(1L)
                 .name("Default writing rubric")
@@ -359,7 +360,7 @@ class ClassroomHomeworkServiceImplTest {
     @Test
     void create_RejectsObjectiveQuizWithoutAnswerKey() {
         User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
         CreateHomeworkRequest request = CreateHomeworkRequest.builder()
                 .title("Reading quiz")
                 .activityType(HomeworkActivityType.SKILL_PRACTICE)

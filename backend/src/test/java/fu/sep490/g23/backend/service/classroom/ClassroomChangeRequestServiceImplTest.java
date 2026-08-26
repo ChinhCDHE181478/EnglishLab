@@ -8,18 +8,18 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestRespon
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomChangeRequestServiceImpl;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
@@ -48,10 +48,10 @@ import static org.mockito.Mockito.when;
 class ClassroomChangeRequestServiceImplTest {
 
     @Mock private ClassroomChangeRequestRepository changeRequestRepository;
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
-    @Mock private ClassroomSessionRepository sessionRepository;
-    @Mock private ClassroomRoomRepository roomRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
+    @Mock private ClassScheduleRepository sessionRepository;
+    @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
     @Mock private ClassroomConflictService conflictService;
@@ -61,8 +61,8 @@ class ClassroomChangeRequestServiceImplTest {
     @Mock private ClassroomNotificationService notificationService;
 
     private ClassroomChangeRequestServiceImpl service;
-    private ClassroomOffering offering;
-    private ClassroomSession sourceSession;
+    private ClassSection offering;
+    private ClassSchedule sourceSession;
     private User teacher;
     private User staff;
 
@@ -83,10 +83,10 @@ class ClassroomChangeRequestServiceImplTest {
                 notificationService
         );
 
-        offering = ClassroomOffering.builder().id(21L).build();
-        sourceSession = ClassroomSession.builder()
+        offering = ClassSection.builder().id(21L).build();
+        sourceSession = ClassSchedule.builder()
                 .id(31L)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .sessionDate(LocalDate.of(2026, 7, 1))
                 .startTime(LocalTime.of(18, 0))
                 .endTime(LocalTime.of(20, 0))
@@ -96,12 +96,12 @@ class ClassroomChangeRequestServiceImplTest {
         teacher = User.builder()
                 .id(41L)
                 .fullName("Teacher Test")
-                .role(RoleEnum.TEACHER)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.TEACHER))
                 .build();
         staff = User.builder()
                 .id(99L)
                 .fullName("Nhân viên đào tạo")
-                .role(RoleEnum.STAFF)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.STAFF))
                 .build();
     }
 
@@ -221,8 +221,8 @@ class ClassroomChangeRequestServiceImplTest {
                 .id(1L)
                 .requestType(ClassroomChangeRequestType.CREATE_MAKEUP_SESSION)
                 .requester(teacher)
-                .classroomOffering(offering)
-                .targetSession(sourceSession)
+                .classSection(offering)
+                .targetClassSchedule(sourceSession)
                 .newValuesJson("""
                         {
                           "sessionDate": "2026-07-20",
@@ -239,7 +239,7 @@ class ClassroomChangeRequestServiceImplTest {
     private CreateChangeRequestRequest makeupRequest(String newValuesJson) {
         return CreateChangeRequestRequest.builder()
                 .requestType(ClassroomChangeRequestType.CREATE_MAKEUP_SESSION)
-                .classroomOfferingId(21L)
+                .classSectionId(21L)
                 .targetSessionId(31L)
                 .newValuesJson(newValuesJson)
                 .reason("Tổ chức buổi học bù")

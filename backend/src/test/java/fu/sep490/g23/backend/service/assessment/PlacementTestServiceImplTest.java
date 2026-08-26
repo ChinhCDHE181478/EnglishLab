@@ -9,6 +9,7 @@ import fu.sep490.g23.backend.entity.assessment.PlacementTestDefinition;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.assessment.impl.PlacementTestServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,23 @@ import static org.mockito.Mockito.when;
 
 class PlacementTestServiceImplTest {
 
+    private PlacementTestServiceImpl newService(
+            UserRepository userRepository,
+            PlacementTestAttemptRepository attemptRepository,
+            AiEvaluationClient aiEvaluationClient,
+            AssessmentAudioStorageService audioStorageService,
+            PlacementTestDefinitionService definitionService
+    ) {
+        return new PlacementTestServiceImpl(
+                userRepository,
+                attemptRepository,
+                aiEvaluationClient,
+                audioStorageService,
+                definitionService,
+                mock(ContentBankItemRepository.class)
+        );
+    }
+
     @Test
     void getTestAlwaysAllowsRetakeRegardlessOfPreviousAttemptCount() {
         UserRepository userRepository = mock(UserRepository.class);
@@ -33,7 +51,7 @@ class PlacementTestServiceImplTest {
         AiEvaluationClient aiEvaluationClient = mock(AiEvaluationClient.class);
         AssessmentAudioStorageService audioStorageService = mock(AssessmentAudioStorageService.class);
         PlacementTestDefinitionService definitionService = mock(PlacementTestDefinitionService.class);
-        PlacementTestServiceImpl service = new PlacementTestServiceImpl(
+        PlacementTestServiceImpl service = newService(
                 userRepository,
                 attemptRepository,
                 aiEvaluationClient,
@@ -79,7 +97,7 @@ class PlacementTestServiceImplTest {
         AiEvaluationClient aiEvaluationClient = mock(AiEvaluationClient.class);
         AssessmentAudioStorageService audioStorageService = mock(AssessmentAudioStorageService.class);
         PlacementTestDefinitionService definitionService = mock(PlacementTestDefinitionService.class);
-        PlacementTestServiceImpl service = new PlacementTestServiceImpl(
+        PlacementTestServiceImpl service = newService(
                 userRepository,
                 attemptRepository,
                 aiEvaluationClient,
