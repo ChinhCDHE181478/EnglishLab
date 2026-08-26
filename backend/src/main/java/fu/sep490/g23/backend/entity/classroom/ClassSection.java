@@ -49,8 +49,8 @@ public class ClassSection {
     @JoinColumn(name = "curriculum_program_id")
     private CurriculumProgram curriculumProgram;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "instructor_led_course_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "instructor_led_course_id", nullable = false)
     private InstructorLedCourse instructorLedCourse;
 
     @Enumerated(EnumType.STRING)

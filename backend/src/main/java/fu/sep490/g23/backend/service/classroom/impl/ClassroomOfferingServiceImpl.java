@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassScheduleType;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
@@ -58,6 +59,7 @@ import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
@@ -307,6 +309,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .teacherGuide(curriculumProgram == null ? null : curriculumProgram.getTeacherGuide())
                 .interactionActivities(curriculumProgram == null ? null : curriculumProgram.getInteractionActivities())
                 .build();
+
+        linkInstructorLedCourse(offering);
 
         if (offering.getPrimaryTeacher() != null) {
             offering = offeringRepository.save(offering);
@@ -1724,6 +1728,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .larkMeetingStatus(virtualMeetingService.resolveStatus(larkUrl))
                 .larkSyncStatus(larkUrl == null || larkUrl.isBlank() ? "PENDING" : "MANUAL")
                 .curriculumSessionPlan(sessionPlan)
+                .scheduleType(sessionPlan == null ? ClassScheduleType.OTHER : ClassScheduleType.LESSON)
                 .sessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle())
                 .note(request.getNote())
                 .build();
@@ -2319,27 +2324,42 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private void linkInstructorLedCourse(ClassSection offering) {
         if (offering.getTrainingProgram() != null && offering.getTrainingProgram().getId() != null) {
-            instructorLedCourseIdResolver.resolveFromTrainingProgramId(offering.getTrainingProgram().getId())
-                    .ifPresentOrElse(offering::setInstructorLedCourse, () -> offering.setInstructorLedCourse(null));
+            offering.setInstructorLedCourse(instructorLedCourseIdResolver
+                    .requireFromTrainingProgramId(offering.getTrainingProgram().getId()));
             return;
         }
         if (offering.getCurriculumProgram() != null && offering.getCurriculumProgram().getId() != null) {
-            instructorLedCourseIdResolver.resolveFromCurriculumProgramId(offering.getCurriculumProgram().getId())
-                    .ifPresentOrElse(offering::setInstructorLedCourse, () -> offering.setInstructorLedCourse(null));
+            offering.setInstructorLedCourse(instructorLedCourseIdResolver
+                    .resolveFromCurriculumProgramId(offering.getCurriculumProgram().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khóa học giảng viên tương ứng.")));
             return;
         }
-        offering.setInstructorLedCourse(null);
+        if (offering.getInstructorLedCourse() == null) {
+            throw new IllegalArgumentException("Lớp học phải thuộc một khóa học có giảng viên.");
+        }
     }
 
     private void linkCourseLesson(ClassSchedule session, CurriculumSessionPlan sessionPlan) {
         if (sessionPlan == null || sessionPlan.getId() == null) {
             session.setCourseLesson(null);
+            session.setScheduleType(session.getStatus() == ClassroomSessionStatus.MAKEUP
+                    ? ClassScheduleType.MAKEUP
+                    : ClassScheduleType.OTHER);
             return;
         }
         if (courseLessonRepository.existsById(sessionPlan.getId())) {
-            session.setCourseLesson(courseLessonRepository.getReferenceById(sessionPlan.getId()));
+            CourseLesson lesson = courseLessonRepository.findById(sessionPlan.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài học trong chương trình."));
+            Long sectionCourseId = session.getClassSection().getInstructorLedCourse().getId();
+            Long lessonCourseId = lesson.getCourseUnit().getInstructorLedCourse().getId();
+            if (!Objects.equals(sectionCourseId, lessonCourseId)) {
+                throw new IllegalArgumentException("Bài học không thuộc chương trình của lớp.");
+            }
+            session.setCourseLesson(lesson);
+            session.setScheduleType(ClassScheduleType.LESSON);
         } else {
             session.setCourseLesson(null);
+            session.setScheduleType(ClassScheduleType.OTHER);
         }
     }
 }

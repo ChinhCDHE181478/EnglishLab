@@ -67,7 +67,7 @@ public class ClassEnrollment {
     @Column(name = "waitlist_priority")
     private Integer waitlistPriority;
 
-    @Column(name = "agreed_tuition_fee_vnd", precision = 12, scale = 2)
+    @Column(name = "agreed_tuition_fee_vnd", nullable = false, precision = 12, scale = 2)
     private BigDecimal agreedTuitionFeeVnd;
 
     @Column(name = "tuition_amount_due", precision = 12, scale = 2)

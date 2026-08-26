@@ -153,6 +153,11 @@ public class ClassSchedule {
     @JoinColumn(name = "course_lesson_id")
     private CourseLesson courseLesson;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "schedule_type", nullable = false, length = 30)
+    @Builder.Default
+    private ClassScheduleType scheduleType = ClassScheduleType.OTHER;
+
     @Column(length = 500)
     private String note;
 

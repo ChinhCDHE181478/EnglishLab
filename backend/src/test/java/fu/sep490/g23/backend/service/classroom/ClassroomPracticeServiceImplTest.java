@@ -13,6 +13,7 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.repository.classroom.*;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomPracticeServiceImpl;
+import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,6 +36,7 @@ class ClassroomPracticeServiceImplTest {
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     @Mock private ClassroomAccessHelper accessHelper;
+    @Mock private ContentBankLinkSync contentBankLinkSync;
     @InjectMocks private ClassroomPracticeServiceImpl service;
 
     @Test
@@ -57,6 +59,7 @@ class ClassroomPracticeServiceImplTest {
         when(enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(any(), any(), any()))
                 .thenReturn(true);
         when(offeringRepository.findById(6L)).thenReturn(Optional.of(offering));
+        when(contentBankLinkSync.legacyIdForExercise(exercise)).thenReturn(3L);
         when(attemptHistoryRepository.countByClassSectionIdAndStudentIdAndExerciseId(6L, 7L, 3L))
                 .thenReturn(1L);
         when(attemptHistoryRepository.save(any(ClassroomPracticeAttemptHistory.class)))
