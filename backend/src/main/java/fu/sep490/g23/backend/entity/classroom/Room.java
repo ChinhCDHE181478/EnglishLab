@@ -32,10 +32,6 @@ public class Room {
     @Column(name = "location_address", length = 500)
     private String locationAddress;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "campus_id")
-    private ClassroomCampus campus;
-
     @Column
     private Integer capacity;
 

@@ -13,7 +13,6 @@ import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
-import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
@@ -73,7 +72,6 @@ import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
@@ -166,7 +164,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
-    private final ClassroomCampusRepository campusRepository;
     private final RoomRepository roomRepository;
     private final ClassSectionRepository offeringRepository;
     private final ClassScheduleRepository sessionRepository;
@@ -243,8 +240,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
         seedPlacementViaApi(showcaseLearner);
 
-        ClassroomCampus campus = ensureCampus();
-        List<Room> rooms = ensureRooms(campus);
+        List<Room> rooms = ensureRooms();
         List<ClassSection> offerings = seedClasses(teachers, rooms, learners, showcaseLearner, alien);
         seedShowcaseOnlineProgress(showcaseLearner);
         seedAlienClassExtras(offerings, alien, showcaseLearner);
@@ -269,19 +265,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
-    private ClassroomCampus ensureCampus() {
-        return campusRepository.findByActiveTrueOrderByNameAsc().stream()
-                .filter(item -> CAMPUS_NAME.equalsIgnoreCase(item.getName()))
-                .findFirst()
-                .orElseGet(() -> campusRepository.save(ClassroomCampus.builder()
-                        .name(CAMPUS_NAME)
-                        .address(ADDRESS)
-                        .note("10 phòng cố định, 2 ca tối, nghỉ Chủ nhật")
-                        .active(true)
-                        .build()));
-    }
-
-    private List<Room> ensureRooms(ClassroomCampus campus) {
+    private List<Room> ensureRooms() {
         List<Room> rooms = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
             String name = "Phòng P%03d".formatted(i);
@@ -290,7 +274,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .findFirst()
                     .orElseGet(() -> roomRepository.save(Room.builder()
                             .name(name)
-                            .campus(campus)
+                            .locationName(CAMPUS_NAME)
+                            .locationAddress(ADDRESS)
                             .capacity(12)
                             .active(true)
                             .build()));

@@ -8,5 +8,4 @@ import java.util.List;
 public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findByActiveTrue();
     List<Room> findByActiveTrueOrderByNameAsc();
-    List<Room> findByCampusIdAndActiveTrueOrderByNameAsc(Long campusId);
 }

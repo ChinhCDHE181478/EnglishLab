@@ -10,6 +10,6 @@ public class ClassroomRoomDetailResponse {
     private String name;
     private Integer capacity;
     private boolean active;
-    private Long campusId;
-    private String campusName;
+    private String locationName;
+    private String locationAddress;
 }

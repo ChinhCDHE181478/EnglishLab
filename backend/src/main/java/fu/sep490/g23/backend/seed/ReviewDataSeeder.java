@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.Room;
@@ -20,7 +19,6 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
@@ -56,7 +54,6 @@ public class ReviewDataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
-    private final ClassroomCampusRepository campusRepository;
     private final RoomRepository roomRepository;
     private final PackageTypeRepository packageTypeRepository;
     private final LearningPackageRepository learningPackageRepository;
@@ -78,10 +75,9 @@ public class ReviewDataSeeder implements CommandLineRunner {
             return;
         }
 
-        ClassroomCampus campus = ensureCampus();
-        Room ieltsRoom = ensureRoom("IELTS 01", campus, 24);
-        Room toeicRoom = ensureRoom("TOEIC 01", campus, 30);
-        ensureRoom("Speaking Studio", campus, 12);
+        Room ieltsRoom = ensureRoom("IELTS 01", 24);
+        Room toeicRoom = ensureRoom("TOEIC 01", 30);
+        ensureRoom("Speaking Studio", 12);
 
         User manager = ensureUser("review.manager@englishlab.vn", "Nguyễn Hoài An", RoleEnum.MANAGER);
         ensureUser("review.staff@englishlab.vn", "Vũ Ngọc Mai", RoleEnum.STAFF);
@@ -124,33 +120,14 @@ public class ReviewDataSeeder implements CommandLineRunner {
         log.info("[ReviewDataSeeder] Đã đồng bộ dữ liệu review cho một cơ sở EnglishLab.");
     }
 
-    private ClassroomCampus ensureCampus() {
-        List<ClassroomCampus> activeCampuses = campusRepository.findByActiveTrueOrderByNameAsc();
-        ClassroomCampus campus = activeCampuses.stream()
-                .filter(item -> CAMPUS_NAME.equalsIgnoreCase(item.getName()))
-                .findFirst()
-                .orElseGet(() -> activeCampuses.stream().findFirst().orElseGet(ClassroomCampus::new));
-        campus.setName(CAMPUS_NAME);
-        campus.setAddress("EnglishLab Center, Hà Nội");
-        campus.setNote("Cơ sở duy nhất của EnglishLab.");
-        campus.setActive(true);
-        ClassroomCampus savedCampus = campusRepository.save(campus);
-        activeCampuses.stream()
-                .filter(item -> !item.getId().equals(savedCampus.getId()))
-                .forEach(item -> {
-                    item.setActive(false);
-                    campusRepository.save(item);
-                });
-        return savedCampus;
-    }
-
-    private Room ensureRoom(String name, ClassroomCampus campus, int capacity) {
-        return roomRepository.findByCampusIdAndActiveTrueOrderByNameAsc(campus.getId()).stream()
+    private Room ensureRoom(String name, int capacity) {
+        return roomRepository.findByActiveTrueOrderByNameAsc().stream()
                 .filter(room -> name.equalsIgnoreCase(room.getName()))
                 .findFirst()
                 .orElseGet(() -> roomRepository.save(Room.builder()
                         .name(name)
-                        .campus(campus)
+                        .locationName(CAMPUS_NAME)
+                        .locationAddress("EnglishLab Center, Hà Nội")
                         .capacity(capacity)
                         .active(true)
                         .build()));
