@@ -131,7 +131,7 @@ const Header = () => {
 
   const shouldReloadWhenLeavingWorkspace = /\/courses\/[^/]+\/learn$/.test(location.pathname);
   const canUseStudentNotifications = canUseLearnerStudyTools(user);
-  const displayUnreadCount = Math.max(apiUnreadCount, unreadNotificationCount);
+  const displayUnreadCount = hasAccessToken() ? apiUnreadCount : unreadNotificationCount;
 
   const loadPopoverNotifications = useCallback(async () => {
     setPopoverLoading(true);
