@@ -17,6 +17,10 @@ import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.entity.course.LearningPath;
+import fu.sep490.g23.backend.entity.course.LearningPathCourse;
+import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
+import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +48,8 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
+    private final LearningPathRepository learningPathRepository;
+    private final LearningPathCourseRepository learningPathCourseRepository;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -73,6 +79,43 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                             null);
                     seedPracticeTestAssessments(course, writingRubric, speakingRubric);
                 });
+
+        upsertLearningPathEntity();
+    }
+
+    private void upsertLearningPathEntity() {
+        OnlineCourse vocabCourse = onlineCourseRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus").orElse(null);
+        OnlineCourse e2Course = onlineCourseRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests").orElse(null);
+        if (vocabCourse == null && e2Course == null) return;
+
+        LearningPath path = learningPathRepository.findByCodeIgnoreCase("IELTS_BAND_55_TO_70")
+                .orElseGet(() -> LearningPath.builder()
+                        .code("IELTS_BAND_55_TO_70")
+                        .name("IELTS 5.5 to 7.0 Self-Paced Path")
+                        .examCategory("IELTS")
+                        .targetBand(BigDecimal.valueOf(7.0))
+                        .discountPercent(20)
+                        .minimumCoursesForDiscount(2)
+                        .build());
+        path.setName("IELTS 5.5 to 7.0 Self-Paced Path");
+        path.setExamCategory("IELTS");
+        path.setTargetBand(BigDecimal.valueOf(7.0));
+        LearningPath savedPath = learningPathRepository.save(path);
+
+        if (vocabCourse != null && !learningPathCourseRepository.existsByLearningPathIdAndOnlineCourseId(savedPath.getId(), vocabCourse.getId())) {
+            learningPathCourseRepository.save(LearningPathCourse.builder()
+                    .learningPath(savedPath)
+                    .onlineCourse(vocabCourse)
+                    .displayOrder(1)
+                    .build());
+        }
+        if (e2Course != null && !learningPathCourseRepository.existsByLearningPathIdAndOnlineCourseId(savedPath.getId(), e2Course.getId())) {
+            learningPathCourseRepository.save(LearningPathCourse.builder()
+                    .learningPath(savedPath)
+                    .onlineCourse(e2Course)
+                    .displayOrder(2)
+                    .build());
+        }
     }
 
     private void configurePath(OnlineCourse course, int order, String name, double minBand, double targetBand, String outcome, String nextSlug) {
