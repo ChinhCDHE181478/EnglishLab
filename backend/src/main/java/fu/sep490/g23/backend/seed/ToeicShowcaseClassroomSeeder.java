@@ -166,7 +166,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private boolean sheetEnabled;
 
     @Override
-    @Transactional
     public void run(String... args) {
         if (!enabled || sheetEnabled) {
             return;

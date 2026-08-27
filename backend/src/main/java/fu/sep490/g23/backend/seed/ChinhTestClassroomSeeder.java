@@ -216,7 +216,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     );
 
     @Override
-    @Transactional
     public void run(String... args) {
         if (!seedEnabled || sheetEnabled) {
             return;
