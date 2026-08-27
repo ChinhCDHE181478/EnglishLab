@@ -185,7 +185,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private boolean sheetEnabled;
 
     @Override
-    @Transactional
     public void run(String... args) throws Exception {
         if (!sheetEnabled) {
             return;

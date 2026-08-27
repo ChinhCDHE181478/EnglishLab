@@ -62,7 +62,6 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     private boolean seedEnabled;
 
     @Override
-    @Transactional
     public void run(String... args) {
         List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
         for (String email : targetEmails) {
