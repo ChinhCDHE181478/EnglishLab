@@ -1,10 +1,10 @@
 package fu.sep490.g23.backend.service.course.impl;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.VocabularyProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,14 +19,15 @@ import fu.sep490.g23.backend.entity.commerce.enums.CourseListType;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.entity.course.*;
-import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
+import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +48,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
 
     private final UserRepository userRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final CourseListItemRepository courseListItemRepository;
     private final VocabularyProgressRepository progressRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
@@ -80,9 +81,9 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
 
     private List<VocabularyTermResponse> getEnrolledVersionTerms(User student, Long courseId, boolean starredOnly) {
         Map<String, VocabularyTermResponse> uniqueTerms = new LinkedHashMap<>();
-        for (PackageEnrollment enrollment : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)) {
-            OnlineCourse course = onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).orElse(null);
-            if (course == null || course.getLearningPackage().isDeleted()
+        for (OnlineCourseEnrollment enrollment : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)) {
+            OnlineCourse course = enrollment.getOnlineCourse();
+            if (course == null || false
                     || (courseId != null && !course.getId().equals(courseId))) {
                 continue;
             }
@@ -101,33 +102,34 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private List<OnlineCourse> resolveCourses(FlashcardPracticeSource source, User student) {
         if (source == FlashcardPracticeSource.ENROLLED) {
             return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
-                    .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).orElse(null))
-                    .filter(course -> course != null && !course.getLearningPackage().isDeleted())
+                    .map(enrollment -> enrollment.getOnlineCourse())
+                    .filter(course -> course != null)
                     .toList();
         }
         if (source == FlashcardPracticeSource.WISHLIST) {
             return courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.WISHLIST).stream()
                     .map(CourseListItem::getOnlineCourse)
-                    .filter(course -> course.getLearningPackage().isPublished())
+                    .filter(course -> course.isPublished())
                     .toList();
         }
         return onlineCourseRepository.findAll().stream()
-                .filter(course -> course.getLearningPackage().isPublished())
+                .filter(course -> course.isPublished())
                 .toList();
     }
 
     private void initializeCourse(OnlineCourse course) {
         course.getModules().forEach(module -> module.getLessons().forEach(lesson ->
-                lesson.getFlashcardRefs().forEach(ref -> ref.getFlashcardSet().getTitle())));
+                lesson.getFlashcardRefs().forEach(ref -> ref.getContentBankItem().getTitle())));
     }
 
     private List<VocabularyTermResponse> extractTerms(OnlineCourse course) {
         List<VocabularyTermResponse> bankTerms = new ArrayList<>();
-        for (CourseModule module : course.getModules()) {
-            for (Lesson lesson : module.getLessons()) {
+        for (OnlineCourseModule module : course.getModules()) {
+            for (OnlineLesson lesson : module.getLessons()) {
                 for (CourseLessonFlashcardRef ref : lesson.getFlashcardRefs()) {
-                    if (!"ARCHIVED".equalsIgnoreCase(ref.getFlashcardSet().getStatus())) {
-                        bankTerms.addAll(extractFlashcardSet(course, module, lesson, ref.getFlashcardSet()));
+                    ContentBankItem item = ref.getContentBankItem();
+                    if (item != null && !"ARCHIVED".equalsIgnoreCase(item.getStatus())) {
+                        bankTerms.addAll(extractFlashcardSet(course, module, lesson, item));
                     }
                 }
             }
@@ -135,8 +137,8 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         if (!bankTerms.isEmpty()) return bankTerms;
 
         List<VocabularyTermResponse> contentTerms = new ArrayList<>();
-        for (CourseModule module : course.getModules()) {
-            for (Lesson lesson : module.getLessons()) {
+        for (OnlineCourseModule module : course.getModules()) {
+            for (OnlineLesson lesson : module.getLessons()) {
                 contentTerms.addAll(extractLessonContent(course, module, lesson));
             }
         }
@@ -167,10 +169,10 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return contentTerms;
     }
 
-    private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, CourseModule module, Lesson lesson, FlashcardSet set) {
+    private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson, ContentBankItem item) {
         List<VocabularyTermResponse> terms = new ArrayList<>();
         try {
-            JsonNode cards = objectMapper.readTree(set.getCardsJson() == null ? "[]" : set.getCardsJson());
+            JsonNode cards = objectMapper.readTree(ContentBankPayloadSupport.cardsJsonFromPayload(item.getPayloadJsonb()));
             if (!cards.isArray()) return terms;
             int index = 0;
             for (JsonNode card : cards) {
@@ -178,7 +180,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
                 String meaning = firstText(card, "meaning", "back", "answer", "definition");
                 if (!term.isBlank() && !meaning.isBlank()) {
                     terms.add(baseTerm(course, module, lesson)
-                            .termKey("flashcard-set-%s-%s-%s".formatted(set.getId(), index, slug(term)))
+                            .termKey("flashcard-set-%s-%s-%s".formatted(item.getId(), index, slug(term)))
                             .term(term)
                             .meaning(meaning)
                             .example(firstText(card, "example", "sentence"))
@@ -226,7 +228,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return terms;
     }
 
-    private List<VocabularyTermResponse> extractLessonContent(OnlineCourse course, CourseModule module, Lesson lesson) {
+    private List<VocabularyTermResponse> extractLessonContent(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson) {
         String content = lesson.getContentText();
         if (content == null || !content.contains("### ")) return List.of();
         var headings = VOCABULARY_HEADING.matcher(content).results().toList();
@@ -280,10 +282,10 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return terms;
     }
 
-    private VocabularyTermResponse.VocabularyTermResponseBuilder baseTerm(OnlineCourse course, CourseModule module, Lesson lesson) {
+    private VocabularyTermResponse.VocabularyTermResponseBuilder baseTerm(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson) {
         return VocabularyTermResponse.builder()
                 .courseId(course.getId())
-                .courseTitle(course.getLearningPackage().getTitle())
+                .courseTitle(course.getTitle())
                 .moduleId(module.getId())
                 .moduleTitle(module.getTitle())
                 .lessonId(lesson.getId())

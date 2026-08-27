@@ -1,12 +1,12 @@
 package fu.sep490.g23.backend.dto.response.classroom;
+
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 
-import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse;
 import lombok.Builder;
 import lombok.Data;
 
@@ -20,7 +20,6 @@ import java.util.List;
 @Builder
 public class ClassroomOfferingResponse {
     private Long id;
-    private Long packageId;
     private String title;
     private String slug;
     private String shortDescription;
@@ -28,23 +27,16 @@ public class ClassroomOfferingResponse {
     private ClassroomDeliveryMode deliveryMode;
     private String deliveryModeLabel;
     private ClassroomOfferingStatus classroomStatus;
-    private PackageStatus packageStatus;
-    private Long trainingProgramId;
-    private String trainingProgramTitle;
-    private String trainingProgramCode;
-    private String trainingProgramSlug;
-    private String trainingProgramStatus;
-    private TrainingProgramResponse trainingProgram;
-    private Long curriculumProgramId;
-    private String curriculumProgramTitle;
-    private String curriculumProgramCode;
-    private String curriculumProgramSlug;
-    private String curriculumProgramExamCategory;
-    private String curriculumProgramStatus;
-    private CurriculumProgramResponse curriculumProgram;
+    private Long instructorLedCourseId;
+    private String instructorLedCourseTitle;
+    private String instructorLedCourseCode;
+    private String instructorLedCourseSlug;
+    private String instructorLedCourseExamType;
+    private String instructorLedCourseStatus;
+    private InstructorLedCourseResponse instructorLedCourse;
     private String entryLevel;
     private String targetOutcome;
-    private Integer maxCapacity;
+    private Integer capacity;
     private Integer enrolledCount;
     private LocalDate startDate;
     private LocalDate endDate;
@@ -54,11 +46,10 @@ public class ClassroomOfferingResponse {
     private String roomName;
     private String offlineAddress;
     private String locationNote;
-    private String defaultLarkMeetingUrl;
-    private LarkMeetingStatus larkMeetingStatus;
-    private String larkPlatformName;
-    private String recordingUrl;
-    private boolean recordingVisible;
+    private Long googleMeetOwnerId;
+    private String googleMeetUrl;
+    private GoogleMeetStatus googleMeetStatus;
+    private String googleMeetSyncError;
     private String syllabusSummary;
     private String programOutcomes;
     private String teacherGuide;

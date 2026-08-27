@@ -1,9 +1,5 @@
 package fu.sep490.g23.backend.entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import java.util.List;
-
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -15,8 +11,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -58,9 +52,6 @@ public class User implements UserDetails {
 
     @Column(name = "facebook_id", unique = true, length = 255)
     private String facebookId;
-
-    @Column(name = "lark_open_id", length = 255)
-    private String larkOpenId;
 
     @Column(length = 255)
     private String password;
@@ -111,18 +102,36 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean notificationStudyAlertEnabled = true;
 
+    @Column(name = "teacher_headline", length = 180)
+    private String teacherHeadline;
+
+    @Column(name = "teacher_biography", columnDefinition = "text")
+    private String teacherBiography;
+
+    @Column(name = "teacher_specializations", length = 700)
+    private String teacherSpecializations;
+
+    @Column(name = "teacher_teaching_languages", length = 300)
+    private String teacherTeachingLanguages;
+
+    @Column(name = "teacher_years_of_experience")
+    private Integer teacherYearsOfExperience;
+
+    @Column(name = "teacher_highest_qualification", length = 250)
+    private String teacherHighestQualification;
+
+    @Column(name = "teacher_public_profile", nullable = false)
+    @Builder.Default
+    private boolean teacherPublicProfile = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"),
-            uniqueConstraints = @UniqueConstraint(name = "uk_user_roles_user_role", columnNames = {"user_id", "role_id"})
+            inverseJoinColumns = @JoinColumn(name = "role_code", referencedColumnName = "code")
     )
     @Builder.Default
     private Set<Role> roles = new LinkedHashSet<>();
-
-    @Transient
-    private RoleEnum role;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -134,57 +143,45 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Set<RoleEnum> assignedRoles = getRoleCodes();
-        if (assignedRoles.isEmpty()) {
-            assignedRoles = Set.of(getRole());
-        }
+        Set<Role> assignedRoles = roles == null ? Set.of() : roles;
         return assignedRoles.stream()
-                .map(item -> new SimpleGrantedAuthority("ROLE_" + item.name()))
+                .filter(Role::isActive)
+                .map(Role::getCode)
+                .map(code -> new SimpleGrantedAuthority("ROLE_" + code))
                 .toList();
     }
 
-    public RoleEnum getRole() {
-        if (roles != null && !roles.isEmpty()) {
-            return roles.stream()
-                    .filter(Role::isActive)
-                    .map(Role::getCode)
-                    .min(Comparator.comparingInt(User::rolePriority))
-                    .orElse(role == null ? RoleEnum.LEARNER : role);
-        }
-        return role == null ? RoleEnum.LEARNER : role;
-    }
-
-    public void setRole(RoleEnum role) {
-        this.role = role;
-    }
-
-    public Set<RoleEnum> getRoleCodes() {
+    public Set<String> getRoleCodes() {
         if (roles == null) {
             return Set.of();
         }
-        return roles.stream()
-                .filter(Role::isActive)
-                .map(Role::getCode)
+        return roles.stream().map(Role::getCode)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
     }
 
-    public boolean hasRole(RoleEnum expectedRole) {
-        return getRoleCodes().contains(expectedRole) || (getRoleCodes().isEmpty() && getRole() == expectedRole);
+    public String getPrimaryRoleCode() {
+        return getRoleCodes().stream()
+                .min(Comparator.comparingInt(User::rolePriority))
+                .orElse(RoleCodes.LEARNER);
     }
 
-    public boolean hasAnyRole(Collection<RoleEnum> expectedRoles) {
-        return expectedRoles.stream().anyMatch(this::hasRole);
+    public boolean hasRole(String expectedRoleCode) {
+        if (expectedRoleCode == null) {
+            return false;
+        }
+        if (getRoleCodes().contains(expectedRoleCode)) {
+            return true;
+        }
+        return false;
     }
 
-    private static int rolePriority(RoleEnum role) {
-        return switch (role) {
-            case ADMIN -> 0;
-            case MANAGER -> 1;
-            case STAFF -> 2;
-            case CONTENT_MANAGER -> 3;
-            case TEACHER -> 4;
-            case LEARNER -> 5;
-        };
+    public boolean hasAnyRoleCodes(Collection<String> expectedRoleCodes) {
+        return expectedRoleCodes.stream().anyMatch(this::hasRole);
+    }
+
+    private static int rolePriority(String roleCode) {
+        int priority = RoleCodes.DISPLAY_PRIORITY.indexOf(roleCode);
+        return priority < 0 ? RoleCodes.DISPLAY_PRIORITY.size() : priority;
     }
 
     @Override

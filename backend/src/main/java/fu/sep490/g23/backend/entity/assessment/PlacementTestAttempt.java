@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.assessment.enums.*;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,6 +30,10 @@ public class PlacementTestAttempt {
 
     @Column(name = "test_code", nullable = false, length = 80)
     private String testCode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "content_bank_item_id")
+    private ContentBankItem contentBankItem;
 
     @Column(name = "answers_json", nullable = false, columnDefinition = "text")
     private String answersJson;

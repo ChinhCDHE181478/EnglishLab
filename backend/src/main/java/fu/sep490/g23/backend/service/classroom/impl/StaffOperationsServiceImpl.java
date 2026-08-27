@@ -5,10 +5,10 @@ import fu.sep490.g23.backend.dto.response.classroom.StaffClassroomAlertResponse;
 import fu.sep490.g23.backend.dto.response.classroom.StaffDashboardResponse;
 import fu.sep490.g23.backend.dto.response.classroom.StaffDashboardScoreItemResponse;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
@@ -17,11 +17,11 @@ import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
+import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
@@ -64,18 +64,18 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
             EnrollmentRequestStatus.CLASS_ASSIGNED
     );
 
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomChangeRequestRepository changeRequestRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
-    private final EnrollmentRequestRepository enrollmentRequestRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final CourseRegistrationRequestRepository enrollmentRequestRepository;
     private final TeacherPerformanceEvaluationRepository evaluationRepository;
     private final ClassroomGradebookEntryRepository gradebookRepository;
     private final ClassroomMapper mapper;
 
     @Override
     public StaffDashboardResponse getDashboard() {
-        List<ClassroomEnrollment> pendingRegistrations = enrollmentRepository
+        List<ClassEnrollment> pendingRegistrations = enrollmentRepository
                 .findByRegistrationStatusIn(ClassroomRegistrationSupport.NEEDS_ACTION_STATUSES);
         List<ClassroomChangeRequest> pendingRequests = changeRequestRepository
                 .findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING);
@@ -88,7 +88,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
 
         List<StaffActionItemResponse> actionItems = new ArrayList<>();
         pendingRegistrations.stream()
-                .sorted(Comparator.comparing(ClassroomEnrollment::getEnrolledAt).reversed())
+                .sorted(Comparator.comparing(ClassEnrollment::getEnrolledAt).reversed())
                 .limit(12)
                 .forEach(enrollment -> actionItems.add(toRegistrationActionItem(enrollment)));
         pendingRequests.stream()
@@ -96,7 +96,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                 .forEach(request -> actionItems.add(toChangeRequestActionItem(request)));
 
         List<StaffClassroomAlertResponse> classroomAlerts = buildClassroomAlerts();
-        List<EnrollmentRequest> enrollmentRequests = enrollmentRequestRepository.findAllByOrderByCreatedAtDesc();
+        List<CourseRegistrationRequest> enrollmentRequests = enrollmentRequestRepository.findAllByOrderByCreatedAtDesc();
         List<StaffDashboardScoreItemResponse> teacherScores = buildTeacherScores();
         List<StaffDashboardScoreItemResponse> studentScores = buildStudentScores();
 
@@ -121,14 +121,14 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                 .build();
     }
 
-    private int countByStatus(List<ClassroomEnrollment> enrollments, ClassroomRegistrationStatus status) {
+    private int countByStatus(List<ClassEnrollment> enrollments, ClassroomRegistrationStatus status) {
         return (int) enrollments.stream()
                 .filter(enrollment -> enrollment.getRegistrationStatus() == status)
                 .count();
     }
 
-    private StaffActionItemResponse toRegistrationActionItem(ClassroomEnrollment enrollment) {
-        ClassroomOffering offering = enrollment.getClassroomOffering();
+    private StaffActionItemResponse toRegistrationActionItem(ClassEnrollment enrollment) {
+        ClassSection offering = enrollment.getClassSection();
         ClassroomRegistrationStatus status = enrollment.getRegistrationStatus();
         String kind = switch (status) {
             case PENDING_CONFIRMATION, PENDING_TUITION_PAYMENT, DEPOSIT_PAID, PARTIALLY_PAID -> "RECORD_TUITION";
@@ -139,7 +139,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         String title = enrollment.getStudent().getFullName() == null || enrollment.getStudent().getFullName().isBlank()
                 ? enrollment.getStudent().getEmail()
                 : enrollment.getStudent().getFullName();
-        String subtitle = offering.getLearningPackage().getTitle()
+        String subtitle = offering.getTitle()
                 + " · "
                 + ClassroomRegistrationSupport.registrationStatusLabel(status);
         Long classroomId = offering.getId();
@@ -148,7 +148,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                 .title(title)
                 .subtitle(subtitle)
                 .enrollmentId(enrollment.getId())
-                .classroomOfferingId(classroomId)
+                .classSectionId(classroomId)
                 .registrationStatus(status)
                 .registrationStatusLabel(ClassroomRegistrationSupport.registrationStatusLabel(status))
                 .createdAt(enrollment.getEnrolledAt())
@@ -160,11 +160,11 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         return StaffActionItemResponse.builder()
                 .kind("APPROVE_CHANGE_REQUEST")
                 .title(mapper.changeRequestTypeLabel(request.getRequestType()))
-                .subtitle(request.getClassroomOffering().getLearningPackage().getTitle()
+                .subtitle(request.getClassSection().getTitle()
                         + " · "
                         + request.getRequester().getFullName())
                 .changeRequestId(request.getId())
-                .classroomOfferingId(request.getClassroomOffering().getId())
+                .classSectionId(request.getClassSection().getId())
                 .createdAt(request.getCreatedAt())
                 .href("/staff/requests?requestId=" + request.getId())
                 .build();
@@ -176,19 +176,19 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         List<StaffClassroomAlertResponse> alerts = new ArrayList<>();
 
         offeringRepository.findAll().stream()
-                .filter(offering -> !offering.getLearningPackage().isDeleted())
+                .filter(offering -> !offering.isDeleted())
                 .filter(offering -> ACTIVE_OFFERING_STATUSES.contains(offering.getStatus()))
                 .forEach(offering -> {
-                    long sessionCount = sessionRepository.countByClassroomOfferingId(offering.getId());
+                    long sessionCount = sessionRepository.countByClassSectionId(offering.getId());
                     long enrolledCount = enrollmentRepository.countByOfferingAndRegistrationStatuses(
                             offering.getId(),
                             ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT
                     );
-                    int maxCapacity = offering.getMaxCapacity() == null ? 0 : offering.getMaxCapacity();
+                    int capacity = offering.getCapacity() == null ? 0 : offering.getCapacity();
                     LocalDate startDate = offering.getStartDate();
 
                     if (startDate != null && !startDate.isBefore(today) && !startDate.isAfter(horizon)) {
-                        if (maxCapacity > 0 && enrolledCount < Math.max(1, maxCapacity / 2)) {
+                        if (capacity > 0 && enrolledCount < Math.max(1, capacity / 2)) {
                             alerts.add(buildAlert(
                                     offering,
                                     "LOW_ENROLLMENT",
@@ -197,10 +197,10 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                                             + " ngày · mới "
                                             + enrolledCount
                                             + "/"
-                                            + maxCapacity
+                                            + capacity
                                             + " chỗ",
                                     (int) enrolledCount,
-                                    maxCapacity,
+                                    capacity,
                                     (int) sessionCount
                             ));
                         } else if (sessionCount == 0) {
@@ -211,7 +211,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                                             + java.time.temporal.ChronoUnit.DAYS.between(today, startDate)
                                             + " ngày · chưa có buổi học",
                                     (int) enrolledCount,
-                                    maxCapacity,
+                                    capacity,
                                     (int) sessionCount
                             ));
                         }
@@ -221,7 +221,7 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                                 "DRAFT_NOT_PUBLISHED",
                                 "Lớp chưa công bố lên lịch khai giảng",
                                 (int) enrolledCount,
-                                maxCapacity,
+                                capacity,
                                 (int) sessionCount
                         ));
                     }
@@ -234,20 +234,20 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
     }
 
     private StaffClassroomAlertResponse buildAlert(
-            ClassroomOffering offering,
+            ClassSection offering,
             String alertType,
             String alertMessage,
             int enrolledCount,
-            int maxCapacity,
+            int capacity,
             int sessionCount
     ) {
         return StaffClassroomAlertResponse.builder()
-                .classroomOfferingId(offering.getId())
-                .title(offering.getLearningPackage().getTitle())
+                .classSectionId(offering.getId())
+                .title(offering.getTitle())
                 .deliveryMode(offering.getDeliveryMode() == null ? null : offering.getDeliveryMode().name())
                 .startDate(offering.getStartDate())
                 .enrolledCount(enrolledCount)
-                .maxCapacity(maxCapacity)
+                .capacity(capacity)
                 .sessionCount(sessionCount)
                 .alertType(alertType)
                 .alertMessage(alertMessage)
@@ -284,13 +284,13 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                 .sorted(Comparator.comparing(ClassroomGradebookEntry::getUpdatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(entry -> StaffDashboardScoreItemResponse.builder()
                         .name(entry.getStudent() == null ? "Học viên" : entry.getStudent().getFullName())
-                        .subtitle(entry.getClassroomOffering() == null
+                        .subtitle(entry.getClassSection() == null
                                 ? ""
-                                : entry.getClassroomOffering().getLearningPackage().getTitle())
+                                : entry.getClassSection().getTitle())
                         .score(entry.getFinalResult())
-                        .href(entry.getClassroomOffering() == null
+                        .href(entry.getClassSection() == null
                                 ? "/staff/classrooms"
-                                : "/staff/classrooms/" + entry.getClassroomOffering().getId())
+                                : "/staff/classrooms/" + entry.getClassSection().getId())
                         .build())
                 .toList();
     }

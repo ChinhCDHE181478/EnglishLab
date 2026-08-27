@@ -10,45 +10,41 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
+import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 
 import fu.sep490.g23.backend.entity.classroom.*;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.PackageType;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
@@ -56,8 +52,6 @@ import fu.sep490.g23.backend.entity.course.*;
 import fu.sep490.g23.backend.entity.course.enums.*;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -103,9 +97,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private static final String LEGACY_DEMO_LARK_URL_SPEAKING = "https://meet.larksuite.com/s/englishlab-ielts-speaking-live";
     private static final String LEGACY_DEMO_LARK_URL_TOEIC = "https://meet.larksuite.com/s/englishlab-toeic-communication-live";
 
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomAttendanceRepository attendanceRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
@@ -116,9 +110,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private final ClassroomSyllabusItemRepository syllabusItemRepository;
     private final ClassroomChangeRequestRepository changeRequestRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
-    private final ClassroomRoomRepository roomRepository;
-    private final LearningPackageRepository learningPackageRepository;
-    private final PackageTypeRepository packageTypeRepository;
+    private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserRoleService userRoleService;
@@ -148,41 +140,37 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             return;
         }
 
-        PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
-                .orElseThrow(() -> new IllegalStateException("CLASSROOM package type is missing"));
+        User teacher1 = ensureUser("classroom.teacher1@englishlab.vn", "Nguyễn Văn Teacher", RoleCodes.TEACHER);
+        User teacher2 = ensureUser(TEACHER2_EMAIL, TEACHER2_FULL_NAME, RoleCodes.TEACHER);
+        User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleCodes.LEARNER);
+        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleCodes.LEARNER);
+        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleCodes.LEARNER);
+        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Ngọc Mai", RoleCodes.LEARNER);
+        User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleCodes.MANAGER);
+        ensureUser("staff@englishlab.vn", "Nhân Viên Đào Tạo", RoleCodes.STAFF);
+        User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleCodes.CONTENT_MANAGER);
+        User admin = ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleCodes.ADMIN);
 
-        User teacher1 = ensureUser("classroom.teacher1@englishlab.vn", "Nguyễn Văn Teacher", RoleEnum.TEACHER);
-        User teacher2 = ensureUser(TEACHER2_EMAIL, TEACHER2_FULL_NAME, RoleEnum.TEACHER);
-        User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleEnum.LEARNER);
-        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleEnum.LEARNER);
-        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleEnum.LEARNER);
-        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Ngọc Mai", RoleEnum.LEARNER);
-        User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleEnum.MANAGER);
-        ensureUser("staff@englishlab.vn", "Nhân Viên Đào Tạo", RoleEnum.STAFF);
-        User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleEnum.CONTENT_MANAGER);
-        User admin = ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
-
-        ClassroomRoom roomA = roomRepository.findByActiveTrue().stream()
+        Room roomA = roomRepository.findByActiveTrue().stream()
                 .filter(room -> "Phòng A101".equalsIgnoreCase(room.getName()))
                 .findFirst()
-                .orElseGet(() -> roomRepository.save(ClassroomRoom.builder()
+                .orElseGet(() -> roomRepository.save(Room.builder()
                         .name("Phòng A101")
                         .capacity(24)
                         .active(true)
                         .build()));
 
-        ClassroomRoom roomB = roomRepository.findByActiveTrue().stream()
+        Room roomB = roomRepository.findByActiveTrue().stream()
                 .filter(room -> "Phòng B203".equalsIgnoreCase(room.getName()))
                 .findFirst()
-                .orElseGet(() -> roomRepository.save(ClassroomRoom.builder()
+                .orElseGet(() -> roomRepository.save(Room.builder()
                         .name("Phòng B203")
                         .capacity(18)
                         .active(true)
                         .build()));
 
         seedIfMissing(OFFLINE_UPCOMING_TITLE, SLUG_OFFLINE_UPCOMING, () -> {
-            ClassroomOffering offering = createOfflineOffering(
-                    classroomType,
+            ClassSection offering = createOfflineOffering(
                     OFFLINE_UPCOMING_TITLE,
                     SLUG_OFFLINE_UPCOMING,
                     ClassroomOfferingStatus.UPCOMING,
@@ -198,8 +186,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         });
 
         seedIfMissing(VIRTUAL_UPCOMING_TITLE, SLUG_VIRTUAL_UPCOMING, () -> {
-            ClassroomOffering offering = createVirtualOffering(
-                    classroomType,
+            ClassSection offering = createVirtualOffering(
                     VIRTUAL_UPCOMING_TITLE,
                     SLUG_VIRTUAL_UPCOMING,
                     ClassroomOfferingStatus.UPCOMING,
@@ -214,8 +201,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         });
 
         seedIfMissing(OFFLINE_IN_PROGRESS_TITLE, SLUG_OFFLINE_IN_PROGRESS, () -> {
-            ClassroomOffering offering = createOfflineOffering(
-                    classroomType,
+            ClassSection offering = createOfflineOffering(
                     OFFLINE_IN_PROGRESS_TITLE,
                     SLUG_OFFLINE_IN_PROGRESS,
                     ClassroomOfferingStatus.ACTIVE,
@@ -231,8 +217,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         });
 
         seedIfMissing(VIRTUAL_IN_PROGRESS_TITLE, SLUG_VIRTUAL_IN_PROGRESS, () -> {
-            ClassroomOffering offering = createVirtualOffering(
-                    classroomType,
+            ClassSection offering = createVirtualOffering(
                     VIRTUAL_IN_PROGRESS_TITLE,
                     SLUG_VIRTUAL_IN_PROGRESS,
                     ClassroomOfferingStatus.ACTIVE,
@@ -247,8 +232,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         });
 
         seedIfMissing(REGISTRATION_PIPELINE_TITLE, SLUG_REGISTRATION_PIPELINE, () -> {
-            ClassroomOffering offering = createOfflineOffering(
-                    classroomType,
+            ClassSection offering = createOfflineOffering(
                     REGISTRATION_PIPELINE_TITLE,
                     SLUG_REGISTRATION_PIPELINE,
                     ClassroomOfferingStatus.UPCOMING,
@@ -264,8 +248,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         });
 
         seedIfMissing(COMPLETED_TITLE, SLUG_COMPLETED, () -> {
-            ClassroomOffering offering = createOfflineOffering(
-                    classroomType,
+            ClassSection offering = createOfflineOffering(
                     COMPLETED_TITLE,
                     SLUG_COMPLETED,
                     ClassroomOfferingStatus.COMPLETED,
@@ -285,13 +268,12 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void repairRegistrationPipelineOffering() {
-        offeringRepository.findByLearningPackageSlug(SLUG_REGISTRATION_PIPELINE)
-                .or(() -> offeringRepository.findByLearningPackageTitleIgnoreCase(REGISTRATION_PIPELINE_TITLE))
+        offeringRepository.findByInstructorLedCourseSlugOrCode(SLUG_REGISTRATION_PIPELINE)
+                .or(() -> offeringRepository.findByNameIgnoreCase(REGISTRATION_PIPELINE_TITLE))
                 .ifPresent(offering -> {
-                    LearningPackage learningPackage = offering.getLearningPackage();
-                    if (learningPackage != null && learningPackage.isDeleted()) {
-                        learningPackage.setDeleted(false);
-                        learningPackageRepository.save(learningPackage);
+                    if (offering.getStatus() == ClassroomOfferingStatus.CANCELLED) {
+                        offering.setStatus(ClassroomOfferingStatus.UPCOMING);
+                        offeringRepository.save(offering);
                     }
                 });
     }
@@ -317,31 +299,29 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void renameVirtualPackage(String slug, String title) {
-        offeringRepository.findByLearningPackageSlug(slug).ifPresent(offering -> {
-            LearningPackage learningPackage = offering.getLearningPackage();
-            if (learningPackage != null && !title.equals(learningPackage.getTitle())) {
-                learningPackage.setTitle(title);
-                learningPackageRepository.save(learningPackage);
+        offeringRepository.findByInstructorLedCourseSlugOrCode(slug).ifPresent(offering -> {
+            if (!title.equals(offering.getName())) {
+                offering.setName(title);
+                offeringRepository.save(offering);
             }
         });
     }
 
     private void updateSlugIfNeeded(String title, String slug) {
-        offeringRepository.findByLearningPackageTitleIgnoreCase(title).ifPresent(offering -> {
-            LearningPackage learningPackage = offering.getLearningPackage();
-            if (learningPackage == null || slug.equals(learningPackage.getSlug())) {
+        offeringRepository.findByNameIgnoreCase(title).ifPresent(offering -> {
+            if (slug.equals(offering.getCode())) {
                 return;
             }
-            learningPackage.setSlug(slug);
-            learningPackageRepository.save(learningPackage);
+            offering.setCode(slug);
+            offeringRepository.save(offering);
         });
     }
 
     private void seedIfMissing(String title, String slug, Runnable seeder) {
-        if (offeringRepository.findByLearningPackageSlug(slug).isPresent()) {
+        if (offeringRepository.findByInstructorLedCourseSlugOrCode(slug).isPresent()) {
             return;
         }
-        if (offeringRepository.findByLearningPackageTitleIgnoreCase(title).isPresent()) {
+        if (offeringRepository.findByNameIgnoreCase(title).isPresent()) {
             updateSlugIfNeeded(title, slug);
             return;
         }
@@ -349,33 +329,31 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedOfflineUpcomingData(
-            ClassroomOffering offering,
+            ClassSection offering,
             User teacher,
             User learner1,
             User learner2,
             User learner3,
             User manager
     ) {
-        ClassroomSession session1 = sessionRepository.save(ClassroomSession.builder()
-                .classroomOffering(offering)
+        ClassSchedule session1 = sessionRepository.save(ClassSchedule.builder()
+                .classSection(offering)
                 .sessionDate(LocalDate.now().plusDays(16))
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(11, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .room(offering.getDefaultRoom())
+                .room(offering.getRoom())
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Giới thiệu IELTS Foundation và kỹ năng Listening cơ bản")
                 .build());
 
-        ClassroomSession conflictSession = sessionRepository.save(ClassroomSession.builder()
-                .classroomOffering(offering)
+        ClassSchedule conflictSession = sessionRepository.save(ClassSchedule.builder()
+                .classSection(offering)
                 .sessionDate(LocalDate.now().plusDays(17))
                 .startTime(LocalTime.of(14, 0))
                 .endTime(LocalTime.of(16, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .room(offering.getDefaultRoom())
+                .room(offering.getRoom())
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Buổi học mẫu để kiểm tra xung đột lịch giáo viên")
                 .build());
@@ -385,7 +363,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         enrollAssigned(offering, learner3, manager);
 
         homeworkRepository.save(ClassroomHomework.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .session(session1)
                 .title("Chuẩn bị trước khai giảng")
                 .instruction("Đọc tài liệu giới thiệu và ghi chú 3 mục tiêu học tập.")
@@ -396,7 +374,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
 
         announcementRepository.save(ClassroomAnnouncement.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .title("Chào mừng lớp IELTS Foundation")
                 .content("Các bạn nhớ mang sách giáo trình và đến sớm 10 phút để làm quen phòng học.")
                 .createdBy(teacher)
@@ -405,28 +383,25 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         changeRequestRepository.save(ClassroomChangeRequest.builder()
                 .requestType(ClassroomChangeRequestType.RESCHEDULE_SESSION)
                 .requester(teacher)
-                .requesterRole(teacher.getRole())
-                .classroomOffering(offering)
-                .targetSession(conflictSession)
+                .requesterRole(teacher.getPrimaryRoleCode())
+                .classSection(offering)
+                .targetClassSchedule(conflictSession)
                 .oldValuesJson("{\"sessionDate\":\"" + conflictSession.getSessionDate() + "\"}")
                 .newValuesJson("{\"sessionDate\":\"" + conflictSession.getSessionDate().plusDays(1)
                         + "\",\"startTime\":\"14:00\",\"endTime\":\"16:00\",\"teacherId\":" + teacher.getId()
-                        + ",\"roomId\":" + offering.getDefaultRoom().getId() + "}")
+                        + ",\"roomId\":" + offering.getRoom().getId() + "}")
                 .reason("Giáo viên có lịch họp nội bộ, đề nghị dời buổi học.")
                 .status(ClassroomChangeRequestStatus.PENDING)
                 .build());
     }
 
-    private void seedVirtualUpcomingData(ClassroomOffering offering, User teacher, User learner1, User learner2) {
-        sessionRepository.save(ClassroomSession.builder()
-                .classroomOffering(offering)
+    private void seedVirtualUpcomingData(ClassSection offering, User teacher, User learner1, User learner2) {
+        sessionRepository.save(ClassSchedule.builder()
+                .classSection(offering)
                 .sessionDate(LocalDate.now().plusDays(8))
                 .startTime(LocalTime.of(19, 0))
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Speaking Part 1 & 2 practice")
                 .build());
@@ -435,7 +410,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         enrollAssigned(offering, learner2, null);
 
         announcementRepository.save(ClassroomAnnouncement.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .title("Hướng dẫn vào lớp Google Meet")
                 .content("Vào lớp trước 5 phút, bật mic khi giáo viên yêu cầu.")
                 .createdBy(teacher)
@@ -443,21 +418,21 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedOfflineInProgressData(
-            ClassroomOffering offering,
+            ClassSection offering,
             User teacher,
             User learner1,
             User learner2,
             User manager
     ) {
-        ClassroomSession completed1 = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(3), 9, 11,
+        ClassSchedule completed1 = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(3), 9, 11,
                 ClassroomSessionStatus.COMPLETED, "Listening: Section 1-2");
-        ClassroomSession completed2 = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(2), 9, 11,
+        ClassSchedule completed2 = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(2), 9, 11,
                 ClassroomSessionStatus.COMPLETED, "Reading: True/False/Not Given");
-        ClassroomSession completed3 = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(1), 9, 11,
+        ClassSchedule completed3 = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(1), 9, 11,
                 ClassroomSessionStatus.COMPLETED, "Writing Task 1 overview");
-        ClassroomSession inProgress = saveOfflineSession(offering, teacher, LocalDate.now(), 14, 16,
+        ClassSchedule inProgress = saveOfflineSession(offering, teacher, LocalDate.now(), 14, 16,
                 ClassroomSessionStatus.IN_PROGRESS, "Speaking mock test nhóm nhỏ");
-        ClassroomSession scheduled = saveOfflineSession(offering, teacher, LocalDate.now().plusDays(4), 9, 11,
+        ClassSchedule scheduled = saveOfflineSession(offering, teacher, LocalDate.now().plusDays(4), 9, 11,
                 ClassroomSessionStatus.SCHEDULED, "Listening: Section 3-4");
 
         enrollAssigned(offering, learner1, manager);
@@ -488,7 +463,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
 
         ClassroomHomework homework = homeworkRepository.save(ClassroomHomework.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .session(inProgress)
                 .title("Bài tập Writing Task 2")
                 .instruction("Viết bài 250 từ về chủ đề giáo dục.")
@@ -507,7 +482,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
 
         gradebookEntryRepository.save(ClassroomGradebookEntry.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .student(learner1)
                 .homeworkScore(BigDecimal.valueOf(8.0))
                 .attendancePercent(BigDecimal.valueOf(100))
@@ -518,7 +493,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
 
         materialRepository.save(ClassroomMaterial.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .title("Slide tuần 4 - Speaking")
                 .fileUrl("https://cdn.englishlab.vn/materials/ielts-intermediate-speaking-week4.pdf")
                 .fileType("PDF")
@@ -526,7 +501,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
 
         syllabusItemRepository.save(ClassroomSyllabusItem.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .title("Tuần 4 - Speaking intensive")
                 .description("Luyện Part 2 và feedback cá nhân")
                 .displayOrder(4)
@@ -536,47 +511,38 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedVirtualInProgressData(
-            ClassroomOffering offering,
+            ClassSection offering,
             User teacher,
             User learner1,
             User learner3,
             User manager
     ) {
-        ClassroomSession completed = sessionRepository.save(ClassroomSession.builder()
-                .classroomOffering(offering)
+        ClassSchedule completed = sessionRepository.save(ClassSchedule.builder()
+                .classSection(offering)
                 .sessionDate(LocalDate.now().minusDays(7))
                 .startTime(LocalTime.of(19, 0))
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.COMPLETED)
                 .sessionContent("TOEIC Listening Part 1-2")
                 .build());
 
-        ClassroomSession liveSession = sessionRepository.save(ClassroomSession.builder()
-                .classroomOffering(offering)
+        ClassSchedule liveSession = sessionRepository.save(ClassSchedule.builder()
+                .classSection(offering)
                 .sessionDate(LocalDate.now())
                 .startTime(LocalTime.of(19, 30))
                 .endTime(LocalTime.of(21, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.OPEN)
                 .sessionContent("TOEIC Speaking practice hôm nay")
                 .build());
 
-        sessionRepository.save(ClassroomSession.builder()
-                .classroomOffering(offering)
+        sessionRepository.save(ClassSchedule.builder()
+                .classSection(offering)
                 .sessionDate(LocalDate.now().plusDays(5))
                 .startTime(LocalTime.of(19, 0))
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Role-play giao tiếp công sở")
                 .build());
@@ -596,7 +562,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
 
         homeworkRepository.save(ClassroomHomework.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .session(liveSession)
                 .title("Ghi âm phản hồi Speaking")
                 .instruction("Ghi âm 90 giây mô tả dự án gần nhất và nộp link.")
@@ -607,7 +573,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedRegistrationPipelineData(
-            ClassroomOffering offering,
+            ClassSection offering,
             User learner2,
             User learner3,
             User learner4,
@@ -620,8 +586,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         seedEnrollment(offering, learner4, ClassroomRegistrationStatus.WAITLIST,
                 BigDecimal.valueOf(4_800_000), BigDecimal.valueOf(4_800_000), true);
 
-        ClassroomEnrollment partial = enrollmentRepository
-                .findByStudentIdAndClassroomOfferingId(learner3.getId(), offering.getId())
+        ClassEnrollment partial = enrollmentRepository
+                .findByStudentIdAndClassSectionId(learner3.getId(), offering.getId())
                 .orElseThrow();
         tuitionPaymentRepository.save(ClassroomTuitionPayment.builder()
                 .enrollment(partial)
@@ -632,8 +598,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
     }
 
-    private void seedCompletedClassData(ClassroomOffering offering, User teacher, User learner1, User manager) {
-        ClassroomSession completedSession = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(3), 9, 11,
+    private void seedCompletedClassData(ClassSection offering, User teacher, User learner1, User manager) {
+        ClassSchedule completedSession = saveOfflineSession(offering, teacher, LocalDate.now().minusWeeks(3), 9, 11,
                 ClassroomSessionStatus.COMPLETED, "Tổng kết khóa và review lỗi sai");
 
         enrollAssigned(offering, learner1, manager);
@@ -647,7 +613,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
 
         gradebookEntryRepository.save(ClassroomGradebookEntry.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .student(learner1)
                 .homeworkScore(BigDecimal.valueOf(9.0))
                 .attendancePercent(BigDecimal.valueOf(95))
@@ -658,8 +624,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .build());
     }
 
-    private ClassroomSession saveOfflineSession(
-            ClassroomOffering offering,
+    private ClassSchedule saveOfflineSession(
+            ClassSection offering,
             User teacher,
             LocalDate date,
             int startHour,
@@ -667,64 +633,49 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             ClassroomSessionStatus status,
             String content
     ) {
-        return sessionRepository.save(ClassroomSession.builder()
-                .classroomOffering(offering)
+        return sessionRepository.save(ClassSchedule.builder()
+                .classSection(offering)
                 .sessionDate(date)
                 .startTime(LocalTime.of(startHour, 0))
                 .endTime(LocalTime.of(endHour, 0))
                 .teacher(teacher)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .room(offering.getDefaultRoom())
+                .room(offering.getRoom())
                 .status(status)
                 .sessionContent(content)
                 .build());
     }
 
-    private ClassroomOffering createOfflineOffering(
-            PackageType classroomType,
+    private ClassSection createOfflineOffering(
             String title,
             String slug,
             ClassroomOfferingStatus status,
             LocalDate startDate,
             LocalDate endDate,
             User teacher,
-            ClassroomRoom room,
+            Room room,
             User manager,
             BigDecimal price,
             BigDecimal salePrice
     ) {
-        LearningPackage learningPackage = learningPackageRepository.save(LearningPackage.builder()
-                .packageType(classroomType)
-                .title(title)
-                .slug(slug)
-                .shortDescription("Lớp IELTS học trực tiếp tại trung tâm.")
-                .description("Khóa luyện IELTS với lịch cố định tại cơ sở Hà Nội.")
-                .price(price)
-                .salePrice(salePrice)
-                .status(PackageStatus.PUBLISHED)
-                .duration("8 tuần")
-                .studyMode("Offline")
-                .createdBy(manager)
-                .build());
-
-        ClassroomOffering offering = offeringRepository.save(ClassroomOffering.builder()
-                .learningPackage(learningPackage)
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
+        ClassSection offering = offeringRepository.save(ClassSection.builder()
+                .name(title)
+                .code(slug)
+                .tuitionFeeVnd(salePrice != null ? salePrice : price)
                 .status(status)
                 .entryLevel("4.0 - 6.0")
                 .targetOutcome("Đạt band 5.5-6.5")
-                .maxCapacity(20)
+                .capacity(20)
                 .startDate(startDate)
-                .endDate(endDate)
+                .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
-                .defaultRoom(room)
+                .room(room)
                 .offlineAddress(DEFAULT_OFFLINE_ADDRESS)
                 .locationNote(room.getName() + ", tầng 2")
                 .syllabusSummary("Listening, Reading, Writing & Speaking theo lộ trình 8 tuần")
                 .build());
 
         teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .teacher(teacher)
                 .role(ClassroomTeacherRole.PRIMARY)
                 .effectiveFrom(startDate)
@@ -732,8 +683,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         return offering;
     }
 
-    private ClassroomOffering createVirtualOffering(
-            PackageType classroomType,
+    private ClassSection createVirtualOffering(
             String title,
             String slug,
             ClassroomOfferingStatus status,
@@ -744,37 +694,22 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             BigDecimal price,
             BigDecimal salePrice
     ) {
-        LearningPackage learningPackage = learningPackageRepository.save(LearningPackage.builder()
-                .packageType(classroomType)
-                .title(title)
-                .slug(slug)
-                .shortDescription("Lớp trực tuyến qua Google Meet với giảng viên.")
-                .description("Luyện kỹ năng trực tuyến theo nhóm nhỏ.")
-                .price(price)
-                .salePrice(salePrice)
-                .status(PackageStatus.PUBLISHED)
-                .duration("6 tuần")
-                .studyMode("Virtual")
-                .createdBy(manager)
-                .build());
-
-        ClassroomOffering offering = offeringRepository.save(ClassroomOffering.builder()
-                .learningPackage(learningPackage)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
+        ClassSection offering = offeringRepository.save(ClassSection.builder()
+                .name(title)
+                .code(slug)
+                .tuitionFeeVnd(salePrice != null ? salePrice : price)
                 .status(status)
                 .entryLevel("5.0+")
                 .targetOutcome("Tự tin giao tiếp và luyện thi")
-                .maxCapacity(12)
+                .capacity(12)
                 .startDate(startDate)
-                .endDate(endDate)
+                .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
-                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                .recordingVisible(true)
                 .syllabusSummary("Buổi live + bài tập + feedback cá nhân")
                 .build());
 
         teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .teacher(teacher)
                 .role(ClassroomTeacherRole.PRIMARY)
                 .effectiveFrom(startDate)
@@ -782,13 +717,13 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         return offering;
     }
 
-    private void enrollAssigned(ClassroomOffering offering, User learner, User assignedBy) {
+    private void enrollAssigned(ClassSection offering, User learner, User assignedBy) {
         seedEnrollment(offering, learner, ClassroomRegistrationStatus.ASSIGNED,
                 tuitionDue(offering), tuitionDue(offering), true, assignedBy);
     }
 
     private void seedEnrollment(
-            ClassroomOffering offering,
+            ClassSection offering,
             User learner,
             ClassroomRegistrationStatus registrationStatus,
             BigDecimal tuitionPaid,
@@ -799,7 +734,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedEnrollment(
-            ClassroomOffering offering,
+            ClassSection offering,
             User learner,
             ClassroomRegistrationStatus registrationStatus,
             BigDecimal tuitionPaid,
@@ -807,7 +742,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             boolean withAssignmentMeta,
             User assignedBy
     ) {
-        if (enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+        if (enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
                 learner.getId(),
                 offering.getId(),
                 ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS
@@ -816,9 +751,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         }
         BigDecimal due = tuitionDueAmount != null ? tuitionDueAmount : tuitionDue(offering);
         BigDecimal paid = tuitionPaid != null ? tuitionPaid : BigDecimal.ZERO;
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .student(learner)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(registrationStatus)
                 .status(registrationStatus == ClassroomRegistrationStatus.ASSIGNED
                         ? ClassroomEnrollmentStatus.ENROLLED
@@ -840,43 +775,16 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         enrollmentRepository.save(enrollment);
     }
 
-    private BigDecimal tuitionDue(ClassroomOffering offering) {
-        if (offering.getLearningPackage().getSalePrice() != null) {
-            return offering.getLearningPackage().getSalePrice();
+    private BigDecimal tuitionDue(ClassSection offering) {
+        if (offering.getSalePrice() != null) {
+            return offering.getSalePrice();
         }
-        return offering.getLearningPackage().getPrice() == null
+        return offering.getPrice() == null
                 ? BigDecimal.ZERO
-                : offering.getLearningPackage().getPrice();
+                : offering.getPrice();
     }
 
-    private void clearLegacyDemoLarkLinks() {
-        clearOfferingDemoLarkLinks(VIRTUAL_UPCOMING_TITLE, LEGACY_DEMO_LARK_URL_SPEAKING);
-        clearOfferingDemoLarkLinks(VIRTUAL_IN_PROGRESS_TITLE, LEGACY_DEMO_LARK_URL_TOEIC);
-    }
-
-    private void clearOfferingDemoLarkLinks(String offeringTitle, String legacyDemoLarkUrl) {
-        offeringRepository.findByLearningPackageTitleIgnoreCase(offeringTitle).ifPresent(offering -> {
-            if (legacyDemoLarkUrl.equalsIgnoreCase(offering.getDefaultLarkMeetingUrl())) {
-                offering.setDefaultLarkMeetingUrl(null);
-                offering.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
-                offeringRepository.save(offering);
-            }
-
-            sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
-                    .forEach(session -> {
-                        boolean hasLegacyUrl = legacyDemoLarkUrl.equalsIgnoreCase(session.getLarkMeetingUrl());
-                        boolean hasDemoStatus = "DEMO".equalsIgnoreCase(session.getLarkSyncStatus());
-                        if (!hasLegacyUrl && !hasDemoStatus) {
-                            return;
-                        }
-                        session.setLarkMeetingUrl(null);
-                        session.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
-                        session.setLarkSyncStatus("PENDING");
-                        session.setLarkSyncError(null);
-                        sessionRepository.save(session);
-                    });
-        });
-    }
+    private void clearLegacyDemoLarkLinks() {}
 
     private void syncTeacher2Account() {
         Optional<User> legacyTeacher = userRepository.findByEmail(LEGACY_TEACHER2_EMAIL);
@@ -908,7 +816,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         if (teacher.getPassword() == null || teacher.getPassword().isBlank()) {
             teacher.setPassword(passwordEncoder.encode("Password123!"));
         }
-        userRoleService.replaceRoles(teacher, RoleEnum.TEACHER);
+        userRoleService.replaceRoles(teacher, RoleCodes.TEACHER);
         userRepository.save(teacher);
     }
 
@@ -1101,7 +1009,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 existing.setCreatedBy(createdBy);
             }
             sessionTemplateRepository.save(existing);
-        }, () -> sessionTemplateRepository.save(ClassroomSessionTemplate.builder()
+        }, () -> sessionTemplateRepository.save(ClassScheduleTemplate.builder()
                 .name(name)
                 .slotsJson(slotsJson)
                 .description(description)
@@ -1117,9 +1025,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
     */
 
-    private User ensureUser(String email, String fullName, RoleEnum role) {
+    private User ensureUser(String email, String fullName, String roleCode) {
         User user = userRepository.findByEmail(email).map(existing -> {
-            userRoleService.replaceRoles(existing, role);
+            userRoleService.replaceRoles(existing, roleCode);
             existing.setFullName(fullName);
             return userRepository.save(existing);
         }).orElseGet(() -> {
@@ -1129,10 +1037,10 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                     .password(passwordEncoder.encode("Password123!"))
                     .emailVerified(true)
                     .build();
-            userRoleService.assignRole(created, role);
+            userRoleService.assignRole(created, roleCode);
             return userRepository.save(created);
         });
-        if (role == RoleEnum.LEARNER) {
+        if (RoleCodes.LEARNER.equals(roleCode)) {
             return demoLearnerOnboardingSupport.ensureReady(user);
         }
         return user;
@@ -1144,20 +1052,20 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             if (teacher1 == null) return;
 
             User manager = userRepository.findByEmail("classroom.manager@englishlab.vn").orElse(null);
-            User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleEnum.LEARNER);
-            User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleEnum.LEARNER);
-            User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleEnum.LEARNER);
+            User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleCodes.LEARNER);
+            User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleCodes.LEARNER);
+            User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleCodes.LEARNER);
 
-            Optional<ClassroomOffering> offeringOpt = offeringRepository.findByLearningPackageSlug(SLUG_OFFLINE_IN_PROGRESS);
+            Optional<ClassSection> offeringOpt = offeringRepository.findByInstructorLedCourseSlugOrCode(SLUG_OFFLINE_IN_PROGRESS);
             if (offeringOpt.isEmpty()) return;
 
-            ClassroomOffering offering = offeringOpt.get();
+            ClassSection offering = offeringOpt.get();
 
-            boolean assigned = teacherAssignmentRepository.findByClassroomOfferingId(offering.getId()).stream()
+            boolean assigned = teacherAssignmentRepository.findByClassSectionId(offering.getId()).stream()
                     .anyMatch(a -> a.getTeacher().getId().equals(teacher1.getId()));
             if (!assigned) {
                 teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .teacher(teacher1)
                         .role(ClassroomTeacherRole.PRIMARY)
                         .effectiveFrom(LocalDate.now().minusWeeks(4))
@@ -1169,34 +1077,34 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             enrollAssigned(offering, learner3, manager);
 
             LocalDate today = LocalDate.now();
-            java.util.List<ClassroomSession> sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+            java.util.List<ClassSchedule> sessions = sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId());
             boolean hasTodaySession = sessions.stream().anyMatch(s -> today.equals(s.getSessionDate()));
 
             if (!hasTodaySession) {
                 if (sessions.isEmpty()) {
                     saveOfflineSession(offering, teacher1, today, 19, 21, ClassroomSessionStatus.OPEN, "Buổi 5: Writing Task 2 – Opinion essay (Hôm nay)");
                 } else {
-                    ClassroomSession targetSession = sessions.stream()
+                    ClassSchedule targetClassSchedule = sessions.stream()
                             .filter(s -> s.getStatus() == ClassroomSessionStatus.OPEN || s.getStatus() == ClassroomSessionStatus.SCHEDULED)
                             .findFirst()
                             .orElse(sessions.get(0));
-                    targetSession.setSessionDate(today);
-                    targetSession.setStatus(ClassroomSessionStatus.OPEN);
-                    targetSession.setSessionContent("Buổi 5: Writing Task 2 – Opinion essay (Hôm nay)");
-                    sessionRepository.save(targetSession);
+                    targetClassSchedule.setSessionDate(today);
+                    targetClassSchedule.setStatus(ClassroomSessionStatus.OPEN);
+                    targetClassSchedule.setSessionContent("Buổi 5: Writing Task 2 – Opinion essay (Hôm nay)");
+                    sessionRepository.save(targetClassSchedule);
                 }
             }
 
             seedRichSubmissionsForAllHomeworks(offering, learner1, learner2, learner3);
-            offeringRepository.findByLearningPackageSlug("ielts-intensive-chinh-test-v1")
+            offeringRepository.findByInstructorLedCourseSlugOrCode("ielts-intensive-chinh-test-v1")
                     .ifPresent(chinhOffering -> seedRichSubmissionsForAllHomeworks(chinhOffering, learner1, learner2, learner3));
         } catch (Exception ex) {
             log.warn("syncTodayTeacher1Data warning: {}", ex.getMessage());
         }
     }
 
-    private void seedRichSubmissionsForAllHomeworks(ClassroomOffering offering, User learner1, User learner2, User learner3) {
-        java.util.List<ClassroomHomework> homeworks = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId());
+    private void seedRichSubmissionsForAllHomeworks(ClassSection offering, User learner1, User learner2, User learner3) {
+        java.util.List<ClassroomHomework> homeworks = homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId());
         if (homeworks.isEmpty()) return;
 
         String essay1 = """

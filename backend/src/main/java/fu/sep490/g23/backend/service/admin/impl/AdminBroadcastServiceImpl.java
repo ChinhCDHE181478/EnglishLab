@@ -7,6 +7,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.admin.AdminBroadcast;
 import fu.sep490.g23.backend.entity.admin.enums.BroadcastStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.RoleRepository;
 import fu.sep490.g23.backend.repository.admin.AdminBroadcastRepository;
 import fu.sep490.g23.backend.service.admin.AdminBroadcastService;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -31,6 +33,7 @@ import java.util.Map;
 public class AdminBroadcastServiceImpl implements AdminBroadcastService {
     private final AdminBroadcastRepository repository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final AppNotificationService notificationService;
     private final NotificationPreferenceService preferenceService;
     private final LearningReminderMailService mailService;
@@ -176,7 +179,13 @@ public class AdminBroadcastServiceImpl implements AdminBroadcastService {
         }
         item.setTitle(request.getTitle().trim());
         item.setMessage(request.getMessage().trim());
-        item.setTargetRole(request.getTargetRole());
+        String targetRole = request.getTargetRole() == null
+                ? null
+                : request.getTargetRole().trim().toUpperCase(Locale.ROOT);
+        if (targetRole != null && !targetRole.isBlank() && !roleRepository.existsById(targetRole)) {
+            throw new IllegalArgumentException("Vai trò nhận thông báo không tồn tại: " + targetRole);
+        }
+        item.setTargetRole(targetRole == null || targetRole.isBlank() ? null : targetRole);
         item.setActionPath(path == null || path.isBlank() ? null : path);
         item.setSendInApp(Boolean.TRUE.equals(request.getSendInApp()));
         item.setSendEmail(Boolean.TRUE.equals(request.getSendEmail()));

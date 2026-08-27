@@ -8,12 +8,12 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementEligibilityService;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContextFactory;
@@ -32,6 +32,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+/**
+ * Builds course / training-program / learning-path suggestions from a scored attempt.
+ * Scores, weak skills, and recommended level come from PlacementRecommendationContext.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -41,28 +45,40 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
     private final PlacementEligibilityService eligibilityService;
     private final PlacementRecommendationContextFactory contextFactory;
     private final OnlineCourseService onlineCourseService;
-    private final TrainingProgramRepository trainingProgramRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
     private final LearningPathRecommendationService learningPathRecommendationService;
 
+    /**
+     * Main recommendation entry. Nested calls, in order:
+     * 1. evaluateEligibility — can this attempt be used for placement?
+     * 2. fromAttempt — pack scores + weak skills + learner target
+     * 3. baseResponse — always return scores/status even if lists are empty
+     * 4. canBuildRecommendations — skip ranking if expired / skill-only / no overall
+     * 5. recommendCourses / recommendTrainingPrograms / learning-path recommend
+     */
     @Override
     public PlacementRecommendationResponse getRecommendations(Long attemptId, String learnerEmail) {
         User learner = userRepository.findByEmail(learnerEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
         PlacementTestAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả placement test."));
+        // 1) Completeness / expiry / staff-review status for this attempt.
         PlacementEligibilityResult eligibility = eligibilityService.evaluateEligibility(learner.getId(), attemptId);
+        // 2) Ranking input: scores, exam type, weak skills, learner target.
         PlacementRecommendationContext context = contextFactory.fromAttempt(
                 learner,
                 attempt,
                 eligibility.getRecommendedLevel()
         );
 
+        // 3) Always include scores + status, even when suggestion lists stay empty.
         PlacementRecommendationResponse.PlacementRecommendationResponseBuilder response = baseResponse(
                 attempt,
                 eligibility,
                 context
         );
         if (!canBuildRecommendations(attempt, eligibility)) {
+            // 4) Not ready to rank products: keep scores, return empty suggestion lists.
             return response
                     .recommendationReady(false)
                     .message(readinessMessage(eligibility.getStatus()))
@@ -72,6 +88,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                     .build();
         }
 
+        // 5) Rank online courses, classroom programs, and pick one learning path.
         return response
                 .recommendationReady(true)
                 .message(null)
@@ -81,6 +98,10 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .build();
     }
 
+    /**
+     * Gate before ranking.
+     * true = ELIGIBLE, or IELTS still waiting for staff but already has an overall score.
+     */
     private boolean canBuildRecommendations(
             PlacementTestAttempt attempt,
             PlacementEligibilityResult eligibility
@@ -92,6 +113,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
         return awaitingReview && attempt.getOverallScore() != null;
     }
 
+    /** Fill scores, status, weak skills, and whether the learner has a target score. */
     private PlacementRecommendationResponse.PlacementRecommendationResponseBuilder baseResponse(
             PlacementTestAttempt attempt,
             PlacementEligibilityResult eligibility,
@@ -113,12 +135,21 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .targetMissing(context.getTargetScore() == null);
     }
 
+    /**
+     * Core ranking for placement → classroom training programs.
+     *
+     * Pipeline:
+     * 1. Load programs (already ordered by displayOrder).
+     * 2. Keep PUBLISHED product + PUBLISHED curriculum only.
+     * 3. Same exam category as placement (IELTS vs TOEIC) — hard filter, unlike online courses.
+     * 4. trainingProgramScore() — numeric match (level, weak skills, target stretch).
+     * 5. Sort by score desc; tie-break displayOrder then id.
+     * 6. Keep 6; toTrainingResponse() adds the Vietnamese reason.
+     */
     private List<RecommendedTrainingProgramResponse> recommendTrainingPrograms(PlacementRecommendationContext context) {
-        return trainingProgramRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc().stream()
-                .filter(program -> program.getStatus() == PackageStatus.PUBLISHED)
-                .filter(program -> program.getCurriculumProgram() != null
-                        && "PUBLISHED".equalsIgnoreCase(program.getCurriculumProgram().getStatus()))
-                .filter(program -> context.getExamType().equalsIgnoreCase(program.getCurriculumProgram().getExamCategory()))
+        return instructorLedCourseRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc().stream()
+                .filter(program -> program.getPublicationStatus() == PackageStatus.PUBLISHED)
+                .filter(program -> context.getExamType().equalsIgnoreCase(program.getExamType()))
                 .map(program -> new ScoredTrainingProgram(program, trainingProgramScore(program, context)))
                 .sorted(Comparator.comparingDouble(ScoredTrainingProgram::score).reversed()
                         .thenComparing(item -> item.program().getDisplayOrder())
@@ -128,8 +159,19 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .toList();
     }
 
-    private double trainingProgramScore(TrainingProgram program, PlacementRecommendationContext context) {
-        CurriculumProgram curriculum = program.getCurriculumProgram();
+    /**
+     * Score one instructor-led course. Start at 20 so a mild mismatch still ranks above zero.
+     *
+     *   +15 / -5  entryPlacementLevel equals / differs from recommendedLevel
+     *   +8 each   focus skill overlaps a placement weak skill
+     *   +5        course target is above current score (room to grow)
+     *   +3        course target still covers the learner's personal goal
+     *   +1        course is featured
+     *
+     * IELTS uses targetBand; TOEIC uses targetScore.
+     */
+    private double trainingProgramScore(InstructorLedCourse program, PlacementRecommendationContext context) {
+        InstructorLedCourse curriculum = program;
         double score = 20;
         if (curriculum.getEntryPlacementLevel() != null && context.getRecommendedLevel() != null) {
             score += curriculum.getEntryPlacementLevel() == context.getRecommendedLevel() ? 15 : -5;
@@ -149,14 +191,19 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
         return score;
     }
 
+    /**
+     * Map a ranked program to the API DTO.
+     * Reason priority: covers a weak skill → same placement level → same exam type.
+     */
     private RecommendedTrainingProgramResponse toTrainingResponse(
-            TrainingProgram program,
+            InstructorLedCourse program,
             PlacementRecommendationContext context
     ) {
-        CurriculumProgram curriculum = program.getCurriculumProgram();
+        InstructorLedCourse curriculum = program;
         Set<AssessmentSkill> matches = focusSkills(curriculum.getFocusSkills()).stream()
                 .filter(context.getWeakSkills()::contains)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        // Reason priority: covers a weak skill > same placement level > same exam type.
         String reason = !matches.isEmpty()
                 ? "Tập trung vào " + skillLabel(matches.iterator().next()) + ", kỹ năng bạn đang cần ưu tiên."
                 : curriculum.getEntryPlacementLevel() == context.getRecommendedLevel()
@@ -166,22 +213,23 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .id(program.getId())
                 .slug(program.getSlug())
                 .title(program.getTitle())
-                .deliveryMode(program.getDeliveryMode())
+                .deliveryMode(null)
                 .thumbnailUrl(program.getThumbnailUrl())
                 .shortDescription(program.getShortDescription())
                 .entryPlacementLevel(curriculum.getEntryPlacementLevel())
-                .examCategory(curriculum.getExamCategory())
+                .examCategory(curriculum.getExamType())
                 .programTrack(curriculum.getProgramTrack())
                 .focusSkills(focusSkills(curriculum.getFocusSkills()).stream().map(Enum::name).toList())
                 .targetBand(curriculum.getTargetBand())
                 .targetScore(curriculum.getTargetScore())
-                .totalSessions(curriculum.getTotalSessions())
-                .price(program.getPrice())
-                .salePrice(program.getSalePrice())
+                .totalSessions(curriculum.getUnits().stream().mapToInt(unit -> unit.getLessons().size()).sum())
+                .price(program.getBaseTuitionFeeVnd())
+                .salePrice(program.getSaleTuitionFeeVnd())
                 .recommendationReason(reason)
                 .build();
     }
 
+    /** Split curriculum focusSkills text ("LISTENING,WRITING") into enums; ignore unknown tokens. */
     private Set<AssessmentSkill> focusSkills(String value) {
         if (value == null || value.isBlank()) return Set.of();
         Set<AssessmentSkill> result = new LinkedHashSet<>();
@@ -192,12 +240,13 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                     try {
                         result.add(AssessmentSkill.valueOf(item));
                     } catch (IllegalArgumentException ignored) {
-                        // Legacy text remains display-only and is ignored for structured matching.
+                        // Legacy free text is display-only; skip it for matching.
                     }
                 });
         return result;
     }
 
+    /** Message shown when recommendationReady is false. */
     private String readinessMessage(PlacementEvaluationStatus status) {
         if (status == PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED || status == PlacementEvaluationStatus.UNDER_REVIEW) {
             return "Kết quả IELTS đang chờ nhân viên đào tạo xác nhận trước khi xây dựng lộ trình phù hợp.";
@@ -207,6 +256,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
         return "Kết quả placement test chưa sẵn sàng để gợi ý lộ trình.";
     }
 
+    /** English skill name used inside the Vietnamese reason string. */
     private String skillLabel(AssessmentSkill skill) {
         return switch (skill) {
             case LISTENING -> "Listening";
@@ -217,6 +267,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
         };
     }
 
+    /** Vietnamese label for BEGINNER / INTERMEDIATE / ADVANCED. */
     private String levelLabel(String level) {
         return switch (level) {
             case "BEGINNER" -> "Cơ bản";
@@ -226,5 +277,6 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
         };
     }
 
-    private record ScoredTrainingProgram(TrainingProgram program, double score) {}
+    /** Temporary holder while sorting instructor-led courses by match score. */
+    private record ScoredTrainingProgram(InstructorLedCourse program, double score) {}
 }

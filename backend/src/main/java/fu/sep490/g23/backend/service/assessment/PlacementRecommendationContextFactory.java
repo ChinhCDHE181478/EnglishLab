@@ -17,10 +17,14 @@ import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Snapshot of scores, weak skills, and learner target used by recommendation ranking.
+ */
 @Component
 public class PlacementRecommendationContextFactory {
     private static final Pattern NUMBER = Pattern.compile("(\\d+(?:\\.\\d+)?)");
 
+    /** Pack attempt scores + learner target into one ranking input. Nested: resolveExamType, resolveWeakSkills, parseScore. */
     public PlacementRecommendationContext fromAttempt(
             User learner,
             PlacementTestAttempt attempt,
@@ -43,6 +47,11 @@ public class PlacementRecommendationContextFactory {
                 .build();
     }
 
+    /**
+     * Find skills that need work.
+     * 1) Take the lowest skill score, then include every skill within +0.5 of it.
+     * 2) If no numeric scores, scan AI feedback text for skill names (TOEIC = L/R only).
+     */
     public Set<AssessmentSkill> resolveWeakSkills(PlacementTestAttempt attempt, String examType) {
         if (attempt == null) return Set.of();
         Map<AssessmentSkill, BigDecimal> scores = new EnumMap<>(AssessmentSkill.class);
@@ -54,6 +63,7 @@ public class PlacementRecommendationContextFactory {
         }
 
         Set<AssessmentSkill> weakSkills = new LinkedHashSet<>();
+        // Weak = lowest score, plus any skill within 0.5 of that lowest.
         scores.values().stream().min(BigDecimal::compareTo).ifPresent(minimum -> scores.forEach((skill, score) -> {
             if (score.compareTo(minimum.add(BigDecimal.valueOf(0.5))) <= 0) weakSkills.add(skill);
         }));
@@ -67,6 +77,10 @@ public class PlacementRecommendationContextFactory {
         return Collections.unmodifiableSet(new LinkedHashSet<>(weakSkills));
     }
 
+    /**
+     * Detect exam type from stored AI JSON first, then testCode, then learner target, else IELTS.
+     * SKILL is checked before TOEIC because both strings can appear in feedback.
+     */
     public String resolveExamType(PlacementTestAttempt attempt, String fallback) {
         String feedback = String.valueOf(attempt == null ? null : attempt.getAiFeedbackJson()).toUpperCase(Locale.ROOT);
         if (feedback.contains("\"EXAMTYPE\":\"SKILL\"")) return "SKILL";
@@ -77,11 +91,13 @@ public class PlacementRecommendationContextFactory {
         return normalizeExam(fallback, "IELTS");
     }
 
+    /** Keep IELTS / TOEIC / SKILL; anything else falls back (usually the attempt exam type). */
     private String normalizeExam(String value, String fallback) {
         String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
         return Set.of("IELTS", "TOEIC", "SKILL").contains(normalized) ? normalized : fallback;
     }
 
+    /** Pull the first number from free-text targetScore like "6.5" or "TOEIC 700". */
     private BigDecimal parseScore(String value) {
         Matcher matcher = NUMBER.matcher(value == null ? "" : value);
         if (!matcher.find()) return null;
@@ -92,6 +108,7 @@ public class PlacementRecommendationContextFactory {
         }
     }
 
+    /** Ignore null skill scores so they do not count as 0 (which would look like the weakest skill). */
     private void putScore(Map<AssessmentSkill, BigDecimal> scores, AssessmentSkill skill, BigDecimal score) {
         if (score != null) scores.put(skill, score);
     }

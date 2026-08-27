@@ -6,7 +6,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.service.assessment.impl.PlacementEligibilityServiceImpl;
@@ -142,7 +142,7 @@ class PlacementEligibilityServiceImplTest {
     @Test
     void staffReviewFinalizesRecommendedLevelAndAuditFields() {
         User staff = User.builder().id(20L).fullName("Nhân viên A").email("staff@example.com").build();
-        staff.setRole(RoleEnum.STAFF);
+        staff.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.STAFF));
         PlacementTestAttempt attempt = baseAttempt()
                 .aiFeedbackJson("{\"examType\":\"IELTS\"}")
                 .listeningScore(BigDecimal.valueOf(5.5))

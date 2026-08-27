@@ -13,7 +13,7 @@ public class StaffActionItemResponse {
     private String title;
     private String subtitle;
     private Long enrollmentId;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private Long changeRequestId;
     private ClassroomRegistrationStatus registrationStatus;
     private String registrationStatusLabel;

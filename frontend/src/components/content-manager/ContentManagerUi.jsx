@@ -359,12 +359,15 @@ function resolveCrumbHref(crumbs, index) {
 
   if (current === 'dashboard') return '/content-manager/dashboard';
   if (current === 'courses') return '/content-manager/courses';
+  if (current === 'instructor-led-courses') return '/content-manager/instructor-led-courses';
   if (current === 'materials') return '/content-manager/materials';
   if (current === 'flashcards') return '/content-manager/flashcards';
   if (current === 'discount-codes') return '/content-manager/discount-codes';
   if (current === 'categories') return '/content-manager/categories';
   if (current === 'learning-paths' || current === 'syllabus') return '/content-manager/learning-paths';
   if (current === 'mock-exams') return '/content-manager/mock-exams';
+  if (current === 'exercise-bank') return '/content-manager/exercise-bank';
+  if (current === 'placement-test') return '/content-manager/placement-test';
   if (current === 'rubrics') return '/content-manager/rubrics';
   if (current === 'publication') return '/content-manager/publication';
   if (current === 'analytics') return '/content-manager/analytics';
@@ -398,6 +401,7 @@ function formatCrumbLabel(crumbs, index) {
   const dictionary = {
     dashboard: 'Tổng quan',
     courses: 'Khóa học Online',
+    'instructor-led-courses': 'Khóa học có giảng viên',
     classrooms: 'Tài liệu lớp học',
     'discount-codes': 'Mã giảm giá',
     categories: 'Danh mục khóa học',
@@ -410,7 +414,9 @@ function formatCrumbLabel(crumbs, index) {
     reading: 'Luyện đọc',
     writing: 'Luyện viết',
     speaking: 'Luyện nói',
+    'placement-test': 'Bài đánh giá đầu vào',
     'mock-exams': 'Ngân hàng đề thi thử',
+    'exercise-bank': 'Ngân hàng bài tập',
     rubrics: 'Rubrics chấm điểm',
     publication: 'Hàng chờ xuất bản',
     analytics: 'Phân tích nội dung',

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "center_material_library_items")
+@Table(name = "learning_resources")
 @EntityListeners(AuditingEntityListener.class)
 public class CenterMaterialLibraryItem {
 

@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.dto.request.ResetPasswordRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.service.auth.impl.AuthServiceImpl;
@@ -58,7 +58,7 @@ public class ResetPasswordTest {
                 .email("test@example.com")
                 .password("old_password")
                 .emailVerified(true)
-                .role(RoleEnum.LEARNER)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
                 .build();
 
         validToken = new AuthToken();

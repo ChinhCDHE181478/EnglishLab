@@ -9,8 +9,8 @@ import java.util.Optional;
 public interface TeacherCourseFeedbackRepository extends JpaRepository<TeacherCourseFeedback, Long> {
     Optional<TeacherCourseFeedback> findByEnrollmentIdAndTeacherId(Long enrollmentId, Long teacherId);
     List<TeacherCourseFeedback> findByTeacherIdOrderBySubmittedAtDesc(Long teacherId);
-    List<TeacherCourseFeedback> findByClassroomOfferingIdAndTeacherIdOrderBySubmittedAtDesc(
-            Long classroomOfferingId,
+    List<TeacherCourseFeedback> findByClassSectionIdAndTeacherIdOrderBySubmittedAtDesc(
+            Long classSectionId,
             Long teacherId
     );
 }

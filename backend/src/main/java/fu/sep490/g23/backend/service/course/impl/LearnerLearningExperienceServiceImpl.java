@@ -5,13 +5,15 @@ import fu.sep490.g23.backend.dto.response.course.LearnerLessonNoteResponse;
 import fu.sep490.g23.backend.dto.response.course.LearnerLessonReviewFlagResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearnerLessonNote;
-import fu.sep490.g23.backend.entity.course.LearnerLessonReviewFlag;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.LearnerLessonNoteRepository;
-import fu.sep490.g23.backend.repository.course.LearnerLessonReviewFlagRepository;
-import fu.sep490.g23.backend.repository.course.LessonRepository;
+import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
+import fu.sep490.g23.backend.repository.course.OnlineLessonRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sep490.g23.backend.service.course.LearnerLearningExperienceService;
@@ -26,10 +28,10 @@ import java.util.List;
 @Transactional
 public class LearnerLearningExperienceServiceImpl implements LearnerLearningExperienceService {
     private final LearnerLessonNoteRepository noteRepository;
-    private final LearnerLessonReviewFlagRepository reviewFlagRepository;
+    private final LessonProgressRepository lessonProgressRepository;
     private final UserRepository userRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final LessonRepository lessonRepository;
+    private final OnlineLessonRepository lessonRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
 
     @Override
@@ -78,36 +80,53 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
     @Transactional(readOnly = true)
     public List<LearnerLessonReviewFlagResponse> getReviewFlags(String email) {
         User user = findUser(email);
-        return reviewFlagRepository.findByUserOrderByCreatedAtDesc(user).stream().map(this::toFlagResponse).toList();
+        return lessonProgressRepository.findByStudentAndNeedsReviewTrueOrderByUpdatedAtDesc(user).stream()
+                .map(this::toFlagResponse)
+                .toList();
     }
 
     @Override
     public LearnerLessonReviewFlagResponse addReviewFlag(Long courseId, Long lessonId, String email) {
         User user = findUser(email);
         LearningContext context = findLearningContext(courseId, lessonId, user);
-        LearnerLessonReviewFlag flag = reviewFlagRepository.findByUserAndLesson(user, context.lesson())
-                .orElseGet(() -> reviewFlagRepository.save(LearnerLessonReviewFlag.builder()
-                        .user(user)
-                        .course(context.course())
-                        .lesson(context.lesson())
-                        .build()));
-        return toFlagResponse(flag);
+        LessonProgress progress = ensureLessonProgress(context.enrollment(), context.lesson(), user);
+        progress.setNeedsReview(true);
+        return toFlagResponse(lessonProgressRepository.save(progress));
     }
 
     @Override
     public void removeReviewFlag(Long courseId, Long lessonId, String email) {
         User user = findUser(email);
         LearningContext context = findLearningContext(courseId, lessonId, user);
-        reviewFlagRepository.findByUserAndLesson(user, context.lesson()).ifPresent(reviewFlagRepository::delete);
+        lessonProgressRepository.findByEnrollmentAndLesson(context.enrollment(), context.lesson())
+                .ifPresent(progress -> {
+                    progress.setNeedsReview(false);
+                    lessonProgressRepository.save(progress);
+                });
+    }
+
+    private LessonProgress ensureLessonProgress(OnlineCourseEnrollment enrollment, OnlineLesson lesson, User user) {
+        return lessonProgressRepository.findByEnrollmentAndLesson(enrollment, lesson)
+                .or(() -> lessonProgressRepository.findByStudentAndLesson(user, lesson))
+                .orElseGet(() -> LessonProgress.builder()
+                        .student(user)
+                        .lesson(lesson)
+                        .enrollment(enrollment)
+                        .courseVersion(enrollment.getCourseVersion())
+                        .lessonKey(lesson.getLessonKey())
+                        .status(LessonProgressStatus.NOT_STARTED)
+                        .progressPercent(0)
+                        .needsReview(false)
+                        .build());
     }
 
     private LearningContext findLearningContext(Long courseId, Long lessonId, User user) {
         OnlineCourse course = onlineCourseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        Lesson lesson = lessonRepository.findByIdAndModuleOnlineCourseId(lessonId, courseId)
+        OnlineLesson lesson = lessonRepository.findByIdAndModuleOnlineCourseId(lessonId, courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong khóa học này."));
-        courseEnrollmentAccessPolicy.requireLearningAccess(user, course);
-        return new LearningContext(course, lesson);
+        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(user, course);
+        return new LearningContext(course, lesson, enrollment);
     }
 
     private User findUser(String email) {
@@ -125,7 +144,7 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
                 .courseId(note.getCourse().getId())
                 .lessonId(note.getLesson().getId())
                 .lessonTitle(note.getLesson().getTitle())
-                .courseTitle(note.getCourse().getLearningPackage().getTitle())
+                .courseTitle(note.getCourse().getTitle())
                 .content(note.getContent())
                 .selectedText(note.getSelectedText())
                 .transcriptStartSeconds(note.getTranscriptStartSeconds())
@@ -134,16 +153,22 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
                 .build();
     }
 
-    private LearnerLessonReviewFlagResponse toFlagResponse(LearnerLessonReviewFlag flag) {
+    private LearnerLessonReviewFlagResponse toFlagResponse(LessonProgress progress) {
+        OnlineCourse course = progress.getEnrollment() != null && progress.getEnrollment().getOnlineCourse() != null
+                ? progress.getEnrollment().getOnlineCourse()
+                : (progress.getLesson().getModule() == null ? null : progress.getLesson().getModule().getOnlineCourse());
+        String courseTitle = course == null || false
+                ? null
+                : course.getTitle();
         return LearnerLessonReviewFlagResponse.builder()
-                .id(flag.getId())
-                .courseId(flag.getCourse().getId())
-                .lessonId(flag.getLesson().getId())
-                .lessonTitle(flag.getLesson().getTitle())
-                .courseTitle(flag.getCourse().getLearningPackage().getTitle())
-                .createdAt(flag.getCreatedAt())
+                .id(progress.getId())
+                .courseId(course == null ? null : course.getId())
+                .lessonId(progress.getLesson().getId())
+                .lessonTitle(progress.getLesson().getTitle())
+                .courseTitle(courseTitle)
+                .createdAt(progress.getUpdatedAt() != null ? progress.getUpdatedAt() : progress.getCreatedAt())
                 .build();
     }
 
-    private record LearningContext(OnlineCourse course, Lesson lesson) {}
+    private record LearningContext(OnlineCourse course, OnlineLesson lesson, OnlineCourseEnrollment enrollment) {}
 }

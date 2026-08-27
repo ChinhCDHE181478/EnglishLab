@@ -10,22 +10,22 @@ import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestRespo
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.AuthToken;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
-import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementEligibilityService;
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.classroom.impl.EnrollmentRequestServiceImpl;
@@ -55,12 +55,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EnrollmentRequestServiceImplTest {
-    @Mock private EnrollmentRequestRepository requestRepository;
+    @Mock private CourseRegistrationRequestRepository requestRepository;
     @Mock private EnrollmentRequestStatusHistoryRepository historyRepository;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
-    @Mock private ClassroomOfferingRepository classroomOfferingRepository;
-    @Mock private ClassroomSessionRepository classroomSessionRepository;
-    @Mock private ClassroomEnrollmentRepository classroomEnrollmentRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
+    @Mock private ClassSectionRepository classroomOfferingRepository;
+    @Mock private ClassScheduleRepository classroomSessionRepository;
+    @Mock private ClassEnrollmentRepository classroomEnrollmentRepository;
     @Mock private UserRepository userRepository;
     @Mock private PlacementEligibilityService placementEligibilityService;
     @Mock private ClassroomOfferingService classroomOfferingService;
@@ -75,15 +75,15 @@ class EnrollmentRequestServiceImplTest {
     private User learner;
     private User staff;
     private User manager;
-    private TrainingProgram program;
-    private ClassroomOffering classroom;
+    private InstructorLedCourse program;
+    private ClassSection classroom;
 
     @BeforeEach
     void setUp() {
         service = new EnrollmentRequestServiceImpl(
                 requestRepository,
                 historyRepository,
-                trainingProgramRepository,
+                instructorLedCourseRepository,
                 classroomOfferingRepository,
                 classroomSessionRepository,
                 classroomEnrollmentRepository,
@@ -97,28 +97,26 @@ class EnrollmentRequestServiceImplTest {
                 userRoleService,
                 passwordEncoder
         );
-        learner = user(10L, "learner@example.com", RoleEnum.LEARNER);
-        staff = user(50L, "staff@example.com", RoleEnum.STAFF);
-        manager = user(60L, "manager@example.com", RoleEnum.MANAGER);
-        program = TrainingProgram.builder()
+        learner = user(10L, "learner@example.com", RoleCodes.LEARNER);
+        staff = user(50L, "staff@example.com", RoleCodes.STAFF);
+        manager = user(60L, "manager@example.com", RoleCodes.MANAGER);
+        program = InstructorLedCourse.builder()
                 .id(20L)
                 .code("IELTS-FOUNDATION")
+                .slug("ielts-foundation")
                 .title("IELTS Foundation")
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .status(PackageStatus.PUBLISHED)
-                .maxCapacity(24)
+                .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(21L)
-                .title("IELTS F01")
-                .slug("ielts-f01")
-                .studyMode("T2, T4, T6 · 18:30")
-                .status(PackageStatus.PUBLISHED)
-                .build();
-        classroom = ClassroomOffering.builder()
+        classroom = ClassSection.builder()
                 .id(30L)
-                .learningPackage(learningPackage)
-                .trainingProgram(program)
+                .name("IELTS F01")
+                .code("ielts-f01")
+                .instructorLedCourse(InstructorLedCourse.builder()
+                        .id(program.getId())
+                        .code(program.getCode())
+                        .title(program.getTitle())
+                        .publicationStatus(PackageStatus.PUBLISHED)
+                        .build())
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .status(ClassroomOfferingStatus.UPCOMING)
                 .startDate(LocalDate.now().plusDays(14))
@@ -128,7 +126,7 @@ class EnrollmentRequestServiceImplTest {
     @Test
     void learnerRegistersInterestInCourseInsteadOfClass() {
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
-        when(trainingProgramRepository.findById(program.getId())).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(program.getId())).thenReturn(Optional.of(program));
         when(requestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(any(), any(), anySet()))
                 .thenReturn(false);
         stubPersistence();
@@ -149,7 +147,7 @@ class EnrollmentRequestServiceImplTest {
     @Test
     void learnerCannotCreateSecondActiveRequestForSameCourse() {
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
-        when(trainingProgramRepository.findById(program.getId())).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(program.getId())).thenReturn(Optional.of(program));
         when(requestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(
                 eq(learner),
                 eq(program),
@@ -174,7 +172,7 @@ class EnrollmentRequestServiceImplTest {
 
     @Test
     void staffSchedulesFutureTestFromNewRequestAndSendsConfirmation() {
-        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.SUBMITTED);
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.SUBMITTED);
         stubStaffRequest(request);
         stubPersistence();
         ScheduleEnrollmentTestRequest payload = new ScheduleEnrollmentTestRequest();
@@ -191,7 +189,7 @@ class EnrollmentRequestServiceImplTest {
 
     @Test
     void staffCanRecordResultWhenLearnerArrivesBeforeAppointment() {
-        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
         request.setTestAppointmentAt(LocalDateTime.now().plusHours(2));
         stubStaffRequest(request);
         stubPersistence();
@@ -208,7 +206,7 @@ class EnrollmentRequestServiceImplTest {
 
     @Test
     void passedTestMovesLearnerToWaitingForClass() {
-        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
         request.setTestAppointmentAt(LocalDateTime.now().minusHours(1));
         stubStaffRequest(request);
         stubPersistence();
@@ -222,15 +220,20 @@ class EnrollmentRequestServiceImplTest {
 
     @Test
     void staffCanAssignAClassFromDifferentCourseAfterPlacementTestAndEmailsLearner() {
-        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
-        TrainingProgram placementProgram = TrainingProgram.builder()
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        InstructorLedCourse placementProgram = InstructorLedCourse.builder()
                 .id(99L)
                 .code("IELTS-INTERMEDIATE")
+                .slug("ielts-intermediate")
                 .title("IELTS Intermediate")
-                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .status(PackageStatus.PUBLISHED)
+                .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
-        classroom.setTrainingProgram(placementProgram);
+        classroom.setInstructorLedCourse(InstructorLedCourse.builder()
+                .id(placementProgram.getId())
+                .code(placementProgram.getCode())
+                .title(placementProgram.getTitle())
+                .publicationStatus(PackageStatus.PUBLISHED)
+                .build());
         stubStaffRequest(request);
         when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
         when(classroomOfferingService.enrollStudent(any(), any()))
@@ -248,7 +251,7 @@ class EnrollmentRequestServiceImplTest {
 
     @Test
     void staffCannotAssignBeforeTestIsCompleted() {
-        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
         stubStaffRequest(request);
         AssignEnrollmentClassRequest payload = new AssignEnrollmentClassRequest();
         payload.setClassroomId(classroom.getId());
@@ -269,11 +272,11 @@ class EnrollmentRequestServiceImplTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User saved = invocation.getArgument(0);
             saved.setId(70L);
-            saved.setRole(RoleEnum.LEARNER);
+            saved.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER));
             return saved;
         });
         when(classroomEnrollmentRepository
-                .existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), anySet()))
+                .existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(any(), any(), anySet()))
                 .thenReturn(false);
         when(classroomOfferingService.enrollStudent(eq(classroom.getId()), any()))
                 .thenReturn(ClassroomEnrollmentResponse.builder().hasClassAccess(true).build());
@@ -287,9 +290,9 @@ class EnrollmentRequestServiceImplTest {
         assertThat(response.isLearnerAccountCreated()).isTrue();
         assertThat(response.isAccountSetupEmailSent()).isTrue();
         assertThat(response.getAssignedClassroomId()).isEqualTo(classroom.getId());
-        verify(userRoleService).assignRole(any(User.class), eq(RoleEnum.LEARNER));
+        verify(userRoleService).assignRole(any(User.class), eq(RoleCodes.LEARNER));
         verify(authMailService).sendStaffCreatedAccountEmail(any(User.class), eq("123456"));
-        verify(enrollmentRequestMailService).sendClassAssignment(any(EnrollmentRequest.class), eq(classroom));
+        verify(enrollmentRequestMailService).sendClassAssignment(any(CourseRegistrationRequest.class), eq(classroom));
     }
 
     @Test
@@ -300,7 +303,7 @@ class EnrollmentRequestServiceImplTest {
         when(userRepository.findByEmail("new.learner@example.com")).thenReturn(Optional.of(learner));
         when(userRepository.save(learner)).thenReturn(learner);
         when(classroomEnrollmentRepository
-                .existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), anySet()))
+                .existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(any(), any(), anySet()))
                 .thenReturn(true);
 
         assertThatThrownBy(() -> service.createAtCenter(payload, staff.getEmail()))
@@ -317,7 +320,7 @@ class EnrollmentRequestServiceImplTest {
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
         when(userRepository.save(learner)).thenReturn(learner);
         when(classroomEnrollmentRepository
-                .existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), anySet()))
+                .existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(any(), any(), anySet()))
                 .thenReturn(false);
         when(classroomOfferingService.enrollStudent(eq(classroom.getId()), any()))
                 .thenReturn(ClassroomEnrollmentResponse.builder().hasClassAccess(true).build());
@@ -349,9 +352,9 @@ class EnrollmentRequestServiceImplTest {
     void managerDemandReportSuggestsClassCountFromActivePipeline() {
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(requestRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(
-                enrollmentRequest(EnrollmentRequestStatus.SUBMITTED),
-                enrollmentRequest(EnrollmentRequestStatus.TEST_SCHEDULED),
-                enrollmentRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS)
+                courseRegistrationRequest(EnrollmentRequestStatus.SUBMITTED),
+                courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED),
+                courseRegistrationRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS)
         ));
 
         var report = service.getDemandReport(manager.getEmail());
@@ -369,8 +372,8 @@ class EnrollmentRequestServiceImplTest {
         return payload;
     }
 
-    private EnrollmentRequest enrollmentRequest(EnrollmentRequestStatus status) {
-        return EnrollmentRequest.builder()
+    private CourseRegistrationRequest courseRegistrationRequest(EnrollmentRequestStatus status) {
+        return CourseRegistrationRequest.builder()
                 .id(40L)
                 .learner(learner)
                 .courseOffering(program)
@@ -400,23 +403,23 @@ class EnrollmentRequestServiceImplTest {
         return payload;
     }
 
-    private void stubStaffRequest(EnrollmentRequest request) {
+    private void stubStaffRequest(CourseRegistrationRequest request) {
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
         when(requestRepository.findById(request.getId())).thenReturn(Optional.of(request));
     }
 
     private void stubPersistence() {
-        when(historyRepository.findByEnrollmentRequestIdOrderByCreatedAtAscIdAsc(any())).thenReturn(List.of());
-        when(requestRepository.save(any(EnrollmentRequest.class))).thenAnswer(invocation -> {
-            EnrollmentRequest request = invocation.getArgument(0);
+        when(historyRepository.findByCourseRegistrationRequestIdOrderByCreatedAtAscIdAsc(any())).thenReturn(List.of());
+        when(requestRepository.save(any(CourseRegistrationRequest.class))).thenAnswer(invocation -> {
+            CourseRegistrationRequest request = invocation.getArgument(0);
             if (request.getId() == null) request.setId(40L);
             return request;
         });
     }
 
-    private User user(Long id, String email, RoleEnum role) {
+    private User user(Long id, String email, String roleCode) {
         User user = User.builder().id(id).fullName(email).email(email).build();
-        user.setRole(role);
+        user.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(roleCode));
         return user;
     }
 }

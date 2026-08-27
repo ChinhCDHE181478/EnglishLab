@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -20,8 +21,10 @@ public class ClassroomMaterialResponse {
     private Long centerMaterialId;
     private Long sessionId;
     private String sessionTitle;
-    private Long curriculumUnitId;
-    private String curriculumUnitTitle;
+    @JsonProperty("curriculumUnitId")
+    private Long courseUnitId;
+    @JsonProperty("curriculumUnitTitle")
+    private String courseUnitTitle;
     private Boolean mandatory;
     private String uploadedByName;
     private String reviewStatus;

@@ -8,19 +8,22 @@ import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class PaymentReceiptPdfService {
 
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private final PaymentOrderItemRepository paymentOrderItemRepository;
 
     public byte[] buildCourseReceipt(PaymentOrder order) {
         try {
@@ -88,13 +91,11 @@ public class PaymentReceiptPdfService {
     }
 
     private String courseTitles(PaymentOrder order) {
-        if (order.getCourseTitles() == null || order.getCourseTitles().isBlank()) {
-            return "—";
-        }
-        return Arrays.stream(order.getCourseTitles().split("\\|"))
-                .map(String::trim)
+        String titles = paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId()).stream()
+                .map(item -> item.getTitleSnapshot() == null ? "" : item.getTitleSnapshot().trim())
                 .filter(title -> !title.isBlank())
                 .collect(Collectors.joining(", "));
+        return titles.isBlank() ? "—" : titles;
     }
 
     private String formatVnd(Long amount) {

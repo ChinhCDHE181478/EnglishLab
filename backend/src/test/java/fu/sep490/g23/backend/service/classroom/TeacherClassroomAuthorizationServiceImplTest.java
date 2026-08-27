@@ -1,13 +1,13 @@
 package fu.sep490.g23.backend.service.classroom;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.TeacherClassroomAuthorizationServiceImpl;
@@ -29,14 +29,14 @@ import static org.mockito.Mockito.when;
 class TeacherClassroomAuthorizationServiceImplTest {
 
     @Mock private ClassroomAccessHelper accessHelper;
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomSessionRepository sessionRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassScheduleRepository sessionRepository;
     @Mock private ClassroomHomeworkRepository homeworkRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
     @Mock private ClassroomTeacherAssignmentRepository assignmentRepository;
 
     private TeacherClassroomAuthorizationServiceImpl service;
-    private ClassroomOffering offering;
+    private ClassSection offering;
     private User teacher;
 
     @BeforeEach
@@ -49,15 +49,15 @@ class TeacherClassroomAuthorizationServiceImplTest {
                 materialRepository,
                 assignmentRepository
         );
-        offering = ClassroomOffering.builder().id(21L).build();
-        teacher = user(7L, "teacher@example.com", RoleEnum.TEACHER);
+        offering = ClassSection.builder().id(21L).build();
+        teacher = user(7L, "teacher@example.com", RoleCodes.TEACHER);
     }
 
     @Test
     void deniesTeacherWhoIsNotAssignedToRequestedClassroom() {
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
+        when(assignmentRepository.findAllByClassSectionIdAndTeacherId(offering.getId(), teacher.getId()))
                 .thenReturn(List.of());
 
         assertThatThrownBy(() -> service.assertClassroomAccess(offering.getId(), teacher.getEmail()))
@@ -68,14 +68,14 @@ class TeacherClassroomAuthorizationServiceImplTest {
     @Test
     void allowsTeacherWithActiveAssignment() {
         ClassroomTeacherAssignment assignment = ClassroomTeacherAssignment.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .teacher(teacher)
                 .effectiveFrom(LocalDate.now().minusDays(1))
                 .effectiveTo(LocalDate.now().plusDays(1))
                 .build();
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
+        when(assignmentRepository.findAllByClassSectionIdAndTeacherId(offering.getId(), teacher.getId()))
                 .thenReturn(List.of(assignment));
 
         assertThatCode(() -> service.assertClassroomAccess(offering.getId(), teacher.getEmail()))
@@ -85,13 +85,13 @@ class TeacherClassroomAuthorizationServiceImplTest {
     @Test
     void deniesExpiredTeacherAssignment() {
         ClassroomTeacherAssignment assignment = ClassroomTeacherAssignment.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .teacher(teacher)
                 .effectiveTo(LocalDate.now().minusDays(1))
                 .build();
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
+        when(assignmentRepository.findAllByClassSectionIdAndTeacherId(offering.getId(), teacher.getId()))
                 .thenReturn(List.of(assignment));
 
         assertThatThrownBy(() -> service.assertClassroomAccess(offering.getId(), teacher.getEmail()))
@@ -101,7 +101,7 @@ class TeacherClassroomAuthorizationServiceImplTest {
 
     @Test
     void allowsManagerToOperateAcrossClassrooms() {
-        User manager = user(9L, "manager@example.com", RoleEnum.MANAGER);
+        User manager = user(9L, "manager@example.com", RoleCodes.MANAGER);
         when(accessHelper.requireUser(manager.getEmail())).thenReturn(manager);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
 
@@ -109,9 +109,9 @@ class TeacherClassroomAuthorizationServiceImplTest {
                 .doesNotThrowAnyException();
     }
 
-    private User user(Long id, String email, RoleEnum role) {
+    private User user(Long id, String email, String roleCode) {
         User user = User.builder().id(id).email(email).fullName(email).build();
-        user.setRole(role);
+        user.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(roleCode));
         return user;
     }
 }

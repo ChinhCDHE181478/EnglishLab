@@ -1,11 +1,9 @@
 package fu.sep490.g23.backend.entity.course;
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
-
-import fu.sep490.g23.backend.entity.course.enums.*;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -37,7 +35,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "course_discussion_reports",
-        uniqueConstraints = @UniqueConstraint(name = "uk_discussion_report_user_target", columnNames = {"target_type", "target_id", "reporter_id"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_discussion_report_user_target",
+                columnNames = {"target_type", "target_id", "reporter_id"}
+        )
 )
 @EntityListeners(AuditingEntityListener.class)
 public class CourseDiscussionReport {
@@ -45,10 +46,21 @@ public class CourseDiscussionReport {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private CourseDiscussionPost post;
+
+    /**
+     * Legacy discriminator kept for DB NOT NULL + unique constraint compatibility.
+     * Prefer {@link #post} for runtime lookups; still written on save.
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, length = 30)
     private CourseDiscussionReportTarget targetType;
 
+    /**
+     * Legacy target id (may be legacy thread/reply id for migrated rows, or post id for new writes).
+     */
     @Column(name = "target_id", nullable = false)
     private Long targetId;
 

@@ -16,7 +16,7 @@ public class TransferStudentRequest {
     private Long studentId;
 
     @NotNull(message = "Lớp đích không được để trống")
-    private Long targetClassroomOfferingId;
+    private Long targetClassSectionId;
 
     private String note;
 }

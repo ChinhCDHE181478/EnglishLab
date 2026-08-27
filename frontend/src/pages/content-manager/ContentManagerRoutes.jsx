@@ -15,8 +15,6 @@ import ContentManagerAnalyticsPage from './ContentManagerAnalyticsPage';
 import ContentManagerPlacementTestPage from './ContentManagerPlacementTestPage';
 import ContentManagerRubricsPage from './ContentManagerRubricsPage';
 import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
-import ContentManagerTrainingProgramsPage from './ContentManagerTrainingProgramsPage';
-import ContentManagerTrainingProgramBuilderPage from './ContentManagerTrainingProgramBuilderPage';
 import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
 import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 import ContentManagerCoursePreviewPage from './ContentManagerCoursePreviewPage';
@@ -29,18 +27,11 @@ export default function ContentManagerRoutes() {
         <Route path="dashboard" element={<ContentManagerDashboardPage />} />
         <Route path="courses" element={<ContentManagerCoursesPage />} />
         <Route path="courses/:slugOrId" element={<Navigate replace to="edit" />} />
-        <Route path="classrooms" element={<Navigate replace to="/content-manager/offline-programs" />} />
-        <Route path="offline-programs" element={<ContentManagerTrainingProgramsPage mode="OFFLINE" />} />
-        <Route path="offline-programs/new" element={<ContentManagerTrainingProgramBuilderPage mode="OFFLINE" />} />
-        <Route path="offline-programs/:id/edit" element={<ContentManagerTrainingProgramBuilderPage mode="OFFLINE" />} />
-        <Route path="offline-programs/:id/builder" element={<ContentManagerTrainingProgramBuilderPage mode="OFFLINE" />} />
-        <Route path="offline-programs/:id" element={<ContentManagerTrainingProgramBuilderPage mode="OFFLINE" />} />
-        <Route path="virtual-programs" element={<ContentManagerTrainingProgramsPage mode="VIRTUAL" />} />
-        <Route path="virtual-programs/new" element={<ContentManagerTrainingProgramBuilderPage mode="VIRTUAL" />} />
-        <Route path="virtual-programs/:id/edit" element={<ContentManagerTrainingProgramBuilderPage mode="VIRTUAL" />} />
-        <Route path="virtual-programs/:id/builder" element={<ContentManagerTrainingProgramBuilderPage mode="VIRTUAL" />} />
-        <Route path="virtual-programs/:id" element={<ContentManagerTrainingProgramBuilderPage mode="VIRTUAL" />} />
-        <Route path="syllabus-builder" element={<ContentManagerSyllabusBuilderPage />} />
+        <Route path="classrooms" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
+        <Route path="instructor-led-courses" element={<ContentManagerSyllabusBuilderPage />} />
+        <Route path="offline-programs/*" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
+        <Route path="virtual-programs/*" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
+        <Route path="syllabus-builder" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
         <Route path="exercise-bank" element={<ContentManagerExerciseBankPage />} />
         <Route path="courses/new" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/edit" element={<ContentManagerCourseEditorPage />} />

@@ -43,7 +43,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentClassroomController {
 
-    private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomOfferingService classSectionService;
     private final ClassroomHomeworkService classroomHomeworkService;
     private final ClassroomGradebookService classroomGradebookService;
     private final ClassroomContentService classroomContentService;
@@ -55,7 +55,7 @@ public class StudentClassroomController {
 
     @GetMapping({"/my-classrooms", "/my-classes"})
     public ResponseEntity<List<ClassroomOfferingResponse>> getMyClasses(Authentication authentication) {
-        return ResponseEntity.ok(classroomOfferingService.getMyClasses(authentication.getName()));
+        return ResponseEntity.ok(classSectionService.getMyClasses(authentication.getName()));
     }
 
     @PostMapping(value = "/{id}/tuition-proofs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -93,7 +93,7 @@ public class StudentClassroomController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> getClassroom(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(classroomOfferingService.getLearnerOffering(id, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.getLearnerOffering(id, authentication.getName()));
     }
 
     @GetMapping("/{id}/sessions")
@@ -101,7 +101,7 @@ public class StudentClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.getLearnerSessions(
+        return ResponseEntity.ok(classSectionService.getLearnerSessions(
                 id,
                 authentication.getName()
         ));
@@ -112,7 +112,7 @@ public class StudentClassroomController {
             @PathVariable Long sessionId,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.joinVirtualSession(
+        return ResponseEntity.ok(classSectionService.joinVirtualSession(
                 sessionId,
                 authentication.getName()
         ));
@@ -124,7 +124,7 @@ public class StudentClassroomController {
             @RequestParam Long sessionId,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.joinVirtualClass(
+        return ResponseEntity.ok(classSectionService.joinVirtualClass(
                 id,
                 sessionId,
                 authentication.getName()

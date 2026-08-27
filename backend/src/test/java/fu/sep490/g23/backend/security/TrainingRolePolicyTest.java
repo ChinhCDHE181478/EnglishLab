@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.security;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,7 +10,7 @@ class TrainingRolePolicyTest {
 
     @Test
     void staffCanOperateButCannotApprove() {
-        User staff = user(RoleEnum.STAFF);
+        User staff = user(RoleCodes.STAFF);
 
         assertThat(TrainingRolePolicy.canOperate(staff)).isTrue();
         assertThat(TrainingRolePolicy.canPerformStaffAction(staff)).isTrue();
@@ -19,7 +19,7 @@ class TrainingRolePolicyTest {
 
     @Test
     void managerApprovesButDoesNotPerformStaffActions() {
-        User manager = user(RoleEnum.MANAGER);
+        User manager = user(RoleCodes.MANAGER);
 
         assertThat(TrainingRolePolicy.canOperate(manager)).isTrue();
         assertThat(TrainingRolePolicy.canPerformStaffAction(manager)).isFalse();
@@ -28,8 +28,8 @@ class TrainingRolePolicyTest {
 
     @Test
     void adminHasBothCapabilitiesAndLearnerHasNeither() {
-        User admin = user(RoleEnum.ADMIN);
-        User learner = user(RoleEnum.LEARNER);
+        User admin = user(RoleCodes.ADMIN);
+        User learner = user(RoleCodes.LEARNER);
 
         assertThat(TrainingRolePolicy.canPerformStaffAction(admin)).isTrue();
         assertThat(TrainingRolePolicy.canApprove(admin)).isTrue();
@@ -39,9 +39,9 @@ class TrainingRolePolicyTest {
         assertThat(TrainingRolePolicy.canOperate(null)).isFalse();
     }
 
-    private User user(RoleEnum role) {
+    private User user(String roleCode) {
         User user = new User();
-        user.setRole(role);
+        user.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(roleCode));
         return user;
     }
 }

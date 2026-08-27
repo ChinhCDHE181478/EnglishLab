@@ -1,22 +1,23 @@
 package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
+import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +30,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -51,11 +51,11 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     );
 
     private final UserRepository userRepository;
-    private final PackageEnrollmentRepository packageEnrollmentRepository;
-    private final LearningPackageRepository learningPackageRepository;
+    private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final ClassroomEnrollmentRepository classroomEnrollmentRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final PaymentOrderItemRepository paymentOrderItemRepository;
     private final LearningPathRepository learningPathRepository;
 
     @Value("${app.seed.sheet.enabled:false}")
@@ -79,10 +79,10 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
         long orderCode = System.currentTimeMillis();
         int created = 0;
 
-        List<PackageEnrollment> onlineEnrollments = packageEnrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner);
+        List<OnlineCourseEnrollment> onlineEnrollments = packageEnrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner);
         List<CoursePurchase> pathCourses = new ArrayList<>();
         List<CoursePurchase> otherCourses = new ArrayList<>();
-        for (PackageEnrollment enrollment : onlineEnrollments) {
+        for (OnlineCourseEnrollment enrollment : onlineEnrollments) {
             CoursePurchase purchase = toPurchase(enrollment);
             if (purchase == null || coveredCourseIds.contains(purchase.courseId())) {
                 continue;
@@ -97,7 +97,7 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
         LearningPath path = learningPathRepository.findByCodeIgnoreCase(PATH_CODE).orElse(null);
         if (pathCourses.size() >= 2) {
             orderCode = nextOrderCode(orderCode);
-            saveOrder(bundlePathOrder(learner, pathCourses, path, orderCode));
+            saveOnlineOrder(bundlePathOrder(learner, pathCourses, path, orderCode), pathCourses);
             pathCourses.forEach(item -> coveredCourseIds.add(item.courseId()));
             created++;
         } else {
@@ -106,18 +106,18 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
 
         for (CoursePurchase purchase : otherCourses) {
             orderCode = nextOrderCode(orderCode);
-            saveOrder(singleCourseOrder(learner, purchase, orderCode));
+            saveOnlineOrder(singleCourseOrder(learner, purchase, orderCode), List.of(purchase));
             created++;
         }
 
-        List<ClassroomEnrollment> classroomEnrollments = classroomEnrollmentRepository
+        List<ClassEnrollment> classEnrollments = classEnrollmentRepository
                 .findByStudentIdAndStatusIn(learner.getId(), CLASSROOM_STATUSES);
-        for (ClassroomEnrollment enrollment : classroomEnrollments) {
+        for (ClassEnrollment enrollment : classEnrollments) {
             if (coveredEnrollmentIds.contains(enrollment.getId())) {
                 continue;
             }
             orderCode = nextOrderCode(orderCode);
-            saveOrder(classroomOrder(learner, enrollment, orderCode));
+            saveClassroomOrder(classroomOrder(learner, enrollment, orderCode), enrollment);
             created++;
         }
 
@@ -132,25 +132,21 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     }
 
     private void setPackagePrice(String slug, long priceVnd) {
-        learningPackageRepository.findBySlugAndDeletedFalse(slug).ifPresent(pack -> {
-            pack.setPrice(BigDecimal.valueOf(priceVnd));
-            learningPackageRepository.save(pack);
+        onlineCourseRepository.findBySlug(slug).ifPresent(course -> {
+            course.setPrice(BigDecimal.valueOf(priceVnd));
+            onlineCourseRepository.save(course);
         });
     }
 
-    private CoursePurchase toPurchase(PackageEnrollment enrollment) {
-        LearningPackage pack = enrollment.getLearningPackage();
-        if (pack == null) {
-            return null;
-        }
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(pack).orElse(null);
+    private CoursePurchase toPurchase(OnlineCourseEnrollment enrollment) {
+        OnlineCourse course = enrollment.getOnlineCourse();
         if (course == null) {
             return null;
         }
         LocalDateTime paidAt = enrollment.getRegisteredAt() == null
                 ? LocalDateTime.now().minusDays(20)
                 : enrollment.getRegisteredAt().plusHours(2);
-        return new CoursePurchase(course.getId(), pack.getSlug(), pack.getTitle(), toVnd(pack.getPrice()), paidAt);
+        return new CoursePurchase(course.getId(), course.getSlug(), course.getTitle(), toVnd(course.getPrice()), paidAt);
     }
 
     private PaymentOrder bundlePathOrder(User learner, List<CoursePurchase> courses, LearningPath path, long orderCode) {
@@ -165,8 +161,6 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
                 .min(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now().minusDays(30));
         return baseOrder(learner, orderCode, paidAt)
-                .courseIdsCsv(joinIds(courses.stream().map(CoursePurchase::courseId).toList()))
-                .courseTitles(String.join("|", courses.stream().map(CoursePurchase::title).toList()))
                 .learningPathId(path == null ? null : path.getId())
                 .learningPathCode(path == null ? PATH_CODE : path.getCode())
                 .originalAmount(original)
@@ -177,17 +171,15 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
 
     private PaymentOrder singleCourseOrder(User learner, CoursePurchase purchase, long orderCode) {
         return baseOrder(learner, orderCode, purchase.paidAt())
-                .courseIdsCsv(String.valueOf(purchase.courseId()))
-                .courseTitles(purchase.title())
                 .originalAmount(purchase.amount())
                 .amount(purchase.amount())
                 .build();
     }
 
-    private PaymentOrder classroomOrder(User learner, ClassroomEnrollment enrollment, long orderCode) {
-        ClassroomOffering offering = enrollment.getClassroomOffering();
-        String title = offering != null && offering.getLearningPackage() != null
-                ? offering.getLearningPackage().getTitle()
+    private PaymentOrder classroomOrder(User learner, ClassEnrollment enrollment, long orderCode) {
+        ClassSection offering = enrollment.getClassSection();
+        String title = offering != null && offering.getInstructorLedCourse() != null
+                ? offering.getTitle()
                 : "Học phí lớp";
         long amount = toVnd(enrollment.getTuitionAmountPaid() == null
                 ? enrollment.getTuitionAmountDue()
@@ -196,10 +188,6 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
                 ? LocalDateTime.now().minusDays(12)
                 : enrollment.getEnrolledAt().plusHours(3);
         return baseOrder(learner, orderCode, paidAt)
-                .courseIdsCsv("")
-                .classroomOfferingIdsCsv(offering == null ? "" : String.valueOf(offering.getId()))
-                .enrollmentId(enrollment.getId())
-                .courseTitles(title)
                 .originalAmount(amount)
                 .amount(amount)
                 .build();
@@ -210,7 +198,6 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
         return PaymentOrder.builder()
                 .orderCode(orderCode)
                 .student(learner)
-                .classroomOfferingIdsCsv("")
                 .systemDiscountAmount(0L)
                 .couponDiscountAmount(0L)
                 .couponReservationReleased(true)
@@ -221,8 +208,47 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
                 .webhookConfirmedAt(paidAt);
     }
 
-    private void saveOrder(PaymentOrder order) {
-        paymentOrderRepository.save(order);
+    private void saveOnlineOrder(PaymentOrder order, List<CoursePurchase> purchases) {
+        PaymentOrder saved = paymentOrderRepository.save(order);
+        long allocated = 0L;
+        List<PaymentOrderItem> items = new ArrayList<>();
+        for (int index = 0; index < purchases.size(); index++) {
+            CoursePurchase purchase = purchases.get(index);
+            long finalAmount = index == purchases.size() - 1
+                    ? order.getAmount() - allocated
+                    : Math.floorDiv(order.getAmount() * purchase.amount(), Math.max(1L, order.getOriginalAmount()));
+            allocated += finalAmount;
+            OnlineCourse course = onlineCourseRepository.findById(purchase.courseId()).orElseThrow();
+            items.add(PaymentOrderItem.builder()
+                    .paymentOrder(saved)
+                    .itemType(PaymentOrderItemType.ONLINE_COURSE)
+                    .onlineCourse(course)
+                    .titleSnapshot(purchase.title())
+                    .unitPriceVnd(purchase.amount())
+                    .discountAmountVnd(Math.max(0L, purchase.amount() - finalAmount))
+                    .finalAmountVnd(finalAmount)
+                    .quantity(1)
+                    .build());
+        }
+        paymentOrderItemRepository.saveAll(items);
+    }
+
+    private void saveClassroomOrder(PaymentOrder order, ClassEnrollment enrollment) {
+        PaymentOrder saved = paymentOrderRepository.save(order);
+        ClassSection section = enrollment.getClassSection();
+        String title = section != null && section.getInstructorLedCourse() != null
+                ? section.getTitle()
+                : "Học phí lớp";
+        paymentOrderItemRepository.save(PaymentOrderItem.builder()
+                .paymentOrder(saved)
+                .itemType(PaymentOrderItemType.CLASS_ENROLLMENT)
+                .classEnrollment(enrollment)
+                .titleSnapshot(title)
+                .unitPriceVnd(order.getOriginalAmount())
+                .discountAmountVnd(Math.max(0L, order.getOriginalAmount() - order.getAmount()))
+                .finalAmountVnd(order.getAmount())
+                .quantity(1)
+                .build());
     }
 
     private long nextOrderCode(long current) {
@@ -234,37 +260,23 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     }
 
     private Set<Long> coveredCourseIds(List<PaymentOrder> orders) {
-        Set<Long> ids = new HashSet<>();
-        for (PaymentOrder order : orders) {
-            if (order.getCourseIdsCsv() == null || order.getCourseIdsCsv().isBlank()) {
-                continue;
-            }
-            Arrays.stream(order.getCourseIdsCsv().split(","))
-                    .map(String::trim)
-                    .filter(value -> !value.isBlank())
-                    .forEach(value -> {
-                        try {
-                            ids.add(Long.parseLong(value));
-                        } catch (NumberFormatException ignored) {
-                            // ignore malformed seed/history rows
-                        }
-                    });
-        }
-        return ids;
+        return orders.stream()
+                .flatMap(order -> paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId()).stream())
+                .filter(item -> item.getItemType() == PaymentOrderItemType.ONLINE_COURSE)
+                .map(PaymentOrderItem::getOnlineCourse)
+                .filter(java.util.Objects::nonNull)
+                .map(OnlineCourse::getId)
+                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
     }
 
     private Set<Long> coveredEnrollmentIds(List<PaymentOrder> orders) {
-        Set<Long> ids = new HashSet<>();
-        for (PaymentOrder order : orders) {
-            if (order.getEnrollmentId() != null) {
-                ids.add(order.getEnrollmentId());
-            }
-        }
-        return ids;
-    }
-
-    private String joinIds(List<Long> ids) {
-        return String.join(",", ids.stream().map(String::valueOf).toList());
+        return orders.stream()
+                .flatMap(order -> paymentOrderItemRepository.findByPaymentOrderIdOrderById(order.getId()).stream())
+                .filter(item -> item.getItemType() == PaymentOrderItemType.CLASS_ENROLLMENT)
+                .map(PaymentOrderItem::getClassEnrollment)
+                .filter(java.util.Objects::nonNull)
+                .map(ClassEnrollment::getId)
+                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
     }
 
     private long toVnd(BigDecimal value) {

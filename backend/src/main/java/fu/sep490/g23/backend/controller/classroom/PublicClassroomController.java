@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PublicClassroomController {
 
-    private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomOfferingService classSectionService;
 
     @GetMapping
     public ResponseEntity<Page<ClassroomOfferingResponse>> getOfferings(
@@ -29,11 +29,11 @@ public class PublicClassroomController {
             @RequestParam(defaultValue = "12") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return ResponseEntity.ok(classroomOfferingService.getPublicOfferings(mode, pageable));
+        return ResponseEntity.ok(classSectionService.getPublicOfferings(mode, pageable));
     }
 
     @GetMapping("/{slugOrId}")
     public ResponseEntity<ClassroomOfferingResponse> getOffering(@PathVariable String slugOrId) {
-        return ResponseEntity.ok(classroomOfferingService.getPublicOffering(slugOrId));
+        return ResponseEntity.ok(classSectionService.getPublicOffering(slugOrId));
     }
 }

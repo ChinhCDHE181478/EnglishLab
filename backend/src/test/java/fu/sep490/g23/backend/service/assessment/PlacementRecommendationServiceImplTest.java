@@ -8,7 +8,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
-import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.service.assessment.impl.PlacementRecommendationServiceImpl;
 import fu.sep490.g23.backend.service.course.LearningPathRecommendationService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
@@ -34,7 +34,7 @@ class PlacementRecommendationServiceImplTest {
     @Mock private PlacementTestAttemptRepository attemptRepository;
     @Mock private PlacementEligibilityService eligibilityService;
     @Mock private OnlineCourseService onlineCourseService;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock private LearningPathRecommendationService learningPathRecommendationService;
 
     private PlacementRecommendationServiceImpl service;
@@ -50,7 +50,7 @@ class PlacementRecommendationServiceImplTest {
                 .listeningScore(BigDecimal.valueOf(5.5)).readingScore(BigDecimal.valueOf(5))
                 .writingScore(BigDecimal.valueOf(4.5)).speakingScore(BigDecimal.valueOf(5)).build();
         service = new PlacementRecommendationServiceImpl(userRepository, attemptRepository, eligibilityService,
-                new PlacementRecommendationContextFactory(), onlineCourseService, trainingProgramRepository,
+                new PlacementRecommendationContextFactory(), onlineCourseService, instructorLedCourseRepository,
                 learningPathRecommendationService);
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
         when(attemptRepository.findById(10L)).thenReturn(Optional.of(attempt));
@@ -60,7 +60,7 @@ class PlacementRecommendationServiceImplTest {
     void manualReviewPendingBuildsRecommendationsWhenBandIsAvailable() {
         when(eligibilityService.evaluateEligibility(1L, 10L)).thenReturn(eligibility(false, PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED));
         when(onlineCourseService.recommendCourses(org.mockito.ArgumentMatchers.eq(learner), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
-        when(trainingProgramRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()).thenReturn(List.of());
+        when(instructorLedCourseRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()).thenReturn(List.of());
 
         PlacementRecommendationResponse result = service.getRecommendations(10L, learner.getEmail());
 
@@ -84,7 +84,7 @@ class PlacementRecommendationServiceImplTest {
     void eligibleAttemptUsesAttemptScoreAndBuildsRecommendations() {
         when(eligibilityService.evaluateEligibility(1L, 10L)).thenReturn(eligibility(true, PlacementEvaluationStatus.ELIGIBLE));
         when(onlineCourseService.recommendCourses(org.mockito.ArgumentMatchers.eq(learner), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
-        when(trainingProgramRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()).thenReturn(List.of());
+        when(instructorLedCourseRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()).thenReturn(List.of());
 
         PlacementRecommendationResponse result = service.getRecommendations(10L, learner.getEmail());
 

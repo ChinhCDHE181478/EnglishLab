@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Staff APIs to confirm IELTS Writing/Speaking after auto-score.
+ * Confirmation sets ELIGIBLE + recommendedLevel so course recommendations can fully unlock.
+ */
 @RestController
 @RequestMapping("/api/staff/placement-reviews")
 @RequiredArgsConstructor
@@ -24,11 +28,13 @@ public class StaffPlacementReviewController {
 
     private final PlacementEligibilityService placementEligibilityService;
 
+    /** List attempts waiting for (or currently in) manual review. */
     @GetMapping
     public ResponseEntity<List<PlacementTestAttemptResponse>> listManualReviewQueue(Authentication authentication) {
         return ResponseEntity.ok(placementEligibilityService.listManualReviewQueue(authentication.getName()));
     }
 
+    /** Staff confirms the attempt: mark eligible and store the placement level. */
     @PatchMapping("/{attemptId}/review")
     public ResponseEntity<PlacementEligibilityResult> confirmManualReview(
             @PathVariable Long attemptId,

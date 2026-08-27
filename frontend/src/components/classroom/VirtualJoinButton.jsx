@@ -31,7 +31,7 @@ export default function VirtualJoinButton({
     try {
       const updatedSession = await classroomApi.joinVirtualSession(classroomId, sessionId);
       onJoined?.(updatedSession);
-      const meetingUrl = updatedSession?.larkMeetingUrl || url;
+      const meetingUrl = updatedSession?.googleMeetUrl || url;
       if (!meetingUrl) {
         popup?.close();
         onBlocked?.('Chưa thể lấy liên kết phòng học.');

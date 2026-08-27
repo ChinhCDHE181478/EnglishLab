@@ -3,18 +3,17 @@ import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.dto.request.classroom.TransferStudentRequest;
-import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import fu.sep490.g23.backend.dto.request.classroom.CreateChangeRequestRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
 
 
@@ -24,9 +23,9 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestRespon
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
@@ -53,10 +52,10 @@ import java.util.Map;
 public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequestService {
 
     private final ClassroomChangeRequestRepository changeRequestRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
-    private final ClassroomSessionRepository sessionRepository;
-    private final ClassroomRoomRepository roomRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
     private final ClassroomConflictService conflictService;
@@ -72,10 +71,10 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         User requester = accessHelper.requireUser(requesterEmail);
         accessHelper.assertTeacher(requester);
 
-        ClassroomOffering offering = offeringRepository.findById(request.getClassroomOfferingId())
+        ClassSection offering = offeringRepository.findById(request.getClassSectionId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
-        ClassroomSession targetSession = resolveTargetSession(request);
-        ConflictCheckRequest conflictRequest = buildConflictRequest(request, offering, targetSession);
+        ClassSchedule targetClassSchedule = resolveTargetSession(request);
+        ConflictCheckRequest conflictRequest = buildConflictRequest(request, offering, targetClassSchedule);
         return conflictService.check(conflictRequest);
     }
 
@@ -84,13 +83,13 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         User requester = accessHelper.requireUser(requesterEmail);
         accessHelper.assertTeacher(requester);
 
-        ClassroomOffering offering = offeringRepository.findById(request.getClassroomOfferingId())
+        ClassSection offering = offeringRepository.findById(request.getClassSectionId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
-        ClassroomSession targetSession = resolveTargetSession(request);
-        validateChangeRequest(request, targetSession);
+        ClassSchedule targetClassSchedule = resolveTargetSession(request);
+        validateChangeRequest(request, targetClassSchedule);
 
         if (request.getTargetSessionId() != null) {
-            changeRequestRepository.findByTargetSessionIdAndRequestTypeAndStatus(
+            changeRequestRepository.findByTargetClassScheduleIdAndRequestTypeAndStatus(
                     request.getTargetSessionId(),
                     request.getRequestType(),
                     ClassroomChangeRequestStatus.PENDING
@@ -99,8 +98,8 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             });
         }
 
-        String oldValuesJson = buildOldValuesJson(request.getRequestType(), offering, targetSession);
-        ConflictCheckRequest conflictRequest = buildConflictRequest(request, offering, targetSession);
+        String oldValuesJson = buildOldValuesJson(request.getRequestType(), offering, targetClassSchedule);
+        ConflictCheckRequest conflictRequest = buildConflictRequest(request, offering, targetClassSchedule);
         // Block submission when there is a real schedule conflict (teacher/room/learner).
         // Nhân viên đào tạo vẫn có thể xử lý xung đột theo quyền vận hành khi duyệt.
         conflictService.assertNoBlockingConflict(conflictRequest);
@@ -108,9 +107,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         ClassroomChangeRequest changeRequest = ClassroomChangeRequest.builder()
                 .requestType(request.getRequestType())
                 .requester(requester)
-                .requesterRole(requester.getRole())
-                .classroomOffering(offering)
-                .targetSession(targetSession)
+                .requesterRole(requester.getPrimaryRoleCode())
+                .classSection(offering)
+                .targetClassSchedule(targetClassSchedule)
                 .oldValuesJson(oldValuesJson)
                 .newValuesJson(request.getNewValuesJson())
                 .reason(request.getReason())
@@ -167,7 +166,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         if (!normalizedKeyword.isBlank()) {
             String pattern = "%" + normalizedKeyword + "%";
             specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
-                    criteriaBuilder.like(criteriaBuilder.lower(root.join("classroomOffering").get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.join("classSection").get("title")), pattern),
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("reason")), pattern)
             ));
         }
@@ -208,9 +207,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
         scheduleLockService.lockDates(java.util.Arrays.asList(
                 conflictRequest.getSessionDate(),
-                changeRequest.getTargetSession() == null
+                changeRequest.getTargetClassSchedule() == null
                         ? conflictRequest.getSessionDate()
-                        : changeRequest.getTargetSession().getSessionDate()
+                        : changeRequest.getTargetClassSchedule().getSessionDate()
         ));
 
         boolean overrideConflict = request != null && Boolean.TRUE.equals(request.getOverrideConflict());
@@ -298,7 +297,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         }
     }
 
-    private ClassroomSession resolveTargetSession(CreateChangeRequestRequest request) {
+    private ClassSchedule resolveTargetSession(CreateChangeRequestRequest request) {
         if (request.getTargetSessionId() == null) {
             return null;
         }
@@ -306,11 +305,11 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học mục tiêu."));
     }
 
-    private String buildOldValuesJson(ClassroomChangeRequestType type, ClassroomOffering offering, ClassroomSession session) {
+    private String buildOldValuesJson(ClassroomChangeRequestType type, ClassSection offering, ClassSchedule session) {
         try {
             Map<String, Object> values = switch (type) {
-                case RESCHEDULE_SESSION, CANCEL_SESSION, CHANGE_ROOM, CHANGE_TEACHER, UPDATE_LARK_LINK -> sessionValues(session);
-                case TRANSFER_STUDENT, TRANSFER_CLASS -> Map.of("classroomOfferingId", offering.getId());
+                case RESCHEDULE_SESSION, CANCEL_SESSION, CHANGE_ROOM, CHANGE_TEACHER, RECREATE_GOOGLE_MEET -> sessionValues(session);
+                case TRANSFER_STUDENT, TRANSFER_CLASS -> Map.of("classSectionId", offering.getId());
                 case CREATE_MAKEUP_SESSION -> sessionValues(session);
             };
             return objectMapper.writeValueAsString(values);
@@ -319,7 +318,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         }
     }
 
-    private Map<String, Object> sessionValues(ClassroomSession session) {
+    private Map<String, Object> sessionValues(ClassSchedule session) {
         if (session == null) {
             return Map.of();
         }
@@ -331,15 +330,14 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         values.put("endTime", session.getEndTime() == null ? null : session.getEndTime().toString());
         values.put("teacherId", session.getTeacher() == null ? null : session.getTeacher().getId());
         values.put("roomId", session.getRoom() == null ? null : session.getRoom().getId());
-        values.put("larkMeetingUrl", session.getLarkMeetingUrl());
         values.put("status", session.getStatus() == null ? null : session.getStatus().name());
         return values;
     }
 
-    private ConflictCheckRequest buildConflictRequest(CreateChangeRequestRequest request, ClassroomOffering offering, ClassroomSession session) {
+    private ConflictCheckRequest buildConflictRequest(CreateChangeRequestRequest request, ClassSection offering, ClassSchedule session) {
         boolean makeup = request.getRequestType() == ClassroomChangeRequestType.CREATE_MAKEUP_SESSION;
         ConflictCheckRequest.ConflictCheckRequestBuilder builder = ConflictCheckRequest.builder()
-                .classroomOfferingId(offering.getId())
+                .classSectionId(offering.getId())
                 .requestType(request.getRequestType())
                 // A completed or cancelled source session is valid context for a makeup request.
                 // Only the proposed makeup schedule should participate in conflict detection.
@@ -375,18 +373,17 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         }
         if (newValues.containsKey("roomId") && newValues.get("roomId") != null) {
             builder.roomId(Long.valueOf(String.valueOf(newValues.get("roomId"))));
-        } else if (makeup && offering.getDefaultRoom() != null) {
+        } else if (makeup && offering.getRoom() != null) {
             // Khớp createSession: roomId null → dùng phòng mặc định của lớp.
-            builder.roomId(offering.getDefaultRoom().getId());
+            builder.roomId(offering.getRoom().getId());
         }
-        if (newValues.containsKey("targetClassroomOfferingId") && newValues.get("targetClassroomOfferingId") != null) {
-            builder.targetClassroomOfferingId(Long.valueOf(String.valueOf(newValues.get("targetClassroomOfferingId"))));
+        if (newValues.containsKey("targetClassSectionId") && newValues.get("targetClassSectionId") != null) {
+            builder.targetClassSectionId(Long.valueOf(String.valueOf(newValues.get("targetClassSectionId"))));
         }
         if (newValues.containsKey("studentId") && newValues.get("studentId") != null) {
             builder.learnerIds(List.of(Long.valueOf(String.valueOf(newValues.get("studentId")))));
         }
         if (newValues.containsKey("larkMeetingUrl")) {
-            builder.larkMeetingUrl(String.valueOf(newValues.get("larkMeetingUrl")));
         }
 
         return builder.build();
@@ -395,12 +392,12 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     private ConflictCheckRequest buildConflictRequestFromEntity(ClassroomChangeRequest changeRequest) {
         CreateChangeRequestRequest request = CreateChangeRequestRequest.builder()
                 .requestType(changeRequest.getRequestType())
-                .classroomOfferingId(changeRequest.getClassroomOffering().getId())
-                .targetSessionId(changeRequest.getTargetSession() == null ? null : changeRequest.getTargetSession().getId())
+                .classSectionId(changeRequest.getClassSection().getId())
+                .targetSessionId(changeRequest.getTargetClassSchedule() == null ? null : changeRequest.getTargetClassSchedule().getId())
                 .newValuesJson(changeRequest.getNewValuesJson())
                 .reason(changeRequest.getReason())
                 .build();
-        return buildConflictRequest(request, changeRequest.getClassroomOffering(), changeRequest.getTargetSession());
+        return buildConflictRequest(request, changeRequest.getClassSection(), changeRequest.getTargetClassSchedule());
     }
 
     private void applyChangeRequest(ClassroomChangeRequest changeRequest) {
@@ -409,7 +406,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
     private void applyChangeRequest(ClassroomChangeRequest changeRequest, boolean overrideConflict) {
         Map<String, Object> newValues = parseJsonMap(changeRequest.getNewValuesJson());
-        ClassroomSession session = changeRequest.getTargetSession();
+        ClassSchedule session = changeRequest.getTargetClassSchedule();
 
         switch (changeRequest.getRequestType()) {
             case RESCHEDULE_SESSION -> {
@@ -449,7 +446,6 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                     throw new RuntimeException("Thiếu buổi học mục tiêu.");
                 }
                 session.setStatus(ClassroomSessionStatus.CANCELLED);
-                session.setLocked(true);
                 sessionRepository.save(session);
             }
             case CREATE_MAKEUP_SESSION -> {
@@ -459,47 +455,45 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                         .endTime(LocalTime.parse(String.valueOf(newValues.get("endTime"))))
                         .teacherId(newValues.get("teacherId") == null ? null : Long.valueOf(String.valueOf(newValues.get("teacherId"))))
                         .roomId(newValues.get("roomId") == null ? null : Long.valueOf(String.valueOf(newValues.get("roomId"))))
-                        .status(ClassroomSessionStatus.MAKEUP)
+                        .status(ClassroomSessionStatus.SCHEDULED)
                         .build();
                 offeringService.createSession(
-                        changeRequest.getClassroomOffering().getId(),
+                        changeRequest.getClassSection().getId(),
                         sessionRequest,
                         !overrideConflict
                 );
             }
             case TRANSFER_STUDENT -> offeringService.transferStudent(
-                    changeRequest.getClassroomOffering().getId(),
+                    changeRequest.getClassSection().getId(),
                     TransferStudentRequest.builder()
                             .studentId(Long.valueOf(String.valueOf(newValues.get("studentId"))))
-                            .targetClassroomOfferingId(Long.valueOf(String.valueOf(newValues.get("targetClassroomOfferingId"))))
+                            .targetClassSectionId(Long.valueOf(String.valueOf(newValues.get("targetClassSectionId"))))
                             .note(changeRequest.getReason())
                             .build()
             );
-            case UPDATE_LARK_LINK -> {
+            case RECREATE_GOOGLE_MEET -> {
                 if (session == null) {
                     throw new RuntimeException("Thiếu buổi học mục tiêu.");
                 }
-                offeringService.updateSessionLarkLink(session.getId(), UpdateLarkLinkRequest.builder()
-                        .larkMeetingUrl(String.valueOf(newValues.get("larkMeetingUrl")))
-                        .build());
+                offeringService.syncVirtualSessionMeeting(session.getId(), changeRequest.getRequester() != null ? changeRequest.getRequester().getEmail() : "system@englishlab.edu.vn");
             }
             case TRANSFER_CLASS -> {
-                ClassroomOffering sourceOffering = changeRequest.getClassroomOffering();
-                Long targetOfferingId = Long.valueOf(String.valueOf(newValues.get("targetClassroomOfferingId")));
-                List<ClassroomEnrollment> activeEnrollments = enrollmentRepository
-                        .findByClassroomOfferingIdAndRegistrationStatusIn(
+                ClassSection sourceOffering = changeRequest.getClassSection();
+                Long targetOfferingId = Long.valueOf(String.valueOf(newValues.get("targetClassSectionId")));
+                List<ClassEnrollment> activeEnrollments = enrollmentRepository
+                        .findByClassSectionIdAndRegistrationStatusIn(
                                 sourceOffering.getId(),
                                 ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT
                         );
                 if (activeEnrollments.isEmpty()) {
                     throw new RuntimeException("Lớp nguồn không có học viên để chuyển.");
                 }
-                for (ClassroomEnrollment enrollment : activeEnrollments) {
+                for (ClassEnrollment enrollment : activeEnrollments) {
                     offeringService.transferStudent(
                             sourceOffering.getId(),
                             TransferStudentRequest.builder()
                                     .studentId(enrollment.getStudent().getId())
-                                    .targetClassroomOfferingId(targetOfferingId)
+                                    .targetClassSectionId(targetOfferingId)
                                     .note(changeRequest.getReason())
                                     .build()
                     );
@@ -520,7 +514,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         }
     }
 
-    private void validateChangeRequest(CreateChangeRequestRequest request, ClassroomSession session) {
+    private void validateChangeRequest(CreateChangeRequestRequest request, ClassSchedule session) {
         if (request.getRequestType() == ClassroomChangeRequestType.CANCEL_SESSION) {
             throw new RuntimeException("Loại yêu cầu hủy buổi học không còn được hỗ trợ.");
         }

@@ -6,6 +6,8 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,12 +27,12 @@ public class ClassroomQuiz {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
-    private ClassroomSession session;
+    private ClassSchedule session;
 
     @Column(nullable = false, length = 200)
     private String title;
@@ -52,7 +54,8 @@ public class ClassroomQuiz {
     @Column(name = "due_at")
     private LocalDateTime dueAt;
 
-    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "questions_jsonb", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
     private List<ClassroomQuizQuestion> questions = new ArrayList<>();
 

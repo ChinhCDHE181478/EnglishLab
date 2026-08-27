@@ -53,9 +53,9 @@ const initialClassroomForm = {
   duration: '',
   studyMode: '',
   primaryTeacherId: '',
-  defaultRoomId: '',
+  roomId: '',
   locationNote: '',
-  defaultLarkMeetingUrl: '',
+  googleMeetUrl: '',
   shortDescription: '',
   description: '',
   syllabusSummary: '',
@@ -121,7 +121,7 @@ export default function StaffClassroomsPage() {
     const opts = [{ label: 'Tất cả chương trình', value: 'ALL' }];
     for (const item of classrooms) {
       const id = item.trainingProgramId;
-      const title = item.trainingProgramTitle || item.curriculumProgramTitle;
+      const title = item.trainingProgramTitle || item.instructorLedCourseTitle;
       if (id && title && !seen.has(id)) {
         seen.add(id);
         opts.push({ label: title, value: String(id) });
@@ -139,7 +139,7 @@ export default function StaffClassroomsPage() {
         item.title,
         item.slug,
         item.trainingProgramTitle,
-        item.curriculumProgramTitle,
+        item.instructorLedCourseTitle,
         item.primaryTeacherName,
         item.deliveryModeLabel,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(search));
@@ -165,7 +165,7 @@ export default function StaffClassroomsPage() {
       const next = { ...current, [field]: value };
       if (field === 'deliveryMode') {
         next.studyMode = value === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm';
-        next.defaultRoomId = '';
+        next.roomId = '';
       }
       if (field === 'trainingProgramId') {
         const program = trainingPrograms.find((item) => String(item.id) === String(value));
@@ -202,13 +202,13 @@ export default function StaffClassroomsPage() {
     ...classroomForm,
     maxCapacity: Number(classroomForm.maxCapacity || 0),
     trainingProgramId: classroomForm.trainingProgramId ? Number(classroomForm.trainingProgramId) : null,
-    curriculumProgramId: null,
+    instructorLedCourseId: null,
     primaryTeacherId: classroomForm.primaryTeacherId ? Number(classroomForm.primaryTeacherId) : null,
-    defaultRoomId: classroomForm.deliveryMode === 'OFFLINE' && classroomForm.defaultRoomId ? Number(classroomForm.defaultRoomId) : null,
+    roomId: classroomForm.deliveryMode === 'OFFLINE' && classroomForm.roomId ? Number(classroomForm.roomId) : null,
     price: classroomForm.price ? Number(classroomForm.price) : 0,
     salePrice: classroomForm.salePrice ? Number(classroomForm.salePrice) : null,
     offlineAddress: null,
-    defaultLarkMeetingUrl: '',
+    googleMeetUrl: '',
   });
 
   const saveClassroom = async (event) => {
@@ -287,8 +287,8 @@ export default function StaffClassroomsPage() {
                   <tr className="transition hover:bg-[#fffafb]" key={item.id}>
                     <td className="px-5 py-4"><p className="max-w-64 font-extrabold text-[#2b2828]">{item.title}</p><p className="mt-1 text-xs text-[#8b706e]">{item.slug || item.primaryTeacherName || 'Chưa phân công giáo viên'}</p></td>
                     <td className="px-5 py-4">{formatDeliveryMode(item.deliveryMode, item.deliveryModeLabel)}</td>
-                    <td className="px-5 py-4 text-center font-bold">{item.enrolledCount ?? 0}/{item.maxCapacity ?? '-'}</td>
-                    <td className="px-5 py-4 text-[#584140]">{item.trainingProgramTitle || item.curriculumProgramTitle || 'Chưa gắn'}</td>
+                    <td className="px-5 py-4 text-center font-bold text-[#2b2828]">{item.enrolledCount ?? 0}</td>
+                    <td className="px-5 py-4 text-[#584140]">{item.trainingProgramTitle || item.instructorLedCourseTitle || 'Chưa gắn'}</td>
                     <td className="px-5 py-4">{formatClassroomDate(item.startDate)}</td>
                     <td className="px-5 py-4 font-bold">{formatClassroomPrice(item.salePrice ?? item.price ?? 0)}</td>
                     <td className="whitespace-nowrap px-5 py-4"><StatusBadge status={item.classroomStatus} /></td>
@@ -331,7 +331,7 @@ function ClassroomFormFields({ form, onChange, roomOptions, trainingProgramOptio
       <Field label="Sĩ số tối đa"><input className={inputClass} min="1" onChange={(event) => onChange('maxCapacity', event.target.value)} required type="number" value={form.maxCapacity} /></Field>
       <Field label="Ngày khai giảng"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('startDate', value)} required value={form.startDate} /></Field>
       <Field label="Ngày kết thúc dự kiến"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('endDate', value)} value={form.endDate} /></Field>
-      {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng học"><BrandedSelect onChange={(event) => onChange('defaultRoomId', event.target.value)} options={roomOptions} value={form.defaultRoomId} /></Field> : null}
+      {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng học"><BrandedSelect onChange={(event) => onChange('roomId', event.target.value)} options={roomOptions} value={form.roomId} /></Field> : null}
       <Field label="Trạng thái"><BrandedSelect onChange={(event) => onChange('classroomStatus', event.target.value)} options={statusOptions} value={form.classroomStatus} /></Field>
       <Field label="Học phí"><input className={inputClass} min="0" onChange={(event) => onChange('price', event.target.value)} type="number" value={form.price} /></Field>
       <Field label="Giá ưu đãi"><input className={inputClass} min="0" onChange={(event) => onChange('salePrice', event.target.value)} type="number" value={form.salePrice} /></Field>
@@ -359,7 +359,7 @@ function mapClassroomToForm(item) {
     entryLevel: item.entryLevel || 'IELTS Foundation',
     targetScore: item.targetScore || '',
     targetOutcome: item.targetOutcome || '',
-    maxCapacity: String(item.maxCapacity ?? 18),
+    maxCapacity: String(item.capacity ?? item.maxCapacity ?? 18),
     startDate: item.startDate || '',
     endDate: item.endDate || '',
     price: item.price == null ? '' : String(item.price),
@@ -367,7 +367,7 @@ function mapClassroomToForm(item) {
     duration: item.duration || '',
     studyMode: item.studyMode || '',
     primaryTeacherId: item.primaryTeacherId ? String(item.primaryTeacherId) : '',
-    defaultRoomId: item.roomId ? String(item.roomId) : '',
+    roomId: item.roomId ? String(item.roomId) : '',
     locationNote: item.locationNote || '',
     shortDescription: item.shortDescription || '',
     description: item.description || '',

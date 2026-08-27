@@ -21,7 +21,7 @@ import {
   ClassroomErrorState,
   ClassroomLoadingState,
   ClassroomEmptyState,
-  LarkJoinButton,
+  GoogleMeetJoinButton,
   DetailDrawer,
   ClassroomTypeBadge,
   StatusBadge,
@@ -31,7 +31,7 @@ import {
   formatClassroomDate,
   formatClassroomTime,
   getClassroomSessionTitle,
-  openLarkMeeting,
+  openGoogleMeet,
 } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_SCHEDULE_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
@@ -119,8 +119,8 @@ const getEffectiveStatus = (session) => {
 
 /** Join Meet when a link exists and the session is not past/cancelled. */
 const canJoinGoogleMeet = (session) => {
-  if (!session || session.deliveryMode !== 'VIRTUAL') return false;
-  if (!session.larkMeetingUrl) return false;
+  if (!session || session.effectiveDeliveryMode !== 'VIRTUAL') return false;
+  if (!session.googleMeetUrl) return false;
   const status = getEffectiveStatus(session);
   return status !== 'COMPLETED' && status !== 'CANCELLED';
 };
@@ -145,11 +145,11 @@ export default function MySchedulePage() {
   const [error, setError] = useState('');
   const [partialWarning, setPartialWarning] = useState('');
   const [selectedSession, setSelectedSession] = useState(null);
-  const [larkMessage, setLarkMessage] = useState('');
+  const [meetMessage, setMeetMessage] = useState('');
   const isAuthenticated = Boolean(hasAccessToken() && getStoredUser());
 
   const selectSession = (session) => {
-    setLarkMessage('');
+    setMeetMessage('');
     setSelectedSession(session);
   };
 
@@ -374,7 +374,7 @@ export default function MySchedulePage() {
                                 className={`border-r border-[#eeeeed] p-1.5 last:border-r-0 ${isToday ? 'bg-[#fff8f8]' : ''}`}
                               >
                                 {cellSessions.map((s) => (
-                                  <SessionGridCard key={s.id} session={s} onClick={() => selectSession(s)} onLark={setLarkMessage} />
+                                  <SessionGridCard key={s.id} session={s} onClick={() => selectSession(s)} onMeet={setMeetMessage} />
                                 ))}
                               </div>
                             );
@@ -401,7 +401,7 @@ export default function MySchedulePage() {
                             </h3>
                           </div>
                           {items.map((session) => (
-                            <SessionListRow key={session.id} session={session} onClick={() => selectSession(session)} onLark={setLarkMessage} />
+                            <SessionListRow key={session.id} session={session} onClick={() => selectSession(session)} onMeet={setMeetMessage} />
                           ))}
                         </div>
                       ))
@@ -414,10 +414,10 @@ export default function MySchedulePage() {
                         actionTo="/opening-schedule"
                       />
                     )}
-                    {larkMessage && (
+                    {meetMessage && (
                       <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-3 text-xs text-rose-800 flex items-start gap-2">
                         <AlertCircle className="h-4 w-4 flex-shrink-0 text-rose-600" />
-                        {larkMessage}
+                        {meetMessage}
                       </div>
                     )}
                   </div>
@@ -438,7 +438,7 @@ export default function MySchedulePage() {
                   {/* Today's sessions */}
                   <div className="px-5 py-4">
                     {todaySessions.length ? (
-                      <TodayTimeline sessions={todaySessions} onSelect={selectSession} onLark={setLarkMessage} />
+                      <TodayTimeline sessions={todaySessions} onSelect={selectSession} onMeet={setMeetMessage} />
                     ) : (
                       <div className="flex flex-col items-center justify-center py-10 text-center">
                         <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#fff3f4] text-[#730014]">
@@ -474,7 +474,7 @@ export default function MySchedulePage() {
       <DetailDrawer
         isOpen={Boolean(selectedSession)}
         onClose={() => {
-          setLarkMessage('');
+          setMeetMessage('');
           setSelectedSession(null);
         }}
         title="Chi tiết buổi học"
@@ -482,8 +482,8 @@ export default function MySchedulePage() {
         {selectedSession && (
           <SessionDetailContent
             session={selectedSession}
-            larkMessage={larkMessage}
-            onLark={setLarkMessage}
+            meetMessage={meetMessage}
+            onMeet={setMeetMessage}
             onSessionUpdate={(updatedSession) => {
               setSelectedSession((current) => ({ ...current, ...updatedSession }));
               setSessions((current) => current.map((item) => (
@@ -508,15 +508,15 @@ function LegendDot({ color, label }) {
   );
 }
 
-function SessionGridCard({ session, onClick, onLark }) {
+function SessionGridCard({ session, onClick, onMeet }) {
   const style = getSessionStyle(session);
   const isLive = getEffectiveStatus(session) === 'IN_PROGRESS';
-  const isVirtual = session.deliveryMode === 'VIRTUAL';
+  const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL';
 
-  const handleLark = (e) => {
+  const handleMeet = (e) => {
     e.stopPropagation();
-    const result = openLarkMeeting(session.larkMeetingUrl);
-    if (!result.ok) onLark(result.message);
+    const result = openGoogleMeet(session.googleMeetUrl);
+    if (!result.ok) onMeet(result.message);
   };
 
   return (
@@ -549,7 +549,7 @@ function SessionGridCard({ session, onClick, onLark }) {
       {isLive && (
         <button
           className="mt-1.5 w-full rounded-lg bg-[#b81d2e] py-1 text-[9px] font-extrabold text-white hover:bg-[#4b0009] transition active:scale-95"
-          onClick={isVirtual && session.larkMeetingUrl ? handleLark : onClick}
+          onClick={isVirtual && session.googleMeetUrl ? handleMeet : onClick}
           type="button"
         >
           Vào học
@@ -559,11 +559,11 @@ function SessionGridCard({ session, onClick, onLark }) {
   );
 }
 
-function SessionListRow({ session, onClick, onLark }) {
+function SessionListRow({ session, onClick, onMeet }) {
   const style = getSessionStyle(session);
   const isLive = getEffectiveStatus(session) === 'IN_PROGRESS';
-  const isVirtual = session.deliveryMode === 'VIRTUAL';
-  const isLarkJoinable = canJoinGoogleMeet(session);
+  const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL';
+  const isMeetJoinable = canJoinGoogleMeet(session);
 
   return (
     <div className={`flex flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center ${
@@ -583,7 +583,7 @@ function SessionListRow({ session, onClick, onLark }) {
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusBadge status={session.status} />
-          <ClassroomTypeBadge mode={session.deliveryMode} />
+          <ClassroomTypeBadge mode={session.effectiveDeliveryMode} />
         </div>
         <h4 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828] line-clamp-1">{session.classroomTitle}</h4>
         <p className="flex flex-wrap items-center gap-3 text-[10px] text-[#8b706e]">
@@ -600,8 +600,8 @@ function SessionListRow({ session, onClick, onLark }) {
 
       {/* Actions */}
       <div className="flex flex-shrink-0 flex-wrap gap-1.5">
-        {isLarkJoinable && (
-          <LarkJoinButton className="!px-3 !py-1.5 !text-[10px]" onBlocked={onLark} url={session.larkMeetingUrl} />
+        {isMeetJoinable && (
+          <GoogleMeetJoinButton className="!px-3 !py-1.5 !text-[10px]" onBlocked={onMeet} url={session.googleMeetUrl} />
         )}
         {session.recordingUrl && (
           <a className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-extrabold text-[#584140] hover:bg-gray-50"
@@ -621,7 +621,7 @@ function SessionListRow({ session, onClick, onLark }) {
   );
 }
 
-function TodayTimeline({ sessions, onSelect, onLark }) {
+function TodayTimeline({ sessions, onSelect, onMeet }) {
   const now = new Date();
   const nowDecimal = now.getHours() + now.getMinutes() / 60;
 
@@ -664,7 +664,7 @@ function TodayTimeline({ sessions, onSelect, onLark }) {
                     <span className="text-[10px] font-extrabold text-[#b81d2e]">Đang học</span>
                   </div>
                   <h4 className="mt-1 font-['Manrope'] text-sm font-extrabold text-[#4b0009]">{session.classroomTitle}</h4>
-                  {session.larkMeetingUrl && (
+                  {session.googleMeetUrl && (
                     <div className="mt-3 flex items-center justify-between rounded-xl bg-white/80 px-3 py-2">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-[#584140]">
                         <Video className="h-3.5 w-3.5 text-sky-600" /> Google Meet
@@ -673,8 +673,8 @@ function TodayTimeline({ sessions, onSelect, onLark }) {
                         className="rounded-lg bg-[#b81d2e] px-3 py-1 text-[10px] font-extrabold text-white transition hover:bg-[#4b0009] active:scale-95"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const r = openLarkMeeting(session.larkMeetingUrl);
-                          if (!r.ok) onLark(r.message);
+                          const r = openGoogleMeet(session.googleMeetUrl);
+                          if (!r.ok) onMeet(r.message);
                         }}
                         type="button"
                       >
@@ -711,8 +711,8 @@ function TodayTimeline({ sessions, onSelect, onLark }) {
   );
 }
 
-function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate }) {
-  const isVirtual = session.deliveryMode === 'VIRTUAL';
+function SessionDetailContent({ session, meetMessage, onMeet, onSessionUpdate }) {
+  const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL';
   const canJoinMeet = canJoinGoogleMeet(session);
   const isPastSession = ['COMPLETED', 'CANCELLED'].includes(getEffectiveStatus(session));
   const [joining, setJoining] = useState(false);
@@ -722,25 +722,25 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
 
     const popup = window.open('about:blank', '_blank');
     setJoining(true);
-    onLark('');
+    onMeet('');
     try {
       const updatedSession = await classroomApi.joinVirtualSession(session.classroomId, session.id);
       onSessionUpdate?.(updatedSession);
-      if (!updatedSession?.larkMeetingUrl) {
+      if (!updatedSession?.googleMeetUrl) {
         popup?.close();
-        onLark('Chưa thể lấy liên kết Google Meet.');
+        onMeet('Chưa thể lấy liên kết Google Meet.');
         return;
       }
       if (popup) {
         popup.opener = null;
-        popup.location.href = updatedSession.larkMeetingUrl;
+        popup.location.href = updatedSession.googleMeetUrl;
       } else {
-        const result = openLarkMeeting(updatedSession.larkMeetingUrl);
-        if (!result.ok) onLark(result.message);
+        const result = openGoogleMeet(updatedSession.googleMeetUrl);
+        if (!result.ok) onMeet(result.message);
       }
     } catch (error) {
       popup?.close();
-      onLark(getClassroomErrorMessage(error, 'Không thể tham gia phòng Google Meet.'));
+      onMeet(getClassroomErrorMessage(error, 'Không thể tham gia phòng Google Meet.'));
     } finally {
       setJoining(false);
     }
@@ -755,7 +755,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
           {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
         </h3>
         <div className="flex flex-wrap gap-2">
-          <ClassroomTypeBadge mode={session.deliveryMode} />
+          <ClassroomTypeBadge mode={session.effectiveDeliveryMode} />
           <StatusBadge status={session.status} />
         </div>
       </div>
@@ -811,7 +811,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
               Hiện chưa có link Google Meet cho buổi học này.
             </p>
           )}
-          {larkMessage && <p className="text-xs font-semibold text-rose-700">{larkMessage}</p>}
+          {meetMessage && <p className="text-xs font-semibold text-rose-700">{meetMessage}</p>}
         </div>
       )}
 

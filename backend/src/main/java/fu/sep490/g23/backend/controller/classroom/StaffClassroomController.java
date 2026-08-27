@@ -21,20 +21,21 @@ import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.response.classroom.AvailableRoomOptionResponse;
 import fu.sep490.g23.backend.dto.response.classroom.AvailableTeacherOptionResponse;
 import fu.sep490.g23.backend.dto.response.classroom.TuitionProofResponse;
-import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sep490.g23.backend.dto.response.classroom.InstructorLedCourseResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
+import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomContentService;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleAvailabilityService;
 import fu.sep490.g23.backend.service.classroom.TuitionProofService;
-import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.service.classroom.InstructorLedCourseCatalogService;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -58,26 +59,29 @@ import java.time.LocalTime;
 @RequestMapping("/api/staff/classrooms")
 public class StaffClassroomController {
 
-    private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomOfferingService classSectionService;
     private final TuitionProofService tuitionProofService;
-    private final TrainingProgramService trainingProgramService;
+    private final InstructorLedCourseCatalogService instructorLedCourseCatalogService;
+    private final InstructorLedCourseManagementService instructorLedCourseManagementService;
     private final UserRepository userRepository;
-    private final ClassroomRoomRepository roomRepository;
+    private final RoomRepository roomRepository;
     private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
     private final ClassroomContentService classroomContentService;
 
     public StaffClassroomController(
-            ClassroomOfferingService classroomOfferingService,
+            ClassroomOfferingService classSectionService,
             TuitionProofService tuitionProofService,
-            TrainingProgramService trainingProgramService,
+            InstructorLedCourseCatalogService instructorLedCourseCatalogService,
+            InstructorLedCourseManagementService instructorLedCourseManagementService,
             UserRepository userRepository,
-            ClassroomRoomRepository roomRepository,
+            RoomRepository roomRepository,
             ClassroomScheduleAvailabilityService scheduleAvailabilityService,
             ClassroomContentService classroomContentService
     ) {
-        this.classroomOfferingService = classroomOfferingService;
+        this.classSectionService = classSectionService;
         this.tuitionProofService = tuitionProofService;
-        this.trainingProgramService = trainingProgramService;
+        this.instructorLedCourseCatalogService = instructorLedCourseCatalogService;
+        this.instructorLedCourseManagementService = instructorLedCourseManagementService;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
         this.scheduleAvailabilityService = scheduleAvailabilityService;
@@ -86,7 +90,7 @@ public class StaffClassroomController {
 
     @GetMapping
     public ResponseEntity<List<ClassroomOfferingResponse>> listOfferings() {
-        return ResponseEntity.ok(classroomOfferingService.getStaffOfferings());
+        return ResponseEntity.ok(classSectionService.getStaffOfferings());
     }
 
     @GetMapping("/{id}/announcements")
@@ -105,7 +109,7 @@ public class StaffClassroomController {
 
     @GetMapping("/teachers")
     public ResponseEntity<List<ClassroomPickerOptionResponse>> listTeachers() {
-        List<ClassroomPickerOptionResponse> options = userRepository.findDistinctByRoles_CodeIn(Set.of(RoleEnum.TEACHER))
+        List<ClassroomPickerOptionResponse> options = userRepository.findDistinctByRoles_CodeIn(Set.of(RoleCodes.TEACHER))
                 .stream()
                 .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .map(user -> ClassroomPickerOptionResponse.builder()
@@ -121,7 +125,7 @@ public class StaffClassroomController {
     public ResponseEntity<List<ClassroomPickerOptionResponse>> listRooms() {
         List<ClassroomPickerOptionResponse> options = roomRepository.findByActiveTrue()
                 .stream()
-                .sorted(Comparator.comparing(ClassroomRoom::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .sorted(Comparator.comparing(Room::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .map(room -> ClassroomPickerOptionResponse.builder()
                         .id(room.getId())
                         .label(room.getCapacity() == null ? room.getName() : room.getName() + " - " + room.getCapacity() + " chỗ")
@@ -163,15 +167,22 @@ public class StaffClassroomController {
     }
 
     @GetMapping("/training-programs")
-    public ResponseEntity<List<TrainingProgramResponse>> listPublishedTrainingPrograms(
+    public ResponseEntity<List<InstructorLedCourseResponse>> listPublishedTrainingPrograms(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
-        return ResponseEntity.ok(trainingProgramService.listPublishedPrograms(deliveryMode));
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms(deliveryMode));
+    }
+
+    @GetMapping("/training-programs/{id}")
+    public ResponseEntity<fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse> getPublishedTrainingProgram(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> getOffering(@PathVariable Long id) {
-        return ResponseEntity.ok(classroomOfferingService.getStaffOffering(id));
+        return ResponseEntity.ok(classSectionService.getStaffOffering(id));
     }
 
     @PutMapping("/{id}")
@@ -180,7 +191,7 @@ public class StaffClassroomController {
             @Valid @RequestBody CreateClassroomOfferingRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.updateOffering(id, request, authentication.getName()));
     }
 
     @PostMapping("/{id}/close")
@@ -188,12 +199,12 @@ public class StaffClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.closeOffering(id, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.closeOffering(id, authentication.getName()));
     }
 
     @GetMapping("/{id}/sessions")
     public ResponseEntity<List<ClassroomSessionResponse>> listSessions(@PathVariable Long id) {
-        return ResponseEntity.ok(classroomOfferingService.getSessions(id));
+        return ResponseEntity.ok(classSectionService.getSessions(id));
     }
 
     @PostMapping("/{id}/sessions")
@@ -201,18 +212,18 @@ public class StaffClassroomController {
             @PathVariable Long id,
             @Valid @RequestBody CreateClassroomSessionRequest request
     ) {
-        return ResponseEntity.ok(classroomOfferingService.createSession(id, request));
+        return ResponseEntity.ok(classSectionService.createSession(id, request));
     }
 
     @PostMapping({
             "/sessions/{sessionId}/sync-google-meet",
-            "/sessions/{sessionId}/sync-lark-meeting"
+            "/sessions/{sessionId}/sync-google-meet"
     })
     public ResponseEntity<ClassroomSessionResponse> syncVirtualSessionMeeting(
             @PathVariable Long sessionId,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.syncVirtualSessionMeeting(
+        return ResponseEntity.ok(classSectionService.syncVirtualSessionMeeting(
                 sessionId,
                 authentication.getName()
         ));
@@ -223,7 +234,7 @@ public class StaffClassroomController {
             @PathVariable Long sessionId,
             @Valid @RequestBody CreateClassroomSessionRequest request
     ) {
-        return ResponseEntity.ok(classroomOfferingService.updateSession(sessionId, request));
+        return ResponseEntity.ok(classSectionService.updateSession(sessionId, request));
     }
 
     @PostMapping("/{id}/enroll")
@@ -231,12 +242,12 @@ public class StaffClassroomController {
             @PathVariable Long id,
             @Valid @RequestBody EnrollStudentRequest request
     ) {
-        return ResponseEntity.ok(classroomOfferingService.enrollStudent(id, request));
+        return ResponseEntity.ok(classSectionService.enrollStudent(id, request));
     }
 
     @PostMapping("/{id}/students/{studentId}/remove")
     public ResponseEntity<Void> removeStudent(@PathVariable Long id, @PathVariable Long studentId) {
-        classroomOfferingService.removeStudent(id, studentId);
+        classSectionService.removeStudent(id, studentId);
         return ResponseEntity.noContent().build();
     }
 
@@ -245,7 +256,7 @@ public class StaffClassroomController {
             @PathVariable Long id,
             @Valid @RequestBody TransferStudentRequest request
     ) {
-        return ResponseEntity.ok(classroomOfferingService.transferStudent(id, request));
+        return ResponseEntity.ok(classSectionService.transferStudent(id, request));
     }
 
     @PostMapping("/{id}/teachers/{teacherId}/assign")
@@ -254,7 +265,7 @@ public class StaffClassroomController {
             @PathVariable Long teacherId,
             @RequestParam(defaultValue = "PRIMARY") ClassroomTeacherRole role
     ) {
-        return ResponseEntity.ok(classroomOfferingService.assignTeacher(id, teacherId, role));
+        return ResponseEntity.ok(classSectionService.assignTeacher(id, teacherId, role));
     }
 
     @PostMapping("/{id}/teachers/{oldTeacherId}/replace/{newTeacherId}")
@@ -263,19 +274,19 @@ public class StaffClassroomController {
             @PathVariable Long oldTeacherId,
             @PathVariable Long newTeacherId
     ) {
-        return ResponseEntity.ok(classroomOfferingService.replaceTeacher(id, oldTeacherId, newTeacherId));
+        return ResponseEntity.ok(classSectionService.replaceTeacher(id, oldTeacherId, newTeacherId));
     }
 
     @GetMapping("/registrations")
     public ResponseEntity<List<ClassroomEnrollmentResponse>> listRegistrations(
             @RequestParam(required = false) ClassroomRegistrationStatus status,
-            @RequestParam(required = false) Long classroomOfferingId,
+            @RequestParam(required = false) Long classSectionId,
             @RequestParam(required = false) Boolean needsAction,
             @RequestParam(required = false) Boolean settlementPending
     ) {
-        return ResponseEntity.ok(classroomOfferingService.listRegistrations(
+        return ResponseEntity.ok(classSectionService.listRegistrations(
                 status,
-                classroomOfferingId,
+                classSectionId,
                 needsAction,
                 settlementPending
         ));
@@ -283,7 +294,7 @@ public class StaffClassroomController {
 
     @GetMapping("/enrollments/{enrollmentId}")
     public ResponseEntity<ClassroomEnrollmentResponse> getEnrollment(@PathVariable Long enrollmentId) {
-        return ResponseEntity.ok(classroomOfferingService.getRegistration(enrollmentId));
+        return ResponseEntity.ok(classSectionService.getRegistration(enrollmentId));
     }
 
     @PostMapping("/enrollments/{enrollmentId}/confirm")
@@ -291,7 +302,7 @@ public class StaffClassroomController {
             @PathVariable Long enrollmentId,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.confirmRegistration(enrollmentId, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.confirmRegistration(enrollmentId, authentication.getName()));
     }
 
     @PostMapping("/enrollments/{enrollmentId}/reject")
@@ -300,7 +311,7 @@ public class StaffClassroomController {
             @RequestBody(required = false) RejectRegistrationRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.rejectRegistration(enrollmentId, request, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.rejectRegistration(enrollmentId, request, authentication.getName()));
     }
 
     @PostMapping("/enrollments/{enrollmentId}/tuition")
@@ -309,12 +320,12 @@ public class StaffClassroomController {
             @Valid @RequestBody RecordTuitionPaymentRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.recordTuitionPayment(enrollmentId, request, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.recordTuitionPayment(enrollmentId, request, authentication.getName()));
     }
 
     @GetMapping("/enrollments/{enrollmentId}/tuition-history")
     public ResponseEntity<List<ClassroomTuitionPaymentResponse>> getTuitionHistory(@PathVariable Long enrollmentId) {
-        return ResponseEntity.ok(classroomOfferingService.getTuitionHistory(enrollmentId));
+        return ResponseEntity.ok(classSectionService.getTuitionHistory(enrollmentId));
     }
 
     @GetMapping("/tuition-proofs/pending")
@@ -354,7 +365,7 @@ public class StaffClassroomController {
             @RequestBody(required = false) AssignToClassRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.assignToClass(enrollmentId, request, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.assignToClass(enrollmentId, request, authentication.getName()));
     }
 
     @PostMapping("/enrollments/{enrollmentId}/transfer")
@@ -363,16 +374,16 @@ public class StaffClassroomController {
             @Valid @RequestBody TransferEnrollmentRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.transferEnrollment(enrollmentId, request, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.transferEnrollment(enrollmentId, request, authentication.getName()));
     }
 
     @PostMapping("/enrollments/{enrollmentId}/conflict-check")
     public ResponseEntity<ConflictCheckResultResponse> checkEnrollmentConflict(@PathVariable Long enrollmentId) {
-        return ResponseEntity.ok(classroomOfferingService.checkEnrollmentConflict(enrollmentId));
+        return ResponseEntity.ok(classSectionService.checkEnrollmentConflict(enrollmentId));
     }
 
     @PostMapping("/conflict-check")
     public ResponseEntity<ConflictCheckResultResponse> checkConflict(@Valid @RequestBody ConflictCheckRequest request) {
-        return ResponseEntity.ok(classroomOfferingService.checkConflict(request));
+        return ResponseEntity.ok(classSectionService.checkConflict(request));
     }
 }

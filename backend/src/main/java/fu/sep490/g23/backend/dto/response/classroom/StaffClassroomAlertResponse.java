@@ -8,12 +8,12 @@ import java.time.LocalDate;
 @Data
 @Builder
 public class StaffClassroomAlertResponse {
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private String title;
     private String deliveryMode;
     private LocalDate startDate;
     private Integer enrolledCount;
-    private Integer maxCapacity;
+    private Integer capacity;
     private Integer sessionCount;
     private String alertType;
     private String alertMessage;

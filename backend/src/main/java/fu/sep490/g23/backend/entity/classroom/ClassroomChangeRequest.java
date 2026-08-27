@@ -4,7 +4,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus
 
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,17 +34,16 @@ public class ClassroomChangeRequest {
     @JoinColumn(name = "requester_id", nullable = false)
     private User requester;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "requester_role", nullable = false, length = 30)
-    private RoleEnum requesterRole;
+    private String requesterRole;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "target_session_id")
-    private ClassroomSession targetSession;
+    private ClassSchedule targetClassSchedule;
 
     @Column(name = "old_values_json", columnDefinition = "text")
     private String oldValuesJson;

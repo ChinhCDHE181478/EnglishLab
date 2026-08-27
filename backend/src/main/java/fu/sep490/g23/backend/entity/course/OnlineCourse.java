@@ -1,11 +1,33 @@
 package fu.sep490.g23.backend.entity.course;
+
+import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import fu.sep490.g23.backend.entity.course.enums.*;
-
-import jakarta.persistence.*;
-import lombok.*;
-
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,14 +38,11 @@ import java.util.List;
 @Builder
 @Entity
 @Table(name = "online_courses")
+@EntityListeners(AuditingEntityListener.class)
 public class OnlineCourse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "package_id", nullable = false, unique = true)
-    private LearningPackage learningPackage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
@@ -62,13 +81,92 @@ public class OnlineCourse {
     @Builder.Default
     private Integer totalHours = 0;
 
-    @OneToMany(mappedBy = "onlineCourse", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("displayOrder ASC, id ASC")
-    @Builder.Default
-    private List<CourseModule> modules = new ArrayList<>();
+    @Column(nullable = false, length = 180)
+    private String title;
 
-    public void addModule(CourseModule module) {
+    @Column(nullable = false, unique = true, length = 220)
+    private String slug;
+
+    @Column(name = "short_description", length = 500)
+    private String shortDescription;
+
+    @Column(columnDefinition = "text")
+    private String description;
+
+    @Column(name = "target_score", length = 80)
+    private String targetScore;
+
+    @Column(name = "duration_label", length = 80)
+    private String duration;
+
+    @Column(name = "study_mode", length = 120)
+    private String studyMode;
+
+    @Column(precision = 12, scale = 2, nullable = false)
+    @Builder.Default
+    private BigDecimal price = BigDecimal.ZERO;
+
+    @Column(name = "sale_price", precision = 12, scale = 2)
+    private BigDecimal salePrice;
+
+    @Column(name = "thumbnail_url", length = 700)
+    private String thumbnailUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    @Builder.Default
+    private PackageStatus status = PackageStatus.DRAFT;
+
+    @Column(name = "display_order", nullable = false)
+    @Builder.Default
+    private Integer displayOrder = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean featured = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_id")
+    private User createdBy;
+
+    @Column(name = "review_note", columnDefinition = "text")
+    private String reviewNote;
+
+    @Column(name = "submitted_for_review_at")
+    private LocalDateTime submittedForReviewAt;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
+
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    /** Convenience listing via legacy course FK; canonical ownership is OnlineCourseVersion.modules. */
+    @OneToMany(mappedBy = "onlineCourse")
+    @OrderBy("sequenceNumber ASC, id ASC")
+    @Builder.Default
+    private List<OnlineCourseModule> modules = new ArrayList<>();
+
+    public void addModule(OnlineCourseModule module) {
         modules.add(module);
         module.setOnlineCourse(this);
     }
+
+    public boolean isPublished() {
+        return PackageStatus.PUBLISHED.equals(status) && !deleted;
+    }
+
 }

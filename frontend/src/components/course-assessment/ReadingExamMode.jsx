@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
 import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
+import { exitExamFullscreenWhenDetached } from '../../utils/examFullscreen';
 import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const formatTimer = (seconds) => {

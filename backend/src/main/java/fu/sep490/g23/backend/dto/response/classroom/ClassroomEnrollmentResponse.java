@@ -18,7 +18,7 @@ public class ClassroomEnrollmentResponse {
     private Long studentId;
     private String studentName;
     private String studentEmail;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private String classroomTitle;
     private ClassroomDeliveryMode deliveryMode;
     private String deliveryModeLabel;

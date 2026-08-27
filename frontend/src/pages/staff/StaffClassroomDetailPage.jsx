@@ -48,7 +48,7 @@ const initialSessionForm = {
   deliveryMode: 'OFFLINE',
   teacherId: '',
   roomId: '',
-  curriculumSessionPlanId: '',
+  courseLessonId: '',
   sessionContent: 'Buổi học',
   note: '',
 };
@@ -141,19 +141,15 @@ export default function StaffClassroomDetailPage() {
     roomId: classroom?.roomId ? String(classroom.roomId) : '',
   });
 
-  const sessionPlanOptions = useMemo(() => [
-    {
-      label: editingSessionId ? 'Không thay đổi liên kết giáo trình' : 'Buổi đặc biệt / chưa gắn giáo trình',
-      value: '',
-    },
-    ...(classroom?.curriculumProgram?.units || []).flatMap((unit) => (
-      (unit.sessionPlans || []).map((plan) => ({
-        label: `Buổi ${plan.sessionNumber} — ${plan.title}`,
+  const courseLessonOptions = useMemo(() => [
+    { label: 'Chọn bài học', value: '' },
+    ...(classroom?.instructorLedCourse?.units || []).flatMap((unit) => (
+      (unit.lessons || []).map((plan) => ({
+        label: `Bài ${plan.sessionNumber}: ${plan.title}`,
         value: String(plan.id),
-        description: unit.displayOrder != null ? `Unit ${unit.displayOrder}: ${unit.title}` : unit.title,
       }))
     )),
-  ], [classroom?.curriculumProgram?.units, editingSessionId]);
+  ], [classroom?.instructorLedCourse?.units]);
 
   const assignedStudents = useMemo(
     () => (classroom?.enrollments || []).filter((item) => item.registrationStatus === 'ASSIGNED'),
@@ -290,21 +286,23 @@ export default function StaffClassroomDetailPage() {
     }
     setCreatingSession(true);
     try {
+      const { deliveryMode, ...sessionValues } = sessionForm;
       const payload = {
-        ...sessionForm,
+        ...sessionValues,
+        deliveryModeOverride: deliveryMode === classroom.deliveryMode ? null : deliveryMode,
         teacherId: sessionForm.teacherId ? Number(sessionForm.teacherId) : null,
         roomId: sessionForm.roomId ? Number(sessionForm.roomId) : null,
-        curriculumSessionPlanId: sessionForm.curriculumSessionPlanId ? Number(sessionForm.curriculumSessionPlanId) : null,
+        courseLessonId: sessionForm.courseLessonId ? Number(sessionForm.courseLessonId) : null,
       };
       const created = editingSessionId
         ? await classroomApi.updateStaffClassroomSession(editingSessionId, payload)
         : await classroomApi.createStaffClassroomSession(id, payload);
-      const meetingPending = created.deliveryMode === 'VIRTUAL'
-        && !['SYNCED', 'MANUAL'].includes(created.larkSyncStatus);
+      const meetingPending = created.effectiveDeliveryMode === 'VIRTUAL'
+        && created.googleMeetStatus !== 'READY';
       if (meetingPending) {
         setActionTone('warning');
         setActionMessage(
-          `${editingSessionId ? 'Đã cập nhật' : 'Đã thêm'} buổi học nhưng chưa tạo được Google Meet. ${created.larkSyncError || 'Hệ thống sẽ tự thử lại theo lịch.'}`,
+          `${editingSessionId ? 'Đã cập nhật' : 'Đã thêm'} buổi học nhưng chưa tạo được Google Meet. ${created.googleMeetSyncError || 'Hệ thống sẽ tự thử lại theo lịch.'}`,
         );
       } else {
         setActionTone('success');
@@ -334,12 +332,12 @@ export default function StaffClassroomDetailPage() {
     setActionMessage('');
     try {
       const updated = await classroomApi.syncStaffVirtualSessionMeeting(session.id);
-      if (updated.larkSyncStatus === 'SYNCED') {
+      if (updated.googleMeetStatus === 'READY') {
         setActionTone('success');
         setActionMessage(`Đã tạo phòng Google Meet tự động cho buổi học ngày ${formatClassroomDate(updated.sessionDate)}.`);
       } else {
         setActionTone('error');
-        setActionMessage(updated.larkSyncError || 'Chưa thể đồng bộ phòng Google Meet. Vui lòng kiểm tra cấu hình tích hợp.');
+        setActionMessage(updated.googleMeetSyncError || 'Chưa thể đồng bộ phòng Google Meet. Vui lòng kiểm tra cấu hình tích hợp.');
       }
       await loadClassroom();
     } catch (err) {
@@ -421,10 +419,10 @@ export default function StaffClassroomDetailPage() {
       sessionDate: session.sessionDate || '',
       startTime: String(session.startTime || '').slice(0, 5),
       endTime: String(session.endTime || '').slice(0, 5),
-      deliveryMode: session.deliveryMode || classroom.deliveryMode || 'OFFLINE',
+      deliveryMode: session.effectiveDeliveryMode || classroom.deliveryMode || 'OFFLINE',
       teacherId: session.teacherId ? String(session.teacherId) : '',
       roomId: session.roomId ? String(session.roomId) : '',
-      curriculumSessionPlanId: session.curriculumSessionPlanId ? String(session.curriculumSessionPlanId) : '',
+      courseLessonId: session.courseLessonId ? String(session.courseLessonId) : '',
       sessionContent: session.sessionContent || 'Buổi học',
       note: session.note || '',
     });
@@ -530,13 +528,13 @@ export default function StaffClassroomDetailPage() {
           </Field>
         ) : null}
       </div>
-      {sessionPlanOptions.length > 1 ? (
-        <Field label="Buổi học trong giáo trình">
+      {courseLessonOptions.length > 1 ? (
+        <Field label="Bài học trong khóa học">
           <BrandedSelect
-            onChange={(event) => setSessionForm((current) => ({ ...current, curriculumSessionPlanId: event.target.value }))}
-            options={sessionPlanOptions}
+            onChange={(event) => setSessionForm((current) => ({ ...current, courseLessonId: event.target.value }))}
+            options={courseLessonOptions}
             searchable
-            value={sessionForm.curriculumSessionPlanId}
+            value={sessionForm.courseLessonId}
           />
         </Field>
       ) : null}
@@ -596,13 +594,13 @@ export default function StaffClassroomDetailPage() {
           <Badge>{formatDeliveryMode(classroom.deliveryMode, classroom.deliveryModeLabel)}</Badge>
           <Badge>{formatOfferingStatus(classroom.classroomStatus)}</Badge>
           <Badge>{classroom.entryLevel || 'Chưa gắn level'}</Badge>
-          <Badge>{classroom.curriculumProgramTitle || 'Chưa chọn giáo trình'}</Badge>
+          <Badge>{classroom.instructorLedCourseTitle || 'Chưa chọn giáo trình'}</Badge>
         </div>
         <h2 className="mt-3 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{classroom.title}</h2>
         <p className="mt-2 text-sm text-[#584140]">
           Khai giảng: <strong>{formatClassroomDate(classroom.startDate)}</strong>
           {' · '}
-          Sĩ số: <strong>{classroom.enrolledCount ?? 0}/{classroom.maxCapacity ?? '-'}</strong>
+          Sĩ số: <strong>{classroom.enrolledCount ?? 0} học viên</strong>
           {' · '}
           Học phí: <strong>{formatClassroomPrice(classroom.salePrice ?? classroom.price ?? 0)}</strong>
         </p>
@@ -644,7 +642,7 @@ export default function StaffClassroomDetailPage() {
               ) : null}
             </div>
           </section>
-          <CurriculumOverview curriculum={classroom.curriculumProgram} />
+          <CurriculumOverview curriculum={classroom.instructorLedCourse} />
         </>
       ) : null}
 
@@ -762,13 +760,13 @@ export default function StaffClassroomDetailPage() {
                           {getClassroomSessionUnitLabel(session) ? <p className="mt-1 text-xs text-slate-500">{getClassroomSessionUnitLabel(session)}</p> : null}
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 font-semibold text-[#584140]">{session.startTime} - {session.endTime}</td>
-                        <td className="whitespace-nowrap px-5 py-4">{formatDeliveryMode(session.deliveryMode, session.deliveryModeLabel)}</td>
+                        <td className="whitespace-nowrap px-5 py-4">{formatDeliveryMode(session.effectiveDeliveryMode, session.effectiveDeliveryModeLabel)}</td>
                         <td className="px-5 py-4">
                           <p className="font-bold text-[#0b1c30]">{session.teacherName || 'Chưa chọn giáo viên'}</p>
                           {session.teacherId && String(session.teacherId) !== String(classroom.primaryTeacherId) ? <p className="mt-1 text-xs font-extrabold text-amber-700">Dạy thay</p> : null}
                         </td>
                         <td className="px-5 py-4">
-                          {session.deliveryMode === 'VIRTUAL' ? (
+                          {session.effectiveDeliveryMode === 'VIRTUAL' ? (
                             <VirtualMeetingStatus
                               onRetry={() => handleSyncVirtualMeeting(session)}
                               session={session}
@@ -780,7 +778,7 @@ export default function StaffClassroomDetailPage() {
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 text-center"><SessionStatusBadge status={session.status} /></td>
                         <td className="px-5 py-4 text-right">
-                          {!session.locked && !['COMPLETED', 'CANCELLED'].includes(session.status) ? (
+                          {!['COMPLETED', 'CANCELLED'].includes(session.status) ? (
                             <button aria-label={`Chỉnh sửa buổi học ngày ${formatClassroomDate(session.sessionDate)}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014] hover:bg-[#fff3f4]" onClick={() => openSessionEditor(session)} type="button">
                               <Pencil className="h-3.5 w-3.5" />
                               Sửa
@@ -847,15 +845,14 @@ export default function StaffClassroomDetailPage() {
 }
 
 function VirtualMeetingStatus({ session, syncing, onRetry }) {
-  const synced = session.larkSyncStatus === 'SYNCED' && Boolean(session.larkMeetingUrl);
+  const synced = session.googleMeetStatus === 'READY' && Boolean(session.googleMeetUrl);
   const terminal = ['COMPLETED', 'CANCELLED'].includes(session.status);
   const statusLabel = {
-    DISABLED: 'Google Meet chưa được cấu hình',
+    NOT_CREATED: 'Chưa tạo phòng Google Meet',
+    CREATING: 'Đang tạo phòng Google Meet',
     FAILED: 'Tạo phòng Google Meet thất bại',
-    MANUAL: 'Liên kết Google Meet nhập thủ công',
-    PENDING: 'Đang chờ tạo phòng Google Meet',
-    SYNCED: 'Phòng Google Meet đã sẵn sàng',
-  }[session.larkSyncStatus] || 'Chưa tạo phòng Google Meet';
+    READY: 'Phòng Google Meet đã sẵn sàng',
+  }[session.googleMeetStatus] || 'Chưa tạo phòng Google Meet';
 
   if (synced) {
     return (
@@ -864,12 +861,12 @@ function VirtualMeetingStatus({ session, syncing, onRetry }) {
           <Video className="h-4 w-4 shrink-0" />
           {statusLabel}
         </p>
-        {session.larkMeetingNo ? (
-          <p className="mt-1 text-xs text-slate-500">Mã phòng: {session.larkMeetingNo}</p>
+        {session.googleMeetSpaceName ? (
+          <p className="mt-1 text-xs text-slate-500">Mã phòng: {session.googleMeetSpaceName}</p>
         ) : null}
         <a
           className="mt-1 inline-flex text-xs font-extrabold text-[#730014] underline underline-offset-2"
-          href={session.larkMeetingUrl}
+          href={session.googleMeetUrl}
           rel="noreferrer"
           target="_blank"
         >
@@ -881,12 +878,12 @@ function VirtualMeetingStatus({ session, syncing, onRetry }) {
 
   return (
     <div className="min-w-0">
-      <p className={`font-bold ${session.larkSyncStatus === 'FAILED' ? 'text-red-700' : 'text-amber-700'}`}>
+      <p className={`font-bold ${session.googleMeetStatus === 'FAILED' ? 'text-red-700' : 'text-amber-700'}`}>
         {statusLabel}
       </p>
-      {session.larkSyncError ? (
-        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500" title={session.larkSyncError}>
-          {session.larkSyncError}
+      {session.googleMeetSyncError ? (
+        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500" title={session.googleMeetSyncError}>
+          {session.googleMeetSyncError}
         </p>
       ) : null}
       {!terminal ? (
@@ -956,7 +953,7 @@ function CurriculumOverview({ curriculum }) {
   if (!curriculum) {
     return (
       <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-800">
-        Lớp này chưa được gắn giáo trình. Hãy cập nhật lớp từ trang mở lớp để chọn giáo trình theo band/target.
+        Lớp này chưa được gắn khóa học. Hãy cập nhật lớp từ trang mở lớp để chọn khóa học theo band/target.
       </section>
     );
   }
@@ -978,13 +975,13 @@ function CurriculumOverview({ curriculum }) {
     <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#8b706e]">Giáo trình đang dùng</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#8b706e]">Khóa học đang dùng</p>
           <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{curriculum.title}</h3>
           <p className="mt-1 text-sm text-[#584140]">
             {[curriculum.code, curriculum.examCategory, curriculum.targetBand ? `Band ${curriculum.targetBand}` : null, curriculum.targetScore ? `Target ${curriculum.targetScore}` : null].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <Badge>{units.length} Unit · {curriculum.totalSessions || 0} buổi</Badge>
+        <Badge>{units.length} Unit · {curriculum.totalSessions || 0} bài học</Badge>
       </div>
       {curriculum.outcomes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{curriculum.outcomes}</p> : null}
       {units.length ? (
@@ -1011,11 +1008,11 @@ function CurriculumOverview({ curriculum }) {
               {expandedUnitIds.has(unit.id) ? (
                 <div className="space-y-4 border-t border-[#f0e4e2] p-4">
                   {unit.description ? <RichTextHtml className="text-sm leading-6 text-[#584140]" value={unit.description} /> : null}
-                  {unit.sessionPlans?.length ? (
+                  {unit.lessons?.length ? (
                     <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                      {unit.sessionPlans.map((plan) => (
+                      {unit.lessons.map((plan) => (
                         <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Bài {plan.sessionNumber}</p>
                           <p className="text-sm font-bold text-[#2b2828]">{plan.title}</p>
                         </div>
                       ))}
@@ -1033,7 +1030,7 @@ function CurriculumOverview({ curriculum }) {
           ))}
         </div>
       ) : (
-        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Giáo trình này chưa có Unit.</p>
+        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Khóa học này chưa có Unit.</p>
       )}
     </section>
   );

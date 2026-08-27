@@ -1,11 +1,9 @@
 package fu.sep490.g23.backend.entity.teacher;
 
-import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.teacher.enums.GoogleMeetConnectionStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -18,21 +16,16 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "user_auxiliary_records")
+@Table(name = "teacher_google_meet_connections")
 @EntityListeners(AuditingEntityListener.class)
-@SQLRestriction("record_type = 'teacher_google_meet_connections'")
-public class TeacherGoogleMeetConnection extends DomainRecord {
-    @Override
-    protected String domainRecordType() {
-        return "teacher_google_meet_connections";
-    }
+public class TeacherGoogleMeetConnection {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
     @Column(name = "google_subject", nullable = false, length = 255)

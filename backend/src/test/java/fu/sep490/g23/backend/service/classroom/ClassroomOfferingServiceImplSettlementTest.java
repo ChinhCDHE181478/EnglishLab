@@ -3,20 +3,17 @@ package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.dto.request.classroom.ResolveTuitionSettlementRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
-import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomOfferingServiceImpl;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
@@ -42,26 +39,22 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ClassroomOfferingServiceImplSettlementTest {
 
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomSessionRepository sessionRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassScheduleRepository sessionRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
-    @Mock private LearningPackageRepository learningPackageRepository;
-    @Mock private PackageTypeRepository packageTypeRepository;
-    @Mock private PackageEnrollmentRepository packageEnrollmentRepository;
-    @Mock private CurriculumProgramRepository curriculumProgramRepository;
-    @Mock private TrainingProgramRepository trainingProgramRepository;
+    @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
-    @Mock private ClassroomRoomRepository roomRepository;
+    @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
     @Mock private ClassroomConflictService conflictService;
     @Mock private VirtualMeetingService virtualMeetingService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
-    @Mock private LarkMeetingParticipantRepository larkParticipantRepository;
     @Mock private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     @Mock private VirtualAttendanceService virtualAttendanceService;
 
@@ -72,12 +65,11 @@ class ClassroomOfferingServiceImplSettlementTest {
     void resolveTuitionSettlement_ApprovesRefundAndWritesAuditPayment() {
         User actor = User.builder().id(30L).email("tm@example.com").fullName("TM").build();
         User student = User.builder().id(27L).email("hv@example.com").fullName("HV").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(1L).title("TOEIC A").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(12L).learningPackage(learningPackage).build();
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassSection offering = ClassSection.builder().id(12L).name("TOEIC A").build();
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .student(student)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                 .tuitionAmountDue(new BigDecimal("1000000"))
                 .tuitionAmountPaid(new BigDecimal("1500000"))
@@ -113,7 +105,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     @Test
     void resolveTuitionSettlement_RejectsWithoutNote() {
         User actor = User.builder().id(30L).email("tm@example.com").build();
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .tuitionSettlementType(TuitionSettlementType.NEED_REFUND)
                 .tuitionSettlementStatus(TuitionSettlementStatus.PENDING)
@@ -132,7 +124,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     @Test
     void resolveTuitionSettlement_RejectsDoubleResolve() {
         User actor = User.builder().id(30L).email("tm@example.com").build();
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .tuitionSettlementType(TuitionSettlementType.NEED_REFUND)
                 .tuitionSettlementStatus(TuitionSettlementStatus.RESOLVED)
@@ -150,12 +142,11 @@ class ClassroomOfferingServiceImplSettlementTest {
     void resolveTuitionSettlement_ApprovesFullRefundWhenCancelledEvenIfOverpaid() {
         User actor = User.builder().id(30L).email("tm@example.com").fullName("TM").build();
         User student = User.builder().id(27L).email("hv@example.com").fullName("HV").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(1L).title("TOEIC A").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(12L).learningPackage(learningPackage).build();
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassSection offering = ClassSection.builder().id(12L).name("TOEIC A").build();
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .student(student)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(ClassroomRegistrationStatus.CANCELLED)
                 .tuitionAmountDue(new BigDecimal("1000000"))
                 .tuitionAmountPaid(new BigDecimal("1200000"))
@@ -186,12 +177,11 @@ class ClassroomOfferingServiceImplSettlementTest {
     void resolveTuitionSettlement_RejectsRefundKeepsPaidAmount() {
         User actor = User.builder().id(30L).email("tm@example.com").fullName("TM").build();
         User student = User.builder().id(27L).email("hv@example.com").fullName("HV").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(1L).title("TOEIC A").build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(12L).learningPackage(learningPackage).build();
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassSection offering = ClassSection.builder().id(12L).name("TOEIC A").build();
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .id(99L)
                 .student(student)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .tuitionAmountDue(new BigDecimal("1000000"))
                 .tuitionAmountPaid(new BigDecimal("1500000"))
                 .tuitionSettlementType(TuitionSettlementType.NEED_REFUND)

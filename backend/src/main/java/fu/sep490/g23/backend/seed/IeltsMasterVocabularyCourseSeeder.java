@@ -7,18 +7,18 @@ import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.PackageType;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
@@ -50,11 +50,11 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
             Pattern.DOTALL
     );
 
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final ContentBankItemRepository contentBankItemRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
     @Value("${app.seed.test.enabled:false}")
@@ -71,14 +71,6 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .readValue(new ClassPathResource(SEED_PATH).getInputStream(), CourseSeed.class);
 
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
-                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
-                        .code(PackageTypeCode.ONLINE_COURSE)
-                        .name("Online Course")
-                        .description("Self-paced online learning package")
-                        .active(true)
-                        .build()));
-
         CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS.name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
                         .code(CourseCategoryCode.IELTS.name())
@@ -88,33 +80,23 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
                         .active(true)
                         .build()));
 
-        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(seed.slug())
-                .orElseGet(() -> LearningPackage.builder()
-                        .slug(seed.slug())
-                        .packageType(packageType)
-                        .build());
-
-        learningPackage.setPackageType(packageType);
-        learningPackage.setTitle(seed.title());
-        learningPackage.setShortDescription(seed.description());
-        learningPackage.setDescription(seed.description());
-        learningPackage.setTargetScore("IELTS Band 7+");
-        learningPackage.setDuration(seed.totalDurationText() == null ? "8 giờ 9 phút" : seed.totalDurationText());
-        learningPackage.setStudyMode("Tự học online theo playlist IELTS Master");
-        learningPackage.setPrice(paidPrice(seed.price()));
-        learningPackage.setThumbnailUrl(seed.thumbnail());
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setDisplayOrder(6);
-        learningPackage.setFeatured(true);
-        learningPackage.setDeleted(false);
-        LearningPackage savedPackage = learningPackageRepository.save(learningPackage);
-
-        OnlineCourse onlineCourse = onlineCourseRepository.findByLearningPackage(savedPackage)
+        OnlineCourse onlineCourse = onlineCourseRepository.findBySlug(seed.slug())
                 .orElseGet(() -> OnlineCourse.builder()
-                        .learningPackage(savedPackage)
+                        .slug(seed.slug())
                         .build());
 
-        onlineCourse.setLearningPackage(savedPackage);
+        onlineCourse.setTitle(seed.title());
+        onlineCourse.setShortDescription(seed.description());
+        onlineCourse.setDescription(seed.description());
+        onlineCourse.setTargetScore("IELTS Band 7+");
+        onlineCourse.setDuration(seed.totalDurationText() == null ? "8 giờ 9 phút" : seed.totalDurationText());
+        onlineCourse.setStudyMode("Tự học online theo playlist IELTS Master");
+        onlineCourse.setPrice(paidPrice(seed.price()));
+        onlineCourse.setThumbnailUrl(seed.thumbnail());
+        onlineCourse.setStatus(PackageStatus.PUBLISHED);
+        onlineCourse.setDisplayOrder(6);
+        onlineCourse.setFeatured(true);
+        onlineCourse.setDeleted(false);
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.ADVANCED);
         onlineCourse.setRecommendedCurrentBandMin(5.5);
@@ -126,23 +108,28 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         onlineCourse.setRecommendedNextCourseSlug("e2-ielts-practice-tests");
         onlineCourse.setTotalLessons(seed.totalLessons() == null ? countLessons(seed.modules()) : seed.totalLessons());
         onlineCourse.setTotalHours(seed.totalDurationSeconds() == null ? 8 : Math.max(1, (int) Math.ceil(seed.totalDurationSeconds() / 3600.0)));
+        OnlineCourse savedOnlineCourse = onlineCourseRepository.save(onlineCourse);
+        onlineCourse = savedOnlineCourse;
 
         for (ModuleSeed moduleSeed : seed.modules()) {
             upsertModule(onlineCourse, seed.slug(), moduleSeed);
         }
 
-        onlineCourse.getModules().sort(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
+        OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
+        draftVersion.getModules().sort(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
+        onlineCourseVersionRepository.save(draftVersion);
         onlineCourseRepository.save(onlineCourse);
         onlineCourseVersionService.refreshPublishedSnapshot(onlineCourse);
     }
 
     private void upsertModule(OnlineCourse onlineCourse, String courseSlug, ModuleSeed moduleSeed) {
-        CourseModule module = onlineCourse.getModules().stream()
+        OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
+        OnlineCourseModule module = draftVersion.getModules().stream()
                 .filter(existingModule -> existingModule.getDisplayOrder() != null && existingModule.getDisplayOrder().equals(moduleSeed.order()))
                 .findFirst()
                 .orElseGet(() -> {
-                    CourseModule newModule = new CourseModule();
-                    onlineCourse.addModule(newModule);
+                    OnlineCourseModule newModule = new OnlineCourseModule();
+                    draftVersion.addModule(newModule);
                     return newModule;
                 });
 
@@ -154,15 +141,29 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
             upsertLesson(module, courseSlug, lessonSeed);
         }
 
-        module.getLessons().sort(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+        module.getLessons().sort(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
     }
 
-    private void upsertLesson(CourseModule module, String courseSlug, LessonSeed lessonSeed) {
-        Lesson lesson = module.getLessons().stream()
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
+    }
+
+    private void upsertLesson(OnlineCourseModule module, String courseSlug, LessonSeed lessonSeed) {
+        OnlineLesson lesson = module.getLessons().stream()
                 .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder().equals(lessonSeed.order()))
                 .findFirst()
                 .orElseGet(() -> {
-                    Lesson newLesson = new Lesson();
+                    OnlineLesson newLesson = new OnlineLesson();
                     module.addLesson(newLesson);
                     return newLesson;
                 });
@@ -182,7 +183,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         upsertFlashcardSetForVocabularyLesson(module, lesson);
     }
 
-    private void upsertFlashcardSetForVocabularyLesson(CourseModule module, Lesson lesson) {
+    private void upsertFlashcardSetForVocabularyLesson(OnlineCourseModule module, OnlineLesson lesson) {
         if (lesson.getTitle() == null || !lesson.getTitle().contains("Vocabulary Bank and Model Usage")) {
             return;
         }
@@ -207,11 +208,13 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         FlashcardSet savedSet = flashcardSetRepository.save(set);
 
         boolean alreadyLinked = lesson.getFlashcardRefs().stream()
-                .anyMatch(ref -> ref.getFlashcardSet() != null && savedSet.getId() != null
-                        && savedSet.getId().equals(ref.getFlashcardSet().getId()));
+                .anyMatch(ref -> ref.getContentBankItem() != null && savedSet.getId() != null
+                        && savedSet.getId().equals(ref.getContentBankItem().getId()));
         if (!alreadyLinked) {
+            ContentBankItem bankItem = contentBankItemRepository.findById(savedSet.getId())
+                    .orElseThrow(() -> new IllegalStateException("Flashcard bank item missing after save"));
             lesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
-                    .flashcardSet(savedSet)
+                    .contentBankItem(bankItem)
                     .displayOrder(lesson.getFlashcardRefs().size() + 1)
                     .build());
         }

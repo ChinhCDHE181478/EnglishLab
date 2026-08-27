@@ -5,6 +5,8 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.MockTestAttemptRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.service.assessment.impl.MockTestServiceImpl;
+import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
+import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,12 +22,20 @@ class MockTestServiceImplTest {
     @Mock private AssessmentBankItemRepository assessmentBankRepository;
     @Mock private MockTestAttemptRepository attemptRepository;
     @Mock private UserRepository userRepository;
+    @Mock private ContentBankIdResolver contentBankIdResolver;
+    @Mock private ContentBankLinkSync contentBankLinkSync;
 
     private MockTestServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new MockTestServiceImpl(assessmentBankRepository, attemptRepository, userRepository);
+        service = new MockTestServiceImpl(
+                assessmentBankRepository,
+                attemptRepository,
+                userRepository,
+                contentBankIdResolver,
+                contentBankLinkSync
+        );
     }
 
     @Test

@@ -2,6 +2,7 @@ package fu.sep490.g23.backend.entity.course;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +13,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -25,6 +28,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.EntityListeners;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -99,4 +104,20 @@ public class OnlineCourseVersion {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "onlineCourseVersion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sequenceNumber ASC, id ASC")
+    @Builder.Default
+    private List<OnlineCourseModule> modules = new ArrayList<>();
+
+    public void addModule(OnlineCourseModule module) {
+        modules.add(module);
+        module.setOnlineCourseVersion(this);
+        if (onlineCourse != null) {
+            module.setOnlineCourse(onlineCourse);
+            if (onlineCourse.getModules() != null && !onlineCourse.getModules().contains(module)) {
+                onlineCourse.getModules().add(module);
+            }
+        }
+    }
 }

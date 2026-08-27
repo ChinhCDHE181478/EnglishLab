@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.dto.response.UserResponse;
 import fu.sep490.g23.backend.entity.enums.AuthTokenType;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
@@ -80,7 +80,7 @@ public class FacebookAuthServiceImpl implements FacebookAuthService {
                     .passwordSet(false)
                     .emailVerified(true)
                     .build();
-            userRoleService.assignRole(user, RoleEnum.LEARNER);
+            userRoleService.assignRole(user, RoleCodes.LEARNER);
             user = userRepository.save(user);
         }
 
@@ -117,8 +117,8 @@ public class FacebookAuthServiceImpl implements FacebookAuthService {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
-                .roles(user.getRoleCodes().stream().map(Enum::name).sorted().toList())
+                .role(user.getPrimaryRoleCode())
+                .roles(user.getRoleCodes().stream().sorted().toList())
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())

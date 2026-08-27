@@ -1,31 +1,24 @@
 package fu.sep490.g23.backend.service.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 
 /**
- * Provider-neutral gateway for virtual classroom meeting rooms.
- *
- * The persistence model still uses legacy lark_* columns for backward
- * compatibility. Provider-specific code must stay behind this interface.
+ * Manages the single Google Meet room owned by a virtual class section.
  */
 public interface VirtualMeetingService {
 
-    String getPlatformName();
-
     boolean isEnabled();
 
-    LarkMeetingStatus resolveStatus(String meetingUrl);
+    boolean isGoogleMeetUrl(String meetingUrl);
 
-    boolean isJoinable(String meetingUrl, LarkMeetingStatus status);
+    boolean isJoinable(ClassSection classSection);
 
-    boolean isLegacyOrPlaceholderUrl(String meetingUrl);
+    void syncMeeting(ClassSchedule session);
 
-    void syncMeeting(ClassroomSession session);
+    void inviteInternalAttendee(ClassSchedule session, String email);
 
-    void inviteInternalAttendee(ClassroomSession session, String email);
+    void deleteMeeting(ClassSchedule session);
 
-    void deleteMeeting(ClassroomSession session);
-
-    VirtualMeetingRecordingInfo getRecording(ClassroomSession session);
+    VirtualMeetingRecordingInfo getRecording(ClassSchedule session);
 }

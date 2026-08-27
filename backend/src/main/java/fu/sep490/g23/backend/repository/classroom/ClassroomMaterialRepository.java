@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ClassroomMaterialRepository extends JpaRepository<ClassroomMaterial, Long> {
-    List<ClassroomMaterial> findByClassroomOfferingIdOrderByCreatedAtDesc(Long classroomOfferingId);
-    boolean existsByClassroomOfferingIdAndCenterMaterialIdAndSessionIsNull(Long classroomOfferingId, Long centerMaterialId);
-    boolean existsByClassroomOfferingIdAndCenterMaterialIdAndSessionId(Long classroomOfferingId, Long centerMaterialId, Long sessionId);
+    List<ClassroomMaterial> findByClassSectionIdOrderByCreatedAtDesc(Long classSectionId);
+    boolean existsByClassSectionIdAndCenterMaterialIdAndSessionIsNull(Long classSectionId, Long centerMaterialId);
+    boolean existsByClassSectionIdAndCenterMaterialIdAndSessionId(Long classSectionId, Long centerMaterialId, Long sessionId);
     Optional<ClassroomMaterial> findFirstByFileUrlEndingWith(String suffix);
     boolean existsByFileUrlEndingWith(String suffix);
 }

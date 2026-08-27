@@ -2,19 +2,17 @@ package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageType;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,10 +24,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CenterSheetCourseCatalog {
 
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
     record CourseSpec(
@@ -119,20 +116,12 @@ public class CenterSheetCourseCatalog {
     }
 
     void seed(User contentManager) {
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
-                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
-                        .code(PackageTypeCode.ONLINE_COURSE)
-                        .name("Online Course")
-                        .description("Self-paced online learning package")
-                        .active(true)
-                        .build()));
-
         for (CourseSpec spec : specs()) {
-            upsertCourse(spec, packageType, contentManager);
+            upsertCourse(spec, contentManager);
         }
     }
 
-    private void upsertCourse(CourseSpec spec, PackageType packageType, User contentManager) {
+    private void upsertCourse(CourseSpec spec, User contentManager) {
         CourseCategory category = courseCategoryRepository.findByCode(spec.category().name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
                         .code(spec.category().name())
@@ -142,30 +131,23 @@ public class CenterSheetCourseCatalog {
                         .active(true)
                         .build()));
 
-        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(spec.slug())
-                .orElseGet(() -> LearningPackage.builder()
+        OnlineCourse course = onlineCourseRepository.findBySlug(spec.slug())
+                .orElseGet(() -> OnlineCourse.builder()
                         .slug(spec.slug())
-                        .packageType(packageType)
                         .build());
-        learningPackage.setPackageType(packageType);
-        learningPackage.setTitle(spec.title());
-        learningPackage.setShortDescription(spec.description());
-        learningPackage.setDescription(spec.description());
-        learningPackage.setTargetScore(spec.category() == CourseCategoryCode.TOEIC ? "TOEIC 650+" : "IELTS " + spec.targetBand());
-        learningPackage.setDuration("8 giờ học");
-        learningPackage.setStudyMode("Tự học online, 4 module");
-        learningPackage.setPrice(BigDecimal.valueOf(1_490_000));
-        learningPackage.setThumbnailUrl(spec.thumbnailUrl());
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setDisplayOrder(spec.displayOrder());
-        learningPackage.setFeatured(spec.pathOrder() <= 2);
-        learningPackage.setDeleted(false);
-        learningPackage.setCreatedBy(contentManager);
-        LearningPackage savedPackage = learningPackageRepository.save(learningPackage);
-
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(savedPackage)
-                .orElseGet(() -> OnlineCourse.builder().learningPackage(savedPackage).build());
-        course.setLearningPackage(savedPackage);
+        course.setTitle(spec.title());
+        course.setShortDescription(spec.description());
+        course.setDescription(spec.description());
+        course.setTargetScore(spec.category() == CourseCategoryCode.TOEIC ? "TOEIC 650+" : "IELTS " + spec.targetBand());
+        course.setDuration("8 giờ học");
+        course.setStudyMode("Tự học online, 4 module");
+        course.setPrice(BigDecimal.valueOf(1_490_000));
+        course.setThumbnailUrl(spec.thumbnailUrl());
+        course.setStatus(PackageStatus.PUBLISHED);
+        course.setDisplayOrder(spec.displayOrder());
+        course.setFeatured(spec.pathOrder() <= 2);
+        course.setDeleted(false);
+        course.setCreatedBy(contentManager);
         course.setCategory(category);
         course.setLevel(spec.level());
         course.setRecommendedCurrentBandMin(spec.minBand());
@@ -175,41 +157,71 @@ public class CenterSheetCourseCatalog {
         course.setLearningPathOrder(spec.pathOrder());
         course.setRecommendedNextCourseSlug(spec.nextSlug());
         course.setTargetOutcome(spec.description());
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        course = savedCourse;
+        OnlineCourseVersion draftVersion = null;
         if (course.getModules() == null || course.getModules().isEmpty()) {
+            draftVersion = ensureDraftVersion(course);
             int order = 1;
             for (String moduleTitle : spec.moduleTitles()) {
-                CourseModule module = CourseModule.builder()
+                OnlineCourseModule module = OnlineCourseModule.builder()
                         .title(moduleTitle)
                         .description("Module " + order + ": " + moduleTitle)
-                        .displayOrder(order)
+                        .sequenceNumber(order)
                         .build();
-                module.addLesson(article(moduleTitle + " - Orientation", 1, true,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Orientation", 1, true,
                         "# " + moduleTitle + "\n\nMục tiêu: nắm chiến lược, từ vựng chủ đề và lỗi thường gặp.\n\n## Trước khi học\nViết 4 câu trả lời nhanh về chủ đề này, không dùng từ điển.\n\n## Cách học\n1. Đọc overview.\n2. Học collocation.\n3. Làm bài tập output."));
-                module.addLesson(article(moduleTitle + " - Strategy", 2, true,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Strategy", 2, true,
                         "# Strategy\n\n- Đọc câu hỏi trước.\n- Gạch keyword.\n- Đoán loại thông tin (số, tên, danh từ).\n- Kiểm tra spelling.\n\nVí dụ: If the note says *opening time*, listen for a clock time such as 18:00."));
-                module.addLesson(article(moduleTitle + " - Vocabulary", 3, false,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Vocabulary", 3, false,
                         "# Vocabulary bank\n\n1. **evening class** — lớp ca tối\n2. **intake** — đợt tuyển sinh\n3. **placement test** — bài xếp lớp\n4. **collocation** — cụm từ đi kèm\n5. **band descriptor** — mô tả band điểm\n\nViết 1 đoạn 80 từ dùng ít nhất 4 cụm trên."));
-                module.addLesson(article(moduleTitle + " - Practice", 4, false,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Practice", 4, false,
                         "# Practice\n\n1. Trả lời 3 câu Speaking trong 45 giây.\n2. Viết 1 đoạn Writing 120 từ.\n3. Ghi 5 lỗi bản thân hay mắc và cách sửa."));
-                course.addModule(module);
+                draftVersion.addModule(module);
                 order++;
             }
+            onlineCourseVersionRepository.save(draftVersion);
         }
-        int lessonCount = course.getModules().stream().mapToInt(module -> module.getLessons().size()).sum();
+        List<OnlineCourseModule> modulesForTotals = draftVersion != null
+                ? draftVersion.getModules()
+                : course.getModules();
+        int lessonCount = modulesForTotals.stream().mapToInt(module -> module.getLessons().size()).sum();
         course.setTotalLessons(lessonCount);
         course.setTotalHours(Math.max(4, lessonCount / 4));
         onlineCourseRepository.save(course);
         onlineCourseVersionService.refreshPublishedSnapshot(course);
     }
 
-    private Lesson article(String title, int order, boolean preview, String content) {
-        return Lesson.builder()
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
+    }
+
+    private OnlineLesson article(
+            String courseSlug,
+            int moduleOrder,
+            String title,
+            int lessonOrder,
+            boolean preview,
+            String content
+    ) {
+        return OnlineLesson.builder()
+                .stableLessonKey("%s-m%d-l%d".formatted(courseSlug, moduleOrder, lessonOrder))
                 .title(title)
                 .description(title)
                 .contentType("ARTICLE")
                 .contentText(content)
                 .durationMinutes(12)
-                .displayOrder(order)
+                .sequenceNumber(lessonOrder)
                 .preview(preview)
                 .build();
     }

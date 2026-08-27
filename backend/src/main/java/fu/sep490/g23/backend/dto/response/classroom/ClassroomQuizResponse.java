@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 public class ClassroomQuizResponse {
     private Long id;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private Long sessionId;
     private String title;
     private String description;
