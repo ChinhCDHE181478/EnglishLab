@@ -1082,9 +1082,15 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             CenterMaterialLibraryItem material = ensureSheetMaterial(exam, unitNumber, title, description, skill, creator);
             ExerciseBankItem exercise = ensureSheetExercise(exam, unitNumber, title, description, skill, creator);
             FlashcardSet flashcards = ensureSheetFlashcards(exam, unitNumber, title, skill);
-            instructorLedCourseManagementService.attachMaterial(unit.getId(), sheetRef(material.getId(), "Học liệu chuẩn của unit"));
-            instructorLedCourseManagementService.attachExercise(unit.getId(), sheetRef(exercise.getId(), "Bài luyện tập trong giáo trình"));
-            instructorLedCourseManagementService.attachFlashcard(unit.getId(), sheetRef(flashcards.getId(), "Từ vựng ôn trước và sau buổi học"));
+            try {
+                instructorLedCourseManagementService.attachMaterial(unit.getId(), sheetRef(material.getId(), "Học liệu chuẩn của unit"));
+            } catch (Exception ignored) {}
+            try {
+                instructorLedCourseManagementService.attachExercise(unit.getId(), sheetRef(exercise.getId(), "Bài luyện tập trong giáo trình"));
+            } catch (Exception ignored) {}
+            try {
+                instructorLedCourseManagementService.attachFlashcard(unit.getId(), sheetRef(flashcards.getId(), "Từ vựng ôn trước và sau buổi học"));
+            } catch (Exception ignored) {}
         }
     }
 
