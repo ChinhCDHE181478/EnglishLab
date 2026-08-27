@@ -24,7 +24,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -57,22 +59,26 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     private final PaymentOrderRepository paymentOrderRepository;
     private final PaymentOrderItemRepository paymentOrderItemRepository;
     private final LearningPathRepository learningPathRepository;
+    private final PlatformTransactionManager transactionManager;
 
     @Value("${app.seed.sheet.enabled:false}")
     private boolean seedEnabled;
 
     @Override
     public void run(String... args) {
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
         List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
         for (String email : targetEmails) {
-            User learner = userRepository.findByEmail(email).orElse(null);
-            if (learner != null) {
-                try {
-                    seedPaymentHistoryForLearner(learner);
-                } catch (Exception ex) {
-                    log.warn("Không thể seed payment history cho {}: {}", email, ex.getMessage());
+            tx.executeWithoutResult(status -> {
+                User learner = userRepository.findByEmail(email).orElse(null);
+                if (learner != null) {
+                    try {
+                        seedPaymentHistoryForLearner(learner);
+                    } catch (Exception ex) {
+                        log.warn("Không thể seed payment history cho {}: {}", email, ex.getMessage(), ex);
+                    }
                 }
-            }
+            });
         }
     }
 
