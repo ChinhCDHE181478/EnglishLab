@@ -94,7 +94,8 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         }
     }
 
-    private void completePublishedCourse(User learner, String slug, int minAssessments) {
+    @Transactional
+    public void completePublishedCourse(User learner, String slug, int minAssessments) {
         OnlineCourse course = onlineCourseRepository.findBySlug(slug).orElse(null);
         if (course == null) {
             log.warn("Không thể hoàn thiện khóa {} cho tài khoản demo vì thiếu dữ liệu OnlineCourse.", slug);
@@ -130,10 +131,11 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                     slug, completed.getProgressPercent(), completed.getStatus());
             return;
         }
-        log.info("Đã hoàn thiện khóa {} cho {}.", course.getTitle(), LEARNER_EMAIL);
+        log.info("Đã hoàn thiện khóa {} cho {}.", course.getTitle(), learner.getEmail());
     }
 
-    private void seedVocabularyCourseLessonProgress(User learner) {
+    @Transactional
+    public void seedVocabularyCourseLessonProgress(User learner) {
         OnlineCourse course = onlineCourseRepository.findBySlug(VOCABULARY_COURSE_SLUG).orElse(null);
         if (course == null) {
             log.warn("Không thể tạo tiến độ vocabulary demo vì thiếu OnlineCourse.");

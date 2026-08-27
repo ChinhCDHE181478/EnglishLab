@@ -157,11 +157,13 @@ public class CenterSheetCourseCatalog {
         course.setLearningPathOrder(spec.pathOrder());
         course.setRecommendedNextCourseSlug(spec.nextSlug());
         course.setTargetOutcome(spec.description());
-        OnlineCourse savedCourse = onlineCourseRepository.save(course);
-        course = savedCourse;
-        OnlineCourseVersion draftVersion = null;
-        if (course.getModules() == null || course.getModules().isEmpty()) {
-            draftVersion = ensureDraftVersion(course);
+        final OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        OnlineCourseVersion targetVersion = onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(savedCourse, CourseVersionStatus.PUBLISHED)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(savedCourse))
+                .orElse(null);
+        if (targetVersion == null || targetVersion.getModules() == null || targetVersion.getModules().isEmpty()) {
+            targetVersion = ensureDraftVersion(savedCourse);
             int order = 1;
             for (String moduleTitle : spec.moduleTitles()) {
                 OnlineCourseModule module = OnlineCourseModule.builder()
@@ -177,24 +179,23 @@ public class CenterSheetCourseCatalog {
                         "# Vocabulary bank\n\n1. **evening class** — lớp ca tối\n2. **intake** — đợt tuyển sinh\n3. **placement test** — bài xếp lớp\n4. **collocation** — cụm từ đi kèm\n5. **band descriptor** — mô tả band điểm\n\nViết 1 đoạn 80 từ dùng ít nhất 4 cụm trên."));
                 module.addLesson(article(spec.slug(), order, moduleTitle + " - Practice", 4, false,
                         "# Practice\n\n1. Trả lời 3 câu Speaking trong 45 giây.\n2. Viết 1 đoạn Writing 120 từ.\n3. Ghi 5 lỗi bản thân hay mắc và cách sửa."));
-                draftVersion.addModule(module);
+                targetVersion.addModule(module);
                 order++;
             }
-            onlineCourseVersionRepository.save(draftVersion);
+            onlineCourseVersionRepository.save(targetVersion);
         }
-        List<OnlineCourseModule> modulesForTotals = draftVersion != null
-                ? draftVersion.getModules()
-                : course.getModules();
+        List<OnlineCourseModule> modulesForTotals = targetVersion.getModules() == null ? List.of() : targetVersion.getModules();
         int lessonCount = modulesForTotals.stream().mapToInt(module -> module.getLessons().size()).sum();
-        course.setTotalLessons(lessonCount);
-        course.setTotalHours(Math.max(4, lessonCount / 4));
-        onlineCourseRepository.save(course);
-        onlineCourseVersionService.refreshPublishedSnapshot(course);
+        savedCourse.setTotalLessons(lessonCount);
+        savedCourse.setTotalHours(Math.max(4, lessonCount / 4));
+        onlineCourseRepository.save(savedCourse);
+        onlineCourseVersionService.refreshPublishedSnapshot(savedCourse);
     }
 
     private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
         return onlineCourseVersionRepository
                 .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(course))
                 .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
                         .onlineCourse(course)
                         .versionNumber(1)
