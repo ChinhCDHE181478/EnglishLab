@@ -16,8 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     Optional<User> findByEmail(String email);
 
-    Optional<User> findByFacebookId(String facebookId);
-
     Boolean existsByEmail(String email);
 
     @Query("select distinct user from User user join user.roles role where role.code in :roles")
