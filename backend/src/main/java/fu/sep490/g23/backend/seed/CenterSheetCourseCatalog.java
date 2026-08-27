@@ -16,6 +16,8 @@ import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,6 +30,7 @@ public class CenterSheetCourseCatalog {
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
+    private final PlatformTransactionManager transactionManager;
 
     record CourseSpec(
             String slug,
@@ -51,59 +54,59 @@ public class CenterSheetCourseCatalog {
                 new CourseSpec(
                         "center-sheet-ielts-listening",
                         "IELTS Listening Foundations",
-                        "Khóa luyện Listening theo 4 section, form completion, map labelling và lecture notes.",
+                        "Luyện nghe IELTS từ 4.5 lên 6.5: chiến lược gạch keyword, bẫy distractors và chính tả.",
                         CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
-                        "IELTS_BAND_45_TO_65", "IELTS 4.5 to 6.5 Classroom Path", 1,
-                        "center-sheet-ielts-reading", 10, "/course-covers/ielts-listening.png",
-                        List.of("Section 1 Everyday Conversations", "Section 2 Public Talks", "Section 3 Academic Dialogue", "Section 4 Lectures")),
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 3,
+                        "center-sheet-ielts-reading", 11, "/course-covers/ielts-listening.png",
+                        List.of("Section 1 Forms and Notes", "Section 2 Maps and Plans", "Section 3 Academic Discussion", "Section 4 Lecture Monologue")),
                 new CourseSpec(
                         "center-sheet-ielts-reading",
                         "IELTS Academic Reading",
-                        "Khóa Reading Academic: matching headings, True/False/Not Given, summary completion.",
-                        CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 5.0, 6.5,
-                        "IELTS_BAND_45_TO_65", "IELTS 4.5 to 6.5 Classroom Path", 2,
-                        "center-sheet-ielts-writing", 11, "/course-covers/ielts-reading.png",
-                        List.of("Skimming and Scanning", "True False Not Given", "Matching Headings", "Summary Completion")),
+                        "Kỹ năng skim, scan, True/False/Not Given và Summary Completion cho bài thi Academic.",
+                        CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 4,
+                        "center-sheet-ielts-writing", 12, "/course-covers/ielts-reading.png",
+                        List.of("Skimming and Scanning", "True False Not Given Mastery", "Headings and Matching", "Multiple Choice and Summary")),
                 new CourseSpec(
                         "center-sheet-ielts-writing",
                         "IELTS Writing Task 1 and Task 2",
-                        "Khóa Writing: mô tả biểu đồ, luận điểm Task 2, paraphrase và cohesion.",
-                        CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.5, 7.0,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 3,
-                        "center-sheet-ielts-speaking", 12, "/course-covers/ielts-writing.png",
-                        List.of("Task 1 Charts", "Task 1 Processes", "Task 2 Opinion", "Task 2 Discussion")),
+                        "Cấu trúc bài viết chuẩn học thuật: phân tích biểu đồ Task 1 và lập luận Task 2 band 6.5+.",
+                        CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 5,
+                        "center-sheet-ielts-speaking", 13, "/course-covers/ielts-writing.png",
+                        List.of("Task 1 Trend Charts", "Task 1 Process and Maps", "Task 2 Opinion Essays", "Task 2 Discussion and Problem Solution")),
                 new CourseSpec(
                         "center-sheet-ielts-speaking",
                         "IELTS Speaking Fluency Studio",
-                        "Khóa Speaking Part 1-3, cue card, phát triển ý và collocation tự nhiên.",
-                        CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 5.0, 6.5,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 4,
-                        null, 13, "/course-covers/ielts-speaking.png",
-                        List.of("Part 1 Daily Topics", "Part 2 Cue Cards", "Part 3 Abstract Ideas", "Pronunciation and Fluency")),
+                        "Mở rộng ý tưởng Part 1, kéo dài câu Part 2 và lập luận phản biện Part 3.",
+                        CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 6,
+                        "center-sheet-toeic-lr", 14, "/course-covers/ielts-speaking.png",
+                        List.of("Part 1 Fluency and Natural Idioms", "Part 2 The 1-Minute Plan", "Part 3 Counterarguments and Examples", "Pronunciation and Linking")),
                 new CourseSpec(
                         "center-sheet-toeic-lr",
                         "TOEIC Listening and Reading 650+",
-                        "Khóa TOEIC L&R: photographs, Q&A, conversations, incomplete sentences và reading sets.",
-                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 4.0, 6.0,
-                        "TOEIC_650_PATH", "TOEIC 650+ Workplace Path", 1,
-                        "center-sheet-toeic-sw", 14, "/course-covers/toeic-lr.png",
-                        List.of("Listening Photographs", "Listening Conversations", "Reading Incomplete Sentences", "Reading Passages")),
+                        "Chiến lược xử lý nhanh part 3-4-7 và hệ thống ngữ pháp - từ vựng trọng tâm TOEIC.",
+                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 350.0, 650.0,
+                        "TOEIC_ACCELERATOR", "TOEIC Career Accelerator", 1,
+                        "center-sheet-toeic-sw", 15, "/course-covers/toeic-lr.png",
+                        List.of("Part 1 and 2 Quick Response", "Part 3 and 4 Audio Inference", "Part 5 and 6 Speed Grammar", "Part 7 Double Passage Time Saving")),
                 new CourseSpec(
                         "center-sheet-toeic-sw",
                         "TOEIC Speaking and Writing 140+",
-                        "Khóa TOEIC S&W: read aloud, describe picture, opinion essay và email writing.",
-                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 4.5, 6.0,
-                        "TOEIC_650_PATH", "TOEIC 650+ Workplace Path", 2,
-                        null, 15, "/course-covers/toeic-sw.png",
-                        List.of("Read Aloud", "Describe a Picture", "Respond to Questions", "Opinion Essay")),
+                        "Giao tiếp công sở chuẩn quốc tế: trả lời điện thoại, viết email và giải quyết than phiền.",
+                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 110.0, 160.0,
+                        "TOEIC_ACCELERATOR", "TOEIC Career Accelerator", 2,
+                        "center-sheet-communication-work", 16, "/course-covers/toeic-sw.png",
+                        List.of("Speaking Read Aloud and Describe Picture", "Speaking Respond to Questions", "Writing Business Email", "Writing Opinion Essay")),
                 new CourseSpec(
                         "center-sheet-communication-work",
                         "English Communication for Work",
-                        "Khóa giao tiếp công sở: họp, email, thuyết trình và xử lý tình huống khách hàng.",
-                        CourseCategoryCode.COMMUNICATION, CourseLevel.BEGINNER, 3.5, 5.5,
+                        "Kỹ năng thuyết trình, họp dự án, đàm phán nhẹ và viết thư công việc chuyên nghiệp.",
+                        CourseCategoryCode.COMMUNICATION, CourseLevel.INTERMEDIATE, 4.0, 6.0,
                         "COMMUNICATION_PATH", "Workplace Communication Path", 1,
-                        "center-sheet-grammar-foundation", 16, "/course-covers/communication.png",
-                        List.of("Meetings and Small Talk", "Emails and Requests", "Presentations", "Customer Situations")),
+                        "center-sheet-grammar-foundation", 10, "/course-covers/communication.png",
+                        List.of("Small Talk and Introductions", "Meetings and Opinions", "Email Etiquette", "Presentations and Pitches")),
                 new CourseSpec(
                         "center-sheet-grammar-foundation",
                         "English Grammar Foundation",
@@ -116,9 +119,12 @@ public class CenterSheetCourseCatalog {
     }
 
     void seed(User contentManager) {
-        for (CourseSpec spec : specs()) {
-            upsertCourse(spec, contentManager);
-        }
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.executeWithoutResult(status -> {
+            for (CourseSpec spec : specs()) {
+                upsertCourse(spec, contentManager);
+            }
+        });
     }
 
     private void upsertCourse(CourseSpec spec, User contentManager) {
