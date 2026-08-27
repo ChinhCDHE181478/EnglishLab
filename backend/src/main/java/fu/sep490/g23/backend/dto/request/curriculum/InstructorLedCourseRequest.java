@@ -54,9 +54,6 @@ public class InstructorLedCourseRequest {
     private String teacherGuide;
     private String interactionActivities;
 
-    @Min(0)
-    private Integer totalSessions;
-
     @Size(max = 30)
     private String status;
 

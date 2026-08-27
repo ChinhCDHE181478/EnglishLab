@@ -25,9 +25,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
     private static final Set<ClassroomSessionStatus> ACTIVE_SESSION_STATUSES = EnumSet.of(
             ClassroomSessionStatus.SCHEDULED,
             ClassroomSessionStatus.OPEN,
-            ClassroomSessionStatus.IN_PROGRESS,
-            ClassroomSessionStatus.RESCHEDULED,
-            ClassroomSessionStatus.MAKEUP
+            ClassroomSessionStatus.IN_PROGRESS
     );
 
     private static final Set<ClassroomRegistrationStatus> OCCUPIES_CLASS_SLOT = ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT;
@@ -43,7 +41,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
 
         if (request.getSessionId() != null && Boolean.TRUE.equals(request.getCheckSessionLocked())) {
             sessionRepository.findById(request.getSessionId()).ifPresent(session -> {
-                if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
+                if (session.isImmutable()) {
                     conflicts.add(item(
                             ConflictType.SESSION_LOCKED,
                             "Buổi học đã hoàn thành hoặc đã khóa nên không thể đổi lịch.",

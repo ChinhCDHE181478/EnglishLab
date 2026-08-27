@@ -59,6 +59,8 @@ public class CreateClassroomProposalRequest {
     @Size(max = 700)
     private String note;
 
+    private List<ClassroomProposalScheduleItemRequest> scheduleItems;
+
     @AssertTrue(message = "Ngày kết thúc phải từ ngày bắt đầu trở đi")
     public boolean isDateRangeValid() {
         return plannedStartDate == null || endDate == null || !endDate.isBefore(plannedStartDate);

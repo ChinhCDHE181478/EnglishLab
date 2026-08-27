@@ -195,7 +195,7 @@ export default function MyHomeworkPage() {
       const classroom = await classroomApi.getMyClassroom(item.classroomOfferingId);
       setFlashcardWorkspace({
         homework: item,
-        curriculum: classroom?.curriculumProgram,
+        curriculum: classroom?.instructorLedCourse,
       });
     } catch (err) {
       setActionMessage(getClassroomErrorMessage(err, 'Không thể tải bộ flashcard của lớp học.'));

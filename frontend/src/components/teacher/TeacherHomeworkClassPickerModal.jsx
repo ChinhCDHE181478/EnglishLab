@@ -128,7 +128,7 @@ export default function TeacherHomeworkClassPickerModal({
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#8b706e]">
                           <span className="inline-flex items-center gap-1">
                             <Users className="h-3.5 w-3.5" />
-                            {classroom.enrolledCount ?? 0}/{classroom.maxCapacity ?? '—'} học viên
+                            {classroom.enrolledCount ?? 0} học viên
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5" />

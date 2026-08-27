@@ -29,9 +29,7 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
     private static final Set<ClassroomSessionStatus> ACTIVE_SESSION_STATUSES = EnumSet.of(
             ClassroomSessionStatus.SCHEDULED,
             ClassroomSessionStatus.OPEN,
-            ClassroomSessionStatus.IN_PROGRESS,
-            ClassroomSessionStatus.RESCHEDULED,
-            ClassroomSessionStatus.MAKEUP
+            ClassroomSessionStatus.IN_PROGRESS
     );
 
     private final RoomRepository roomRepository;

@@ -59,6 +59,10 @@ public class CourseLesson {
     @Builder.Default
     private Integer sequenceNumber = 0;
 
+    @Column(name = "planned_session_count", nullable = false)
+    @Builder.Default
+    private Integer plannedSessionCount = 1;
+
     @Column(name = "estimated_duration_minutes")
     private Integer estimatedDurationMinutes;
 

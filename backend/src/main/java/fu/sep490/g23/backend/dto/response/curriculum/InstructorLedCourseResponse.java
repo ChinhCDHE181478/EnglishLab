@@ -30,6 +30,7 @@ public class InstructorLedCourseResponse {
     private String teacherGuide;
     private String interactionActivities;
     private Integer totalSessions;
+    private Integer totalLessons;
     private Integer totalUnits;
     private String status;
     private String statusLabel;

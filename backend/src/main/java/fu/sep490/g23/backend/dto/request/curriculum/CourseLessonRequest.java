@@ -11,18 +11,21 @@ import lombok.Setter;
 @Setter
 public class CourseLessonRequest {
 
-    @NotNull(message = "Số buổi không được để trống.")
-    @Min(value = 1, message = "Số buổi phải bắt đầu từ 1.")
+    @NotNull(message = "Thứ tự bài học không được để trống.")
+    @Min(value = 1, message = "Thứ tự bài học phải bắt đầu từ 1.")
     private Integer sessionNumber;
 
     @Min(value = 0, message = "Thứ tự hiển thị không được âm.")
     private Integer displayOrder;
 
-    @NotBlank(message = "Tiêu đề buổi học không được để trống.")
-    @Size(max = 220, message = "Tiêu đề buổi học không được vượt quá 220 ký tự.")
+    @Min(value = 1, message = "Số buổi dự kiến phải bắt đầu từ 1.")
+    private Integer plannedSessionCount = 1;
+
+    @NotBlank(message = "Tiêu đề bài học không được để trống.")
+    @Size(max = 220, message = "Tiêu đề bài học không được vượt quá 220 ký tự.")
     private String title;
 
-    @Size(max = 4000, message = "Mô tả buổi học không được vượt quá 4.000 ký tự.")
+    @Size(max = 4000, message = "Mô tả bài học không được vượt quá 4.000 ký tự.")
     private String description;
 
     @Size(max = 4000, message = "Mục tiêu học tập không được vượt quá 4.000 ký tự.")

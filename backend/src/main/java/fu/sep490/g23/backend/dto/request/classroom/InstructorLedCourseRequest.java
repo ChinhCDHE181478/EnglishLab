@@ -11,7 +11,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class TrainingProgramRequest {
+public class InstructorLedCourseRequest {
     @NotBlank(message = "Tên khóa học theo lịch không được để trống")
     @Size(max = 180)
     private String title;
@@ -26,8 +26,6 @@ public class TrainingProgramRequest {
     @NotNull(message = "Hình thức khóa học không được để trống")
     private ClassroomDeliveryMode deliveryType;
 
-    @NotNull(message = "Chương trình đào tạo không được để trống")
-    @JsonAlias("curriculumProgramId")
     private Long instructorLedCourseId;
 
     @Size(max = 500)
@@ -44,10 +42,8 @@ public class TrainingProgramRequest {
     @Size(max = 120)
     private String studyMode;
 
-    @Size(max = 700)
     private String thumbnailUrl;
-
     private PackageStatus status;
-
+    private Integer displayOrder;
     private Boolean featured;
 }

@@ -46,7 +46,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
     @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
-    @Mock private InstructorLedCourseRepository curriculumProgramRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
     @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
@@ -55,7 +55,6 @@ class ClassroomOfferingServiceImplSettlementTest {
     @Mock private VirtualMeetingService virtualMeetingService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
-    @Mock private LarkMeetingParticipantRepository larkParticipantRepository;
     @Mock private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     @Mock private VirtualAttendanceService virtualAttendanceService;
 

@@ -91,7 +91,6 @@ class ClassroomChangeRequestServiceImplTest {
                 .startTime(LocalTime.of(18, 0))
                 .endTime(LocalTime.of(20, 0))
                 .status(ClassroomSessionStatus.COMPLETED)
-                .locked(true)
                 .build();
         teacher = User.builder()
                 .id(41L)

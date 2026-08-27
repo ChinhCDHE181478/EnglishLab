@@ -44,7 +44,7 @@ public class OnlineLesson {
     @JoinColumn(name = "module_id", nullable = false)
     private OnlineCourseModule module;
 
-    @Column(name = "stable_lesson_key", length = 120)
+    @Column(name = "stable_lesson_key", nullable = false, length = 120)
     private String stableLessonKey;
 
     @Column(nullable = false, length = 180)

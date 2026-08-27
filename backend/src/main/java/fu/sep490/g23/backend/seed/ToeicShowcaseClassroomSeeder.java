@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
@@ -83,8 +82,6 @@ import java.util.List;
 @Order(200)
 @RequiredArgsConstructor
 public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
-
-    private static final String LEGACY_DEMO_LARK_URL = "https://meet.larksuite.com/s/englishlab-toeic-650-showcase";
 
     private static final String LEARNER_EMAIL = "0386852628z@gmail.com";
     private static final String DEMO_LEARNER_TWO_EMAIL = "classroom.learner2@englishlab.vn";
@@ -186,7 +183,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         synchronizeCourseResources(units, teacher);
         units = courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(curriculum.getId());
         ClassSection offering = ensureOffering(curriculum, teacher);
-        clearLegacyDemoLarkLinks(offering);
 
         ensureTeacherAssignment(offering, teacher);
         learners.forEach(student -> ensureEnrollment(offering, student, teacher));
@@ -492,8 +488,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             .startDate(LocalDate.now().minusWeeks(3))
                             .plannedEndDate(LocalDate.now().plusWeeks(5))
                             .primaryTeacher(teacher)
-                            .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                            .recordingVisible(false)
                             .syllabusSummary(curriculum.getLearningOutcomes())
                             .programOutcomes(curriculum.getLearningOutcomes())
                             .teacherGuide(curriculum.getTeacherGuide())
@@ -501,29 +495,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             .build();
                 });
         offering.setInstructorLedCourse(curriculum);
-        if (!StringUtils.hasText(offering.getRecordingUrl()) || isDemoRecordingUrl(offering.getRecordingUrl())) {
-            offering.setRecordingUrl(null);
-            offering.setRecordingVisible(false);
-        }
         return offeringRepository.save(offering);
-    }
-
-    private void clearLegacyDemoLarkLinks(ClassSection offering) {
-        if (LEGACY_DEMO_LARK_URL.equalsIgnoreCase(offering.getDefaultLarkMeetingUrl())) {
-            offering.setDefaultLarkMeetingUrl(null);
-            offering.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
-            offeringRepository.save(offering);
-        }
-        sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId()).stream()
-                .filter(session -> LEGACY_DEMO_LARK_URL.equalsIgnoreCase(session.getLarkMeetingUrl())
-                        || "DEMO".equalsIgnoreCase(session.getLarkSyncStatus()))
-                .forEach(session -> {
-                    session.setLarkMeetingUrl(null);
-                    session.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
-                    session.setLarkSyncStatus("PENDING");
-                    session.setLarkSyncError(null);
-                    sessionRepository.save(session);
-                });
     }
 
     private void ensureTeacherAssignment(ClassSection offering, User teacher) {
@@ -582,9 +554,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                     .endTime(LocalTime.of(21, 0))
                     .teacher(teacher)
                     .status(status)
-                    .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                    .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
-                    .larkSyncStatus("PENDING")
+                    .deliveryModeOverride(null)
                     .recordingVisible(false)
                     .recordingUrl(null)
                     .sessionContent(units.get(index).getTitle())

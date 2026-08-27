@@ -41,7 +41,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
@@ -280,9 +280,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     + (intake == 0 ? "K1 " : intake == 1 ? "K2 " : "K3 ")
                     + (mwf ? "T2-4-6 " : "T3-5-7 ")
                     + (eveningTwo ? "Ca 2" : "Ca 1");
-            ClassSection offering = upsertOffering(
-                    slug, title, online, start, end, teacher, room, eveningTwo);
             InstructorLedCourse program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
+            ClassSection offering = upsertOffering(
+                    slug, title, online, start, end, teacher, room, eveningTwo, program);
             attachCourse(offering, program);
             ensureTeacherAssignment(offering, teacher);
             seedSessions(offering, teacher, room, mwf, eveningTwo, online);
@@ -329,16 +329,19 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             LocalDate end,
             User teacher,
             Room room,
-            boolean eveningTwo
+            boolean eveningTwo,
+            InstructorLedCourse instructorLedCourse
     ) {
         String cover = online ? "/course-covers/classroom-online.png" : "/course-covers/classroom-offline.png";
         return offeringRepository.findByInstructorLedCourseSlugOrCode(slug).map(existing -> {
             existing.setName(title);
+            existing.setInstructorLedCourse(instructorLedCourse);
             existing.setPrimaryTeacher(teacher);
-            existing.setRegularRoom(room);
+            existing.setRoom(room);
             return offeringRepository.save(existing);
         }).orElseGet(() -> {
             ClassSection offering = ClassSection.builder()
+                    .instructorLedCourse(instructorLedCourse)
                     .name(title)
                     .code(slug)
                     .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
@@ -350,11 +353,11 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .startDate(start)
                     .plannedEndDate(end)
                     .primaryTeacher(teacher)
-                    .virtualMeetingOwner(online ? teacher : null)
-                    .regularRoom(room)
+                    .room(room)
                     .offlineAddress(online ? null : ADDRESS)
-                    .defaultLarkMeetingUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
-                    .larkMeetingStatus(online ? LarkMeetingStatus.SCHEDULED : LarkMeetingStatus.NOT_CREATED)
+                    .googleMeetOwner(online ? teacher : null)
+                    .googleMeetUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
+                    .googleMeetStatus(online ? GoogleMeetStatus.READY : GoogleMeetStatus.NOT_CREATED)
                     .syllabusSummary("36 buổi Listening-Reading-Writing-Speaking xoay vòng.")
                     .build();
             return offeringRepository.save(offering);
@@ -450,12 +453,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .endTime(end)
                         .teacher(teacher)
                         .status(status)
-                        .deliveryMode(online ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
+                        .deliveryModeOverride(null)
                         .room(room)
-                        .larkMeetingUrl(online ? offering.getDefaultLarkMeetingUrl() : null)
-                        .larkMeetingStatus(online ? LarkMeetingStatus.SCHEDULED : LarkMeetingStatus.NOT_CREATED)
-                        .recordingProvider(online ? "GOOGLE_MEET" : null)
-                        .recordingSyncStatus(RecordingSyncStatus.NOT_AVAILABLE)
+                        .recordingStatus(RecordingSyncStatus.NOT_AVAILABLE)
                         .sessionContent("Buổi " + index + ": luyện 4 kỹ năng")
                         .build());
                 index++;
@@ -488,6 +488,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .classSection(offering)
                         .status(ClassroomEnrollmentStatus.ENROLLED)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
+                        .agreedTuitionFeeVnd(offering.getTuitionFeeVnd())
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(4_690_000))
                         .tuitionDepositPaid(BigDecimal.valueOf(1_000_000))
@@ -1439,6 +1440,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             return;
         }
         User teacher = teachers.get(1);
+        InstructorLedCourse program = ensureSheetTrainingProgram(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
         ClassSection offering = upsertOffering(
                 "center-sheet-class-31",
                 "IELTS Center K4 T2-4-6 Ca 1",
@@ -1447,13 +1450,13 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 LocalDate.now().plusWeeks(12),
                 teacher,
                 roomRepository.findByActiveTrue().stream().findFirst().orElse(null),
-                false
+                false,
+                program
         );
         offering.setCapacity(10);
         offering.setStatus(ClassroomOfferingStatus.UPCOMING);
         offeringRepository.save(offering);
-        attachCourse(offering, ensureSheetTrainingProgram(
-                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE));
+        attachCourse(offering, program);
         ensureTeacherAssignment(offering, teacher);
         ensureClassEnrollment(offering, learners.get(1), teacher, LocalDate.now());
         ensureClassEnrollment(offering, learners.get(2), teacher, LocalDate.now());

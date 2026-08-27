@@ -49,6 +49,7 @@ public class ClassroomProposalResponse {
     private LocalDateTime reviewedAt;
     private String reviewNote;
     private Long approvedClassroomId;
+    private List<ClassroomProposalScheduleItemResponse> scheduleItems;
     private List<ClassroomProposalMemberResponse> members;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

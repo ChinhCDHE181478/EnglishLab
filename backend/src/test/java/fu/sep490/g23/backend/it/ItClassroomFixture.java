@@ -93,7 +93,7 @@ public final class ItClassroomFixture {
                     continue;
                 }
                 JsonNode detail = staffClassroom(mockMvc, staffToken, offering.path("id").asLong());
-                if (isPublished(detail, "curriculumProgramStatus") && isPublished(detail, "trainingProgramStatus")) {
+                if (isPublished(detail, "instructorLedCourseStatus")) {
                     return detail;
                 }
             }
@@ -129,7 +129,7 @@ public final class ItClassroomFixture {
             payload.put("primaryTeacherId", firstTeacherId(mockMvc, staffToken));
         }
         if ("OFFLINE".equals(payload.path("deliveryMode").asText())
-                && payload.path("defaultRoomId").isNull()
+                && payload.path("roomId").isNull()
                 && payload.path("offlineAddress").isNull()) {
             payload.put("offlineAddress", "EnglishLab Hà Nội");
         }
@@ -157,10 +157,9 @@ public final class ItClassroomFixture {
         copyText(detail, payload, "targetScore");
         copyText(detail, payload, "startDate");
         copyText(detail, payload, "endDate");
-        copyNumber(detail, payload, "trainingProgramId", "trainingProgramId");
-        copyNumber(detail, payload, "curriculumProgramId", "curriculumProgramId");
+        copyNumber(detail, payload, "instructorLedCourseId", "instructorLedCourseId");
         copyNumber(detail, payload, "primaryTeacherId", "primaryTeacherId");
-        copyNumber(detail, payload, "roomId", "defaultRoomId");
+        copyNumber(detail, payload, "roomId", "roomId");
         copyNumber(detail, payload, "capacity", "capacity");
         copyNumber(detail, payload, "displayOrder", "displayOrder");
         copyNumber(detail, payload, "price", "price");

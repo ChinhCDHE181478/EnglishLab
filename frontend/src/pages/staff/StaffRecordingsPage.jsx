@@ -124,7 +124,7 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
 
   const classroomOptions = classrooms.map((item) => ({ label: item.title, value: String(item.id) }));
   const virtualSessions = useMemo(
-    () => sessions.filter((session) => session.deliveryMode === 'VIRTUAL'),
+    () => sessions.filter((session) => session.effectiveDeliveryMode === 'VIRTUAL'),
     [sessions],
   );
 
@@ -148,13 +148,12 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
     try {
       const session = await classroomApi.syncSessionRecording(sessionId);
       replaceSession(session);
-      const providerLabel = session.recordingProvider === 'GOOGLE_MEET' ? 'Google Meet' : 'Lark';
-      if (session.recordingSyncStatus === 'READY') {
-        setSuccess(`Đã nhận bản ghi từ ${providerLabel}. Hãy kiểm tra rồi công bố cho học viên.`);
-      } else if (session.recordingSyncStatus === 'PROCESSING') {
-        setSuccess(`${providerLabel} vẫn đang xử lý file. Hệ thống sẽ tiếp tục tự đồng bộ.`);
+      if (session.recordingStatus === 'READY') {
+        setSuccess('Đã nhận bản ghi từ Google Meet. Hãy kiểm tra rồi công bố cho học viên.');
+      } else if (session.recordingStatus === 'PROCESSING') {
+        setSuccess('Google Meet vẫn đang xử lý file. Hệ thống sẽ tiếp tục tự đồng bộ.');
       } else {
-        setError(session.recordingSyncError || `Chưa thể lấy bản ghi từ ${providerLabel}.`);
+        setError(session.recordingSyncError || 'Chưa thể lấy bản ghi từ Google Meet.');
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'Không đồng bộ được bản ghi buổi học.');
@@ -246,10 +245,7 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <RecordingStatus value={session.recordingSyncStatus} />
-                      {session.recordingProvider && (
-                        <span className="text-xs font-bold uppercase text-slate-500">Nguồn: {session.recordingProvider}</span>
-                      )}
+                      <RecordingStatus value={session.recordingStatus} />
                     </div>
                     <h3 className="font-['Manrope'] text-base font-extrabold text-slate-900">
                       Buổi {session.sessionDate} · {session.startTime?.slice(0, 5)} - {session.endTime?.slice(0, 5)}
@@ -258,20 +254,19 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
                   </div>
                   <button
                     type="button"
-                    disabled={Boolean(workingKey) || !session.larkMeetingId}
+                    disabled={Boolean(workingKey) || !session.googleMeetUrl}
                     onClick={() => syncSessionRecording(session.id)}
                     className={`${SECONDARY_BUTTON_CLASS} cursor-pointer border-[#dfbfbd] hover:border-[#730014] hover:bg-[#fff0f1] hover:shadow-sm active:scale-[0.98] disabled:hover:border-slate-200 disabled:hover:bg-white`}
-                    title={!session.larkMeetingId ? 'Bản ghi chỉ có thể đồng bộ sau khi phòng học đã bắt đầu.' : undefined}
+                    title={!session.googleMeetUrl ? 'Lớp chưa có phòng Google Meet.' : undefined}
                   >
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                     Đồng bộ bản ghi
                   </button>
                 </div>
 
-                <dl className="mt-4 grid gap-x-6 gap-y-3 border-y border-slate-100 py-4 text-sm sm:grid-cols-3">
-                  <div><dt className="text-slate-500">Thời lượng</dt><dd className="font-semibold text-slate-900">{formatDuration(session.recordingDurationMs)}</dd></div>
+                <dl className="mt-4 grid gap-x-6 gap-y-3 border-y border-slate-100 py-4 text-sm sm:grid-cols-2">
                   <div><dt className="text-slate-500">Đồng bộ gần nhất</dt><dd className="font-semibold text-slate-900">{formatDateTime(session.recordingSyncedAt || session.recordingLastAttemptAt)}</dd></div>
-                  <div><dt className="text-slate-500">Hết hạn xem</dt><dd className="font-semibold text-slate-900">{formatDateTime(session.recordingExpiresAt)}</dd></div>
+                  <div><dt className="text-slate-500">Số lần thử</dt><dd className="font-semibold text-slate-900">{session.recordingSyncAttempts || 0}</dd></div>
                 </dl>
 
                 {session.recordingSyncError && (

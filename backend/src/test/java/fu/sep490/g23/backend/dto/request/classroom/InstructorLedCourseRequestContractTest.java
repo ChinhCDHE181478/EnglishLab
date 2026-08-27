@@ -6,15 +6,15 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class TrainingProgramRequestContractTest {
+class InstructorLedCourseRequestContractTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void readsCanonicalDeliveryType() throws Exception {
-        TrainingProgramRequest request = objectMapper.readValue(
-                "{\"title\":\"IELTS Foundation Offline\",\"deliveryType\":\"OFFLINE\",\"curriculumProgramId\":1}",
-                TrainingProgramRequest.class
+        InstructorLedCourseRequest request = objectMapper.readValue(
+                "{\"title\":\"IELTS Foundation Offline\",\"deliveryType\":\"OFFLINE\",\"instructorLedCourseId\":1}",
+                InstructorLedCourseRequest.class
         );
 
         assertThat(request.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.OFFLINE);
@@ -22,9 +22,9 @@ class TrainingProgramRequestContractTest {
 
     @Test
     void readsLegacyDeliveryModeDuringCompatibilityWindow() throws Exception {
-        TrainingProgramRequest request = objectMapper.readValue(
-                "{\"title\":\"IELTS Foundation Virtual\",\"deliveryMode\":\"VIRTUAL\",\"curriculumProgramId\":1}",
-                TrainingProgramRequest.class
+        InstructorLedCourseRequest request = objectMapper.readValue(
+                "{\"title\":\"IELTS Foundation Virtual\",\"deliveryMode\":\"VIRTUAL\",\"instructorLedCourseId\":1}",
+                InstructorLedCourseRequest.class
         );
 
         assertThat(request.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.VIRTUAL);

@@ -339,7 +339,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         CourseLesson sessionPlan = CourseLesson.builder()
                 .courseUnit(unit)
                 .sequenceNumber(request.getSessionNumber())
-                .title(requireText(request.getTitle(), "Tiêu đề buổi học không được để trống."))
+                .plannedSessionCount(request.getPlannedSessionCount() == null || request.getPlannedSessionCount() < 1 ? 1 : request.getPlannedSessionCount())
+                .title(requireText(request.getTitle(), "Tiêu đề bài học không được để trống."))
                 .description(trimOrNull(request.getDescription()))
                 .learningObjectives(trimOrNull(request.getLearningObjectives()))
                 .build();
@@ -361,7 +362,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 sessionPlanId
         );
         sessionPlan.setSequenceNumber(request.getSessionNumber());
-        sessionPlan.setTitle(requireText(request.getTitle(), "Tiêu đề buổi học không được để trống."));
+        sessionPlan.setPlannedSessionCount(request.getPlannedSessionCount() == null || request.getPlannedSessionCount() < 1 ? 1 : request.getPlannedSessionCount());
+        sessionPlan.setTitle(requireText(request.getTitle(), "Tiêu đề bài học không được để trống."));
         sessionPlan.setDescription(trimOrNull(request.getDescription()));
         sessionPlan.setLearningObjectives(trimOrNull(request.getLearningObjectives()));
         sessionPlan = sessionPlanRepository.save(sessionPlan);
@@ -756,7 +758,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     private CourseLesson findSessionPlan(Long id) {
         return sessionPlanRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học trong giáo trình."));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong giáo trình."));
     }
 
     private AssessmentBankItem findAssessment(Long id) {
@@ -785,7 +787,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .outcomes(program.getLearningOutcomes())
                 .teacherGuide(program.getTeacherGuide())
                 .totalSessions(resolveTotalSessions(program))
-                .totalUnits(program.getUnits().size())
+                .totalLessons(resolveTotalLessons(program))
+                .totalUnits(program.getUnits() == null ? 0 : program.getUnits().size())
                 .status(program.getPublicationStatus().name())
                 .statusLabel(programStatusLabel(program.getPublicationStatus().name()))
                 .reviewNote(program.getReviewNote())
@@ -798,7 +801,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .activeClassroomCount(0)
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
-                .units(includeUnits ? program.getUnits().stream().map(this::toUnitResponse).toList() : null)
+                .units(includeUnits ? (program.getUnits() == null ? List.of() : program.getUnits().stream().map(this::toUnitResponse).toList()) : null)
                 .usingClassrooms(includeUnits ? toClassroomUsages(program) : null)
                 .build();
     }
@@ -826,7 +829,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         if (program.getUnits() == null || program.getUnits().isEmpty()) {
             throw new RuntimeException("Giáo trình chưa có Unit nào. Hãy thêm nội dung trước khi xuất bản.");
         }
-        validateStructuredSessionPlans(program);
+        validateStructuredLessons(program);
         boolean hasUnpublishedMaterial = program.getUnits().stream()
                 .flatMap(unit -> unit.getContentRefs().stream())
                 .filter(ref -> ref.getContentType() == CourseUnitContentType.MATERIAL)
@@ -839,12 +842,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         validateFocusedSkillAssessments(program);
     }
 
-    private void validateStructuredSessionPlans(InstructorLedCourse program) {
-        List<CourseLesson> sessionPlans = program.getUnits().stream()
+    private void validateStructuredLessons(InstructorLedCourse program) {
+        List<CourseLesson> courseLessons = program.getUnits().stream()
                 .flatMap(unit -> unit.getLessons().stream())
                 .sorted(Comparator.comparing(CourseLesson::getSequenceNumber))
                 .toList();
-        if (sessionPlans.isEmpty()) {
+        if (courseLessons.isEmpty()) {
             throw new RuntimeException("Giáo trình chưa có bài học. Hãy cập nhật trước khi xuất bản.");
         }
 
@@ -858,18 +861,18 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 });
 
         Set<Integer> uniqueNumbers = new LinkedHashSet<>();
-        for (CourseLesson sessionPlan : sessionPlans) {
-            if (!uniqueNumbers.add(sessionPlan.getSequenceNumber())) {
+        for (CourseLesson courseLesson : courseLessons) {
+            if (!uniqueNumbers.add(courseLesson.getSequenceNumber())) {
                 throw new IllegalArgumentException(
-                        "Buổi " + sessionPlan.getSequenceNumber() + " đang bị trùng trong giáo trình."
+                        "Buổi " + courseLesson.getSequenceNumber() + " đang bị trùng trong giáo trình."
                 );
             }
         }
 
-        for (int index = 0; index < sessionPlans.size(); index++) {
+        for (int index = 0; index < courseLessons.size(); index++) {
             int expectedNumber = index + 1;
-            if (!Integer.valueOf(expectedNumber).equals(sessionPlans.get(index).getSequenceNumber())) {
-                String currentNumbers = sessionPlans.stream()
+            if (!Integer.valueOf(expectedNumber).equals(courseLessons.get(index).getSequenceNumber())) {
+                String currentNumbers = courseLessons.stream()
                         .map(CourseLesson::getSequenceNumber)
                         .map(String::valueOf)
                         .collect(java.util.stream.Collectors.joining(", "));
@@ -884,21 +887,24 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     private void validateSessionPlanRequest(CourseLessonRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Dữ liệu buổi học không được để trống.");
+            throw new IllegalArgumentException("Dữ liệu bài học không được để trống.");
         }
         if (request.getSessionNumber() == null || request.getSessionNumber() < 1) {
-            throw new IllegalArgumentException("Số buổi phải bắt đầu từ 1.");
+            throw new IllegalArgumentException("Thứ tự bài học phải bắt đầu từ 1.");
+        }
+        if (request.getPlannedSessionCount() != null && request.getPlannedSessionCount() < 1) {
+            throw new IllegalArgumentException("Số buổi dự kiến phải từ 1 trở lên.");
         }
         if (request.getDisplayOrder() != null && request.getDisplayOrder() < 0) {
             throw new IllegalArgumentException("Thứ tự hiển thị không được âm.");
         }
-        requireText(request.getTitle(), "Tiêu đề buổi học không được để trống.");
+        requireText(request.getTitle(), "Tiêu đề bài học không được để trống.");
     }
 
     private void assertSessionNumberAvailable(Long programId, Integer sessionNumber, Long excludeId) {
         if (sessionPlanRepository.existsDuplicateSequenceNumber(programId, sessionNumber, excludeId)) {
             throw new IllegalArgumentException(
-                    "Buổi " + sessionNumber + " đã tồn tại trong giáo trình."
+                    "Bài học số " + sessionNumber + " đã tồn tại trong giáo trình."
             );
         }
     }
@@ -909,12 +915,21 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     private int resolveTotalSessions(InstructorLedCourse program) {
         if (program != null && program.getUnits() != null) {
-            int structuredCount = program.getUnits().stream()
-                    .mapToInt(unit -> unit.getLessons() == null ? 0 : unit.getLessons().size())
+            return program.getUnits().stream()
+                    .filter(unit -> unit.getLessons() != null)
+                    .flatMap(unit -> unit.getLessons().stream())
+                    .mapToInt(lesson -> lesson.getPlannedSessionCount() == null || lesson.getPlannedSessionCount() < 1 ? 1 : lesson.getPlannedSessionCount())
                     .sum();
-            if (structuredCount > 0) {
-                return structuredCount;
-            }
+        }
+        return 0;
+    }
+
+    private int resolveTotalLessons(InstructorLedCourse program) {
+        if (program != null && program.getUnits() != null) {
+            return program.getUnits().stream()
+                    .filter(unit -> unit.getLessons() != null)
+                    .mapToInt(unit -> unit.getLessons().size())
+                    .sum();
         }
         return 0;
     }
@@ -1201,7 +1216,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .title(unit.getTitle())
                 .description(unit.getDescription())
                 .sessionPlan(unit.getLearningObjectives())
-                .sessionPlans(unit.getLessons().stream()
+                .lessons(unit.getLessons().stream()
                         .sorted(Comparator.comparing(CourseLesson::getSequenceNumber)
                                 .thenComparing(CourseLesson::getId, Comparator.nullsLast(Long::compareTo)))
                         .map(this::toSessionPlanResponse)
@@ -1224,6 +1239,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .programId(unit.getInstructorLedCourse().getId())
                 .sessionNumber(sessionPlan.getSequenceNumber())
                 .displayOrder(sessionPlan.getSequenceNumber())
+                .plannedSessionCount(sessionPlan.getPlannedSessionCount() == null || sessionPlan.getPlannedSessionCount() < 1 ? 1 : sessionPlan.getPlannedSessionCount())
                 .title(sessionPlan.getTitle())
                 .description(sessionPlan.getDescription())
                 .learningObjectives(sessionPlan.getLearningObjectives())

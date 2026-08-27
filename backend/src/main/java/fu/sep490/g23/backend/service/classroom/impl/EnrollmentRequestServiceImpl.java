@@ -72,9 +72,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     private static final Set<ClassroomSessionStatus> ACTIVE_SESSION_STATUSES = Set.of(
             ClassroomSessionStatus.SCHEDULED,
             ClassroomSessionStatus.OPEN,
-            ClassroomSessionStatus.IN_PROGRESS,
-            ClassroomSessionStatus.RESCHEDULED,
-            ClassroomSessionStatus.MAKEUP
+            ClassroomSessionStatus.IN_PROGRESS
     );
 
     private final CourseRegistrationRequestRepository enrollmentRequestRepository;

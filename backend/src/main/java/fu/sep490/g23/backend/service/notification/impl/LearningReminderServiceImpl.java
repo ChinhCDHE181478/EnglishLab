@@ -33,9 +33,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
 
     private static final Set<ClassroomSessionStatus> REMINDABLE_SESSION_STATUSES = EnumSet.of(
             ClassroomSessionStatus.SCHEDULED,
-            ClassroomSessionStatus.OPEN,
-            ClassroomSessionStatus.RESCHEDULED,
-            ClassroomSessionStatus.MAKEUP
+            ClassroomSessionStatus.OPEN
     );
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATION_STATUSES = EnumSet.of(
             ClassroomRegistrationStatus.ASSIGNED,

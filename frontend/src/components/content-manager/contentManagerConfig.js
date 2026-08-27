@@ -1,11 +1,9 @@
 import {
   BarChart3,
   BadgePercent,
-  BookMarked,
   BookText,
   BookOpen,
   Brain,
-  Building2,
   FileCheck2,
   FileQuestion,
   FileStack,
@@ -19,7 +17,6 @@ import {
   School,
   SlidersHorizontal,
   Dumbbell,
-  Video,
   ShieldAlert,
 } from 'lucide-react';
 
@@ -29,9 +26,7 @@ export const contentManagerNav = [
     items: [
       { label: 'Tổng quan', href: '/content-manager/dashboard', icon: LayoutDashboard },
       { label: 'Khóa học Online', href: '/content-manager/courses', icon: BookOpen },
-      { label: 'Khóa học Offline', href: '/content-manager/offline-programs', icon: Building2 },
-      { label: 'Khóa học Virtual', href: '/content-manager/virtual-programs', icon: Video },
-      { label: 'Chương trình đào tạo', href: '/content-manager/syllabus-builder', icon: BookMarked },
+      { label: 'Khóa học có giảng viên', href: '/content-manager/instructor-led-courses', icon: School },
       { label: 'Mã giảm giá', href: '/content-manager/discount-codes', icon: BadgePercent },
       { label: 'Danh mục khóa học', href: '/content-manager/categories', icon: FolderKanban },
       { label: 'Lộ trình học', href: '/content-manager/learning-paths', icon: Route },
@@ -70,22 +65,12 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/courses': {
     title: 'Quản lý khóa học Online',
-    subtitle: '',
+    subtitle: 'Quản lý danh sách khóa học tự học Online, cấu trúc mô-đun, bài học và trạng thái xuất bản.',
     searchPlaceholder: 'Tìm theo tên khóa học hoặc slug...',
   },
-  '/content-manager/offline-programs': {
-    title: 'Khóa học Offline',
-    subtitle: 'Tạo và quản lý khóa học tại trung tâm theo chương trình đào tạo, mục tiêu và cấp độ đầu vào.',
-    searchPlaceholder: 'Tìm khóa học Offline...',
-  },
-  '/content-manager/virtual-programs': {
-    title: 'Khóa học Virtual',
-    subtitle: 'Tạo và quản lý khóa học trực tuyến có lịch, giảng viên và mục tiêu rõ ràng.',
-    searchPlaceholder: 'Tìm khóa học Virtual...',
-  },
-  '/content-manager/syllabus-builder': {
-    title: 'Chương trình đào tạo',
-    subtitle: 'Biên soạn unit/buổi học và gắn học liệu, bài tập, đề, flashcard từ các kho dùng chung.',
+  '/content-manager/instructor-led-courses': {
+    title: 'Khóa học có giảng viên',
+    subtitle: 'Biên soạn Unit, bài học và học liệu dùng chung cho các lớp tại trung tâm hoặc trực tuyến.',
     searchPlaceholder: 'Tìm unit hoặc tài nguyên...',
   },
   '/content-manager/exercise-bank': {

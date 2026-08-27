@@ -26,7 +26,6 @@ public class ConflictCheckRequest {
     private Boolean checkSessionLocked;
     @Builder.Default
     private Boolean checkCapacity = true;
-    private String larkMeetingUrl;
 
     @AssertTrue(message = "Cần cung cấp đầy đủ ngày, giờ bắt đầu và giờ kết thúc khi kiểm tra lịch")
     public boolean isScheduleWindowComplete() {

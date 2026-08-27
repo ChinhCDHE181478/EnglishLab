@@ -1,13 +1,13 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 
-import fu.sep490.g23.backend.dto.request.classroom.TrainingProgramRequest;
-import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sep490.g23.backend.dto.request.classroom.InstructorLedCourseRequest;
+import fu.sep490.g23.backend.dto.response.classroom.InstructorLedCourseResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
-import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.service.classroom.InstructorLedCourseCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class TrainingProgramServiceImpl implements TrainingProgramService {
+public class InstructorLedCourseCatalogServiceImpl implements InstructorLedCourseCatalogService {
     private static final Pattern NON_LATIN = Pattern.compile("[^\\w\\s-]");
     private static final Set<ClassroomOfferingStatus> ACTIVE_CLASS_STATUSES = Set.of(
             ClassroomOfferingStatus.UPCOMING,
@@ -34,14 +34,14 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TrainingProgramResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
+    public List<InstructorLedCourseResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
         List<InstructorLedCourse> programs = programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc();
         return programs.stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TrainingProgramResponse> listPublishedPrograms(ClassroomDeliveryMode deliveryMode) {
+    public List<InstructorLedCourseResponse> listPublishedPrograms(ClassroomDeliveryMode deliveryMode) {
         return listPrograms(deliveryMode).stream()
                 .filter(program -> program.getStatus() == PackageStatus.PUBLISHED)
                 .toList();
@@ -49,7 +49,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
 
     @Override
     @Transactional(readOnly = true)
-    public TrainingProgramResponse getPublishedProgram(String slugOrId) {
+    public InstructorLedCourseResponse getPublishedProgram(String slugOrId) {
         InstructorLedCourse program;
         try {
             program = programRepository.findById(Long.parseLong(slugOrId))
@@ -66,12 +66,12 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
 
     @Override
     @Transactional(readOnly = true)
-    public TrainingProgramResponse getProgram(Long id) {
+    public InstructorLedCourseResponse getProgram(Long id) {
         return toResponse(findProgram(id));
     }
 
     @Override
-    public TrainingProgramResponse createProgram(TrainingProgramRequest request) {
+    public InstructorLedCourseResponse createProgram(InstructorLedCourseRequest request) {
         InstructorLedCourse program = InstructorLedCourse.builder()
                 .title(request.getTitle().trim())
                 .code(uniqueCode(defaultText(request.getCode(), makeCode(request.getTitle(), request.getDeliveryType()))))
@@ -86,7 +86,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     }
 
     @Override
-    public TrainingProgramResponse updateProgram(Long id, TrainingProgramRequest request) {
+    public InstructorLedCourseResponse updateProgram(Long id, InstructorLedCourseRequest request) {
         InstructorLedCourse program = findProgram(id);
         PackageStatus originalStatus = program.getPublicationStatus();
         program.setTitle(request.getTitle().trim());
@@ -106,7 +106,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     }
 
     @Override
-    public TrainingProgramResponse cloneProgram(Long id) {
+    public InstructorLedCourseResponse cloneProgram(Long id) {
         InstructorLedCourse source = findProgram(id);
         InstructorLedCourse clone = InstructorLedCourse.builder()
                 .title(source.getTitle() + " (Bản sao)")
@@ -140,7 +140,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         programRepository.save(program);
     }
 
-    private void apply(InstructorLedCourse program, TrainingProgramRequest request) {
+    private void apply(InstructorLedCourse program, InstructorLedCourseRequest request) {
         program.setShortDescription(trimOrNull(request.getShortDescription()));
         program.setDescription(trimOrNull(request.getDescription()));
         program.setBaseTuitionFeeVnd(request.getPrice() == null ? BigDecimal.ZERO : request.getPrice());
@@ -156,8 +156,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         }
     }
 
-    private TrainingProgramResponse toResponse(InstructorLedCourse program) {
-        return TrainingProgramResponse.builder()
+    private InstructorLedCourseResponse toResponse(InstructorLedCourse program) {
+        return InstructorLedCourseResponse.builder()
                 .id(program.getId())
                 .title(program.getTitle())
                 .code(program.getCode())
@@ -166,6 +166,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .instructorLedCourseTitle(program.getTitle())
                 .instructorLedCourseCode(program.getCode())
                 .instructorLedCourseExamType(program.getExamType())
+                .examType(program.getExamType())
+                .examCategory(program.getExamType())
                 .programTrack(program.getProgramTrack())
                 .focusSkills(program.getFocusSkills())
                 .instructorLedCourseStatus(program.getPublicationStatus().name())

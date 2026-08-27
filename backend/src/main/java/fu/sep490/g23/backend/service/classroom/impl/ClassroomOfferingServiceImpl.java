@@ -1,9 +1,7 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassScheduleType;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
@@ -24,7 +22,6 @@ import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
-import fu.sep490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -49,7 +46,6 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepo
 import fu.sep490.g23.backend.service.classroom.VirtualMeetingService;
 import fu.sep490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
-import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 
 
 import fu.sep490.g23.backend.entity.User;
@@ -110,19 +106,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private static final int EMPTY_ROOM_GRACE_MINUTES = 5;
     private static final int SUBSTITUTE_PREPARATION_DAYS = 3;
     private static final int SUBSTITUTE_WRAP_UP_DAYS = 1;
-    private static final int VIRTUAL_MEETING_RETRY_BATCH_SIZE = 8;
-    private static final Set<ClassroomSessionStatus> VIRTUAL_MEETING_RETRY_SESSION_STATUSES = Set.of(
-            ClassroomSessionStatus.SCHEDULED,
-            ClassroomSessionStatus.OPEN,
-            ClassroomSessionStatus.IN_PROGRESS,
-            ClassroomSessionStatus.RESCHEDULED,
-            ClassroomSessionStatus.MAKEUP
-    );
-    private static final Set<String> VIRTUAL_MEETING_RETRY_SYNC_STATUSES = Set.of(
-            "PENDING",
-            "FAILED",
-            "DISABLED"
-    );
 
     private final ClassSectionRepository offeringRepository;
     private final ClassScheduleRepository sessionRepository;
@@ -140,7 +123,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final VirtualMeetingService virtualMeetingService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
-    private final LarkMeetingParticipantRepository larkParticipantRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final VirtualAttendanceService virtualAttendanceService;
     private final InstructorLedCourseIdResolver instructorLedCourseIdResolver;
@@ -243,9 +225,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         User primaryTeacher = resolveTeacher(request.getPrimaryTeacherId());
-        Room regularRoom = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
-                ? resolveRoom(request.getDefaultRoomId()) : null;
-        validateOfferingResources(request, primaryTeacher, regularRoom);
+        Room room = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
+                ? resolveRoom(request.getRoomId()) : null;
+        validateOfferingResources(request, primaryTeacher, room);
 
         ClassSection offering = ClassSection.builder()
                 .instructorLedCourse(ilc)
@@ -260,13 +242,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .startDate(request.getStartDate())
                 .plannedEndDate(request.getEndDate())
                 .primaryTeacher(primaryTeacher)
-                .regularRoom(regularRoom)
+                .room(room)
                 .offlineAddress(request.getOfflineAddress())
                 .locationNote(request.getLocationNote())
-                .defaultLarkMeetingUrl(request.getDefaultLarkMeetingUrl())
-                .larkMeetingStatus(virtualMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()))
-                .recordingUrl(request.getRecordingUrl())
-                .recordingVisible(Boolean.TRUE.equals(request.getRecordingVisible()))
                 .syllabusSummary(request.getSyllabusSummary())
                 .build();
 
@@ -297,9 +275,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     "Không thể bỏ giáo viên chính khỏi lớp. Hãy chọn giáo viên thay thế để giữ lịch học liên tục."
             );
         }
-        Room regularRoom = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
-                ? resolveRoom(request.getDefaultRoomId()) : null;
-        validateOfferingResources(request, primaryTeacher, regularRoom);
+        Room room = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
+                ? resolveRoom(request.getRoomId()) : null;
+        validateOfferingResources(request, primaryTeacher, room);
 
         if (request.getInstructorLedCourseId() != null) {
             fu.sep490.g23.backend.entity.course.InstructorLedCourse newIlc = instructorLedCourseIdResolver.resolveById(request.getInstructorLedCourseId())
@@ -325,15 +303,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (!primaryTeacherChanged) {
             offering.setPrimaryTeacher(primaryTeacher);
         }
-        offering.setRegularRoom(regularRoom);
+        offering.setRoom(room);
         offering.setOfflineAddress(request.getOfflineAddress());
         offering.setLocationNote(request.getLocationNote());
-        offering.setDefaultLarkMeetingUrl(request.getDefaultLarkMeetingUrl());
-        offering.setLarkMeetingStatus(virtualMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()));
-        offering.setRecordingUrl(request.getRecordingUrl());
-        if (request.getRecordingVisible() != null) {
-            offering.setRecordingVisible(request.getRecordingVisible());
-        }
         if (request.getSyllabusSummary() != null) offering.setSyllabusSummary(request.getSyllabusSummary());
 
         ClassSection saved = offeringRepository.save(offering);
@@ -418,9 +390,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 offering
         );
         validateRoomCapacity(room, offering.getCapacity());
-        if (deliveryMode == ClassroomDeliveryMode.VIRTUAL) {
-            ensureTeacherMeetingOwner(offering);
-        }
 
         if (enforceConflictCheck) {
             ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
@@ -439,8 +408,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassSchedule session = buildSession(offering, request, teacher, room, deliveryMode, sessionPlan);
         session = sessionRepository.save(session);
         synchronizeSubstituteAssignment(session);
-        if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
-                && needsManagedVirtualMeetingSync(session)) {
+        if (session.getEffectiveDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
             syncVirtualMeetingSafely(session);
             session = sessionRepository.save(session);
         }
@@ -452,12 +420,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertStaffOperator(actor);
         ClassSchedule session = findSession(sessionId);
-        ensureTeacherMeetingOwner(session.getClassSection());
-        if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+        if (session.getEffectiveDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
             throw new IllegalArgumentException("Chỉ buổi học trực tuyến mới có phòng Google Meet để đồng bộ.");
         }
-        if (session.getStatus() == ClassroomSessionStatus.COMPLETED
-                || session.getStatus() == ClassroomSessionStatus.CANCELLED) {
+        if (session.isImmutable()) {
             throw new IllegalArgumentException("Không thể tạo lại phòng Google Meet cho buổi học đã kết thúc hoặc đã hủy.");
         }
         syncVirtualMeetingSafely(session);
@@ -469,7 +435,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         validateSessionRequest(request);
         ClassSchedule session = findSession(sessionId);
         scheduleLockService.lockDates(List.of(session.getSessionDate(), request.getSessionDate()));
-        if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
+        if (session.isImmutable()) {
             throw new RuntimeException("Buổi học đã hoàn thành hoặc đã khóa nên không thể chỉnh sửa.");
         }
 
@@ -497,18 +463,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .build();
         conflictService.assertNoBlockingConflict(conflictRequest);
 
-        boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
-                && !request.getLarkMeetingUrl().isBlank()
-                && !virtualMeetingService.isLegacyOrPlaceholderUrl(request.getLarkMeetingUrl());
-        if (manualLarkLinkProvided && session.getLarkMeetingId() != null) {
-            deleteVirtualMeetingSafely(session);
-            clearManagedVirtualMeetingData(session);
-        }
-
         applySessionRequest(session, request, teacher, room, deliveryMode, sessionPlan);
         session = sessionRepository.save(session);
         synchronizeSubstituteAssignment(session);
-        if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
+        if (deliveryMode == ClassroomDeliveryMode.VIRTUAL) {
             syncVirtualMeetingSafely(session);
         }
         return mapper.toSessionResponse(sessionRepository.save(session));
@@ -519,7 +477,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         validateSessionRequest(request);
         ClassSchedule session = findSession(sessionId);
         scheduleLockService.lockDates(List.of(session.getSessionDate(), request.getSessionDate()));
-        if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
+        if (session.isImmutable()) {
             throw new RuntimeException("Buổi học đã hoàn thành hoặc đã khóa nên không thể chỉnh sửa.");
         }
 
@@ -530,22 +488,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 ? session.getCourseLesson()
                 : resolveCourseLesson(request.getCourseLessonId(), session.getClassSection());
         validateRoomCapacity(room, session.getClassSection().getCapacity());
-        boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
-                && !request.getLarkMeetingUrl().isBlank()
-                && !virtualMeetingService.isLegacyOrPlaceholderUrl(request.getLarkMeetingUrl());
-        if (manualLarkLinkProvided && session.getLarkMeetingId() != null) {
-            deleteVirtualMeetingSafely(session);
-            clearManagedVirtualMeetingData(session);
-        }
 
         applySessionRequest(session, request, teacher, room, deliveryMode, sessionPlan);
         session = sessionRepository.save(session);
         synchronizeSubstituteAssignment(session);
-        if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
+        if (deliveryMode == ClassroomDeliveryMode.VIRTUAL) {
             syncVirtualMeetingSafely(session);
-        }
-        if (session.getStatus() == ClassroomSessionStatus.RESCHEDULED) {
-            session.setStatus(ClassroomSessionStatus.SCHEDULED);
         }
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
@@ -553,7 +501,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     public void deleteSession(Long sessionId) {
         ClassSchedule session = findSession(sessionId);
-        if (session.isLocked()) {
+        if (session.isImmutable()) {
             throw new RuntimeException("Buổi học đã khóa nên không thể xóa.");
         }
         deleteVirtualMeetingSafely(session);
@@ -1269,20 +1217,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     public ClassroomSessionResponse openVirtualSession(Long sessionId, String actorEmail) {
         ClassSchedule session = findSession(sessionId);
         User actor = assertCanManageVirtualSession(session, actorEmail);
-        if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+        if (session.getEffectiveDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
             throw new RuntimeException("Chỉ buổi học trực tuyến mới có thể mở phòng ảo.");
         }
-        if (session.getLarkMeetingUrl() == null
-                || session.getLarkMeetingUrl().isBlank()
-                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
+        if (!virtualMeetingService.isJoinable(session.getClassSection())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Staff chưa tạo liên kết Google Meet cho buổi học này."
+                    "Staff chưa tạo liên kết Google Meet cho lớp học này."
             );
         }
-        inviteTeacher(session, actor);
         session.setStatus(ClassroomSessionStatus.OPEN);
-        session.setLarkMeetingStatus(LarkMeetingStatus.OPEN);
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
@@ -1291,7 +1235,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User learner = accessHelper.requireUser(learnerEmail);
         ClassSchedule session = findSession(sessionId);
 
-        if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+        if (session.getEffectiveDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
             throw new RuntimeException("Buổi học này không phải lớp học trực tuyến.");
         }
         if (session.getStatus() == ClassroomSessionStatus.CANCELLED) {
@@ -1308,19 +1252,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Bạn chưa được cấp quyền tham gia lớp học này.");
         }
 
-        if (session.getLarkMeetingUrl() == null
-                || session.getLarkMeetingUrl().isBlank()
-                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
+        if (!virtualMeetingService.isJoinable(session.getClassSection())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Staff chưa tạo liên kết Google Meet cho buổi học này."
+                    "Staff chưa tạo liên kết Google Meet cho lớp học này."
             );
         }
 
-        session.setLarkEmptySince(null);
-        session.setLarkMeetingStatus(LarkMeetingStatus.OPEN);
         virtualAttendanceService.recordVirtualJoin(session, learner);
-        return mapper.toSessionResponse(sessionRepository.save(session));
+        return mapper.toSessionResponse(session);
     }
 
     @Override
@@ -1340,89 +1280,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
-    @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
-    public void closeEmptyVirtualRooms() {
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(EMPTY_ROOM_GRACE_MINUTES);
-        List<ClassSchedule> emptyRooms =
-                sessionRepository.findByLarkEmptySinceIsNotNullAndLarkEmptySinceBefore(cutoff);
 
-        for (ClassSchedule session : emptyRooms) {
-            if (larkParticipantRepository.countByClassScheduleIdAndActiveTrue(session.getId()) > 0) {
-                session.setLarkEmptySince(null);
-                continue;
-            }
-            deleteVirtualMeetingSafely(session);
-            larkParticipantRepository.deleteByClassScheduleId(session.getId());
-            clearManagedVirtualMeetingData(session);
-            session.setLarkMeetingUrl(null);
-            session.setLarkMeetingId(null);
-            session.setLarkMeetingNo(null);
-            session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
-            session.setLarkSyncStatus("PENDING");
-            session.setLarkSyncError(null);
-            session.setLarkEmptySince(null);
-        }
-        sessionRepository.saveAll(emptyRooms);
-    }
-
-    /**
-     * Tự khôi phục các buổi online chưa được cấp phòng do Google Meet tạm lỗi,
-     * hết quota hoặc do tích hợp được bật sau khi buổi học đã được tạo.
-     *
-     * Mỗi lần chỉ xử lý một lô nhỏ để không vượt quota spaces.create theo phút.
-     * Không giữ một transaction dài quanh các HTTP request tới Google.
-     */
-    @Scheduled(
-            fixedDelayString = "${englishlab.google-meet.retry-delay-ms:300000}",
-            initialDelayString = "${englishlab.google-meet.retry-initial-delay-ms:60000}"
-    )
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void retryPendingVirtualMeetings() {
-        if (!virtualMeetingService.isEnabled()) {
-            return;
-        }
-
-        List<ClassSchedule> pendingSessions = sessionRepository.findVirtualMeetingsPendingSync(
-                ClassroomDeliveryMode.VIRTUAL,
-                VIRTUAL_MEETING_RETRY_SESSION_STATUSES,
-                VIRTUAL_MEETING_RETRY_SYNC_STATUSES,
-                LocalDate.now(),
-                PageRequest.of(0, VIRTUAL_MEETING_RETRY_BATCH_SIZE)
-        );
-
-        for (ClassSchedule session : pendingSessions) {
-            if (!requiresManagedVirtualMeeting(session)) {
-                continue;
-            }
-            try {
-                syncVirtualMeetingSafely(session);
-                sessionRepository.save(session);
-            } catch (RuntimeException ex) {
-                log.error(
-                        "Không thể lưu kết quả tự tạo lại Google Meet cho buổi học {}: {}",
-                        session.getId(),
-                        ex.getMessage()
-                );
-            }
-        }
-    }
-
-    @Override
-    public ClassroomSessionResponse updateSessionLarkLink(Long sessionId, UpdateLarkLinkRequest request) {
-        ClassSchedule session = findSession(sessionId);
-        if (session.isLocked()) {
-            throw new RuntimeException("Buổi học đã khóa nên không thể cập nhật liên kết Google Meet.");
-        }
-        if (session.getLarkMeetingId() != null) {
-            deleteVirtualMeetingSafely(session);
-            clearManagedVirtualMeetingData(session);
-        }
-        session.setLarkMeetingUrl(request.getLarkMeetingUrl());
-        session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(request.getLarkMeetingUrl()));
-        session.setLarkSyncStatus("MANUAL");
-        session.setLarkSyncError(null);
-        return mapper.toSessionResponse(sessionRepository.save(session));
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -1497,8 +1355,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                         || oldTeacherId.equals(session.getTeacher().getId()))
                 .forEach(session -> {
                     session.setTeacher(newTeacher);
-                    if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
-                            && session.getLarkMeetingId() != null) {
+                    if (session.getEffectiveDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
                         syncVirtualMeetingSafely(session);
                         inviteTeacherSafely(session, newTeacher);
                     }
@@ -1526,7 +1383,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                         session.getSessionDate(),
                         session.getStartTime(),
                         session.getEndTime(),
-                        VIRTUAL_MEETING_RETRY_SESSION_STATUSES,
+                        Set.of(ClassroomSessionStatus.SCHEDULED, ClassroomSessionStatus.OPEN, ClassroomSessionStatus.IN_PROGRESS),
                         session.getId()
                 ).isEmpty());
         if (hasConflict) {
@@ -1623,15 +1480,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             ClassroomDeliveryMode deliveryMode,
             fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan
     ) {
-        String larkUrl = request.getLarkMeetingUrl();
-        if (virtualMeetingService.isLegacyOrPlaceholderUrl(larkUrl)) {
-            larkUrl = null;
-        }
-        if ((larkUrl == null || larkUrl.isBlank())
-                && deliveryMode == ClassroomDeliveryMode.VIRTUAL
-                && !virtualMeetingService.isLegacyOrPlaceholderUrl(offering.getDefaultLarkMeetingUrl())) {
-            larkUrl = offering.getDefaultLarkMeetingUrl();
-        }
         return ClassSchedule.builder()
                 .classSection(offering)
                 .sessionDate(request.getSessionDate())
@@ -1639,13 +1487,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .endTime(request.getEndTime())
                 .teacher(teacher)
                 .status(request.getStatus() == null ? ClassroomSessionStatus.SCHEDULED : request.getStatus())
-                .deliveryMode(deliveryMode)
-                .room(room)
-                .larkMeetingUrl(larkUrl)
-                .larkMeetingStatus(virtualMeetingService.resolveStatus(larkUrl))
-                .larkSyncStatus(larkUrl == null || larkUrl.isBlank() ? "PENDING" : "MANUAL")
-                
-                .scheduleType(sessionPlan == null ? ClassScheduleType.OTHER : ClassScheduleType.LESSON)
+                .deliveryModeOverride(deliveryMode == offering.getDeliveryMode() ? null : deliveryMode)
+                .room(deliveryMode == ClassroomDeliveryMode.VIRTUAL ? null : room)
+                .courseLesson(sessionPlan)
                 .sessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle())
                 .note(request.getNote())
                 .build();
@@ -1667,28 +1511,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getStatus() != null) {
             session.setStatus(request.getStatus());
         }
-        session.setDeliveryMode(deliveryMode);
-        session.setRoom(room);
-        if (request.getLarkMeetingUrl() != null) {
-            String requestedUrl = virtualMeetingService.isLegacyOrPlaceholderUrl(request.getLarkMeetingUrl())
-                    ? null
-                    : request.getLarkMeetingUrl();
-            session.setLarkMeetingUrl(requestedUrl);
-            session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(requestedUrl));
-            if (requestedUrl != null && !requestedUrl.isBlank()) {
-                session.setLarkSyncStatus("MANUAL");
-                session.setLarkSyncError(null);
-            }
-        } else if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
-            String defaultUrl = virtualMeetingService.isLegacyOrPlaceholderUrl(offering.getDefaultLarkMeetingUrl())
-                    ? null
-                    : offering.getDefaultLarkMeetingUrl();
-            if (session.getLarkMeetingId() == null) {
-                session.setLarkMeetingUrl(defaultUrl);
-                session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(defaultUrl));
-            }
-        }
-        
+        session.setDeliveryModeOverride(deliveryMode == offering.getDeliveryMode() ? null : deliveryMode);
+        session.setRoom(deliveryMode == ClassroomDeliveryMode.VIRTUAL ? null : room);
         linkCourseLesson(session, sessionPlan);
         session.setSessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle());
         session.setNote(request.getNote());
@@ -1696,79 +1520,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private boolean syncVirtualMeetingSafely(ClassSchedule session) {
         if (!virtualMeetingService.isEnabled()) {
-            session.setLarkSyncStatus("DISABLED");
-            session.setLarkSyncError("Tích hợp Google Meet API chưa được bật.");
             return false;
         }
         try {
             virtualMeetingService.syncMeeting(session);
             return true;
         } catch (RuntimeException ex) {
-            session.setLarkSyncStatus("FAILED");
-            session.setLarkSyncError(toVirtualMeetingUserMessage(ex));
             log.warn("Không thể đồng bộ buổi học {} với Google Meet: {}", session.getId(), ex.getMessage());
             return false;
         }
-    }
-
-    private void ensureTeacherMeetingOwner(ClassSection offering) {
-        if (offering == null) return;
-        User teacher = offering.getPrimaryTeacher();
-        if (teacher == null) return;
-        if (offering.getVirtualMeetingOwner() == null
-                || !java.util.Objects.equals(offering.getVirtualMeetingOwner().getId(), teacher.getId())) {
-            offering.setVirtualMeetingOwner(teacher);
-            offering.setDefaultLarkMeetingUrl(null);
-            sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId())
-                    .stream()
-                    .filter(candidate -> candidate.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL)
-                    .filter(candidate -> VIRTUAL_MEETING_RETRY_SESSION_STATUSES.contains(candidate.getStatus()))
-                    .filter(candidate -> candidate.getLarkMeetingId() != null
-                            && candidate.getLarkMeetingId().startsWith("spaces/"))
-                    .forEach(candidate -> {
-                        clearManagedVirtualMeetingData(candidate);
-                        candidate.setLarkMeetingUrl(null);
-                        candidate.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
-                        candidate.setLarkSyncStatus("PENDING");
-                        candidate.setLarkSyncError(null);
-                    });
-        }
-    }
-
-    private String toVirtualMeetingUserMessage(RuntimeException exception) {
-        String detail = exception.getMessage() == null ? "" : exception.getMessage();
-        if (detail.contains("hết hạn hoặc bị thu hồi")) {
-            return "Tài khoản Google của giáo viên đã hết hạn quyền truy cập. Hãy yêu cầu giáo viên liên kết lại Google Meet.";
-        }
-        if (detail.contains("GOOGLE_MEET_CLIENT_ID") || detail.contains("GOOGLE_MEET_CLIENT_SECRET")) {
-            return "Tích hợp Google Meet chưa được cấu hình đầy đủ. Vui lòng liên hệ quản trị hệ thống.";
-        }
-        if (detail.contains("FEATURE_UNAVAILABLE_TO_USER") || detail.contains("updateAutoRecordingGeneration")) {
-            return "Tài khoản Google của giáo viên chưa được phép ghi hình tự động. Nếu nút Ghi trong Google Meet bị khóa, cần cấp quyền ghi hình từ gói hoặc quản trị Google Workspace.";
-        }
-        if (detail.contains("không áp dụng chế độ RESTRICTED")) {
-            return "Tài khoản Google của giáo viên không hỗ trợ chế độ khách phải chờ duyệt. Hãy liên kết tài khoản Google Workspace của giáo viên rồi thử lại.";
-        }
-        return "Không thể tạo phòng Google Meet lúc này. Vui lòng thử lại sau hoặc kiểm tra kết nối Google của giáo viên phụ trách.";
-    }
-
-    private boolean needsManagedVirtualMeetingSync(ClassSchedule session) {
-        if (session.getLarkMeetingUrl() == null
-                || session.getLarkMeetingUrl().isBlank()
-                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
-            return true;
-        }
-        ClassSection offering = session.getClassSection();
-        return session.getLarkMeetingId() == null
-                && offering != null
-                && session.getLarkMeetingUrl().equals(offering.getDefaultLarkMeetingUrl());
-    }
-
-    private boolean requiresManagedVirtualMeeting(ClassSchedule session) {
-        String meetingUrl = session.getLarkMeetingUrl();
-        return meetingUrl == null
-                || meetingUrl.isBlank()
-                || virtualMeetingService.isLegacyOrPlaceholderUrl(meetingUrl);
     }
 
     private void deleteVirtualMeetingSafely(ClassSchedule session) {
@@ -1779,19 +1539,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
     }
 
-    private void clearManagedVirtualMeetingData(ClassSchedule session) {
-        session.setLarkCalendarId(null);
-        session.setLarkEventId(null);
-        session.setLarkMeetingId(null);
-        session.setLarkMeetingNo(null);
-        session.setLarkSyncedAt(null);
-    }
-
     private void markVirtualSessionEnded(ClassSchedule session) {
         virtualAttendanceService.finalizeVirtualAttendance(session);
         session.setStatus(ClassroomSessionStatus.COMPLETED);
-        session.setLocked(true);
-        session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
     }
 
     private void ensureGradebookEntry(ClassSection offering, User student) {
@@ -2026,9 +1776,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private void validateOfferingResources(
             CreateClassroomOfferingRequest request,
             User primaryTeacher,
-            Room regularRoom
+            Room room
     ) {
-        validateRoomCapacity(regularRoom, request.getCapacity() == null ? 30 : request.getCapacity());
+        validateRoomCapacity(room, request.getCapacity() == null ? 30 : request.getCapacity());
         ClassroomOfferingStatus status = request.getClassroomStatus() == null
                 ? ClassroomOfferingStatus.DRAFT : request.getClassroomStatus();
         if (status != ClassroomOfferingStatus.UPCOMING && status != fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus.ACTIVE) {
@@ -2040,7 +1790,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (primaryTeacher == null) {
             throw new IllegalArgumentException("Lớp sắp mở hoặc đang hoạt động phải có giáo viên chính.");
         }
-        if (request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE && regularRoom == null) {
+        if (request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE && room == null) {
             throw new IllegalArgumentException("Lớp học trực tiếp phải có phòng học.");
         }
     }
@@ -2073,8 +1823,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             CreateClassroomSessionRequest request,
             ClassSection offering
     ) {
-        ClassroomDeliveryMode deliveryMode = request.getDeliveryMode() != null
-                ? request.getDeliveryMode() : offering.getDeliveryMode();
+        ClassroomDeliveryMode deliveryMode = request.getDeliveryModeOverride() != null
+                ? request.getDeliveryModeOverride() : offering.getDeliveryMode();
         if (deliveryMode == null) {
             throw new IllegalArgumentException("Hình thức của buổi học không được để trống.");
         }
@@ -2148,7 +1898,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     private Long getDefaultRoomId(ClassSection offering) {
-        return offering.getRegularRoom() == null ? null : offering.getRegularRoom().getId();
+        return offering.getRoom() == null ? null : offering.getRoom().getId();
     }
 
     private BigDecimal defaultBigDecimal(BigDecimal value) {
@@ -2172,9 +1922,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private void linkCourseLesson(ClassSchedule session, fu.sep490.g23.backend.entity.course.CourseLesson sessionPlan) {
         if (sessionPlan == null || sessionPlan.getId() == null) {
             session.setCourseLesson(null);
-            session.setScheduleType(session.getStatus() == ClassroomSessionStatus.MAKEUP
-                    ? ClassScheduleType.MAKEUP
-                    : ClassScheduleType.OTHER);
             return;
         }
         if (courseLessonRepository.existsById(sessionPlan.getId())) {
@@ -2186,10 +1933,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 throw new IllegalArgumentException("Bài học không thuộc chương trình của lớp.");
             }
             session.setCourseLesson(lesson);
-            session.setScheduleType(ClassScheduleType.LESSON);
         } else {
             session.setCourseLesson(null);
-            session.setScheduleType(ClassScheduleType.OTHER);
         }
     }
 }

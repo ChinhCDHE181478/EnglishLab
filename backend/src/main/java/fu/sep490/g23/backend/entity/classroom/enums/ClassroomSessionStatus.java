@@ -5,7 +5,5 @@ public enum ClassroomSessionStatus {
     OPEN,
     IN_PROGRESS,
     COMPLETED,
-    CANCELLED,
-    RESCHEDULED,
-    MAKEUP
+    CANCELLED
 }

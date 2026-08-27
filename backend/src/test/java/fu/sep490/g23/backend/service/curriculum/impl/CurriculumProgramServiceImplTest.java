@@ -215,7 +215,7 @@ class InstructorLedCourseManagementServiceImplTest {
 
         assertThatThrownBy(() -> service.createSessionPlan(10L, sessionPlanRequest(1, "Trùng")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Buổi 1 đã tồn tại");
+                .hasMessageContaining("Bài học số 1 đã tồn tại");
     }
 
     @Test
@@ -359,7 +359,6 @@ class InstructorLedCourseManagementServiceImplTest {
         request.setFocusSkills("LISTENING,READING,WRITING,SPEAKING");
         request.setTargetBand(BigDecimal.valueOf(6.5));
         request.setEntryLevel("5.0");
-        request.setTotalSessions(24);
         request.setStatus("DRAFT");
         return request;
     }
