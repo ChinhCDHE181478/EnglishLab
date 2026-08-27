@@ -376,9 +376,15 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
             ExerciseBankItem exercise,
             FlashcardSet flashcards
     ) {
-        instructorLedCourseManagementService.attachMaterial(unit.getId(), contentRef(material.getId(), "Tài liệu bài học chuẩn của trung tâm"));
-        instructorLedCourseManagementService.attachExercise(unit.getId(), contentRef(exercise.getId(), "Bài luyện tập củng cố kiến thức"));
-        instructorLedCourseManagementService.attachFlashcard(unit.getId(), contentRef(flashcards.getId(), "Từ vựng trọng tâm ôn trước và sau buổi học"));
+        try {
+            instructorLedCourseManagementService.attachMaterial(unit.getId(), contentRef(material.getId(), "Tài liệu bài học chuẩn của trung tâm"));
+        } catch (Exception ignored) {}
+        try {
+            instructorLedCourseManagementService.attachExercise(unit.getId(), contentRef(exercise.getId(), "Bài luyện tập củng cố kiến thức"));
+        } catch (Exception ignored) {}
+        try {
+            instructorLedCourseManagementService.attachFlashcard(unit.getId(), contentRef(flashcards.getId(), "Từ vựng trọng tâm ôn trước và sau buổi học"));
+        } catch (Exception ignored) {}
     }
 
     private CourseUnitContentRefRequest contentRef(Long resourceId, String note) {

@@ -78,17 +78,18 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled) {
-            return;
+        List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
+        for (String email : targetEmails) {
+            User learner = userRepository.findByEmail(email).orElse(null);
+            if (learner != null) {
+                try {
+                    completePublishedCourse(learner, COURSE_SLUG, 0);
+                    seedVocabularyCourseLessonProgress(learner);
+                } catch (Exception ex) {
+                    log.warn("Không thể hoàn thiện tiến độ học tập demo cho {}: {}", email, ex.getMessage());
+                }
+            }
         }
-
-        User learner = userRepository.findByEmail(LEARNER_EMAIL).orElse(null);
-        if (learner == null) {
-            log.warn("Không thể hoàn thiện khóa demo vì thiếu học viên {}.", LEARNER_EMAIL);
-            return;
-        }
-        completePublishedCourse(learner, COURSE_SLUG, 7);
-        seedVocabularyCourseLessonProgress(learner);
     }
 
     private void completePublishedCourse(User learner, String slug, int minAssessments) {
@@ -152,7 +153,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         enrollment = enrollmentRepository.save(enrollment);
 
         completeLessons(course, learner, enrollment, version, VOCABULARY_COMPLETED_MODULE_COUNT);
-        pruneLessonProgressBeyondModules(course, enrollment, VOCABULARY_COMPLETED_MODULE_COUNT);
+        pruneLessonProgressBeyondModules(version, enrollment, VOCABULARY_COMPLETED_MODULE_COUNT);
         if (!assessments.isEmpty()) {
             List<AssessmentSubmission> leftover = submissionRepository.findByAssessmentInAndStudent(assessments, learner);
             if (!leftover.isEmpty()) {
@@ -319,7 +320,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
             OnlineCourseVersion version,
             int maxModules
     ) {
-        List<OnlineLesson> lessons = orderedModules(course).stream()
+        List<OnlineLesson> lessons = orderedModules(version).stream()
                 .limit(maxModules)
                 .flatMap(module -> module.getLessons().stream()
                         .sorted(Comparator.comparing(lesson -> lesson.getDisplayOrder() == null ? Integer.MAX_VALUE : lesson.getDisplayOrder())))
@@ -346,11 +347,11 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     }
 
     private void pruneLessonProgressBeyondModules(
-            OnlineCourse course,
+            OnlineCourseVersion version,
             OnlineCourseEnrollment enrollment,
             int keepModuleCount
     ) {
-        Set<Long> allowedLessonIds = orderedModules(course).stream()
+        Set<Long> allowedLessonIds = orderedModules(version).stream()
                 .limit(keepModuleCount)
                 .flatMap(module -> module.getLessons().stream())
                 .map(OnlineLesson::getId)
@@ -364,8 +365,11 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         }
     }
 
-    private List<OnlineCourseModule> orderedModules(OnlineCourse course) {
-        return course.getModules().stream()
+    private List<OnlineCourseModule> orderedModules(OnlineCourseVersion version) {
+        if (version == null || version.getModules() == null) {
+            return List.of();
+        }
+        return version.getModules().stream()
                 .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
                 .toList();
     }

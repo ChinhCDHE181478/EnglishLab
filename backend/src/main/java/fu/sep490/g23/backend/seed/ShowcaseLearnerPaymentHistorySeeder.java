@@ -64,13 +64,20 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled) {
-            return;
+        List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
+        for (String email : targetEmails) {
+            User learner = userRepository.findByEmail(email).orElse(null);
+            if (learner != null) {
+                try {
+                    seedPaymentHistoryForLearner(learner);
+                } catch (Exception ex) {
+                    log.warn("Không thể seed payment history cho {}: {}", email, ex.getMessage());
+                }
+            }
         }
-        User learner = userRepository.findByEmail(LEARNER_EMAIL).orElse(null);
-        if (learner == null) {
-            return;
-        }
+    }
+
+    private void seedPaymentHistoryForLearner(User learner) {
         syncShowcaseCoursePrices();
 
         List<PaymentOrder> existing = paymentOrderRepository.findByStudentOrderByCreatedAtDesc(learner);

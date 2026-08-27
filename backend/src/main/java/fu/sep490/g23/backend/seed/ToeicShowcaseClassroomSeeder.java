@@ -259,9 +259,15 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
             ExerciseBankItem exercise,
             FlashcardSet flashcards
     ) {
-        instructorLedCourseManagementService.attachMaterial(unit.getId(), contentRef(material.getId(), "Tài liệu chuẩn của trung tâm"));
-        instructorLedCourseManagementService.attachExercise(unit.getId(), contentRef(exercise.getId(), "Bài luyện tập bắt buộc"));
-        instructorLedCourseManagementService.attachFlashcard(unit.getId(), contentRef(flashcards.getId(), "Ôn trước và sau buổi học"));
+        try {
+            instructorLedCourseManagementService.attachMaterial(unit.getId(), contentRef(material.getId(), "Tài liệu chuẩn của trung tâm"));
+        } catch (Exception ignored) {}
+        try {
+            instructorLedCourseManagementService.attachExercise(unit.getId(), contentRef(exercise.getId(), "Bài luyện tập bắt buộc"));
+        } catch (Exception ignored) {}
+        try {
+            instructorLedCourseManagementService.attachFlashcard(unit.getId(), contentRef(flashcards.getId(), "Ôn trước và sau buổi học"));
+        } catch (Exception ignored) {}
     }
 
     private CourseUnitContentRefRequest contentRef(Long resourceId, String note) {

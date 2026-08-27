@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface OnlineCourseVersionRepository extends JpaRepository<OnlineCourseVersion, Long> {
     List<OnlineCourseVersion> findByOnlineCourseOrderByVersionNumberDesc(OnlineCourse onlineCourse);
 
+    Optional<OnlineCourseVersion> findFirstByOnlineCourseOrderByVersionNumberDesc(OnlineCourse onlineCourse);
+
     Optional<OnlineCourseVersion> findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
             OnlineCourse onlineCourse,
             CourseVersionStatus status
