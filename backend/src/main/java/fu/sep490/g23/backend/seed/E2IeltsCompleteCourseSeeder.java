@@ -48,10 +48,13 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
+    @Value("${app.seed.sheet.enabled:false}")
+    private boolean sheetSeedEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled) {
+        if (!seedEnabled && !sheetSeedEnabled && onlineCourseRepository.existsBySlug(COURSE_SLUG)) {
             return;
         }
 
