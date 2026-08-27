@@ -34,7 +34,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -68,6 +70,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private final OnlineCourseVersionService courseVersionService;
     private final CourseProgressService courseProgressService;
     private final AiEvaluationClient aiEvaluationClient;
+    private final PlatformTransactionManager transactionManager;
 
     @Value("${app.seed.sheet.enabled:false}")
     private boolean seedEnabled;
@@ -78,19 +81,22 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     @Override
     public void run(String... args) {
         log.info("[ShowcaseCompletion] Bat dau seed tien do hoc tap cho cac hoc vien demo...");
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
         List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
         for (String email : targetEmails) {
-            User learner = userRepository.findByEmail(email).orElse(null);
-            if (learner != null) {
-                try {
-                    log.info("[ShowcaseCompletion] Hoan thien khoa {} cho {}", COURSE_SLUG, email);
-                    completePublishedCourse(learner, COURSE_SLUG, 0);
-                    log.info("[ShowcaseCompletion] Hoan thien vocabulary cho {}", email);
-                    seedVocabularyCourseLessonProgress(learner);
-                } catch (Exception ex) {
-                    log.warn("Không thể hoàn thiện tiến độ học tập demo cho {}: {}", email, ex.getMessage(), ex);
+            tx.executeWithoutResult(status -> {
+                User learner = userRepository.findByEmail(email).orElse(null);
+                if (learner != null) {
+                    try {
+                        log.info("[ShowcaseCompletion] Hoan thien khoa {} cho {}", COURSE_SLUG, email);
+                        completePublishedCourse(learner, COURSE_SLUG, 0);
+                        log.info("[ShowcaseCompletion] Hoan thien vocabulary cho {}", email);
+                        seedVocabularyCourseLessonProgress(learner);
+                    } catch (Exception ex) {
+                        log.warn("Không thể hoàn thiện tiến độ học tập demo cho {}: {}", email, ex.getMessage(), ex);
+                    }
                 }
-            }
+            });
         }
     }
 
