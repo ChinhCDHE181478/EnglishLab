@@ -60,13 +60,10 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
-    @Value("${app.seed.sheet.enabled:false}")
-    private boolean sheetSeedEnabled;
-
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        if (!seedEnabled && !sheetSeedEnabled && onlineCourseRepository.existsBySlug("ielts-master-vocabulary-band-7-plus")) {
+        if (onlineCourseRepository.existsBySlug("ielts-master-vocabulary-band-7-plus")) {
             return;
         }
 
@@ -150,6 +147,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
         return onlineCourseVersionRepository
                 .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(course))
                 .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
                         .onlineCourse(course)
                         .versionNumber(1)

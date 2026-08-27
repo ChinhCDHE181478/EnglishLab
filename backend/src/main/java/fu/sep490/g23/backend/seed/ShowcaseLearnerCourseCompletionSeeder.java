@@ -78,17 +78,18 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled) {
-            return;
+        List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
+        for (String email : targetEmails) {
+            User learner = userRepository.findByEmail(email).orElse(null);
+            if (learner != null) {
+                try {
+                    completePublishedCourse(learner, COURSE_SLUG, 0);
+                    seedVocabularyCourseLessonProgress(learner);
+                } catch (Exception ex) {
+                    log.warn("Không thể hoàn thiện tiến độ học tập demo cho {}: {}", email, ex.getMessage());
+                }
+            }
         }
-
-        User learner = userRepository.findByEmail(LEARNER_EMAIL).orElse(null);
-        if (learner == null) {
-            log.warn("Không thể hoàn thiện khóa demo vì thiếu học viên {}.", LEARNER_EMAIL);
-            return;
-        }
-        completePublishedCourse(learner, COURSE_SLUG, 7);
-        seedVocabularyCourseLessonProgress(learner);
     }
 
     private void completePublishedCourse(User learner, String slug, int minAssessments) {

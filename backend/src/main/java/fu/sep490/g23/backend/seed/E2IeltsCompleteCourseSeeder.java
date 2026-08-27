@@ -48,13 +48,10 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
-    @Value("${app.seed.sheet.enabled:false}")
-    private boolean sheetSeedEnabled;
-
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled && !sheetSeedEnabled && onlineCourseRepository.existsBySlug(COURSE_SLUG)) {
+        if (onlineCourseRepository.existsBySlug(COURSE_SLUG)) {
             return;
         }
 
@@ -258,6 +255,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
         return onlineCourseVersionRepository
                 .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(course))
                 .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
                         .onlineCourse(course)
                         .versionNumber(1)
