@@ -48,6 +48,8 @@ import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -79,6 +81,7 @@ import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
@@ -146,6 +149,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final RoomRepository roomRepository;
@@ -541,19 +545,27 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                             .onlineCourse(course)
                             .registeredAt(LocalDateTime.now().minusDays(40))
                             .build()));
+            OnlineCourseVersion version = onlineCourseVersionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
+                    .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(course))
+                    .orElse(null);
+            enrollment.setCourseVersion(version);
             enrollment.setStatus(EnrollmentStatus.COMPLETED);
             enrollment.setProgressPercent(100);
             packageEnrollmentRepository.save(enrollment);
-            for (var module : course.getModules()) {
-                for (OnlineLesson lesson : module.getLessons()) {
-                    LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
-                            .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
-                    progress.setEnrollment(enrollment);
-                    progress.setStatus(LessonProgressStatus.COMPLETED);
-                    progress.setProgressPercent(100);
-                    progress.setCompletedAt(LocalDateTime.now().minusDays(5));
-                    progress.setLastAccessedAt(LocalDateTime.now().minusDays(2));
-                    lessonProgressRepository.save(progress);
+            if (version != null && version.getModules() != null) {
+                for (var module : version.getModules()) {
+                    for (OnlineLesson lesson : module.getLessons()) {
+                        LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
+                                .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
+                        progress.setEnrollment(enrollment);
+                        progress.setCourseVersion(version);
+                        progress.setLessonKey(lesson.getLessonKey());
+                        progress.setStatus(LessonProgressStatus.COMPLETED);
+                        progress.setProgressPercent(100);
+                        progress.setCompletedAt(LocalDateTime.now().minusDays(5));
+                        progress.setLastAccessedAt(LocalDateTime.now().minusDays(2));
+                        lessonProgressRepository.save(progress);
+                    }
                 }
             }
         });

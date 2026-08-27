@@ -243,7 +243,12 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         enrollment.setProgressPercent(100);
         enrollmentRepository.save(enrollment);
 
-        course.getModules().forEach(module -> module.getLessons().forEach(lesson -> completeLesson(learner, enrollment, lesson)));
+        OnlineCourseVersion version = onlineCourseVersionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(course))
+                .orElse(null);
+        if (version != null && version.getModules() != null) {
+            version.getModules().forEach(module -> module.getLessons().forEach(lesson -> completeLesson(learner, enrollment, lesson)));
+        }
         enrollForDiscussionDemo(learner, "ielts-master-vocabulary-band-7-plus");
     }
 

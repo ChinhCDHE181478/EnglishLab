@@ -12,9 +12,12 @@ import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -40,6 +43,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     private final AssessmentRubricRepository rubricRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -50,10 +54,6 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled && !sheetSeedEnabled && rubricRepository.count() > 0) {
-            return;
-        }
-
         AssessmentRubric writingRubric = upsertIeltsWritingRubric();
         AssessmentRubric speakingRubric = upsertIeltsSpeakingRubric();
         AssessmentRubric vocabularyRubric = upsertVocabularyRubric();
@@ -157,9 +157,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private void seedVocabularyAssessments(OnlineCourse course, AssessmentRubric rubric) {
-        List<OnlineCourseModule> modules = course.getModules().stream()
-                .sorted(Comparator.comparing(OnlineCourseModule::getDisplayOrder))
-                .toList();
+        List<OnlineCourseModule> modules = courseModules(course);
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         for (OnlineCourseModule module : modules) {
             CourseAssessment assessment = findSeededModuleAssessment(existingAssessments, module, "AI Vocabulary Output Check - ")
@@ -188,9 +186,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private void seedPracticeTestAssessments(OnlineCourse course, AssessmentRubric writingRubric, AssessmentRubric speakingRubric) {
-        List<OnlineCourseModule> modules = course.getModules().stream()
-                .sorted(Comparator.comparing(OnlineCourseModule::getDisplayOrder))
-                .toList();
+        List<OnlineCourseModule> modules = courseModules(course);
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         for (OnlineCourseModule module : modules) {
             AssessmentSkill skill = resolvePracticeSkill(module);
@@ -533,5 +529,17 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                 .filter(item -> "Final AI Mock Reflection".equalsIgnoreCase(item.getTitle()))
                 .findFirst()
                 .or(() -> matches.size() == 1 ? Optional.of(matches.get(0)) : Optional.empty());
+    }
+
+    private List<OnlineCourseModule> courseModules(OnlineCourse course) {
+        OnlineCourseVersion version = onlineCourseVersionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(course))
+                .orElse(null);
+        if (version == null || version.getModules() == null) {
+            return List.of();
+        }
+        return version.getModules().stream()
+                .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
+                .toList();
     }
 }
