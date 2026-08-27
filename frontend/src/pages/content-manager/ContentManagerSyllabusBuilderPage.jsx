@@ -105,7 +105,7 @@ const emptyProgramForm = {
 const typeOptions = [
   { label: 'Học liệu trung tâm', value: 'MATERIAL', description: 'Thêm tài liệu từ kho học liệu trung tâm.' },
   { label: 'Ngân hàng bài tập', value: 'EXERCISE', description: 'Thêm bài tập dùng chung từ ngân hàng bài tập.' },
-  { label: 'Đề đánh giá', value: 'ASSESSMENT', description: 'Thêm đề kiểm tra / luyện tập từ ngân hàng đề.' },
+  // { label: 'Đề đánh giá', value: 'ASSESSMENT', description: 'Thêm đề kiểm tra / luyện tập từ ngân hàng đề.' },
   { label: 'Bộ Flashcard', value: 'FLASHCARD', description: 'Thêm bộ flashcard từ kho từ vựng.' },
 ];
 
@@ -796,6 +796,10 @@ export default function ContentManagerSyllabusBuilderPage() {
       setError('Vui lòng chọn Unit và tài nguyên cần gắn.');
       return;
     }
+    if (attachedResourceIds.has(String(attachForm.resourceId))) {
+      setError('Tài nguyên này đã tồn tại trong Unit đã chọn.');
+      return;
+    }
     setWorking(true);
     setError('');
     setSuccess('');
@@ -881,17 +885,29 @@ export default function ContentManagerSyllabusBuilderPage() {
     })),
   ], [units]);
 
+  const currentAttachUnit = useMemo(() => {
+    return units.find((u) => String(u.id) === String(attachForm.unitId)) || null;
+  }, [units, attachForm.unitId]);
+
+  const attachedResourceIds = useMemo(() => {
+    if (!currentAttachUnit) return new Set();
+    const typeKey = attachForm.type.toLowerCase() + 's';
+    const list = currentAttachUnit[typeKey] || [];
+    return new Set(list.map((ref) => String(ref.resourceId || ref.id)));
+  }, [currentAttachUnit, attachForm.type]);
+
   const resourceOptions = useMemo(() => {
     const items = banks[attachForm.type.toLowerCase() + 's'] || [];
+    const availableItems = items.filter((item) => !attachedResourceIds.has(String(item.id)));
     return [
-      { label: 'Chọn tài nguyên từ kho...', value: '' },
-      ...items.map((item) => ({
+      { label: availableItems.length ? 'Chọn tài nguyên từ kho...' : 'Không còn tài nguyên khả dụng (đã gắn hết vào Unit)', value: '' },
+      ...availableItems.map((item) => ({
         label: item.title || item.name || `Tài nguyên #${item.id}`,
         value: String(item.id),
         description: [item.skill, item.examCategory, item.type].filter(Boolean).join(' · '),
       })),
     ];
-  }, [banks, attachForm.type]);
+  }, [banks, attachForm.type, attachedResourceIds]);
 
   const selectedResource = useMemo(() => {
     const items = banks[attachForm.type.toLowerCase() + 's'] || [];

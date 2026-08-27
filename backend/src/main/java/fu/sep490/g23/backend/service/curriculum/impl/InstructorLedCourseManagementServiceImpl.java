@@ -384,16 +384,17 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         CourseUnit unit = findUnit(unitId);
         CenterMaterialLibraryItem material = materialRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trong kho."));
-        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndLearningResourceId(
+        if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndLearningResourceId(
                 unitId, CourseUnitContentType.MATERIAL, material.getId())) {
-            contentRefRepository.save(CourseUnitContentRef.builder()
-                    .courseUnit(unit)
-                    .contentType(CourseUnitContentType.MATERIAL)
-                    .learningResource(material)
-                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                    .note(trimOrNull(request.getNote()))
-                    .build());
+            throw new IllegalArgumentException("Học liệu này đã tồn tại trong Unit.");
         }
+        contentRefRepository.save(CourseUnitContentRef.builder()
+                .courseUnit(unit)
+                .contentType(CourseUnitContentType.MATERIAL)
+                .learningResource(material)
+                .sequenceNumber(defaultInt(request.getDisplayOrder()))
+                .note(trimOrNull(request.getNote()))
+                .build());
         return toUnitResponse(findUnit(unitId));
     }
 
@@ -404,16 +405,17 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .orElse(request.getResourceId());
         ContentBankItem exercise = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.EXERCISE)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
-        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
+        if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.EXERCISE, exercise.getId())) {
-            contentRefRepository.save(CourseUnitContentRef.builder()
-                    .courseUnit(unit)
-                    .contentType(CourseUnitContentType.EXERCISE)
-                    .contentBankItem(exercise)
-                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                    .note(trimOrNull(request.getNote()))
-                    .build());
+            throw new IllegalArgumentException("Bài tập này đã tồn tại trong Unit.");
         }
+        contentRefRepository.save(CourseUnitContentRef.builder()
+                .courseUnit(unit)
+                .contentType(CourseUnitContentType.EXERCISE)
+                .contentBankItem(exercise)
+                .sequenceNumber(defaultInt(request.getDisplayOrder()))
+                .note(trimOrNull(request.getNote()))
+                .build());
         return toUnitResponse(findUnit(unitId));
     }
 
@@ -424,16 +426,17 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .orElse(request.getResourceId());
         ContentBankItem assessment = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.ASSESSMENT)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
-        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
+        if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.ASSESSMENT, assessment.getId())) {
-            contentRefRepository.save(CourseUnitContentRef.builder()
-                    .courseUnit(unit)
-                    .contentType(CourseUnitContentType.ASSESSMENT)
-                    .contentBankItem(assessment)
-                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                    .note(trimOrNull(request.getNote()))
-                    .build());
+            throw new IllegalArgumentException("Đề đánh giá này đã tồn tại trong Unit.");
         }
+        contentRefRepository.save(CourseUnitContentRef.builder()
+                .courseUnit(unit)
+                .contentType(CourseUnitContentType.ASSESSMENT)
+                .contentBankItem(assessment)
+                .sequenceNumber(defaultInt(request.getDisplayOrder()))
+                .note(trimOrNull(request.getNote()))
+                .build());
         return toUnitResponse(findUnit(unitId));
     }
 
@@ -444,16 +447,17 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .orElse(request.getResourceId());
         ContentBankItem flashcardSet = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.FLASHCARD)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
-        if (!contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
+        if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.FLASHCARD, flashcardSet.getId())) {
-            contentRefRepository.save(CourseUnitContentRef.builder()
-                    .courseUnit(unit)
-                    .contentType(CourseUnitContentType.FLASHCARD)
-                    .contentBankItem(flashcardSet)
-                    .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                    .note(trimOrNull(request.getNote()))
-                    .build());
+            throw new IllegalArgumentException("Bộ flashcard này đã tồn tại trong Unit.");
         }
+        contentRefRepository.save(CourseUnitContentRef.builder()
+                .courseUnit(unit)
+                .contentType(CourseUnitContentType.FLASHCARD)
+                .contentBankItem(flashcardSet)
+                .sequenceNumber(defaultInt(request.getDisplayOrder()))
+                .note(trimOrNull(request.getNote()))
+                .build());
         return toUnitResponse(findUnit(unitId));
     }
 
