@@ -179,6 +179,14 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .title(requireText(request.getTitle(), "Tên giáo trình không được để trống."))
                 .code(code)
                 .slug(slug)
+                .shortDescription(trimOrNull(request.getShortDescription()))
+                .description(trimOrNull(request.getDescription()))
+                .thumbnailUrl(trimOrNull(request.getThumbnailUrl()))
+                .durationLabel(trimOrNull(request.getDurationLabel()))
+                .level(trimOrNull(request.getLevel()))
+                .baseTuitionFeeVnd(request.getBaseTuitionFeeVnd() != null ? request.getBaseTuitionFeeVnd() : BigDecimal.ZERO)
+                .saleTuitionFeeVnd(request.getSaleTuitionFeeVnd())
+                .featured(Boolean.TRUE.equals(request.getFeatured()))
                 .learningOutcomes(trimOrNull(request.getOutcomes()))
                 .teacherGuide(trimOrNull(request.getTeacherGuide()))
                 .publicationStatus(parsePublicationStatus(request.getStatus()))
@@ -203,6 +211,18 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         program.setTitle(requireText(request.getTitle(), "Tên giáo trình không được để trống."));
         program.setCode(code);
         program.setSlug(uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), id));
+        program.setShortDescription(trimOrNull(request.getShortDescription()));
+        program.setDescription(trimOrNull(request.getDescription()));
+        program.setThumbnailUrl(trimOrNull(request.getThumbnailUrl()));
+        program.setDurationLabel(trimOrNull(request.getDurationLabel()));
+        program.setLevel(trimOrNull(request.getLevel()));
+        if (request.getBaseTuitionFeeVnd() != null) {
+            program.setBaseTuitionFeeVnd(request.getBaseTuitionFeeVnd());
+        }
+        program.setSaleTuitionFeeVnd(request.getSaleTuitionFeeVnd());
+        if (request.getFeatured() != null) {
+            program.setFeatured(request.getFeatured());
+        }
         applyEnglishProfile(program, request);
         program.setLearningOutcomes(trimOrNull(request.getOutcomes()));
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
@@ -236,6 +256,14 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .title(source.getTitle() + " (Bản sao)")
                 .code(uniqueProgramCode(source.getCode()))
                 .slug(uniqueProgramSlug(source.getSlug() + "-copy", null))
+                .shortDescription(source.getShortDescription())
+                .description(source.getDescription())
+                .thumbnailUrl(source.getThumbnailUrl())
+                .durationLabel(source.getDurationLabel())
+                .level(source.getLevel())
+                .baseTuitionFeeVnd(source.getBaseTuitionFeeVnd())
+                .saleTuitionFeeVnd(source.getSaleTuitionFeeVnd())
+                .featured(source.isFeatured())
                 .examType(source.getExamType())
                 .programTrack(source.getProgramTrack())
                 .focusSkills(source.getFocusSkills())
@@ -781,6 +809,14 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .title(program.getTitle())
                 .code(program.getCode())
                 .slug(program.getSlug())
+                .shortDescription(program.getShortDescription())
+                .description(program.getDescription())
+                .thumbnailUrl(program.getThumbnailUrl())
+                .durationLabel(program.getDurationLabel())
+                .level(program.getLevel())
+                .baseTuitionFeeVnd(program.getBaseTuitionFeeVnd())
+                .saleTuitionFeeVnd(program.getSaleTuitionFeeVnd())
+                .featured(program.isFeatured())
                 .examCategory(program.getExamType())
                 .programTrack(program.getProgramTrack())
                 .focusSkills(program.getFocusSkills())

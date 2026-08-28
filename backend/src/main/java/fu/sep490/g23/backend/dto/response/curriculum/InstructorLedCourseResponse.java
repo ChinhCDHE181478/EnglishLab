@@ -17,6 +17,14 @@ public class InstructorLedCourseResponse {
     private String title;
     private String code;
     private String slug;
+    private String shortDescription;
+    private String description;
+    private String thumbnailUrl;
+    private String durationLabel;
+    private String level;
+    private BigDecimal baseTuitionFeeVnd;
+    private BigDecimal saleTuitionFeeVnd;
+    private Boolean featured;
     private ClassroomDeliveryMode deliveryMode;
     private String deliveryModeLabel;
     private String examCategory;
