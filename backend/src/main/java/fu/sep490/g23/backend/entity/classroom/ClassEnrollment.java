@@ -1,13 +1,11 @@
 package fu.sep490.g23.backend.entity.classroom;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -43,17 +41,6 @@ public class ClassEnrollment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_section_id", nullable = false)
     private ClassSection classSection;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "package_enrollment_id")
-    private OnlineCourseEnrollment packageEnrollment;
-
-    /** @deprecated Dùng {@link #registrationStatus}. Giữ để tương thích schema cũ. */
-    @Deprecated
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    @Builder.Default
-    private ClassroomEnrollmentStatus status = ClassroomEnrollmentStatus.WAITING;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "registration_status", nullable = false, length = 40)
@@ -190,15 +177,7 @@ public class ClassEnrollment {
     @PreUpdate
     void synchronizeRegistrationFields() {
         if (registrationStatus == null) {
-            if (status == ClassroomEnrollmentStatus.ENROLLED) {
-                registrationStatus = ClassroomRegistrationStatus.ASSIGNED;
-            } else if (status == ClassroomEnrollmentStatus.CANCELLED
-                    || status == ClassroomEnrollmentStatus.DROPPED
-                    || status == ClassroomEnrollmentStatus.TRANSFERRED) {
-                registrationStatus = ClassroomRegistrationStatus.CANCELLED;
-            } else {
-                registrationStatus = ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
-            }
+            registrationStatus = ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
         }
         if (tuitionAmountPaid == null) {
             tuitionAmountPaid = BigDecimal.ZERO;
@@ -215,6 +194,5 @@ public class ClassEnrollment {
         if (registrationStatus != ClassroomRegistrationStatus.WAITLIST) {
             waitlistPriority = null;
         }
-        fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport.syncLegacyStatus(this);
     }
 }

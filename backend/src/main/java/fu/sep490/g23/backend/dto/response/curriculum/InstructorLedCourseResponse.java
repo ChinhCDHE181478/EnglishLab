@@ -19,12 +19,10 @@ public class InstructorLedCourseResponse {
     private String slug;
     private String shortDescription;
     private String description;
-    private String thumbnailUrl;
     private String durationLabel;
     private String level;
     private BigDecimal baseTuitionFeeVnd;
     private BigDecimal saleTuitionFeeVnd;
-    private Boolean featured;
     private ClassroomDeliveryMode deliveryMode;
     private String deliveryModeLabel;
     private String examCategory;
@@ -47,7 +45,6 @@ public class InstructorLedCourseResponse {
     private LocalDateTime submittedAt;
     private String reviewedByName;
     private LocalDateTime reviewedAt;
-    private Integer displayOrder;
     /** Tổng số lớp học đã từng gắn giáo trình này. */
     private Integer classroomUsageCount;
     /** Số lớp sắp khai giảng / đang diễn ra dùng giáo trình này. */

@@ -49,8 +49,6 @@ class InstructorLedCourseManagementServiceImplTest {
     @Mock private AssessmentRubricRepository assessmentRubricRepository;
     @Mock private AssessmentBankItemRepository assessmentBankRepository;
     @Mock private FlashcardSetRepository flashcardSetRepository;
-    @Mock private fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync contentBankLinkSync;
-    @Mock private fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver contentBankIdResolver;
     @Mock private ClassroomAccessHelper accessHelper;
 
     @InjectMocks

@@ -44,8 +44,6 @@ import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
-import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
-import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
@@ -116,15 +114,13 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final FlashcardSetRepository flashcardSetRepository;
-    private final ContentBankLinkSync contentBankLinkSync;
-    private final ContentBankIdResolver contentBankIdResolver;
     private final ClassroomAccessHelper accessHelper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
     public List<InstructorLedCourseResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
-        List<InstructorLedCourse> programs = programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc();
+        List<InstructorLedCourse> programs = programRepository.findAllByOrderByUpdatedAtDescIdDesc();
         return programs.stream().map(program -> toProgramResponse(program, false)).toList();
     }
 
@@ -181,16 +177,13 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .slug(slug)
                 .shortDescription(trimOrNull(request.getShortDescription()))
                 .description(trimOrNull(request.getDescription()))
-                .thumbnailUrl(trimOrNull(request.getThumbnailUrl()))
                 .durationLabel(trimOrNull(request.getDurationLabel()))
                 .level(trimOrNull(request.getLevel()))
                 .baseTuitionFeeVnd(request.getBaseTuitionFeeVnd() != null ? request.getBaseTuitionFeeVnd() : BigDecimal.ZERO)
                 .saleTuitionFeeVnd(request.getSaleTuitionFeeVnd())
-                .featured(Boolean.TRUE.equals(request.getFeatured()))
                 .learningOutcomes(trimOrNull(request.getOutcomes()))
                 .teacherGuide(trimOrNull(request.getTeacherGuide()))
                 .publicationStatus(parsePublicationStatus(request.getStatus()))
-                .displayOrder(defaultInt(request.getDisplayOrder()))
                 .build();
         applyEnglishProfile(program, request);
         if (program.getPublicationStatus() == PackageStatus.PUBLISHED) {
@@ -213,16 +206,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         program.setSlug(uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), id));
         program.setShortDescription(trimOrNull(request.getShortDescription()));
         program.setDescription(trimOrNull(request.getDescription()));
-        program.setThumbnailUrl(trimOrNull(request.getThumbnailUrl()));
         program.setDurationLabel(trimOrNull(request.getDurationLabel()));
         program.setLevel(trimOrNull(request.getLevel()));
         if (request.getBaseTuitionFeeVnd() != null) {
             program.setBaseTuitionFeeVnd(request.getBaseTuitionFeeVnd());
         }
         program.setSaleTuitionFeeVnd(request.getSaleTuitionFeeVnd());
-        if (request.getFeatured() != null) {
-            program.setFeatured(request.getFeatured());
-        }
         applyEnglishProfile(program, request);
         program.setLearningOutcomes(trimOrNull(request.getOutcomes()));
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
@@ -232,7 +221,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
             validateReadyForPublish(program);
         }
         program.setPublicationStatus(nextStatus);
-        program.setDisplayOrder(defaultInt(request.getDisplayOrder()));
         return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
@@ -258,12 +246,10 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .slug(uniqueProgramSlug(source.getSlug() + "-copy", null))
                 .shortDescription(source.getShortDescription())
                 .description(source.getDescription())
-                .thumbnailUrl(source.getThumbnailUrl())
                 .durationLabel(source.getDurationLabel())
                 .level(source.getLevel())
                 .baseTuitionFeeVnd(source.getBaseTuitionFeeVnd())
                 .saleTuitionFeeVnd(source.getSaleTuitionFeeVnd())
-                .featured(source.isFeatured())
                 .examType(source.getExamType())
                 .programTrack(source.getProgramTrack())
                 .focusSkills(source.getFocusSkills())
@@ -274,7 +260,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .learningOutcomes(source.getLearningOutcomes())
                 .teacherGuide(source.getTeacherGuide())
                 .publicationStatus(PackageStatus.DRAFT)
-                .displayOrder(source.getDisplayOrder())
                 .build();
 
         for (CourseUnit unit : source.getUnits()) {
@@ -429,8 +414,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     @Override
     public CourseUnitResponse attachExercise(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
-        Long resolvedId = contentBankIdResolver.resolve(ContentBankType.EXERCISE, request.getResourceId())
-                .orElse(request.getResourceId());
+        Long resolvedId = request.getResourceId();
         ContentBankItem exercise = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.EXERCISE)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
@@ -450,8 +434,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     @Override
     public CourseUnitResponse attachAssessment(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
-        Long resolvedId = contentBankIdResolver.resolve(ContentBankType.ASSESSMENT, request.getResourceId())
-                .orElse(request.getResourceId());
+        Long resolvedId = request.getResourceId();
         ContentBankItem assessment = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.ASSESSMENT)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
@@ -471,8 +454,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     @Override
     public CourseUnitResponse attachFlashcard(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
-        Long resolvedId = contentBankIdResolver.resolve(ContentBankType.FLASHCARD, request.getResourceId())
-                .orElse(request.getResourceId());
+        Long resolvedId = request.getResourceId();
         ContentBankItem flashcardSet = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.FLASHCARD)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
@@ -811,12 +793,10 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .slug(program.getSlug())
                 .shortDescription(program.getShortDescription())
                 .description(program.getDescription())
-                .thumbnailUrl(program.getThumbnailUrl())
                 .durationLabel(program.getDurationLabel())
                 .level(program.getLevel())
                 .baseTuitionFeeVnd(program.getBaseTuitionFeeVnd())
                 .saleTuitionFeeVnd(program.getSaleTuitionFeeVnd())
-                .featured(program.isFeatured())
                 .examCategory(program.getExamType())
                 .programTrack(program.getProgramTrack())
                 .focusSkills(program.getFocusSkills())
@@ -836,7 +816,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .submittedAt(program.getSubmittedAt())
                 .reviewedByName(program.getReviewedBy() == null ? null : program.getReviewedBy().getFullName())
                 .reviewedAt(program.getReviewedAt())
-                .displayOrder(program.getDisplayOrder())
                 .classroomUsageCount(0)
                 .activeClassroomCount(0)
                 .createdAt(program.getCreatedAt())

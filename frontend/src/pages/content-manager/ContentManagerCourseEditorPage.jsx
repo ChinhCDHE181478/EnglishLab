@@ -25,7 +25,6 @@ const emptyForm = {
   price: '0',
   salePrice: '',
   thumbnailUrl: '',
-  displayOrder: '0',
   featured: false,
   modules: [],
 };
@@ -74,7 +73,6 @@ const mapCourseToForm = (course = {}) => {
     price: course.price ?? '0',
     salePrice: course.salePrice && Number(course.salePrice) < Number(course.price || 0) ? String(course.salePrice) : '',
     thumbnailUrl: course.thumbnailUrl ?? '',
-    displayOrder: String(course.displayOrder ?? 0),
     featured: Boolean(course.featured),
     modules: course.modules ?? [],
   };
@@ -233,7 +231,6 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       salePrice: form.salePrice === '' ? null : Number(form.salePrice || 0),
       recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
       targetBand: form.targetBand === '' ? null : Number(form.targetBand),
-      displayOrder: Number(form.displayOrder || 0),
       status: targetStatus,
     };
 

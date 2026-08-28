@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
@@ -541,14 +540,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
         ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
         enrollment.setNote(request.getNote());
-        enrollment.setPackageEnrollment(ensureOnlineCourseEnrollment(student, offering));
 
         if (isClassFull(offering) && !enrollment.hasClassAccess()) {
             enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
         } else if (!enrollment.hasClassAccess()) {
             tryAssignEnrollment(enrollment, offering, student, null, "Xếp lớp trực tiếp");
         }
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         return mapper.toEnrollmentResponse(enrollment);
     }
@@ -568,7 +565,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Học viên không thuộc lớp này."));
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do xóa khỏi lớp");
         saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         notifyWaitlistIfSlotAvailable(enrollment.getClassSection());
@@ -603,8 +599,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomRegistrationStatus sourcePreviousStatus = sourceEnrollment.getRegistrationStatus();
         sourceEnrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
         sourceEnrollment.setNote(appendNote(sourceEnrollment.getNote(), "Đã chuyển sang lớp #" + target.getId()));
-        ClassroomRegistrationSupport.syncLegacyStatus(sourceEnrollment);
-        sourceEnrollment.setStatus(ClassroomEnrollmentStatus.TRANSFERRED);
         saveEnrollmentWithWaitlistOrder(sourceEnrollment, sourcePreviousStatus);
 
         if (enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
@@ -615,7 +609,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassEnrollment targetEnrollment = ClassEnrollment.builder()
                 .student(student)
                 .classSection(target)
-                .packageEnrollment(ensureOnlineCourseEnrollment(student, target))
                 .holdSpot(sourceEnrollment.isHoldSpot())
                 .tuitionAmountDue(targetDue)
                 .tuitionAmountPaid(carriedPaid)
@@ -641,7 +634,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             tryAssignEnrollment(targetEnrollment, target, student, null, "Chuyển lớp");
         }
 
-        ClassroomRegistrationSupport.syncLegacyStatus(targetEnrollment);
         targetEnrollment = saveEnrollmentWithWaitlistOrder(targetEnrollment, null);
         notifyWaitlistIfSlotAvailable(source);
         return mapper.toEnrollmentResponse(targetEnrollment);
@@ -697,7 +689,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setRegistrationStatus(nextStatus);
         enrollment.setConfirmedAt(LocalDateTime.now());
         enrollment.setConfirmedBy(actor);
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         String classTitle = offering.getName();
@@ -736,7 +727,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.REJECTED);
         enrollment.setNote(appendNote(enrollment.getNote(), request == null ? null : request.getReason()));
         ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do từ chối đăng ký");
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         notificationService.notifyUser(
@@ -833,7 +823,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setTuitionSettlementResolvedAt(LocalDateTime.now());
         enrollment.setTuitionSettlementResolvedBy(actor);
 
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = enrollmentRepository.save(enrollment);
 
         notificationService.notifyUser(
@@ -973,7 +962,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             tryAssignEnrollment(enrollment, offering, learner, recordedBy, null);
         }
 
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         notificationService.notifyUser(
@@ -1015,7 +1003,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 actor,
                 request == null ? null : request.getAssignmentNote()
         );
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         if (enrollment.hasClassAccess()) {
@@ -1647,11 +1634,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return assigned >= capacity;
     }
 
-    private fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment ensureOnlineCourseEnrollment(User student, ClassSection offering) {
-        // TODO(slice10): InstructorLedCourse does not have a direct mapping to OnlineCourse yet.
-        return null;
-    }
-
     private void tryAssignEnrollment(
             ClassEnrollment enrollment,
             ClassSection offering,
@@ -1681,7 +1663,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (assignmentNote != null && !assignmentNote.isBlank()) {
             enrollment.setAssignmentNote(assignmentNote);
         }
-        enrollment.setPackageEnrollment(ensureOnlineCourseEnrollment(student, offering));
         ensureGradebookEntry(offering, student);
     }
 

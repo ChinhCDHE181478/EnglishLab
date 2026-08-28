@@ -113,11 +113,5 @@ public class OnlineCourseVersion {
     public void addModule(OnlineCourseModule module) {
         modules.add(module);
         module.setOnlineCourseVersion(this);
-        if (onlineCourse != null) {
-            module.setOnlineCourse(onlineCourse);
-            if (onlineCourse.getModules() != null && !onlineCourse.getModules().contains(module)) {
-                onlineCourse.getModules().add(module);
-            }
-        }
     }
 }

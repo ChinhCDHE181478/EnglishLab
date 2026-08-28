@@ -294,10 +294,10 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
     }
 
     private OnlineLesson firstLesson(OnlineCourse course) {
-        return course.getModules().stream()
-                .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
+        return course.getPublishedModules().stream()
+                .sorted(Comparator.comparing(module -> module.getSequenceNumber() == null ? Integer.MAX_VALUE : module.getSequenceNumber()))
                 .flatMap(module -> module.getLessons().stream()
-                        .sorted(Comparator.comparing(lesson -> lesson.getDisplayOrder() == null ? Integer.MAX_VALUE : lesson.getDisplayOrder())))
+                        .sorted(Comparator.comparing(lesson -> lesson.getSequenceNumber() == null ? Integer.MAX_VALUE : lesson.getSequenceNumber())))
                 .findFirst()
                 .orElse(null);
     }
@@ -376,9 +376,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
     }
 
     private void react(CourseDiscussionPost post, User user, CourseDiscussionReactionType type) {
-        CourseDiscussionReactionTarget targetType = post.getPostType() == CourseDiscussionPostType.THREAD
-                ? CourseDiscussionReactionTarget.THREAD
-                : CourseDiscussionReactionTarget.REPLY;
         reactionRepository.findByPostAndUser(post, user)
                 .ifPresentOrElse(existing -> {
                     existing.setReactionType(type);
@@ -388,8 +385,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     reactionRepository.save(existing);
                 }, () -> reactionRepository.save(CourseDiscussionReaction.builder()
                         .post(post)
-                        .targetType(targetType)
-                        .targetId(post.getId())
                         .user(user)
                         .reactionType(type)
                         .build()));
@@ -404,20 +399,13 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
             User reviewer,
             String actionNote
     ) {
-        CourseDiscussionReportTarget targetType = post.getPostType() == CourseDiscussionPostType.THREAD
-                ? CourseDiscussionReportTarget.THREAD
-                : CourseDiscussionReportTarget.REPLY;
         CourseDiscussionReport report = reportRepository
                 .findByPostAndReporter(post, reporter)
                 .orElseGet(() -> CourseDiscussionReport.builder()
                         .post(post)
-                        .targetType(targetType)
-                        .targetId(post.getId())
                         .reporter(reporter)
                         .build());
         report.setPost(post);
-        report.setTargetType(targetType);
-        report.setTargetId(post.getId());
         report.setReasonCategory(category);
         report.setReason(reason);
         report.setStatus(status);

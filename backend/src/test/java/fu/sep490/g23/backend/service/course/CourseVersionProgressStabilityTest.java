@@ -56,11 +56,6 @@ class CourseVersionProgressStabilityTest {
         User learner = User.builder().id(7L).email("learner@englishlab.vn").build();
         OnlineCourse courseWithTwentyLiveLessons = OnlineCourse.builder()
                 .id(1L)
-                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
-                        .lessons(new ArrayList<>(java.util.stream.IntStream.range(0, 20)
-                                .mapToObj(index -> OnlineLesson.builder().id((long) index + 1).build())
-                                .toList()))
-                        .build())))
                 .build();
         OnlineCourseVersion enrollmentVersion = OnlineCourseVersion.builder()
                 .id(101L)
@@ -68,6 +63,11 @@ class CourseVersionProgressStabilityTest {
                 .versionNumber(1)
                 .totalRequiredLessons(10)
                 .totalRequiredAssessments(0)
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
+                        .lessons(new ArrayList<>(java.util.stream.IntStream.range(0, 20)
+                                .mapToObj(index -> OnlineLesson.builder().id((long) index + 1).build())
+                                .toList()))
+                        .build())))
                 .build();
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(55L)
@@ -99,12 +99,6 @@ class CourseVersionProgressStabilityTest {
                 .id(3L)
                 .title("Khóa học chưa bắt đầu")
                 .slug("not-started")
-                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
-                        .lessons(new ArrayList<>(List.of(
-                                OnlineLesson.builder().id(1L).build(),
-                                OnlineLesson.builder().id(2L).build()
-                        )))
-                        .build())))
                 .build();
         OnlineCourseVersion enrollmentVersion = OnlineCourseVersion.builder()
                 .id(103L)
@@ -112,6 +106,12 @@ class CourseVersionProgressStabilityTest {
                 .versionNumber(1)
                 .totalRequiredLessons(2)
                 .totalRequiredAssessments(0)
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
+                        .lessons(new ArrayList<>(List.of(
+                                OnlineLesson.builder().id(1L).build(),
+                                OnlineLesson.builder().id(2L).build()
+                        )))
+                        .build())))
                 .build();
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(57L)
@@ -141,9 +141,6 @@ class CourseVersionProgressStabilityTest {
         OnlineLesson lesson = OnlineLesson.builder().id(1L).build();
         OnlineCourse course = OnlineCourse.builder()
                 .id(2L)
-                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
-                        .lessons(new ArrayList<>(List.of(lesson)))
-                        .build())))
                 .build();
         OnlineCourseVersion baselineVersion = OnlineCourseVersion.builder()
                 .id(102L)
@@ -151,6 +148,9 @@ class CourseVersionProgressStabilityTest {
                 .versionNumber(1)
                 .totalRequiredLessons(1)
                 .totalRequiredAssessments(1)
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
+                        .lessons(new ArrayList<>(List.of(lesson)))
+                        .build())))
                 .build();
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(56L)

@@ -19,7 +19,7 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND COALESCE(payload_jsonb->>'type', payload_jsonb->>'assessmentType') = :#{#type.name()}
+              AND payload_jsonb->>'type' = :#{#type.name()}
             ORDER BY updated_at DESC NULLS LAST, id DESC
             """, nativeQuery = true)
     List<AssessmentBankItem> findByTypeOrderByUpdatedAtDescIdDesc(@Param("type") AssessmentType type);
@@ -27,7 +27,7 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND COALESCE(payload_jsonb->>'type', payload_jsonb->>'assessmentType') = :#{#type.name()}
+              AND payload_jsonb->>'type' = :#{#type.name()}
               AND status = :status
               AND active = true
             ORDER BY display_order ASC, updated_at DESC NULLS LAST, id DESC
@@ -41,7 +41,7 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
               AND id = :id
-              AND COALESCE(payload_jsonb->>'type', payload_jsonb->>'assessmentType') = :#{#type.name()}
+              AND payload_jsonb->>'type' = :#{#type.name()}
               AND status = :status
               AND active = true
             """, nativeQuery = true)
@@ -54,7 +54,7 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND COALESCE(payload_jsonb->>'type', payload_jsonb->>'assessmentType') = :#{#type.name()}
+              AND payload_jsonb->>'type' = :#{#type.name()}
               AND status = :status
               AND active = true
               AND skill IN (:skills)

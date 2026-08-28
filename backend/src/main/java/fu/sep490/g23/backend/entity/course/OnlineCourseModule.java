@@ -44,11 +44,6 @@ public class OnlineCourseModule {
     @JoinColumn(name = "online_course_version_id", nullable = false)
     private OnlineCourseVersion onlineCourseVersion;
 
-    /** Legacy root-course FK kept through Slice 2 reconciliation; prefer version ownership. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "online_course_id")
-    private OnlineCourse onlineCourse;
-
     @Column(nullable = false, length = 180)
     private String title;
 
@@ -69,12 +64,4 @@ public class OnlineCourseModule {
         lesson.setModule(this);
     }
 
-    /** Compatibility alias used by older call sites during Slice 2. */
-    public Integer getDisplayOrder() {
-        return sequenceNumber;
-    }
-
-    public void setDisplayOrder(Integer displayOrder) {
-        this.sequenceNumber = displayOrder == null ? 0 : displayOrder;
-    }
 }

@@ -60,7 +60,7 @@ class PlacementRecommendationServiceImplTest {
     void manualReviewPendingBuildsRecommendationsWhenBandIsAvailable() {
         when(eligibilityService.evaluateEligibility(1L, 10L)).thenReturn(eligibility(false, PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED));
         when(onlineCourseService.recommendCourses(org.mockito.ArgumentMatchers.eq(learner), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
-        when(instructorLedCourseRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()).thenReturn(List.of());
+        when(instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc()).thenReturn(List.of());
 
         PlacementRecommendationResponse result = service.getRecommendations(10L, learner.getEmail());
 
@@ -84,7 +84,7 @@ class PlacementRecommendationServiceImplTest {
     void eligibleAttemptUsesAttemptScoreAndBuildsRecommendations() {
         when(eligibilityService.evaluateEligibility(1L, 10L)).thenReturn(eligibility(true, PlacementEvaluationStatus.ELIGIBLE));
         when(onlineCourseService.recommendCourses(org.mockito.ArgumentMatchers.eq(learner), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
-        when(instructorLedCourseRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()).thenReturn(List.of());
+        when(instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc()).thenReturn(List.of());
 
         PlacementRecommendationResponse result = service.getRecommendations(10L, learner.getEmail());
 

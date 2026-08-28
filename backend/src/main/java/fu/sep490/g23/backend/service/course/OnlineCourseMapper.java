@@ -105,7 +105,6 @@ public class OnlineCourseMapper {
                 .thumbnailUrl(course.getThumbnailUrl())
                 .totalLessons(course.getTotalLessons())
                 .totalHours(course.getTotalHours())
-                .displayOrder(course.getDisplayOrder())
                 .featured(course.isFeatured())
                 .registered(registered)
                 .progressPercent(progressPercent)
@@ -150,12 +149,12 @@ public class OnlineCourseMapper {
 
     private List<ModuleResponse> toModuleResponses(List<OnlineCourseModule> modules, boolean includeLessonContent) {
         return modules.stream()
-                .sorted(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(OnlineCourseModule::getId))
+                .sorted(Comparator.comparing(OnlineCourseModule::getSequenceNumber).thenComparing(OnlineCourseModule::getId))
                 .map(module -> ModuleResponse.builder()
                         .id(module.getId())
                         .title(module.getTitle())
                         .description(module.getDescription())
-                        .displayOrder(module.getDisplayOrder())
+                        .displayOrder(module.getSequenceNumber())
                         .lessons(toLessonResponses(module.getLessons(), includeLessonContent))
                         .build())
                 .toList();
@@ -163,7 +162,7 @@ public class OnlineCourseMapper {
 
     private List<LessonResponse> toLessonResponses(List<OnlineLesson> lessons, boolean includeLessonContent) {
         return lessons.stream()
-                .sorted(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(OnlineLesson::getId))
+                .sorted(Comparator.comparing(OnlineLesson::getSequenceNumber).thenComparing(OnlineLesson::getId))
                 .map(lesson -> {
                     boolean exposeContent = includeLessonContent || lesson.isPreview();
                     return LessonResponse.builder()
@@ -181,7 +180,7 @@ public class OnlineCourseMapper {
                         .transcriptSegments(exposeContent ? parseTranscriptSegments(lesson.getTranscriptSegmentsJson()) : List.of())
                         .flashcardSets(exposeContent ? toFlashcardSetResponses(lesson) : List.of())
                         .durationMinutes(lesson.getDurationMinutes())
-                        .displayOrder(lesson.getDisplayOrder())
+                        .displayOrder(lesson.getSequenceNumber())
                         .preview(lesson.isPreview())
                         .build();
                 })
@@ -266,7 +265,7 @@ public class OnlineCourseMapper {
                 }
             }
         }
-        return course.getModules() == null ? List.of() : course.getModules();
+        return course.getLatestModules();
     }
 
     private void inferSkillsFromLesson(OnlineLesson lesson, Set<String> skills) {

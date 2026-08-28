@@ -7,15 +7,16 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OnlineLessonRepository extends JpaRepository<OnlineLesson, Long> {
-    java.util.Optional<OnlineLesson> findByIdAndModuleOnlineCourseId(Long lessonId, Long courseId);
+    java.util.Optional<OnlineLesson> findByIdAndModuleOnlineCourseVersionOnlineCourseId(Long lessonId, Long courseId);
 
-    boolean existsByModuleIdAndModuleOnlineCourseId(Long moduleId, Long courseId);
+    boolean existsByModuleIdAndModuleOnlineCourseVersionOnlineCourseId(Long moduleId, Long courseId);
 
     @Query("""
             select count(l)
             from OnlineLesson l
             join l.module m
-            join m.onlineCourse c
+            join m.onlineCourseVersion v
+            join v.onlineCourse c
             where c.deleted = false
             """)
     long countActiveLessons();

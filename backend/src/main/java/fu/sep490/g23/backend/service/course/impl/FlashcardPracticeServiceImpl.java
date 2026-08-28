@@ -118,13 +118,13 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     }
 
     private void initializeCourse(OnlineCourse course) {
-        course.getModules().forEach(module -> module.getLessons().forEach(lesson ->
+        course.getPublishedModules().forEach(module -> module.getLessons().forEach(lesson ->
                 lesson.getFlashcardRefs().forEach(ref -> ref.getContentBankItem().getTitle())));
     }
 
     private List<VocabularyTermResponse> extractTerms(OnlineCourse course) {
         List<VocabularyTermResponse> bankTerms = new ArrayList<>();
-        for (OnlineCourseModule module : course.getModules()) {
+        for (OnlineCourseModule module : course.getPublishedModules()) {
             for (OnlineLesson lesson : module.getLessons()) {
                 for (CourseLessonFlashcardRef ref : lesson.getFlashcardRefs()) {
                     ContentBankItem item = ref.getContentBankItem();
@@ -137,7 +137,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         if (!bankTerms.isEmpty()) return bankTerms;
 
         List<VocabularyTermResponse> contentTerms = new ArrayList<>();
-        for (OnlineCourseModule module : course.getModules()) {
+        for (OnlineCourseModule module : course.getPublishedModules()) {
             for (OnlineLesson lesson : module.getLessons()) {
                 contentTerms.addAll(extractLessonContent(course, module, lesson));
             }

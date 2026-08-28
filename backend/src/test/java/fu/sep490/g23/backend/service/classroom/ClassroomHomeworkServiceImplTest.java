@@ -71,7 +71,6 @@ class ClassroomHomeworkServiceImplTest {
     @Mock private ClassroomHomeworkScoreCalculator homeworkScoreCalculator;
     @Mock private ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
     @Mock private HomeworkTextAnnotationCodec homeworkTextAnnotationCodec;
-    @Mock private fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync contentBankLinkSync;
 
     @InjectMocks private ClassroomHomeworkServiceImpl service;
 

@@ -15,7 +15,6 @@ import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionPostType;
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
@@ -316,8 +315,6 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
         reportRepository.save(CourseDiscussionReport.builder()
                 .post(post)
-                .targetType(targetType)
-                .targetId(post.getId())
                 .reporter(reporter)
                 .reason(clean(request.getReason()))
                 .reasonCategory(request.getReasonCategory())
@@ -353,12 +350,12 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     }
 
     private OnlineLesson findLessonInCourse(Long courseId, Long lessonId) {
-        return lessonRepository.findByIdAndModuleOnlineCourseId(lessonId, courseId)
+        return lessonRepository.findByIdAndModuleOnlineCourseVersionOnlineCourseId(lessonId, courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong khóa học này."));
     }
 
     private void ensureModuleInCourse(Long courseId, Long moduleId) {
-        if (moduleId != null && !lessonRepository.existsByModuleIdAndModuleOnlineCourseId(moduleId, courseId)) {
+        if (moduleId != null && !lessonRepository.existsByModuleIdAndModuleOnlineCourseVersionOnlineCourseId(moduleId, courseId)) {
             throw new RuntimeException("Không tìm thấy mô-đun trong khóa học này.");
         }
     }
@@ -423,13 +420,8 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
             CourseDiscussionReactionType reactionType,
             boolean helpful
     ) {
-        CourseDiscussionReactionTarget targetType = post.getPostType() == CourseDiscussionPostType.THREAD
-                ? CourseDiscussionReactionTarget.THREAD
-                : CourseDiscussionReactionTarget.REPLY;
         return CourseDiscussionReaction.builder()
                 .post(post)
-                .targetType(targetType)
-                .targetId(post.getId())
                 .user(user)
                 .reactionType(reactionType)
                 .helpful(helpful)

@@ -90,7 +90,6 @@ class OnlineCourseVersionServiceImplTest {
                 .id(21L)
                 .title("IELTS Foundation")
                 .status(PackageStatus.PUBLISHED)
-                .modules(new ArrayList<>())
                 .build();
         versionOne = OnlineCourseVersion.builder()
                 .id(31L)
@@ -568,7 +567,6 @@ class OnlineCourseVersionServiceImplTest {
         publishedLesson.setModule(publishedModule);
         versionOne.setModules(new ArrayList<>(List.of(publishedModule)));
         publishedModule.setOnlineCourseVersion(versionOne);
-        publishedModule.setOnlineCourse(course);
 
         when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
         when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));

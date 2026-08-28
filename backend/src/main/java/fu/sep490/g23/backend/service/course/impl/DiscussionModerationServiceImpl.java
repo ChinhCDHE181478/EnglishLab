@@ -8,6 +8,7 @@ import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionPostType;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
@@ -63,8 +64,9 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
         CourseDiscussionReport report = findActionableReport(reportId, CourseDiscussionReportStatus.PENDING, CourseDiscussionReportStatus.DISMISSED);
         requirePost(report).setStatus(CourseDiscussionStatus.HIDDEN);
         review(report, CourseDiscussionReportStatus.ACTION_TAKEN, request, reviewerEmail);
-        auditLogService.record(reviewerEmail, "DISCUSSION_CONTENT_HIDDEN", report.getTargetType().name(),
-                String.valueOf(report.getPost() != null ? report.getPost().getId() : report.getTargetId()),
+        CourseDiscussionPost post = requirePost(report);
+        auditLogService.record(reviewerEmail, "DISCUSSION_CONTENT_HIDDEN", post.getPostType().name(),
+                String.valueOf(post.getId()),
                 "Ẩn nội dung từ báo cáo #" + reportId);
         return toResponse(report);
     }
@@ -76,8 +78,9 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
             requirePost(report).setStatus(CourseDiscussionStatus.OPEN);
         }
         review(report, CourseDiscussionReportStatus.DISMISSED, request, reviewerEmail);
-        auditLogService.record(reviewerEmail, "DISCUSSION_REPORT_DISMISSED", report.getTargetType().name(),
-                String.valueOf(report.getPost() != null ? report.getPost().getId() : report.getTargetId()),
+        CourseDiscussionPost post = requirePost(report);
+        auditLogService.record(reviewerEmail, "DISCUSSION_REPORT_DISMISSED", post.getPostType().name(),
+                String.valueOf(post.getId()),
                 "Bỏ qua báo cáo #" + reportId);
         return toResponse(report);
     }
@@ -115,7 +118,9 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
                 : post.getContent();
         return DiscussionModerationReportResponse.builder()
                 .reportId(report.getId())
-                .targetType(report.getTargetType())
+                .targetType(post.getPostType() == CourseDiscussionPostType.THREAD
+                        ? CourseDiscussionReportTarget.THREAD
+                        : CourseDiscussionReportTarget.REPLY)
                 .targetId(post.getId())
                 .reasonCategory(report.getReasonCategory())
                 .reason(report.getReason())

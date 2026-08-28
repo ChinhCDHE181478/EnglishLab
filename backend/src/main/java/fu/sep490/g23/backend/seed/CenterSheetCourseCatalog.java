@@ -150,7 +150,6 @@ public class CenterSheetCourseCatalog {
         course.setPrice(BigDecimal.valueOf(1_490_000));
         course.setThumbnailUrl(spec.thumbnailUrl());
         course.setStatus(PackageStatus.PUBLISHED);
-        course.setDisplayOrder(spec.displayOrder());
         course.setFeatured(spec.pathOrder() <= 2);
         course.setDeleted(false);
         course.setCreatedBy(contentManager);

@@ -94,7 +94,6 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         onlineCourse.setPrice(paidPrice(seed.price()));
         onlineCourse.setThumbnailUrl(seed.thumbnail());
         onlineCourse.setStatus(PackageStatus.PUBLISHED);
-        onlineCourse.setDisplayOrder(6);
         onlineCourse.setFeatured(true);
         onlineCourse.setDeleted(false);
         onlineCourse.setCategory(category);
@@ -116,7 +115,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         }
 
         OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
-        draftVersion.getModules().sort(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
+        draftVersion.getModules().sort(Comparator.comparing(OnlineCourseModule::getSequenceNumber).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
         onlineCourseVersionRepository.save(draftVersion);
         onlineCourseRepository.save(onlineCourse);
         onlineCourseVersionService.refreshPublishedSnapshot(onlineCourse);
@@ -125,7 +124,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     private void upsertModule(OnlineCourse onlineCourse, String courseSlug, ModuleSeed moduleSeed) {
         OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
         OnlineCourseModule module = draftVersion.getModules().stream()
-                .filter(existingModule -> existingModule.getDisplayOrder() != null && existingModule.getDisplayOrder().equals(moduleSeed.order()))
+                .filter(existingModule -> existingModule.getSequenceNumber() != null && existingModule.getSequenceNumber().equals(moduleSeed.order()))
                 .findFirst()
                 .orElseGet(() -> {
                     OnlineCourseModule newModule = new OnlineCourseModule();
@@ -135,13 +134,13 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
 
         module.setTitle(moduleSeed.title());
         module.setDescription(moduleSeed.description());
-        module.setDisplayOrder(moduleSeed.order());
+        module.setSequenceNumber(moduleSeed.order());
 
         for (LessonSeed lessonSeed : moduleSeed.lessons()) {
             upsertLesson(module, courseSlug, lessonSeed);
         }
 
-        module.getLessons().sort(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+        module.getLessons().sort(Comparator.comparing(OnlineLesson::getSequenceNumber).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
     }
 
     private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
@@ -161,7 +160,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
 
     private void upsertLesson(OnlineCourseModule module, String courseSlug, LessonSeed lessonSeed) {
         OnlineLesson lesson = module.getLessons().stream()
-                .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder().equals(lessonSeed.order()))
+                .filter(existingLesson -> existingLesson.getSequenceNumber() != null && existingLesson.getSequenceNumber().equals(lessonSeed.order()))
                 .findFirst()
                 .orElseGet(() -> {
                     OnlineLesson newLesson = new OnlineLesson();
@@ -176,9 +175,9 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         lesson.setVideoUrl(lessonSeed.videoUrl());
         lesson.setMaterialUrl(null);
         lesson.setDurationMinutes(toMinutes(lessonSeed.durationSeconds()));
-        lesson.setDisplayOrder(lessonSeed.order());
+        lesson.setSequenceNumber(lessonSeed.order());
         lesson.setPreview(Boolean.TRUE.equals(lessonSeed.isPreview()));
-        int moduleOrder = module.getDisplayOrder() == null ? 0 : module.getDisplayOrder();
+        int moduleOrder = module.getSequenceNumber() == null ? 0 : module.getSequenceNumber();
         lesson.setLessonKey("%s-m%d-l%d".formatted(courseSlug, moduleOrder, lessonSeed.order()));
 
         upsertFlashcardSetForVocabularyLesson(module, lesson);
@@ -204,7 +203,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         set.setSkill("VOCABULARY");
         set.setTags(module.getTitle() + ", IELTS vocabulary, course-linked");
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(module.getDisplayOrder() == null ? 0 : module.getDisplayOrder());
+        set.setDisplayOrder(module.getSequenceNumber() == null ? 0 : module.getSequenceNumber());
         set.setCardsJson(toJson(cards));
         FlashcardSet savedSet = flashcardSetRepository.save(set);
 

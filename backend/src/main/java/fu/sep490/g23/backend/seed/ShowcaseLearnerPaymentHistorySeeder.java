@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.seed;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
@@ -47,9 +47,8 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
             "ielts-master-vocabulary-band-7-plus",
             "e2-ielts-practice-tests"
     );
-    private static final Set<ClassroomEnrollmentStatus> CLASSROOM_STATUSES = Set.of(
-            ClassroomEnrollmentStatus.ENROLLED,
-            ClassroomEnrollmentStatus.COMPLETED
+    private static final Set<ClassroomRegistrationStatus> CLASSROOM_STATUSES = Set.of(
+            ClassroomRegistrationStatus.ASSIGNED
     );
 
     private final UserRepository userRepository;
@@ -123,7 +122,7 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
         }
 
         List<ClassEnrollment> classEnrollments = classEnrollmentRepository
-                .findByStudentIdAndStatusIn(learner.getId(), CLASSROOM_STATUSES);
+                .findByStudentIdAndRegistrationStatusIn(learner.getId(), CLASSROOM_STATUSES);
         for (ClassEnrollment enrollment : classEnrollments) {
             if (coveredEnrollmentIds.contains(enrollment.getId())) {
                 continue;

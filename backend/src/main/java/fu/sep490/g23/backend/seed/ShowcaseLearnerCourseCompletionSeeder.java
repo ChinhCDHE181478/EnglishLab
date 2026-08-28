@@ -333,7 +333,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         List<OnlineLesson> lessons = orderedModules(version).stream()
                 .limit(maxModules)
                 .flatMap(module -> module.getLessons().stream()
-                        .sorted(Comparator.comparing(lesson -> lesson.getDisplayOrder() == null ? Integer.MAX_VALUE : lesson.getDisplayOrder())))
+                        .sorted(Comparator.comparing(lesson -> lesson.getSequenceNumber() == null ? Integer.MAX_VALUE : lesson.getSequenceNumber())))
                 .toList();
         LocalDateTime firstCompletion = LocalDateTime.now().minusDays(30);
         for (int index = 0; index < lessons.size(); index++) {
@@ -380,7 +380,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
             return List.of();
         }
         return version.getModules().stream()
-                .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
+                .sorted(Comparator.comparing(module -> module.getSequenceNumber() == null ? Integer.MAX_VALUE : module.getSequenceNumber()))
                 .toList();
     }
 
