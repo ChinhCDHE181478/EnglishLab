@@ -51,6 +51,7 @@ import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -505,43 +506,24 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
             String examCategory,
             Pageable pageable
     ) {
-        Specification<AssessmentBankItem> specification = (root, query, criteriaBuilder) ->
-                criteriaBuilder.conjunction();
-        if (skill != null) {
-            specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("skill"), skill));
-        }
-        if (type != null) {
-            specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("type"), type));
-        }
-        if (StringUtils.hasText(status)) {
-            specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("status"), status.trim().toUpperCase(Locale.ROOT)));
-        }
-        if (StringUtils.hasText(keyword)) {
-            String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
-            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("instructions")), pattern)
-            ));
-        }
-        if (StringUtils.hasText(examCategory)) {
-            boolean toeic = "TOEIC".equalsIgnoreCase(examCategory.trim());
-            specification = specification.and((root, query, criteriaBuilder) -> {
-                var toeicPredicate = criteriaBuilder.or(
-                        criteriaBuilder.like(
-                                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("uiConfigJson"), "")),
-                                "%toeic%"),
-                        criteriaBuilder.like(
-                                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("title"), "")),
-                                "%toeic%")
-                );
-                return toeic ? toeicPredicate : criteriaBuilder.not(toeicPredicate);
-            });
-        }
-        return assessmentBankRepository.findAll(specification, pageable).map(this::toAssessmentResponse);
+        String normalizedStatus = StringUtils.hasText(status)
+                ? status.trim().toUpperCase(Locale.ROOT)
+                : "";
+        String normalizedKeyword = StringUtils.hasText(keyword)
+                ? "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%"
+                : "";
+        String normalizedExamCategory = StringUtils.hasText(examCategory)
+                ? examCategory.trim().toUpperCase(Locale.ROOT)
+                : "";
+        return assessmentBankRepository.searchPage(
+                        skill == null ? "" : skill.name(),
+                        type == null ? "" : type.name(),
+                        normalizedStatus,
+                        normalizedKeyword,
+                        normalizedExamCategory,
+                        PageRequest.of(pageable.getPageNumber(), pageable.getPageSize())
+                )
+                .map(this::toAssessmentResponse);
     }
 
     @Override
