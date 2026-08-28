@@ -29,6 +29,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Getter
@@ -117,10 +118,6 @@ public class OnlineCourse {
     @Builder.Default
     private PackageStatus status = PackageStatus.DRAFT;
 
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
     @Column(nullable = false)
     @Builder.Default
     private boolean featured = false;
@@ -154,15 +151,24 @@ public class OnlineCourse {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /** Convenience listing via legacy course FK; canonical ownership is OnlineCourseVersion.modules. */
     @OneToMany(mappedBy = "onlineCourse")
-    @OrderBy("sequenceNumber ASC, id ASC")
+    @OrderBy("versionNumber DESC, id DESC")
     @Builder.Default
-    private List<OnlineCourseModule> modules = new ArrayList<>();
+    private List<OnlineCourseVersion> versions = new ArrayList<>();
 
-    public void addModule(OnlineCourseModule module) {
-        modules.add(module);
-        module.setOnlineCourse(this);
+    public List<OnlineCourseModule> getLatestModules() {
+        return versions.stream()
+                .max(Comparator.comparing(OnlineCourseVersion::getVersionNumber))
+                .map(OnlineCourseVersion::getModules)
+                .orElseGet(List::of);
+    }
+
+    public List<OnlineCourseModule> getPublishedModules() {
+        return versions.stream()
+                .filter(version -> version.getStatus() == fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus.PUBLISHED)
+                .max(Comparator.comparing(OnlineCourseVersion::getVersionNumber))
+                .map(OnlineCourseVersion::getModules)
+                .orElseGet(List::of);
     }
 
     public boolean isPublished() {

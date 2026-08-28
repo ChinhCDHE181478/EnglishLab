@@ -9,6 +9,7 @@ import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
@@ -106,7 +107,10 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     }
 
     private CompletionSnapshot buildSnapshot(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
-        int liveLessonCount = course.getModules().stream()
+        List<OnlineCourseModule> liveModules = enrollment.getCourseVersion() == null
+                ? course.getPublishedModules()
+                : enrollment.getCourseVersion().getModules();
+        int liveLessonCount = liveModules.stream()
                 .mapToInt(module -> module.getLessons().size())
                 .sum();
         int liveAssessmentCount = Math.toIntExact(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course));

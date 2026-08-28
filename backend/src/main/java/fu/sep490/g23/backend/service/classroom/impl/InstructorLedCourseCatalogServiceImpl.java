@@ -35,7 +35,7 @@ public class InstructorLedCourseCatalogServiceImpl implements InstructorLedCours
     @Override
     @Transactional(readOnly = true)
     public List<InstructorLedCourseResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
-        List<InstructorLedCourse> programs = programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc();
+        List<InstructorLedCourse> programs = programRepository.findAllByOrderByUpdatedAtDescIdDesc();
         return programs.stream().map(this::toResponse).toList();
     }
 
@@ -122,9 +122,7 @@ public class InstructorLedCourseCatalogServiceImpl implements InstructorLedCours
                 .baseTuitionFeeVnd(source.getBaseTuitionFeeVnd())
                 .saleTuitionFeeVnd(source.getSaleTuitionFeeVnd())
                 .durationLabel(source.getDurationLabel())
-                .thumbnailUrl(source.getThumbnailUrl())
                 .publicationStatus(PackageStatus.DRAFT)
-                .featured(false)
                 .build();
         InstructorLedCourse saved = programRepository.save(clone);
         return toResponse(saved);
@@ -146,8 +144,6 @@ public class InstructorLedCourseCatalogServiceImpl implements InstructorLedCours
         program.setBaseTuitionFeeVnd(request.getPrice() == null ? BigDecimal.ZERO : request.getPrice());
         program.setSaleTuitionFeeVnd(request.getSalePrice());
         program.setDurationLabel(trimOrNull(request.getDuration()));
-        program.setThumbnailUrl(trimOrNull(request.getThumbnailUrl()));
-        program.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
     }
 
     private void validatePublishable(InstructorLedCourse program) {
@@ -179,11 +175,8 @@ public class InstructorLedCourseCatalogServiceImpl implements InstructorLedCours
                 .price(program.getBaseTuitionFeeVnd())
                 .salePrice(program.getSaleTuitionFeeVnd())
                 .duration(program.getDurationLabel())
-                .thumbnailUrl(program.getThumbnailUrl())
                 .status(program.getPublicationStatus())
                 .statusLabel(statusLabel(program.getPublicationStatus()))
-                .displayOrder(program.getDisplayOrder())
-                .featured(program.isFeatured())
                 .classroomCount(0)
                 .activeClassroomCount(0)
                 .createdAt(program.getCreatedAt())

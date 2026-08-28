@@ -115,11 +115,4 @@ public class OnlineLesson {
         this.transcriptJson = transcriptSegmentsJson;
     }
 
-    public Integer getDisplayOrder() {
-        return sequenceNumber;
-    }
-
-    public void setDisplayOrder(Integer displayOrder) {
-        this.sequenceNumber = displayOrder == null ? 0 : displayOrder;
-    }
 }

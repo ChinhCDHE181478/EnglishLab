@@ -108,21 +108,10 @@ public class InstructorLedCourse {
     @Column(name = "duration_label", length = 80)
     private String durationLabel;
 
-    @Column(name = "thumbnail_url", length = 700)
-    private String thumbnailUrl;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "publication_status", nullable = false, length = 30)
     @Builder.Default
     private PackageStatus publicationStatus = PackageStatus.DRAFT;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean featured = false;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")

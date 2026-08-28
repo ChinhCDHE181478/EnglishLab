@@ -139,20 +139,19 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
      * Core ranking for placement → classroom training programs.
      *
      * Pipeline:
-     * 1. Load programs (already ordered by displayOrder).
+     * 1. Load active instructor-led courses.
      * 2. Keep PUBLISHED product + PUBLISHED curriculum only.
      * 3. Same exam category as placement (IELTS vs TOEIC) — hard filter, unlike online courses.
      * 4. trainingProgramScore() — numeric match (level, weak skills, target stretch).
-     * 5. Sort by score desc; tie-break displayOrder then id.
+     * 5. Sort by score desc; tie-break by id.
      * 6. Keep 6; toTrainingResponse() adds the Vietnamese reason.
      */
     private List<RecommendedTrainingProgramResponse> recommendTrainingPrograms(PlacementRecommendationContext context) {
-        return instructorLedCourseRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc().stream()
+        return instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
                 .filter(program -> program.getPublicationStatus() == PackageStatus.PUBLISHED)
                 .filter(program -> context.getExamType().equalsIgnoreCase(program.getExamType()))
                 .map(program -> new ScoredTrainingProgram(program, trainingProgramScore(program, context)))
                 .sorted(Comparator.comparingDouble(ScoredTrainingProgram::score).reversed()
-                        .thenComparing(item -> item.program().getDisplayOrder())
                         .thenComparing(item -> item.program().getId()))
                 .limit(6)
                 .map(item -> toTrainingResponse(item.program(), context))
@@ -166,7 +165,6 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
      *   +8 each   focus skill overlaps a placement weak skill
      *   +5        course target is above current score (room to grow)
      *   +3        course target still covers the learner's personal goal
-     *   +1        course is featured
      *
      * IELTS uses targetBand; TOEIC uses targetScore.
      */
@@ -187,7 +185,6 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
             if (context.getOverallScore() != null && curriculum.getTargetScore() > context.getOverallScore().intValue()) score += 5;
             if (context.getTargetScore() != null && curriculum.getTargetScore() <= context.getTargetScore().intValue()) score += 3;
         }
-        if (program.isFeatured()) score += 1;
         return score;
     }
 
@@ -214,7 +211,6 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .slug(program.getSlug())
                 .title(program.getTitle())
                 .deliveryMode(null)
-                .thumbnailUrl(program.getThumbnailUrl())
                 .shortDescription(program.getShortDescription())
                 .entryPlacementLevel(curriculum.getEntryPlacementLevel())
                 .examCategory(curriculum.getExamType())

@@ -159,14 +159,14 @@ public class CourseProgressionGuard {
     }
 
     private List<OnlineCourseModule> orderedModules(OnlineCourse course) {
-        List<OnlineCourseModule> modules = new ArrayList<>(course.getModules() == null ? List.of() : course.getModules());
-        modules.sort(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
+        List<OnlineCourseModule> modules = new ArrayList<>(course.getPublishedModules());
+        modules.sort(Comparator.comparing(OnlineCourseModule::getSequenceNumber).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
         return modules;
     }
 
     private List<OnlineLesson> orderedLessonsOfModule(OnlineCourseModule module) {
         List<OnlineLesson> lessons = new ArrayList<>(module.getLessons() == null ? List.of() : module.getLessons());
-        lessons.sort(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+        lessons.sort(Comparator.comparing(OnlineLesson::getSequenceNumber).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
         return lessons;
     }
 

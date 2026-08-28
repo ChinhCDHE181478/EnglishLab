@@ -104,12 +104,6 @@ public class AssessmentBankItem {
     private AssessmentType type;
 
     @Transient
-    private String legacyAssessmentType;
-
-    @Transient
-    private String legacyContentJson;
-
-    @Transient
     @Builder.Default
     private AiEvaluationMode aiEvaluationMode = AiEvaluationMode.NONE;
 
@@ -135,23 +129,11 @@ public class AssessmentBankItem {
     @PostLoad
     private void hydrateFromPayload() {
         Map<String, Object> payload = ContentBankPayloadSupport.ensure(payloadJsonb);
-        String typeName = ContentBankPayloadSupport.getString(payload, "type");
-        if (typeName == null || typeName.isBlank()) {
-            typeName = ContentBankPayloadSupport.getString(payload, "assessmentType");
-        }
-        type = parseType(typeName);
-        legacyAssessmentType = ContentBankPayloadSupport.getString(payload, "assessmentType");
-        if (legacyAssessmentType == null || legacyAssessmentType.isBlank()) {
-            legacyAssessmentType = type == null ? AssessmentType.MODULE_TEST.name() : type.name();
-        }
+        type = parseType(ContentBankPayloadSupport.getString(payload, "type"));
         aiEvaluationMode = parseAiMode(ContentBankPayloadSupport.getString(payload, "aiEvaluationMode"));
         instructions = ContentBankPayloadSupport.getString(payload, "instructions");
         objectiveAnswerKey = ContentBankPayloadSupport.getString(payload, "objectiveAnswerKey");
         uiConfigJson = ContentBankPayloadSupport.getString(payload, "uiConfigJson");
-        String contentJson = ContentBankPayloadSupport.getString(payload, "contentJson");
-        legacyContentJson = contentJson == null || contentJson.isBlank()
-                ? (uiConfigJson == null || uiConfigJson.isBlank() ? "{}" : uiConfigJson)
-                : contentJson;
         passingScore = ContentBankPayloadSupport.getBigDecimal(payload, "passingScore");
         BigDecimal loadedMax = ContentBankPayloadSupport.getBigDecimal(payload, "maxScore");
         maxScore = loadedMax == null ? BigDecimal.TEN : loadedMax;
@@ -167,17 +149,12 @@ public class AssessmentBankItem {
         }
         AssessmentType effectiveType = type == null ? AssessmentType.MODULE_TEST : type;
         type = effectiveType;
-        legacyAssessmentType = effectiveType.name();
-        String content = uiConfigJson == null || uiConfigJson.isBlank() ? "{}" : uiConfigJson;
-        legacyContentJson = content;
         ContentBankPayloadSupport.put(payloadJsonb, "type", effectiveType.name());
-        ContentBankPayloadSupport.put(payloadJsonb, "assessmentType", effectiveType.name());
         ContentBankPayloadSupport.put(payloadJsonb, "aiEvaluationMode",
                 aiEvaluationMode == null ? AiEvaluationMode.NONE.name() : aiEvaluationMode.name());
         ContentBankPayloadSupport.put(payloadJsonb, "instructions", instructions);
         ContentBankPayloadSupport.put(payloadJsonb, "objectiveAnswerKey", objectiveAnswerKey);
         ContentBankPayloadSupport.put(payloadJsonb, "uiConfigJson", uiConfigJson);
-        ContentBankPayloadSupport.put(payloadJsonb, "contentJson", content);
         ContentBankPayloadSupport.put(payloadJsonb, "passingScore", passingScore);
         ContentBankPayloadSupport.put(payloadJsonb, "maxScore", maxScore == null ? BigDecimal.TEN : maxScore);
         ContentBankPayloadSupport.put(payloadJsonb, "timeLimitMinutes", timeLimitMinutes);

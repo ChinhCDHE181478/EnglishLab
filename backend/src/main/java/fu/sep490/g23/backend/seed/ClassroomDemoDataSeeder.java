@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.seed;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSyllabusItem;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
@@ -755,9 +754,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .student(learner)
                 .classSection(offering)
                 .registrationStatus(registrationStatus)
-                .status(registrationStatus == ClassroomRegistrationStatus.ASSIGNED
-                        ? ClassroomEnrollmentStatus.ENROLLED
-                        : ClassroomEnrollmentStatus.WAITING)
                 .tuitionAmountDue(due)
                 .tuitionAmountPaid(paid)
                 .tuitionDepositPaid(registrationStatus == ClassroomRegistrationStatus.DEPOSIT_PAID ? paid : BigDecimal.ZERO)

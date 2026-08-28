@@ -14,13 +14,13 @@ import java.util.Optional;
 
 @Repository
 public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long>, JpaSpecificationExecutor<OnlineCourse> {
-    @EntityGraph(attributePaths = {"category", "modules"})
+    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
     Optional<OnlineCourse> findWithModulesById(Long id);
 
-    @EntityGraph(attributePaths = {"category", "modules"})
+    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
     Optional<OnlineCourse> findWithModulesByIdAndDeletedFalseAndStatus(Long id, PackageStatus status);
 
-    @EntityGraph(attributePaths = {"category", "modules"})
+    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
     Optional<OnlineCourse> findBySlugAndDeletedFalseAndStatus(String slug, PackageStatus status);
 
     Optional<OnlineCourse> findBySlug(String slug);

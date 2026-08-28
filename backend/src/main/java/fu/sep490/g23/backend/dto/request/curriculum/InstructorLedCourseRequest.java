@@ -31,9 +31,6 @@ public class InstructorLedCourseRequest {
 
     private String description;
 
-    @Size(max = 700)
-    private String thumbnailUrl;
-
     @Size(max = 80)
     private String durationLabel;
 
@@ -45,8 +42,6 @@ public class InstructorLedCourseRequest {
 
     @DecimalMin(value = "0.0", message = "Học phí ưu đãi không được âm.")
     private BigDecimal saleTuitionFeeVnd;
-
-    private Boolean featured;
 
     private ClassroomDeliveryMode deliveryMode;
 
@@ -77,9 +72,6 @@ public class InstructorLedCourseRequest {
 
     @Size(max = 30)
     private String status;
-
-    @Min(0)
-    private Integer displayOrder;
 
     // Cấu hình riêng cho chương trình virtual
     @Size(max = 30)

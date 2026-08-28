@@ -59,9 +59,6 @@ public class ClassroomOfferingResponse {
     private String targetScore;
     private String duration;
     private String studyMode;
-    private Integer displayOrder;
-    private boolean featured;
-    private String thumbnailUrl;
     private ClassroomSessionResponse nextSession;
     private Integer progressPercent;
     private Long enrollmentId;

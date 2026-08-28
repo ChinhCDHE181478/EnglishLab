@@ -29,7 +29,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
@@ -489,7 +488,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 .orElseGet(() -> enrollmentRepository.save(ClassEnrollment.builder()
                         .student(learner)
                         .classSection(offering)
-                        .status(ClassroomEnrollmentStatus.ENROLLED)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .agreedTuitionFeeVnd(offering.getTuitionFeeVnd())
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
@@ -1051,8 +1049,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .baseTuitionFeeVnd(BigDecimal.valueOf(toeic ? 8_900_000 : 12_500_000))
                         .durationLabel("12 tuần")
                         .publicationStatus(PackageStatus.PUBLISHED)
-                        .displayOrder(1)
-                        .featured(true)
                         .build()));
         if (courseUnitRepository.findByInstructorLedCourseIdOrderBySequenceNumberAscIdAsc(program.getId()).isEmpty()) {
             String[][] units = toeic ? toeicUnits() : ieltsUnits();

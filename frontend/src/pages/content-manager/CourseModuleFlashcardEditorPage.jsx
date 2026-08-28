@@ -139,7 +139,6 @@ const toCoursePayload = (course) => {
     duration: course.duration,
     price: Number(course.price || 0),
     thumbnailUrl: course.thumbnailUrl,
-    displayOrder: Number(course.displayOrder || 0),
     featured: Boolean(course.featured),
     modules: modules.map((module, moduleIndex) => ({
       id: module.id,

@@ -157,9 +157,6 @@ public class ClassroomMapper {
                 .targetScore(course.getTargetScore() == null ? null : String.valueOf(course.getTargetScore()))
                 .duration(course.getDurationLabel())
                 .studyMode(offering.getStudyMode())
-                .displayOrder(course.getDisplayOrder())
-                .featured(course.isFeatured())
-                .thumbnailUrl(course.getThumbnailUrl())
                 .nextSession(nextSession)
                 .progressPercent(progressPercent)
                 .enrollmentId(enrollment == null ? null : enrollment.getId())
@@ -688,7 +685,6 @@ public class ClassroomMapper {
                 .submittedAt(course.getSubmittedAt())
                 .reviewedByName(course.getReviewedBy() == null ? null : course.getReviewedBy().getFullName())
                 .reviewedAt(course.getReviewedAt())
-                .displayOrder(course.getDisplayOrder())
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
                 .units(includeUnits ? units.stream().map(this::toCourseUnitResponse).toList() : null)
@@ -760,14 +756,14 @@ public class ClassroomMapper {
         }
         var item = ref.getContentBankItem();
         String subtitle = item == null ? null : switch (ref.getContentType()) {
-            case ASSESSMENT -> payloadText(item, "assessmentType", "type");
+            case ASSESSMENT -> payloadText(item, "type");
             case EXERCISE -> payloadText(item, "exerciseType");
             case FLASHCARD, MATERIAL -> item.getExamCategory();
         };
         String contentJson = item == null ? null : switch (ref.getContentType()) {
             case EXERCISE -> payloadText(item, "prompt");
             case FLASHCARD -> serializePayload(item);
-            case ASSESSMENT -> payloadText(item, "contentJson", "uiConfigJson");
+            case ASSESSMENT -> payloadText(item, "uiConfigJson");
             case MATERIAL -> null;
         };
         return CourseUnitContentRefResponse.builder()

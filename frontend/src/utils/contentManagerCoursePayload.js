@@ -21,7 +21,6 @@ export function buildManagedCoursePayload(course, overrides = {}) {
     price: Number(source.price || 0),
     salePrice: source.salePrice == null || source.salePrice === '' ? null : Number(source.salePrice),
     thumbnailUrl: source.thumbnailUrl || '',
-    displayOrder: Number(source.displayOrder || 0),
     featured: Boolean(source.featured),
     modules: modules.map((module, moduleIndex) => ({
       id: module.id,

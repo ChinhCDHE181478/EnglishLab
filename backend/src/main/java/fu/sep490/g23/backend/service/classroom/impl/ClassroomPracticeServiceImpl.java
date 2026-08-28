@@ -20,7 +20,6 @@ import fu.sep490.g23.backend.entity.course.CourseUnitContentRef;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomPracticeService;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
-import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +38,6 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     private final ClassroomAccessHelper accessHelper;
-    private final ContentBankLinkSync contentBankLinkSync;
     private final CourseUnitContentRefRepository contentRefRepository;
     private final ExerciseBankItemRepository exerciseRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -116,7 +114,6 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 .classSection(offering)
                 .student(learner)
                 .exercise(ref.exercise())
-                .legacyExerciseId(requireLegacyExerciseId(ref.exercise()))
                 .attemptNumber(attemptNumber)
                 .responseText(request.getResponseText())
                 .answersJson(request.getAnswersJson())
@@ -250,14 +247,6 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
         if (request == null || (isBlank(request.getResponseText()) && isBlank(request.getAnswersJson()))) {
             throw new IllegalArgumentException("Bạn cần hoàn thành bài làm trước khi nộp lượt luyện tập.");
         }
-    }
-
-    private Long requireLegacyExerciseId(fu.sep490.g23.backend.entity.assessment.ExerciseBankItem exercise) {
-        Long legacyId = contentBankLinkSync.legacyIdForExercise(exercise);
-        if (legacyId == null) {
-            throw new IllegalStateException("Thiếu ánh xạ legacy cho bài tập luyện. Chạy lại migration Slice 3 hoặc tạo map.");
-        }
-        return legacyId;
     }
 
     private ScoreResult score(String answersJson, String answerKeyJson) {

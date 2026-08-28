@@ -71,7 +71,7 @@ class OnlineCourseReorderServiceImplTest {
         );
 
         assertThat(result).isEqualTo(responseModules);
-        assertThat(editableVersion.getModules()).extracting(OnlineCourseModule::getDisplayOrder).containsExactly(2, 1);
+        assertThat(editableVersion.getModules()).extracting(OnlineCourseModule::getSequenceNumber).containsExactly(2, 1);
         verify(onlineCourseRepository, org.mockito.Mockito.times(2)).flush();
     }
 
@@ -124,14 +124,10 @@ class OnlineCourseReorderServiceImplTest {
                 .sequenceNumber(2)
                 .lessons(new ArrayList<>())
                 .build();
-        OnlineCourse course = OnlineCourse.builder()
+        return OnlineCourse.builder()
                 .id(1L)
                 .status(PackageStatus.DRAFT)
-                .modules(new ArrayList<>(List.of(first, second)))
                 .build();
-        first.setOnlineCourse(course);
-        second.setOnlineCourse(course);
-        return course;
     }
 
     private OnlineCourseVersion editableVersionFor(OnlineCourse course) {
@@ -140,9 +136,12 @@ class OnlineCourseReorderServiceImplTest {
                 .onlineCourse(course)
                 .versionNumber(1)
                 .status(CourseVersionStatus.DRAFT)
-                .modules(course.getModules())
+                .modules(new ArrayList<>(List.of(
+                        OnlineCourseModule.builder().id(11L).title("Module A").sequenceNumber(1).lessons(new ArrayList<>()).build(),
+                        OnlineCourseModule.builder().id(12L).title("Module B").sequenceNumber(2).lessons(new ArrayList<>()).build()
+                )))
                 .build();
-        course.getModules().forEach(module -> module.setOnlineCourseVersion(version));
+        version.getModules().forEach(module -> module.setOnlineCourseVersion(version));
         return version;
     }
 }

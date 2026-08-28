@@ -17,7 +17,6 @@ import {
   Filter,
   GraduationCap,
   HelpCircle,
-  Image as ImageIcon,
   Info,
   Layers,
   Link2,
@@ -110,10 +109,8 @@ const emptyProgramForm = {
   slug: '',
   shortDescription: '',
   description: '',
-  thumbnailUrl: '',
   durationLabel: '',
   level: 'INTERMEDIATE',
-  featured: false,
   deliveryMode: 'OFFLINE',
   examCategory: 'IELTS',
   programTrack: 'IELTS_ACADEMIC',
@@ -124,7 +121,6 @@ const emptyProgramForm = {
   entryPlacementLevel: 'BEGINNER',
   outcomes: '',
   status: 'DRAFT',
-  displayOrder: 0,
 };
 
 const typeOptions = [
@@ -213,10 +209,8 @@ const toProgramForm = (program) => {
     ...program,
     shortDescription: program?.shortDescription || '',
     description: program?.description || '',
-    thumbnailUrl: program?.thumbnailUrl || '',
     durationLabel: program?.durationLabel || '',
     level: program?.level || 'INTERMEDIATE',
-    featured: Boolean(program?.featured),
     examCategory,
     programTrack: program?.programTrack || defaults.programTrack,
     focusSkills: readEnglishFocusSkills(program?.focusSkills, examCategory),
@@ -234,10 +228,8 @@ const toProgramPayload = (form, forceDraft = false) => ({
   slug: form.slug.trim() || toSlug(form.title),
   shortDescription: form.shortDescription?.trim() || null,
   description: form.description?.trim() || null,
-  thumbnailUrl: form.thumbnailUrl?.trim() || null,
   durationLabel: form.durationLabel?.trim() || null,
   level: form.level?.trim() || null,
-  featured: Boolean(form.featured),
   deliveryMode: 'OFFLINE',
   examCategory: form.examCategory,
   programTrack: form.programTrack,
@@ -248,7 +240,6 @@ const toProgramPayload = (form, forceDraft = false) => ({
   entryPlacementLevel: form.entryPlacementLevel || null,
   outcomes: form.outcomes?.trim() || null,
   status: forceDraft ? 'DRAFT' : (form.status || 'DRAFT'),
-  displayOrder: Number(form.displayOrder || 0),
 });
 
 export default function ContentManagerInstructorLedCoursesPage() {
@@ -1087,7 +1078,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
               <InfoTile label="Trình độ đầu vào" value={programDetail?.entryLevel || programDetail?.entryPlacementLevel || '-'} />
               <InfoTile label="Số Unit" value={units.length} />
               <InfoTile label="Tổng bài học" value={`${countStructuredLessons(programDetail?.units || units)} bài`} />
-              <InfoTile label="Tổng số buổi" value={`${programDetail?.totalSessions ?? 0} buổi`} />
+              <InfoTile label="Thời lượng" value={programDetail?.durationLabel || '-'} />
             </div>
           </Panel>
 
@@ -1383,21 +1374,6 @@ function FormSection({ children, number, title }) {
   );
 }
 
-function CourseThumbnailPreview({ url }) {
-  return (
-    <div className="flex min-h-36 items-center justify-center overflow-hidden rounded-2xl border border-[#ead9db] bg-[#fffafb]">
-      {url ? (
-        <img alt="Xem trước ảnh bìa khóa học" className="h-36 w-full object-cover" src={url} />
-      ) : (
-        <div className="flex flex-col items-center gap-2 px-4 text-center text-xs font-semibold text-[#8b706e]">
-          <ImageIcon className="h-6 w-6 text-[#b99694]" />
-          Chưa có ảnh bìa
-        </div>
-      )}
-    </div>
-  );
-}
-
 function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onClose, onSubmit, saving }) {
   const editing = mode === 'edit';
 
@@ -1516,6 +1492,17 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
                   onChange={(value) => onChange({ level: value })}
                   options={COURSE_LEVEL_OPTIONS}
                   value={form.level || 'INTERMEDIATE'}
+                />
+
+                <FieldSelect
+                  label="Trạng thái khóa học"
+                  onChange={(value) => onChange({ status: value })}
+                  options={[
+                    { label: 'Bản nháp (DRAFT)', value: 'DRAFT' },
+                    { label: 'Đã xuất bản (PUBLISHED)', value: 'PUBLISHED' },
+                    { label: 'Đã lưu trữ (ARCHIVED)', value: 'ARCHIVED' },
+                  ]}
+                  value={form.status || 'DRAFT'}
                 />
 
                 <label className="block">
@@ -1659,62 +1646,6 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
               </div>
             </FormSection>
 
-            {/* Section 04: Hình ảnh và cài đặt */}
-            <FormSection number="04" title="Hình ảnh và cài đặt">
-              <div className="grid gap-4 md:grid-cols-2">
-                <FieldSelect
-                  label="Trạng thái khóa học"
-                  onChange={(value) => onChange({ status: value })}
-                  options={[
-                    { label: 'Bản nháp (DRAFT)', value: 'DRAFT' },
-                    { label: 'Đã xuất bản (PUBLISHED)', value: 'PUBLISHED' },
-                    { label: 'Đã lưu trữ (ARCHIVED)', value: 'ARCHIVED' },
-                  ]}
-                  value={form.status || 'DRAFT'}
-                />
-
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
-                    Thứ tự hiển thị
-                  </span>
-                  <input
-                    className={FIELD_CLASS}
-                    min="0"
-                    onChange={(event) => onChange({ displayOrder: event.target.value })}
-                    placeholder="0"
-                    type="number"
-                    value={form.displayOrder}
-                  />
-                </label>
-              </div>
-
-              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px]">
-                <div className="space-y-3">
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
-                      Liên kết ảnh bìa (Thumbnail URL)
-                    </span>
-                    <input
-                      className={FIELD_CLASS}
-                      onChange={(event) => onChange({ thumbnailUrl: event.target.value })}
-                      placeholder="https://... liên kết ảnh đại diện khóa học"
-                      value={form.thumbnailUrl}
-                    />
-                  </label>
-                </div>
-                <CourseThumbnailPreview url={form.thumbnailUrl} />
-              </div>
-
-              <label className="mt-4 flex cursor-pointer items-center gap-3 border-t border-[#f4eeee] pt-4 text-sm text-[#1a1c1c]">
-                <input
-                  checked={Boolean(form.featured)}
-                  className="h-4.5 w-4.5 rounded border-gray-300 text-[#4b0009] focus:ring-[#730014]"
-                  onChange={(event) => onChange({ featured: event.target.checked })}
-                  type="checkbox"
-                />
-                <span className="font-semibold text-slate-700">Đánh dấu là khóa học nổi bật</span>
-              </label>
-            </FormSection>
           </div>
 
           {/* Footer */}
@@ -1898,7 +1829,7 @@ function InstructorLedCourseListPanel({
                     </td>
                     <td className="px-6 py-5 text-center text-xs font-semibold text-[#0b1c30] whitespace-nowrap">
                       <span className="rounded-md bg-slate-100 px-2.5 py-1 font-bold text-[#0b1c30]">
-                        {Number(program.totalUnits ?? program.units?.length ?? 0)} Unit · {program.totalSessions ?? 0} buổi
+                        {Number(program.totalUnits ?? program.units?.length ?? 0)} Unit · {program.totalLessons ?? countStructuredLessons(program.units || [])} bài học
                       </span>
                     </td>
                     <td className="px-6 py-5 text-center whitespace-nowrap"><StatusPill status={program.status} /></td>

@@ -115,7 +115,10 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
             SELECT s FROM ClassSchedule s
             JOIN ClassEnrollment e ON e.classSection = s.classSection
             WHERE e.student.id = :studentId
-              AND e.status IN ('ENROLLED', 'WAITING')
+              AND e.registrationStatus IN (
+                  fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus.ASSIGNED,
+                  fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus.WAITLIST
+              )
               AND s.status IN :statuses
               AND s.sessionDate = :sessionDate
               AND s.startTime < :endTime AND s.endTime > :startTime

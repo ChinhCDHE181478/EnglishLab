@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.entity.course;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -37,10 +36,10 @@ import java.time.LocalDateTime;
 @Table(
         name = "course_discussion_reactions",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_discussion_reaction_target_user",
-                columnNames = {"target_type", "target_id", "user_id"}
+                name = "uk_discussion_reaction_post_user",
+                columnNames = {"post_id", "user_id"}
         ),
-        indexes = @Index(name = "idx_discussion_reaction_target", columnList = "target_type,target_id")
+        indexes = @Index(name = "idx_discussion_reaction_post", columnList = "post_id")
 )
 @EntityListeners(AuditingEntityListener.class)
 public class CourseDiscussionReaction {
@@ -49,22 +48,8 @@ public class CourseDiscussionReaction {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
+    @JoinColumn(name = "post_id", nullable = false)
     private CourseDiscussionPost post;
-
-    /**
-     * Legacy discriminator kept for DB NOT NULL + unique constraint compatibility.
-     * Prefer {@link #post} for runtime lookups; still written on save.
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", nullable = false, length = 20)
-    private CourseDiscussionReactionTarget targetType;
-
-    /**
-     * Legacy target id (may be legacy thread/reply id for migrated rows, or post id for new writes).
-     */
-    @Column(name = "target_id", nullable = false)
-    private Long targetId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

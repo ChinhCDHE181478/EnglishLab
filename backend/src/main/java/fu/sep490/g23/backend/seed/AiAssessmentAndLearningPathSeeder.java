@@ -219,7 +219,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             assessment.setPassingScore(BigDecimal.valueOf(7.0));
             assessment.setMaxScore(BigDecimal.valueOf(9.0));
             assessment.setTimeLimitMinutes(20);
-            assessment.setDisplayOrder(module.getDisplayOrder());
+            assessment.setDisplayOrder(module.getSequenceNumber());
             assessment.setActive(true);
             CourseAssessment savedAssessment = courseAssessmentRepository.save(assessment);
             if (existingAssessments.stream().noneMatch(item -> item.getId() != null && item.getId().equals(savedAssessment.getId()))) {
@@ -258,7 +258,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                 assessment.setMaxScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(9.0) : null);
             }
             assessment.setTimeLimitMinutes(practiceTimeLimitMinutes(skill));
-            assessment.setDisplayOrder(module.getDisplayOrder());
+            assessment.setDisplayOrder(module.getSequenceNumber());
             assessment.setActive(true);
             CourseAssessment savedAssessment = courseAssessmentRepository.save(assessment);
             if (existingAssessments.stream().noneMatch(item -> item.getId() != null && item.getId().equals(savedAssessment.getId()))) {
@@ -286,7 +286,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private AssessmentSkill resolvePracticeSkill(OnlineCourseModule module) {
-        if (module != null && Integer.valueOf(1).equals(module.getDisplayOrder())) {
+        if (module != null && Integer.valueOf(1).equals(module.getSequenceNumber())) {
             return AssessmentSkill.WRITING;
         }
         return detectSkill(module == null ? null : module.getTitle());
@@ -582,7 +582,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             return List.of();
         }
         return version.getModules().stream()
-                .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
+                .sorted(Comparator.comparing(module -> module.getSequenceNumber() == null ? Integer.MAX_VALUE : module.getSequenceNumber()))
                 .toList();
     }
 }

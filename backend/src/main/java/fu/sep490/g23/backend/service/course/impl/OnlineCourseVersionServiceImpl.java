@@ -935,7 +935,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     private int countLessons(OnlineCourse course) {
-        return countLessons(course.getModules());
+        return countLessons(course.getLatestModules());
     }
 
     private int countLessons(List<OnlineCourseModule> modules) {
@@ -977,9 +977,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                             .onlineCourse(assessment.getOnlineCourse())
                             .module(assessment.getModule())
                             .rubric(assessment.getRubric())
-                            .legacyRubricId(assessment.getLegacyRubricId())
                             .assessmentBankItem(assessment.getAssessmentBankItem())
-                            .legacyAssessmentBankItemId(assessment.getLegacyAssessmentBankItemId())
                             .progressKey(progressKey)
                             .title(assessment.getTitle())
                             .description(assessment.getDescription())
@@ -1025,7 +1023,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         OnlineCourse course = onlineCourseRepository.findWithModulesById(courseId)
                 .filter(item -> !item.isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        course.getModules().forEach(module -> module.getLessons().size());
+        course.getLatestModules().forEach(module -> module.getLessons().size());
         return course;
     }
 

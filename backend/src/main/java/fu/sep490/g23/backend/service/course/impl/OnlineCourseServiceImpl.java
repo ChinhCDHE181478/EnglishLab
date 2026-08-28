@@ -78,8 +78,7 @@ import fu.sep490.g23.backend.entity.course.*;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
-import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
-import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
+import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
 import fu.sep490.g23.backend.service.curriculum.ContentBankTypeGuard;
 import fu.sep490.g23.backend.exception.CourseUnavailableException;
@@ -164,9 +163,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final FlashcardPracticeService flashcardPracticeService;
     private final CourseEnrollmentMailService courseEnrollmentMailService;
     private final YouTubeTranscriptService youTubeTranscriptService;
-    private final ContentBankIdResolver contentBankIdResolver;
+    private final ContentBankItemRepository contentBankItemRepository;
     private final ContentBankTypeGuard contentBankTypeGuard;
-    private final ContentBankLinkSync contentBankLinkSync;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -274,7 +272,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         onlineCourseRepository.flush();
         Map<Long, OnlineCourseModule> modulesById = modules.stream()
                 .collect(java.util.stream.Collectors.toMap(OnlineCourseModule::getId, module -> module));
-        request.getItems().forEach(item -> modulesById.get(item.getModuleId()).setDisplayOrder(item.getOrderIndex()));
+        request.getItems().forEach(item -> modulesById.get(item.getModuleId()).setSequenceNumber(item.getOrderIndex()));
         onlineCourseRepository.flush();
         onlineCourseVersionService.synchronizeDraftSnapshot(course);
 
@@ -300,12 +298,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         validateLessonOrder(lessons, request.getItems());
 
         for (int index = 0; index < lessons.size(); index++) {
-            lessons.get(index).setDisplayOrder(-(index + 1));
+            lessons.get(index).setSequenceNumber(-(index + 1));
         }
         onlineCourseRepository.flush();
         Map<Long, OnlineLesson> lessonsById = lessons.stream()
                 .collect(java.util.stream.Collectors.toMap(OnlineLesson::getId, lesson -> lesson));
-        request.getItems().forEach(item -> lessonsById.get(item.getLessonId()).setDisplayOrder(item.getOrderIndex()));
+        request.getItems().forEach(item -> lessonsById.get(item.getLessonId()).setSequenceNumber(item.getOrderIndex()));
         onlineCourseRepository.flush();
         onlineCourseVersionService.synchronizeDraftSnapshot(course);
 
@@ -411,7 +409,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .salePrice(salePrice)
                 .thumbnailUrl(request.getThumbnailUrl())
                 .status(PackageStatus.DRAFT)
-                .displayOrder(defaultInt(request.getDisplayOrder()))
                 .featured(Boolean.TRUE.equals(request.getFeatured()))
                 .createdBy(creator)
                 .build();
@@ -452,7 +449,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setPrice(defaultBigDecimal(request.getPrice()));
         course.setSalePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()));
         course.setThumbnailUrl(request.getThumbnailUrl());
-        course.setDisplayOrder(defaultInt(request.getDisplayOrder()));
         course.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
         course.setCategory(category);
         course.setLevel(request.getLevel());
@@ -529,8 +525,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("OnlineLesson not found"));
 
         if (lesson.getModule() == null
-                || lesson.getModule().getOnlineCourse() == null
-                || !course.getId().equals(lesson.getModule().getOnlineCourse().getId())) {
+                || lesson.getModule().getOnlineCourseVersion() == null
+                || !course.getId().equals(lesson.getModule().getOnlineCourseVersion().getOnlineCourse().getId())) {
             throw new RuntimeException("OnlineLesson does not belong to this course");
         }
 
@@ -561,8 +557,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học."));
 
         if (lesson.getModule() == null
-                || lesson.getModule().getOnlineCourse() == null
-                || !course.getId().equals(lesson.getModule().getOnlineCourse().getId())) {
+                || lesson.getModule().getOnlineCourseVersion() == null
+                || !course.getId().equals(lesson.getModule().getOnlineCourseVersion().getOnlineCourse().getId())) {
             throw new RuntimeException("Bài học không thuộc khóa học này.");
         }
 
@@ -1366,7 +1362,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void initializeModules(OnlineCourse course) {
-        course.getModules().forEach(module -> module.getLessons().size());
+        course.getLatestModules().forEach(module -> module.getLessons().size());
     }
 
     private OnlineCourse findPublishedCourseForEnrollment(Long courseId) {
@@ -1391,7 +1387,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     private List<VocabularyTermResponse> extractVocabularyTerms(OnlineCourse course) {
         List<VocabularyTermResponse> terms = new ArrayList<>();
-        for (OnlineCourseModule module : course.getModules()) {
+        for (OnlineCourseModule module : course.getLatestModules()) {
             for (OnlineLesson lesson : module.getLessons()) {
                 terms.addAll(extractVocabularyTerms(module, lesson));
             }
@@ -1531,14 +1527,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
             if (module == null) {
                 module = OnlineCourseModule.builder().build();
-                module.setOnlineCourse(course);
             } else if (module.getId() != null) {
                 incomingModuleIds.add(module.getId());
             }
 
             module.setTitle(normalizeModuleTitle(moduleRequest.getTitle()));
             module.setDescription(moduleRequest.getDescription());
-            module.setDisplayOrder(moduleIndex + 1);
+            module.setSequenceNumber(moduleIndex + 1);
             synchronizeLessons(module, moduleRequest.getLessons());
             nextModules.add(module);
         }
@@ -1579,7 +1574,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 lesson.setVideoUrl(lessonRequest.getVideoUrl());
                 lesson.setMaterialUrl(lessonRequest.getMaterialUrl());
                 lesson.setDurationMinutes(defaultInt(lessonRequest.getDurationMinutes()));
-                lesson.setDisplayOrder(lessonIndex + 1);
+                lesson.setSequenceNumber(lessonIndex + 1);
                 lesson.setPreview(Boolean.TRUE.equals(lessonRequest.getPreview()));
                 applyLessonTranscript(lesson, lessonRequest, previousVideoUrl);
                 synchronizeLessonFlashcardRefs(lesson, lessonRequest.getFlashcardSetIds());
@@ -1663,8 +1658,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             assessment.setModule(targetModule);
             assessment.setRubric(rubric);
             assessment.setAssessmentBankItem(bankItem);
-            assessment.setLegacyAssessmentBankItemId(contentBankLinkSync.legacyIdForAssessment(bankItem));
-            assessment.setLegacyRubricId(contentBankLinkSync.legacyIdForRubric(rubric));
             if (bankItem == null) {
                 assessment.setTitle(request.getTitle().trim());
                 assessment.setDescription(request.getDescription());
@@ -1885,9 +1878,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void ensureLessonCanBeRemoved(OnlineLesson lesson) {
-        if (lesson.getId() != null && lesson.getModule() != null && lesson.getModule().getOnlineCourse() != null) {
+        if (lesson.getId() != null && lesson.getModule() != null && lesson.getModule().getOnlineCourseVersion() != null) {
             onlineCourseVersionService.assertLessonCanBeRemoved(
-                    lesson.getModule().getOnlineCourse(),
+                    lesson.getModule().getOnlineCourseVersion().getOnlineCourse(),
                     lesson.getId()
             );
         }
@@ -1984,7 +1977,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .materialUrl(lesson.getMaterialUrl())
                 .transcriptSegments(readTranscriptSegments(lesson.getTranscriptSegmentsJson()))
                 .durationMinutes(lesson.getDurationMinutes())
-                .displayOrder(lesson.getDisplayOrder())
+                .displayOrder(lesson.getSequenceNumber())
                 .preview(lesson.isPreview())
                 .flashcardSets(toFlashcardSetResponses(lesson))
                 .build();
@@ -2000,7 +1993,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         Set<Long> uniqueIds = new LinkedHashSet<>(flashcardSetIds);
         int displayOrder = 1;
         for (Long flashcardSetId : uniqueIds) {
-            ContentBankItem item = contentBankIdResolver.requireItem(ContentBankType.FLASHCARD, flashcardSetId);
+            ContentBankItem item = contentBankItemRepository
+                    .findByIdAndBankType(flashcardSetId, ContentBankType.FLASHCARD)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
             contentBankTypeGuard.assertFlashcard(item);
             if ("ARCHIVED".equalsIgnoreCase(item.getStatus())) {
                 throw new RuntimeException("Bộ flashcard \"" + item.getTitle() + "\" đã được lưu trữ.");
@@ -2200,7 +2195,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         criteriaBuilder.equal(assessmentRoot.get("skill"), skill)
                 );
 
-                Join<OnlineCourse, OnlineCourseModule> moduleJoin = root.join("modules", jakarta.persistence.criteria.JoinType.LEFT);
+                Join<OnlineCourse, OnlineCourseVersion> versionJoin = root.join("versions", jakarta.persistence.criteria.JoinType.LEFT);
+                Join<OnlineCourseVersion, OnlineCourseModule> moduleJoin = versionJoin.join("modules", jakarta.persistence.criteria.JoinType.LEFT);
                 Join<OnlineCourseModule, OnlineLesson> lessonJoin = moduleJoin.join("lessons", jakarta.persistence.criteria.JoinType.LEFT);
                 Predicate lessonMatches = criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(lessonJoin.get("title")), "%" + skillToken + "%"),
@@ -2268,7 +2264,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     private void moveModuleOrdersToTemporaryRange(List<OnlineCourseModule> modules) {
         for (int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
-            modules.get(moduleIndex).setDisplayOrder(-(moduleIndex + 1));
+            modules.get(moduleIndex).setSequenceNumber(-(moduleIndex + 1));
         }
     }
 
@@ -2277,7 +2273,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         for (OnlineCourseModule module : modules) {
             List<OnlineLesson> lessons = module.getLessons();
             for (int lessonIndex = 0; lessonIndex < lessons.size(); lessonIndex++) {
-                lessons.get(lessonIndex).setDisplayOrder(-(lessonIndex + 1));
+                lessons.get(lessonIndex).setSequenceNumber(-(lessonIndex + 1));
             }
         }
     }

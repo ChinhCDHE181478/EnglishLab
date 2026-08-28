@@ -7,7 +7,6 @@ import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
@@ -202,7 +201,6 @@ public class ReviewDataSeeder implements CommandLineRunner {
             enrollmentRepository.save(ClassEnrollment.builder()
                     .student(learner)
                     .classSection(offering)
-                    .status(ClassroomEnrollmentStatus.ENROLLED)
                     .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                     .tuitionAmountDue(offering.getPrice())
                     .tuitionAmountPaid(offering.getPrice())
