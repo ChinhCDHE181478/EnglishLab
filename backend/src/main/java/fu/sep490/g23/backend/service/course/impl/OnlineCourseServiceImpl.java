@@ -1365,11 +1365,19 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.getLatestModules().forEach(module -> module.getLessons().size());
     }
 
+    /**
+     * Safely retrieves a course for enrollment, ensuring it is published and not deleted.
+     * Uses a specific query to eagerly fetch modules to prevent N+1 lazy loading issues.
+     */
     private OnlineCourse findPublishedCourseForEnrollment(Long courseId) {
+        // Find the course by ID, ensuring it's not deleted and its status is PUBLISHED
         OnlineCourse course = onlineCourseRepository
                 .findWithModulesByIdAndDeletedFalseAndStatus(courseId, PackageStatus.PUBLISHED)
                 .orElseThrow(() -> new CourseUnavailableException("Course not found or not available for enrollment"));
+                
+        // Initialize lazy-loaded collections inside modules if needed
         initializeModules(course);
+        
         return course;
     }
 
