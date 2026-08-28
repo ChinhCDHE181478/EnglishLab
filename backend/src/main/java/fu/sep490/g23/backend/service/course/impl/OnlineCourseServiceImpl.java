@@ -595,7 +595,22 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
      * Includes checking if the student has valid learning access, 
      * and fetches the latest published version of the course content.
      */
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail) {
+        // Find student by email
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
+        // Find the published course
+        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+
+        // Verify that the student has valid access to learn this course (e.g., active enrollment)
+        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+
+        // Fetch and return the latest published course content tailored for this enrollment
+        return onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course);
+    }
 
     @Override
     public OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail) {

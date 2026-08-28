@@ -45,7 +45,10 @@ public class StudentOnlineCourseController {
      * @param authentication current user's authentication info
      * @return Detailed information about the enrolled course
      */
-
+    @GetMapping("/{courseId}/content")
+    public ResponseEntity<OnlineCourseResponse> getEnrolledCourse(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.getEnrolledCourse(courseId, authentication.getName()));
+    }
 
     /**
      * Retrieves the current user's enrolled online courses.
