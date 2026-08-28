@@ -43,10 +43,7 @@ public class StudentOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.getEnrolledCourse(courseId, authentication.getName()));
     }
 
-    @GetMapping({"/my-enrollments", "/my-courses"})
-    public ResponseEntity<List<OnlineCourseEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
-        return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));
-    }
+
 
     @GetMapping("/recommendations")
     public ResponseEntity<List<OnlineCourseResponse>> getRecommendations(Authentication authentication) {

@@ -58,7 +58,7 @@ public interface OnlineCourseService {
     /** Hủy quyền học sau khi hoàn tiền đơn PayOS khóa học. */
     void revokePaidCourseAccess(Long courseId, String studentEmail);
 
-    List<OnlineCourseEnrollmentResponse> getMyEnrollments(String studentEmail);
+
     List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
     /** Placement ranking: score published courses, then mix weak-skill + level-fit shortlist. */
     List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context);

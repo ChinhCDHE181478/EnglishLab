@@ -660,30 +660,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
     }
 
-    @Override
-    @Transactional
-    public List<OnlineCourseEnrollmentResponse> getMyEnrollments(String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
-                .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
-                .filter(enrollment -> {
-                    OnlineCourse course = enrollment.getOnlineCourse();
-                    if (course != null) {
-                        return !course.isDeleted();
-                    }
-                    return enrollment.getOnlineCourse() != null && !false;
-                })
-                .map(enrollment -> {
-                    OnlineCourse course = enrollment.getOnlineCourse() != null
-                            ? enrollment.getOnlineCourse()
-                            : java.util.Optional.of(enrollment.getOnlineCourse()).orElse(null);
-                    return course == null ? null : courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
-                })
-                .filter(java.util.Objects::nonNull)
-                .map(mapper::toEnrollmentResponse)
-                .toList();
-    }
+
 
     @Override
     public List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request) {
