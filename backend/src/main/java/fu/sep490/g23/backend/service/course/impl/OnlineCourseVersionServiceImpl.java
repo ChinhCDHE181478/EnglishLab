@@ -329,14 +329,25 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         versionRepository.save(published);
     }
 
+    /**
+     * Constructs the full course details tailored for a specific student's enrollment.
+     * This ensures the student sees the correct version of the course (pinned or latest)
+     * and attaches their personal learning progress.
+     */
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse) {
+        // 1. Determine which version of the course this student should see
         OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, liveCourse);
+        
+        // 2. Read the course structure (modules/lessons) from that specific version
         OnlineCourseResponse response = readSnapshot(pinned, liveCourse);
+        
+        // 3. Attach student's personal enrollment data to the response
         response.setRegistered(true);
         response.setProgressPercent(enrollment.getProgressPercent());
         response.setEnrollmentId(enrollment.getId());
+        
         return response;
     }
 
