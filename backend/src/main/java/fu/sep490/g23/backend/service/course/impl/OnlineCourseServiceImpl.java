@@ -590,13 +590,25 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return activateEnrollment(course, student);
     }
 
+    /**
+     * Retrieves the detailed content of a course for an enrolled student.
+     * Includes checking if the student has valid learning access, 
+     * and fetches the latest published version of the course content.
+     */
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail) {
+        // Find student by email
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Find the published course
         OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+
+        // Verify that the student has valid access to learn this course (e.g., active enrollment)
         OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+
+        // Fetch and return the latest published course content tailored for this enrollment
         return onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course);
     }
 
@@ -660,13 +672,22 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
     }
 
+    /**
+     * Retrieves enrolled courses for a student, refreshes their progress,
+     * and filters out deleted or cancelled courses.
+     */
     @Override
     @Transactional
     public List<OnlineCourseEnrollmentResponse> getMyEnrollments(String studentEmail) {
+        // Find student by email
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+                
+        // Get enrollments, ordered by most recent
         return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
+                // Filter out cancelled enrollments
                 .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
+                // Filter out deleted courses
                 .filter(enrollment -> {
                     OnlineCourse course = enrollment.getOnlineCourse();
                     if (course != null) {
@@ -674,13 +695,16 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                     }
                     return enrollment.getOnlineCourse() != null && !false;
                 })
+                // Refresh progress for each course
                 .map(enrollment -> {
                     OnlineCourse course = enrollment.getOnlineCourse() != null
                             ? enrollment.getOnlineCourse()
                             : java.util.Optional.of(enrollment.getOnlineCourse()).orElse(null);
+                    // Update latest progress
                     return course == null ? null : courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
                 })
                 .filter(java.util.Objects::nonNull)
+                // Map to DTO
                 .map(mapper::toEnrollmentResponse)
                 .toList();
     }
