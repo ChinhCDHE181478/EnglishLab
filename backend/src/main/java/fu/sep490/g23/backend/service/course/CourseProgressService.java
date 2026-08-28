@@ -7,6 +7,6 @@ import fu.sep490.g23.backend.entity.User;
 
 public interface CourseProgressService {
 
-
+    OnlineCourseEnrollment refreshEnrollmentProgress(OnlineCourseEnrollment enrollment, OnlineCourse course, User student);
     CourseCompletionResponse buildCompletionResponse(OnlineCourseEnrollment enrollment, OnlineCourse course, User student);
 }

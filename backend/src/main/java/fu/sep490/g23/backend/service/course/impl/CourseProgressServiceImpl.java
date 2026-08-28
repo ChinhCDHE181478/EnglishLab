@@ -36,7 +36,21 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
+    public OnlineCourseEnrollment refreshEnrollmentProgress(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
+        CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
 
+        int progressPercent = calculateProgressPercent(snapshot);
+        EnrollmentStatus nextStatus = enrollment.getStatus() == EnrollmentStatus.CANCELLED
+                ? EnrollmentStatus.CANCELLED
+                : snapshot.eligibleForCertificate() ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
+        if (java.util.Objects.equals(enrollment.getProgressPercent(), progressPercent)
+                && enrollment.getStatus() == nextStatus) {
+            return enrollment;
+        }
+        enrollment.setProgressPercent(progressPercent);
+        enrollment.setStatus(nextStatus);
+        return enrollmentRepository.save(enrollment);
+    }
 
     public CourseCompletionResponse buildCompletionResponse(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
         CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
