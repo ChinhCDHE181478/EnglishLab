@@ -26,7 +26,28 @@ public class InstructorLedCourseRequest {
     @Size(max = 160)
     private String slug;
 
-    @NotNull(message = "Hình thức đào tạo không được để trống.")
+    @Size(max = 500)
+    private String shortDescription;
+
+    private String description;
+
+    @Size(max = 700)
+    private String thumbnailUrl;
+
+    @Size(max = 80)
+    private String durationLabel;
+
+    @Size(max = 120)
+    private String level;
+
+    @DecimalMin(value = "0.0", message = "Học phí gốc không được âm.")
+    private BigDecimal baseTuitionFeeVnd;
+
+    @DecimalMin(value = "0.0", message = "Học phí ưu đãi không được âm.")
+    private BigDecimal saleTuitionFeeVnd;
+
+    private Boolean featured;
+
     private ClassroomDeliveryMode deliveryMode;
 
     @Size(max = 30)
