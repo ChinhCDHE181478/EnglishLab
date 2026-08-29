@@ -454,6 +454,11 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async updateStaffClassroomPrelaunchPlan(id, payload) {
+    const response = await axiosClient.put(`/api/staff/classrooms/${id}/prelaunch-plan`, payload);
+    return unwrapData(response);
+  },
+
   async createStaffClassroomSession(id, payload) {
     const response = await axiosClient.post(`/api/staff/classrooms/${id}/sessions`, payload);
     return unwrapData(response);

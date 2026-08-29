@@ -10,6 +10,7 @@ import fu.sep490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RejectRegistrationRequest;
 import fu.sep490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.TransferStudentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.UpdateClassroomPlanRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
@@ -192,6 +193,15 @@ public class StaffClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classSectionService.updateOffering(id, request, authentication.getName()));
+    }
+
+    @PutMapping("/{id}/prelaunch-plan")
+    public ResponseEntity<ClassroomOfferingResponse> updatePrelaunchPlan(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateClassroomPlanRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classSectionService.updatePrelaunchPlan(id, request, authentication.getName()));
     }
 
     @PostMapping("/{id}/close")

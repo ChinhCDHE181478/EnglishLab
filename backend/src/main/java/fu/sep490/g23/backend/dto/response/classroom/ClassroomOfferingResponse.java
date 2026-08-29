@@ -20,6 +20,7 @@ import java.util.List;
 @Builder
 public class ClassroomOfferingResponse {
     private Long id;
+    private String code;
     private String title;
     private String slug;
     private String shortDescription;
@@ -44,6 +45,8 @@ public class ClassroomOfferingResponse {
     private String primaryTeacherName;
     private Long roomId;
     private String roomName;
+    private Long regularRoomId;
+    private String regularRoomName;
     private String offlineAddress;
     private String locationNote;
     private Long googleMeetOwnerId;
@@ -55,6 +58,7 @@ public class ClassroomOfferingResponse {
     private String teacherGuide;
     private String interactionActivities;
     private BigDecimal price;
+    private BigDecimal tuitionFeeVnd;
     private BigDecimal salePrice;
     private String targetScore;
     private String duration;

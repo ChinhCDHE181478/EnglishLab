@@ -164,6 +164,7 @@ export default function StaffClassroomDetailPage() {
     }),
     [classroom?.sessions],
   );
+  const classIsMutable = ['DRAFT', 'UPCOMING', 'ACTIVE'].includes(classroom?.classroomStatus);
 
   const loadClassroom = async () => {
     setLoading(true);
@@ -567,7 +568,7 @@ export default function StaffClassroomDetailPage() {
           ← Danh sách lớp
         </Link>
         <div className="flex flex-wrap gap-2">
-          {classroom.classroomStatus !== 'CLOSED' && classroom.classroomStatus !== 'CANCELLED' ? (
+          {classIsMutable ? (
             <button
               className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-extrabold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
               disabled={closingClass}
@@ -594,7 +595,7 @@ export default function StaffClassroomDetailPage() {
           <Badge>{formatDeliveryMode(classroom.deliveryMode, classroom.deliveryModeLabel)}</Badge>
           <Badge>{formatOfferingStatus(classroom.classroomStatus)}</Badge>
           <Badge>{classroom.entryLevel || 'Chưa gắn level'}</Badge>
-          <Badge>{classroom.instructorLedCourseTitle || 'Chưa chọn giáo trình'}</Badge>
+          <Badge>{classroom.instructorLedCourseTitle || 'Chưa gắn khóa học'}</Badge>
         </div>
         <h2 className="mt-3 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{classroom.title}</h2>
         <p className="mt-2 text-sm text-[#584140]">
@@ -602,7 +603,7 @@ export default function StaffClassroomDetailPage() {
           {' · '}
           Sĩ số: <strong>{classroom.enrolledCount ?? 0} học viên</strong>
           {' · '}
-          Học phí: <strong>{formatClassroomPrice(classroom.salePrice ?? classroom.price ?? 0)}</strong>
+          Học phí: <strong>{formatClassroomPrice(classroom.tuitionFeeVnd ?? classroom.price ?? 0)}</strong>
         </p>
       </section>
 
@@ -634,7 +635,7 @@ export default function StaffClassroomDetailPage() {
                   {classroom.primaryTeacherName || 'Chưa có giáo viên chính'}
                 </h3>
               </div>
-              {classroom.primaryTeacherId ? (
+              {classIsMutable && classroom.primaryTeacherId ? (
                 <button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-4 py-2.5 text-sm font-extrabold text-[#730014] hover:bg-[#fff3f4]" onClick={openTeacherReplacement} type="button">
                   <UserRoundCheck className="h-4 w-4" />
                   Đổi giáo viên chính
@@ -642,7 +643,7 @@ export default function StaffClassroomDetailPage() {
               ) : null}
             </div>
           </section>
-          <CurriculumOverview curriculum={classroom.instructorLedCourse} />
+          <CourseStructureOverview course={classroom.instructorLedCourse} />
         </>
       ) : null}
 
@@ -654,7 +655,7 @@ export default function StaffClassroomDetailPage() {
               {assignedStudents.map((enrollment) => (
                 <article className="flex flex-col gap-3 rounded-xl border border-[#f0e4e2] px-4 py-3 text-sm text-[#584140] sm:flex-row sm:items-center sm:justify-between" key={enrollment.id}>
                   <div><p className="font-extrabold text-[#2b2828]">{enrollment.studentName || enrollment.studentEmail}</p><p className="mt-1">{formatRegistrationStatus(enrollment.registrationStatus, enrollment.registrationStatusLabel)}{' · '}{formatClassroomPrice(enrollment.tuitionAmountPaid ?? 0)} / {formatClassroomPrice(enrollment.tuitionAmountDue)}</p></div>
-                  <div className="flex flex-wrap gap-2"><button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] px-3 py-2 text-xs font-extrabold text-[#730014]" disabled={studentActionId === enrollment.id} onClick={() => setTransfer({ enrollment, targetId: '' })} type="button"><ArrowRightLeft className="h-3.5 w-3.5" />Chuyển lớp</button><button className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-xs font-extrabold text-rose-700" disabled={studentActionId === enrollment.id} onClick={() => handleRemoveStudent(enrollment)} type="button"><Trash2 className="h-3.5 w-3.5" />Loại khỏi lớp</button></div>
+                  {classIsMutable ? <div className="flex flex-wrap gap-2"><button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] px-3 py-2 text-xs font-extrabold text-[#730014]" disabled={studentActionId === enrollment.id} onClick={() => setTransfer({ enrollment, targetId: '' })} type="button"><ArrowRightLeft className="h-3.5 w-3.5" />Chuyển lớp</button><button className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-xs font-extrabold text-rose-700" disabled={studentActionId === enrollment.id} onClick={() => handleRemoveStudent(enrollment)} type="button"><Trash2 className="h-3.5 w-3.5" />Loại khỏi lớp</button></div> : null}
                 </article>
               ))}
             </div>
@@ -730,10 +731,10 @@ export default function StaffClassroomDetailPage() {
               <div>
                 <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Lịch học đã tạo</h3>
               </div>
-              <button className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#59000f]" onClick={openSessionCreator} type="button">
+              {classIsMutable ? <button className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#59000f]" onClick={openSessionCreator} type="button">
                 <Plus className="h-4 w-4" />
                 Thêm buổi học
-              </button>
+              </button> : null}
             </div>
             {scheduledSessions.length ? (
               <div className="mt-5 overflow-x-auto rounded-xl border border-[#dfbfbd]/40">
@@ -778,7 +779,7 @@ export default function StaffClassroomDetailPage() {
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 text-center"><SessionStatusBadge status={session.status} /></td>
                         <td className="px-5 py-4 text-right">
-                          {!['COMPLETED', 'CANCELLED'].includes(session.status) ? (
+                          {classIsMutable && !['COMPLETED', 'CANCELLED'].includes(session.status) ? (
                             <button aria-label={`Chỉnh sửa buổi học ngày ${formatClassroomDate(session.sessionDate)}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014] hover:bg-[#fff3f4]" onClick={() => openSessionEditor(session)} type="button">
                               <Pencil className="h-3.5 w-3.5" />
                               Sửa
@@ -948,16 +949,16 @@ function OverviewCard({ icon: Icon, label, value, description, onClick }) {
   );
 }
 
-function CurriculumOverview({ curriculum }) {
+function CourseStructureOverview({ course }) {
   const [expandedUnitIds, setExpandedUnitIds] = useState(new Set());
-  if (!curriculum) {
+  if (!course) {
     return (
       <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-800">
         Lớp này chưa được gắn khóa học. Hãy cập nhật lớp từ trang mở lớp để chọn khóa học theo band/target.
       </section>
     );
   }
-  const units = curriculum.units || [];
+  const units = course.units || [];
   const toggleUnit = (unitId) => {
     setExpandedUnitIds((current) => {
       const next = new Set(current);
@@ -976,14 +977,14 @@ function CurriculumOverview({ curriculum }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-[#8b706e]">Khóa học đang dùng</p>
-          <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{curriculum.title}</h3>
+          <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{course.title}</h3>
           <p className="mt-1 text-sm text-[#584140]">
-            {[curriculum.code, curriculum.examCategory, curriculum.targetBand ? `Band ${curriculum.targetBand}` : null, curriculum.targetScore ? `Target ${curriculum.targetScore}` : null].filter(Boolean).join(' · ')}
+            {[course.code, course.examCategory, course.targetBand ? `Band ${course.targetBand}` : null, course.targetScore ? `Target ${course.targetScore}` : null].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <Badge>{units.length} Unit · {curriculum.totalSessions || 0} bài học</Badge>
+        <Badge>{units.length} Unit · {course.totalLessons ?? course.totalSessions ?? 0} bài học</Badge>
       </div>
-      {curriculum.outcomes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{curriculum.outcomes}</p> : null}
+      {course.outcomes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{course.outcomes}</p> : null}
       {units.length ? (
         <div className="mt-5 space-y-3">
           <div className="flex items-center justify-between border-b border-[#f0e4e2] pb-3">
@@ -1019,10 +1020,10 @@ function CurriculumOverview({ curriculum }) {
                     </div>
                   ) : null}
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <CurriculumUnitResources label="Học liệu" items={unit.materials} />
-                    <CurriculumUnitResources label="Bài tập" items={unit.exercises} />
-                    <CurriculumUnitResources label="Đề đánh giá" items={unit.assessments} />
-                    <CurriculumUnitResources label="Flashcard" items={unit.flashcards} />
+                    <CourseUnitResources label="Học liệu" items={unit.materials} />
+                    <CourseUnitResources label="Bài tập" items={unit.exercises} />
+                    <CourseUnitResources label="Đề đánh giá" items={unit.assessments} />
+                    <CourseUnitResources label="Flashcard" items={unit.flashcards} />
                   </div>
                 </div>
               ) : null}
@@ -1036,7 +1037,7 @@ function CurriculumOverview({ curriculum }) {
   );
 }
 
-function CurriculumUnitResources({ label, items = [] }) {
+function CourseUnitResources({ label, items = [] }) {
   return (
     <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
       <p className="text-xs font-bold uppercase tracking-wider text-[#8b706e]">{label}</p>
