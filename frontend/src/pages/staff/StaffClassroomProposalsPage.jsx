@@ -74,29 +74,40 @@ const toLocalDateKey = (date = new Date()) => [
   String(date.getDate()).padStart(2, '0'),
 ].join('-');
 
-const buildProposalPayload = (form) => ({
-  ...form,
-  title: form.title.trim(),
-  courseOfferingId: form.courseOfferingId ? Number(form.courseOfferingId) : null,
-  deliveryType: form.deliveryType || 'OFFLINE',
-  capacity: form.capacity === '' ? null : Number(form.capacity),
-  primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
-  roomId: form.deliveryType === 'VIRTUAL' ? null : (form.roomId ? Number(form.roomId) : null),
-  offlineAddress: null,
-  scheduleItems: (form.scheduleItems || []).map((item, index) => ({
-    sequenceNumber: index + 1,
-    sessionDate: item.sessionDate,
-    startTime: item.startTime || form.sessionStartTime,
-    endTime: item.endTime || form.sessionEndTime,
-    deliveryModeOverride: item.deliveryModeOverride || null,
-    teacherId: item.teacherId ? Number(item.teacherId) : null,
-    roomId: (item.deliveryModeOverride || form.deliveryType) === 'VIRTUAL' ? null : (item.roomId ? Number(item.roomId) : null),
-    courseLessonId: item.courseLessonId ? Number(item.courseLessonId) : null,
-    sessionContent: item.courseLessonId ? null : (item.sessionContent?.trim() || 'Buổi học đặc biệt'),
-    note: item.note?.trim() || null,
-  })),
-  note: form.note.trim() || null,
-});
+const buildProposalPayload = (form) => {
+  const scheduleItems = form.scheduleItems || [];
+  const lastSessionDate = scheduleItems
+    .map((item) => item.sessionDate)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  return {
+    ...form,
+    title: form.title.trim(),
+    courseOfferingId: form.courseOfferingId ? Number(form.courseOfferingId) : null,
+    deliveryType: form.deliveryType || 'OFFLINE',
+    capacity: form.capacity === '' ? null : Number(form.capacity),
+    plannedStartDate: form.plannedStartDate,
+    endDate: form.plannedEndDate || lastSessionDate || form.plannedStartDate,
+    primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
+    roomId: form.deliveryType === 'VIRTUAL' ? null : (form.roomId ? Number(form.roomId) : null),
+    offlineAddress: null,
+    scheduleItems: scheduleItems.map((item, index) => ({
+      sequenceNumber: index + 1,
+      sessionDate: item.sessionDate,
+      startTime: item.startTime || form.sessionStartTime,
+      endTime: item.endTime || form.sessionEndTime,
+      deliveryModeOverride: item.deliveryModeOverride || null,
+      teacherId: item.teacherId ? Number(item.teacherId) : null,
+      roomId: (item.deliveryModeOverride || form.deliveryType) === 'VIRTUAL' ? null : (item.roomId ? Number(item.roomId) : null),
+      courseLessonId: item.courseLessonId ? Number(item.courseLessonId) : null,
+      sessionContent: item.courseLessonId ? null : (item.sessionContent?.trim() || 'Buổi học đặc biệt'),
+      note: item.note?.trim() || null,
+    })),
+    note: form.note.trim() || null,
+  };
+};
 
 export default function StaffClassroomProposalsPage() {
   const [status, setStatus] = useState('DRAFT');
@@ -730,6 +741,7 @@ function ProposalModal({
 
   const readyToValidate = Boolean(
     readyToLoadAvailability
+    && resourceAvailability.status === 'ready'
     && form.primaryTeacherId
     && (isVirtual || form.roomId),
   );
@@ -745,6 +757,7 @@ function ProposalModal({
 
     let active = true;
     setResourceAvailability((current) => ({ ...current, status: 'loading', errorMessage: '' }));
+    setScheduleValidation({ status: 'checking', message: 'Đang tải giáo viên và phòng học phù hợp...' });
 
     const timer = window.setTimeout(async () => {
       try {
@@ -784,7 +797,7 @@ function ProposalModal({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [editingProposalId, form.capacity, form.deliveryType, form.plannedEndDate, form.plannedStartDate, form.sessionEndTime, form.sessionStartTime, form.weekdays, readyToLoadAvailability]);
+  }, [editingProposalId, form.capacity, form.deliveryType, form.plannedEndDate, form.plannedStartDate, form.scheduleItems, form.sessionEndTime, form.sessionStartTime, form.weekdays, readyToLoadAvailability]);
 
   // Schedule conflict validator
   useEffect(() => {
@@ -835,7 +848,7 @@ function ProposalModal({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [editingProposalId, form.primaryTeacherId, form.roomId, isVirtual, readyToValidate]);
+  }, [editingProposalId, form.capacity, form.deliveryType, form.plannedEndDate, form.plannedStartDate, form.primaryTeacherId, form.roomId, form.scheduleItems, form.sessionEndTime, form.sessionStartTime, form.weekdays, isVirtual, readyToValidate, resourceAvailability.status]);
 
   const validationStyle = {
     idle: 'border-slate-200 bg-slate-50 text-slate-600',
