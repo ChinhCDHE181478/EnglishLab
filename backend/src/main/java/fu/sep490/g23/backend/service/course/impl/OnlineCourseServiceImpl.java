@@ -575,38 +575,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return mapper.toResponse(findCourse(courseId));
     }
 
-    @Override
-    public OnlineCourseResponse registerCourse(Long courseId, String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
-        if (!isFreeCourse(course)) {
-            throw new IllegalStateException("Khóa học trả phí chỉ được kích hoạt sau khi thanh toán thành công.");
-        }
-        return activateEnrollment(course, student);
-    }
 
-    /**
-     * Retrieves the detailed content of a course for an enrolled student.
-     * Includes checking if the student has valid learning access, 
-     * and fetches the latest published version of the course content.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail) {
-        // Find student by email
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        // Find the published course
-        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
-
-        // Verify that the student has valid access to learn this course (e.g., active enrollment)
-        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
-
-        // Fetch and return the latest published course content tailored for this enrollment
-        return onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course);
-    }
 
     @Override
     public OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail) {
@@ -630,80 +599,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 });
     }
 
-    private OnlineCourseResponse activateEnrollment(OnlineCourse course, User student) {
-        if (course.isDeleted() || course.getStatus() != PackageStatus.PUBLISHED) {
-            throw new CourseUnavailableException("Course not found or not available for enrollment");
-        }
-
-        var existingEnrollment = enrollmentRepository.findByStudentAndOnlineCourse(student, course);
-        if (existingEnrollment.isPresent()) {
-            OnlineCourseEnrollment enrollment = existingEnrollment.get();
-            if (enrollment.getOnlineCourse() == null) {
-                enrollment.setOnlineCourse(course);
-            }
-            if (enrollment.getCourseVersion() == null) {
-                enrollment.setCourseVersion(onlineCourseVersionService.requirePublishedVersion(course));
-                onlineCourseVersionService.assertEnrollmentCourseVersionBelongsToCourse(enrollment, course);
-                enrollment = enrollmentRepository.save(enrollment);
-            } else {
-                onlineCourseVersionService.assertEnrollmentCourseVersionBelongsToCourse(enrollment, course);
-            }
-            if (!courseEnrollmentAccessPolicy.hasLearningAccess(enrollment)) {
-                enrollment = courseEnrollmentAccessPolicy.reactivateCancelledEnrollment(enrollment);
-                courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
-            }
-            return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
-        }
-
-        OnlineCourseEnrollment enrollment = enrollmentRepository.save(OnlineCourseEnrollment.builder()
-                .student(student)
-                .onlineCourse(course)
-                
-                .courseVersion(onlineCourseVersionService.requirePublishedVersion(course))
-                .status(EnrollmentStatus.ACTIVE)
-                .progressPercent(0)
-                .build());
-        onlineCourseVersionService.assertEnrollmentCourseVersionBelongsToCourse(enrollment, course);
-        courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
-        return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
-    }
-
-    /**
-     * Retrieves enrolled courses for a student, refreshes their progress,
-     * and filters out deleted or cancelled courses.
-     */
-    @Override
-    @Transactional
-    public List<OnlineCourseEnrollmentResponse> getMyEnrollments(String studentEmail) {
-        // Find student by email
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-                
-        // Get enrollments, ordered by most recent
-        return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
-                // Filter out cancelled enrollments
-                .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
-                // Filter out deleted courses
-                .filter(enrollment -> {
-                    OnlineCourse course = enrollment.getOnlineCourse();
-                    if (course != null) {
-                        return !course.isDeleted();
-                    }
-                    return enrollment.getOnlineCourse() != null && !false;
-                })
-                // Refresh progress for each course
-                .map(enrollment -> {
-                    OnlineCourse course = enrollment.getOnlineCourse() != null
-                            ? enrollment.getOnlineCourse()
-                            : java.util.Optional.of(enrollment.getOnlineCourse()).orElse(null);
-                    // Update latest progress
-                    return course == null ? null : courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
-                })
-                .filter(java.util.Objects::nonNull)
-                // Map to DTO
-                .map(mapper::toEnrollmentResponse)
-                .toList();
-    }
 
     @Override
     public List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request) {
@@ -730,30 +625,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return responses;
     }
 
-    /**
-     * Catalog "recommended for you" when the learner is not coming from a specific attempt.
-     * Builds context from the latest attempt (or profile target if none), then reuses recommendCourses().
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<OnlineCourseResponse> getRecommendedCourses(String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
-        PlacementTestAttempt latestAttempt = placementTestAttemptRepository
-                .findTopByStudentOrderBySubmittedAtDesc(student)
-                .orElse(null);
-        PlacementRecommendationContext context = latestAttempt == null
-                ? PlacementRecommendationContext.builder()
-                    .learnerId(student.getId())
-                    .examType(safe(student.getTargetExam()).toUpperCase(Locale.ROOT))
-                    .overallScore(student.getCurrentBand() == null ? null : BigDecimal.valueOf(student.getCurrentBand()))
-                    .targetExam(student.getTargetExam())
-                    .targetScore(parseBand(student.getTargetScore()) == null ? null : BigDecimal.valueOf(parseBand(student.getTargetScore())))
-                    .weakSkills(Set.of())
-                    .build()
-                : placementRecommendationContextFactory.fromAttempt(student, latestAttempt, latestAttempt.getRecommendedLevel());
-        return recommendCourses(student, context);
-    }
 
     /**
      * Core ranking for placement → online-course suggestions.
@@ -764,165 +635,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
      * 3. Drop courses already finished (COMPLETED or 100%).
      * 4. Drop hard exam mismatch (IELTS course vs TOEIC placement, and vice versa).
      * 5. scoreRecommendation() — numeric match + flags (weak skill, band window).
-     * 6. Sort: higher score first; tie-break by learning-path order, then id.
-     * 7. BalancedCourseRecommendationSelector — mixed shortlist, not raw top-N,
-     *    so the UI shows both "fix a weak skill" and "match your level".
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context) {
-        List<OnlineCourse> publishedCourses = onlineCourseRepository
-                .findAll(courseSpec(null, null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
-                .getContent();
-        // One enrollment per online course; duplicate rows keep the newest because the query is descending.
-        Map<Long, OnlineCourseEnrollment> enrollmentsByPackage = enrollmentRepository
-                .findByStudentOrderByRegisteredAtDesc(student)
-                .stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        enrollment -> enrollment.getOnlineCourse().getId(),
-                        enrollment -> enrollment,
-                        (first, ignored) -> first
-                ));
-        List<ScoredRecommendation> rankedRecommendations = publishedCourses.stream()
-                .filter(course -> !isCompletedEnrollment(enrollmentsByPackage.get(course.getId())))
-                .filter(course -> isExamCompatible(course, context.getExamType()))
-                .map(course -> scoreRecommendation(
-                        course,
-                        enrollmentsByPackage.get(course.getId()),
-                        context
-                ))
-                .sorted(Comparator.comparingDouble(ScoredRecommendation::score).reversed()
-                        .thenComparing(item -> defaultInt(item.course().getLearningPathOrder()))
-                        .thenComparing(item -> item.course().getId()))
-                .toList();
+     * 6. Sort: higher score first;
 
-        // rankedRecommendations is the full ordered list; selector only chooses which 6 to show.
-        return BalancedCourseRecommendationSelector.select(
-                        rankedRecommendations,
-                        ScoredRecommendation::bandCompatible,
-                        ScoredRecommendation::matchesWeakSkill,
-                        context.getWeakSkills() != null && !context.getWeakSkills().isEmpty()
-                ).stream()
-                .map(ScoredRecommendation::response)
-                .toList();
-    }
 
-    /**
-     * Score one course against the placement context. Higher = better match.
-     *
-     * Weights (rough order of impact):
-     *   +15 / -3  same vs different BEGINNER|INTERMEDIATE|ADVANCED
-     *   +8 each   course focus skill overlaps a placement weak skill
-     *   +2..10    IELTS: current band sits in the course window, closer to entry min is better (target 5.5 so plus for 5.0 -> 6.5) [ 10 - (my band - min band) x 4 ]
-     *   -0..8     IELTS: current band outside that window (distance penalty)
-     *   -1..5     IELTS: course targetBand close to the learner's goal
-     *   +6        exam name appears in title / category / path name
-     *   +1        featured flag (tie-break)
-     *
-     * Also stamps recommendationReason and two flags used later by the selector:
-     * matchesWeakSkill, bandCompatible.
-     */
-    private ScoredRecommendation scoreRecommendation(
-            OnlineCourse course,
-            OnlineCourseEnrollment enrollment,
-            PlacementRecommendationContext context
-    ) {
-        OnlineCourseResponse response = mapper.toPublicResponse(course);
-        if (enrollment != null && enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
-            // Still enrolled (not cancelled): surface progress so the UI can say "continue".
-            response.setRegistered(true);
-            response.setEnrollmentId(enrollment.getId());
-            response.setProgressPercent(defaultInt(enrollment.getProgressPercent()));
-        }
-
-        double score = 0;
-        String searchableCourse = String.join(" ",
-                safe(course.getTitle()),
-                safe(course.getShortDescription()),
-                safe(response.getCategory()),
-                safe(response.getCategoryName()),
-                safe(course.getLearningPathCode()),
-                safe(course.getLearningPathName())
-        ).toUpperCase(Locale.ROOT);
-        String normalizedExam = safe(context.getExamType()).toUpperCase(Locale.ROOT);
-
-        // 1) Soft exam signal: "IELTS Writing" in the title matches an IELTS placement.
-        //    Hard mismatch is already filtered by isExamCompatible; this only boosts keyword hits.
-        boolean examMatches = !normalizedExam.isBlank() && searchableCourse.contains(normalizedExam);
-        if (examMatches) score += 6;
-
-        // 2) Placement level vs course level. Same level is the strongest single boost.
-        //    Wrong level is penalized so Advanced is not pushed to a Beginner.
-        if (context.getRecommendedLevel() != null && course.getLevel() != null) {
-            score += context.getRecommendedLevel().name().equals(course.getLevel().name()) ? 15 : -3;
-        }
-
-        Double minBand = course.getRecommendedCurrentBandMin();
-        Double currentBand = decimalToDouble(context.getOverallScore());
-        Double targetBand = decimalToDouble(context.getTargetScore());
-        boolean bandCompatible = isBandCompatible(course, normalizedExam, currentBand);
-
-        // 3) IELTS band window. Inside [courseMin, courseTarget]: closer to entry min = "right now" difficulty.
-        //    Outside: subtract distance so far-away bands fall down the list. Floor 2 / cap 8 keep it bounded.
-        if ("IELTS".equals(normalizedExam) && currentBand != null && minBand != null) {
-            if (bandCompatible) {
-                score += Math.max(2, 10 - Math.abs(currentBand - minBand) * 4);
-            } else {
-                score -= Math.min(8, Math.abs(minBand - currentBand) * 4);
-            }
-        }
-        // 4) If the learner set a goal (e.g. 6.5), prefer courses whose targetBand is near that goal.
-        if ("IELTS".equals(normalizedExam) && targetBand != null && course.getTargetBand() != null) {
-            score += Math.max(-1, 5 - Math.abs(targetBand - course.getTargetBand()) * 2);
-        }
-
-        // 5) Weak-skill overlap. Each shared skill is +8 — this is how a weak Writing learner
-        //    sees Writing courses rise above generic level-matched courses.
-        Set<AssessmentSkill> matchedWeakSkills = response.getFocusSkills().stream()
-                .map(this::parseAssessmentSkill)
-                .filter(java.util.Objects::nonNull)
-                .filter(context.getWeakSkills()::contains)
-                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-        score += matchedWeakSkills.size() * 8D;
-        if (course.isFeatured()) score += 1;
-
-        response.setRecommendationReason(buildRecommendationReason(
-                matchedWeakSkills,
-                examMatches,
-                context.getExamType(),
-                currentBand,
-                targetBand
-        ));
-        return new ScoredRecommendation(course, response, score, !matchedWeakSkills.isEmpty(), bandCompatible);
-    }
-
-    /**
-     * IELTS band window: current overall must sit in [recommendedCurrentBandMin, targetBand].
-     * TOEIC / missing current band → true (do not filter by IELTS window).
-     * Missing min or target on the course → false, so the selector can fall back to the full list.
-     */
-    private boolean isBandCompatible(OnlineCourse course, String normalizedExam, Double currentBand) {
-        if (!"IELTS".equals(normalizedExam) || currentBand == null) {
-            return true;
-        }
-        Double minBand = course.getRecommendedCurrentBandMin();
-        Double courseTargetBand = course.getTargetBand();
-        return minBand != null
-                && courseTargetBand != null
-                && currentBand >= minBand
-                && currentBand <= courseTargetBand;
-    }
-
-    /**
-     * Hard exam filter before scoring.
-     * Category IELTS/TOEIC must equal the placement exam. Other categories (skills, general) stay eligible.
-     */
-    private boolean isExamCompatible(OnlineCourse course, String examType) {
-        String category = course.getCategory() == null ? "" : safe(course.getCategory().getCode()).toUpperCase(Locale.ROOT);
-        String normalizedExam = safe(examType).toUpperCase(Locale.ROOT);
-        if (Set.of("IELTS", "TOEIC").contains(category)) return category.equals(normalizedExam);
-        return true;
-    }
 
     private Set<AssessmentSkill> resolveWeakSkills(PlacementTestAttempt attempt) {
         if (attempt == null) return Set.of();
@@ -955,41 +670,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (score != null) scores.put(skill, score);
     }
 
-    /**
-     * UI reason, first match wins:
-     * 1) covers a weak skill from placement
-     * 2) course can raise band toward the learner's goal
-     * 3) same exam keyword
-     * 4) same current band
-     * 5) generic fallback
-     */
-    private String buildRecommendationReason(
-            Set<AssessmentSkill> matchedWeakSkills,
-            boolean examMatches,
-            String targetExam,
-            Double currentBand,
-            Double targetBand
-    ) {
-        if (!matchedWeakSkills.isEmpty()) {
-            return "Ưu tiên vì bạn cần cải thiện kỹ năng " + skillLabel(matchedWeakSkills.iterator().next()) + ".";
-        }
-        if (currentBand != null && targetBand != null && targetBand > currentBand) {
-            return "Phù hợp để nâng band từ " + formatBand(currentBand) + " lên " + formatBand(targetBand) + ".";
-        }
-        if (examMatches) {
-            return "Phù hợp với mục tiêu " + safe(targetExam).toUpperCase(Locale.ROOT) + " của bạn.";
-        }
-        if (currentBand != null) {
-            return "Phù hợp với trình độ hiện tại band " + formatBand(currentBand) + ".";
-        }
-        return "Được đề xuất dựa trên hồ sơ học tập của bạn.";
-    }
-
-    /** True when this online-course enrollment is done, so recommendCourses must not suggest it again. */
-    private boolean isCompletedEnrollment(OnlineCourseEnrollment enrollment) {
-        return enrollment != null && (enrollment.getStatus() == EnrollmentStatus.COMPLETED
-                || defaultInt(enrollment.getProgressPercent()) >= 100);
-    }
 
     /** Map course focusSkills strings to enums; unknown tokens are ignored (not a scoring error). */
     private AssessmentSkill parseAssessmentSkill(String value) {
@@ -1000,28 +680,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
     }
 
-    private String skillLabel(AssessmentSkill skill) {
-        String value = skill.name().toLowerCase(Locale.ROOT);
-        return Character.toUpperCase(value.charAt(0)) + value.substring(1);
-    }
 
-    private Double parseBand(String value) {
-        var matcher = BAND_NUMBER_PATTERN.matcher(safe(value));
-        if (!matcher.find()) return null;
-        try {
-            return Double.parseDouble(matcher.group(1));
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
 
-    private Double decimalToDouble(BigDecimal value) {
-        return value == null ? null : value.doubleValue();
-    }
-
-    private String formatBand(Double value) {
-        return value == null ? "" : BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
-    }
 
     /**
      * One scored course plus two flags the selector reads:
@@ -1174,152 +834,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return enrollment;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
-        OnlineCourse course = findCourse(courseId);
-        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
-        return courseProgressService.buildCompletionResponse(enrollment, course, student);
-    }
-
-    @Override
-    public CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
-        OnlineCourse course = findCourse(courseId);
-        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
-        CourseCompletionResponse completion = courseProgressService.buildCompletionResponse(enrollment, course, student);
-        return buildCertificateResponse(course, enrollment, student, completion, false);
-    }
-
-    @Override
-    public OnlineCourseEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        OnlineCourse course = findCourse(courseId);
-        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
-        onlineCourseVersionService.assertLessonBelongsToEnrollment(enrollment, lessonId);
-        OnlineCourseVersion pinnedVersion = enrollment.getCourseVersion() != null
-                ? enrollment.getCourseVersion()
-                : onlineCourseVersionService.requirePublishedVersion(course);
-        OnlineLesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new RuntimeException("OnlineLesson not found"));
-
-        if (lesson.getModule() == null
-                || lesson.getModule().getOnlineCourseVersion() == null
-                || !pinnedVersion.getId().equals(lesson.getModule().getOnlineCourseVersion().getId())) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
-        }
-
-        LessonProgress progress = lessonProgressRepository.findByEnrollmentAndLesson(enrollment, lesson)
-                .or(() -> lessonProgressRepository.findByStudentAndLesson(student, lesson))
-                .orElseGet(() -> LessonProgress.builder()
-                        .student(student)
-                        .lesson(lesson)
-                        .enrollment(enrollment)
-                        .courseVersion(pinnedVersion)
-                        .lessonKey(lesson.getLessonKey())
-                        .build());
-        if (progress.getCourseVersion() == null) {
-            progress.setCourseVersion(pinnedVersion);
-        }
-        if (progress.getEnrollment() == null) {
-            progress.setEnrollment(enrollment);
-        }
-        if (progress.getLessonKey() == null || progress.getLessonKey().isBlank()) {
-            progress.setLessonKey(lesson.getLessonKey());
-        }
-
-        progress.setLastAccessedAt(LocalDateTime.now());
-        if (progress.getFirstAccessedAt() == null) {
-            progress.setFirstAccessedAt(progress.getLastAccessedAt());
-        }
-        if (completed) {
-            onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, true);
-            progress.setStatus(LessonProgressStatus.COMPLETED);
-            progress.setProgressPercent(100);
-            if (progress.getCompletedAt() == null) {
-                progress.setCompletedAt(LocalDateTime.now());
-            }
-        } else {
-            onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, false);
-            progress.setStatus(LessonProgressStatus.IN_PROGRESS);
-            progress.setProgressPercent(0);
-            progress.setCompletedAt(null);
-        }
-        lessonProgressRepository.save(progress);
-
-        OnlineCourseEnrollment savedEnrollment = courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
-        return mapper.toEnrollmentResponse(savedEnrollment);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<VocabularyTermResponse> getVocabularyTerms(Long courseId, String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        OnlineCourse course = findCourse(courseId);
-        ensureEnrolled(student, course);
-
-        return flashcardPracticeService.getPracticeTerms(
-                FlashcardPracticeSource.ENROLLED,
-                courseId,
-                false,
-                studentEmail
-        );
-    }
-
-    @Override
-    public VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, Boolean reviewed, Boolean correct, String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        OnlineCourse course = findCourse(courseId);
-        ensureEnrolled(student, course);
-
-        VocabularyTermResponse term = flashcardPracticeService.getPracticeTerms(
-                        FlashcardPracticeSource.ENROLLED,
-                        courseId,
-                        false,
-                        studentEmail
-                ).stream()
-                .filter(item -> item.getTermKey().equals(termKey))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Vocabulary term not found"));
-
-        VocabularyProgress progress = vocabularyProgressRepository.findByStudentAndCourseAndTermKey(student, course, termKey)
-                .orElseGet(() -> VocabularyProgress.builder()
-                        .student(student)
-                        .course(course)
-                        .termKey(termKey)
-                        .build());
-
-        if (status != null) {
-            progress.setStatus(status);
-        }
-        if (starred != null) {
-            progress.setStarred(starred);
-        }
-        if (Boolean.TRUE.equals(reviewed)) {
-            progress.setReviewCount((progress.getReviewCount() == null ? 0 : progress.getReviewCount()) + 1);
-            progress.setLastReviewedAt(LocalDateTime.now());
-        }
-        if (correct != null) {
-            progress.setLastResultCorrect(correct);
-            if (correct) {
-                progress.setCorrectCount((progress.getCorrectCount() == null ? 0 : progress.getCorrectCount()) + 1);
-            } else {
-                progress.setIncorrectCount((progress.getIncorrectCount() == null ? 0 : progress.getIncorrectCount()) + 1);
-            }
-        }
-        if (progress.getLastReviewedAt() == null) {
-            progress.setLastReviewedAt(LocalDateTime.now());
-        }
-        VocabularyProgress savedProgress = vocabularyProgressRepository.save(progress);
-
-        return applyVocabularyProgress(term, List.of(savedProgress));
-    }
 
     private OnlineCourse findCourse(Long id) {
         OnlineCourse course = onlineCourseRepository.findWithModulesById(id)
@@ -1365,21 +879,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.getLatestModules().forEach(module -> module.getLessons().size());
     }
 
-    /**
-     * Safely retrieves a course for enrollment, ensuring it is published and not deleted.
-     * Uses a specific query to eagerly fetch modules to prevent N+1 lazy loading issues.
-     */
-    private OnlineCourse findPublishedCourseForEnrollment(Long courseId) {
-        // Find the course by ID, ensuring it's not deleted and its status is PUBLISHED
-        OnlineCourse course = onlineCourseRepository
-                .findWithModulesByIdAndDeletedFalseAndStatus(courseId, PackageStatus.PUBLISHED)
-                .orElseThrow(() -> new CourseUnavailableException("Course not found or not available for enrollment"));
-                
-        // Initialize lazy-loaded collections inside modules if needed
-        initializeModules(course);
-        
-        return course;
-    }
 
     private OnlineCourse findPublishedCourseByIdOrPackageId(Long slugOrId) {
         OnlineCourse course = onlineCourseRepository
@@ -1389,9 +888,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return course;
     }
 
-    private void ensureEnrolled(User student, OnlineCourse course) {
-        courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
-    }
 
     private List<VocabularyTermResponse> extractVocabularyTerms(OnlineCourse course) {
         List<VocabularyTermResponse> terms = new ArrayList<>();
@@ -1446,20 +942,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return terms;
     }
 
-    private VocabularyTermResponse applyVocabularyProgress(VocabularyTermResponse term, List<VocabularyProgress> progressItems) {
-        progressItems.stream()
-                .filter(progress -> progress.getTermKey().equals(term.getTermKey()))
-                .findFirst()
-                .ifPresent(progress -> {
-                    term.setStatus(progress.getStatus());
-                    term.setStarred(progress.isStarred());
-                    term.setReviewCount(progress.getReviewCount() == null ? 0 : progress.getReviewCount());
-                    term.setCorrectCount(progress.getCorrectCount() == null ? 0 : progress.getCorrectCount());
-                    term.setIncorrectCount(progress.getIncorrectCount() == null ? 0 : progress.getIncorrectCount());
-                    term.setLastResultCorrect(progress.getLastResultCorrect());
-                });
-        return term;
-    }
 
     private String findVocabularyField(String block, String label) {
         Pattern fieldPattern = Pattern.compile("(?m)^\\*\\*" + Pattern.quote(label) + ":\\*\\*\\s*(.+)$", Pattern.CASE_INSENSITIVE);
@@ -2499,9 +1981,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
     }
 
-    private String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
 
     private Integer defaultInt(Integer value) {
         return value == null ? 0 : value;
@@ -2519,9 +1998,4 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return salePrice;
     }
 
-    private boolean isFreeCourse(OnlineCourse course) {
-        BigDecimal price = defaultBigDecimal(course.getPrice());
-        BigDecimal salePrice = resolveSalePrice(price, course.getSalePrice());
-        return (salePrice == null ? price : salePrice).compareTo(BigDecimal.ZERO) <= 0;
-    }
 }

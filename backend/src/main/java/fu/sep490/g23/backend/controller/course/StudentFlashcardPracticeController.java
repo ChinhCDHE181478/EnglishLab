@@ -14,15 +14,5 @@ import java.util.List;
 @RequestMapping("/api/student/flashcards")
 @RequiredArgsConstructor
 public class StudentFlashcardPracticeController {
-    private final FlashcardPracticeService flashcardPracticeService;
 
-    @GetMapping("/practice")
-    public ResponseEntity<List<VocabularyTermResponse>> getPracticeTerms(
-            @RequestParam(defaultValue = "ENROLLED") FlashcardPracticeSource source,
-            @RequestParam(required = false) Long courseId,
-            @RequestParam(defaultValue = "false") boolean starredOnly,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(flashcardPracticeService.getPracticeTerms(source, courseId, starredOnly, authentication.getName()));
-    }
 }

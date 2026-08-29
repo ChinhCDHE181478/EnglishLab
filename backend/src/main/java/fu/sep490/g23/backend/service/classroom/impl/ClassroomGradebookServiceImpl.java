@@ -57,24 +57,6 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
         return buildClassGradebookResponses(offeringId, true);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public ClassroomGradebookResponse getMyGradebook(Long offeringId, String learnerEmail) {
-        User learner = accessHelper.requireUser(learnerEmail);
-        ClassroomGradebookEntry entry = gradebookEntryRepository
-                .findByClassSectionIdAndStudentId(offeringId, learner.getId())
-                .orElse(null);
-        if (entry == null || entry.getStatus() != GradebookEntryStatus.PUBLISHED) {
-            return null;
-        }
-        List<ClassroomHomework> homeworks = homeworkRepository
-                .findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
-                .filter(homework -> homework.getStatus() != HomeworkStatus.DRAFT)
-                .toList();
-        List<ClassroomHomeworkSubmission> submissions = submissionRepository
-                .findAllForStudentGradebook(offeringId, learner.getId());
-        return buildResponse(entry, homeworks, submissions);
-    }
 
     @Override
     public ClassroomGradebookResponse updateEntry(Long offeringId, UpdateGradebookRequest request, String updaterEmail) {
@@ -255,40 +237,5 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
                 .toList();
     }
 
-    private ClassroomGradebookResponse buildResponse(
-            ClassroomGradebookEntry entry,
-            List<ClassroomHomework> homeworks,
-            List<ClassroomHomeworkSubmission> submissions
-    ) {
-        Map<Long, ClassroomHomeworkSubmission> submissionByHomeworkId = new HashMap<>();
-        submissions.forEach(submission -> submissionByHomeworkId.put(submission.getHomework().getId(), submission));
 
-        BigDecimal homeworkAverage = homeworkScoreCalculator.calculateAverage(homeworks, submissions);
-        ClassroomGradebookResponse response = mapper.toGradebookResponse(entry);
-        response.setHomeworkAverage(homeworkAverage);
-        response.setHomeworks(homeworks.stream()
-                .map(homework -> toHomeworkResponse(homework, submissionByHomeworkId.get(homework.getId())))
-                .toList());
-        return response;
-    }
-
-    private ClassroomGradebookHomeworkResponse toHomeworkResponse(
-            ClassroomHomework homework,
-            ClassroomHomeworkSubmission submission
-    ) {
-        return ClassroomGradebookHomeworkResponse.builder()
-                .id(homework.getId())
-                .title(homework.getTitle())
-                .score(submission == null ? null : submission.getScore())
-                .maxScore(homework.getMaxScore() == null ? BigDecimal.TEN : homework.getMaxScore())
-                .status(resolveHomeworkStatus(submission))
-                .build();
-    }
-
-    private String resolveHomeworkStatus(ClassroomHomeworkSubmission submission) {
-        if (submission == null || submission.getStatus() == HomeworkSubmissionStatus.DRAFT) {
-            return "NOT_SUBMITTED";
-        }
-        return submission.getStatus().name();
-    }
 }
