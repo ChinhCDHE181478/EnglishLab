@@ -85,17 +85,6 @@ public class ClassroomAttendanceServiceImpl implements ClassroomAttendanceServic
                 .toList();
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClassroomAttendanceResponse> getByClassForStudent(Long offeringId, String learnerEmail) {
-        User learner = accessHelper.requireUser(learnerEmail);
-        enrollmentRepository.findByStudentIdAndClassSectionId(learner.getId(), offeringId)
-                .filter(enrollment -> ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus()))
-                .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập lớp học này."));
-        return attendanceRepository.findByStudentIdAndSession_ClassSectionId(learner.getId(), offeringId).stream()
-                .map(mapper::toAttendanceResponse)
-                .toList();
-    }
 
     @Override
     public List<ClassroomAttendanceResponse> saveBulk(SaveAttendanceRequest request, String markerEmail) {
