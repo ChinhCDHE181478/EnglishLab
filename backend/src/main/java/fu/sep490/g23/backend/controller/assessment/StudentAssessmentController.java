@@ -24,4 +24,42 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentAssessmentController {
 
+    private final AiAssessmentService aiAssessmentService;
+    private final AssessmentAudioStorageService assessmentAudioStorageService;
+
+    @GetMapping({"/online-courses/{courseId}/assessments", "/courses/{courseId}/assessments"})
+    public ResponseEntity<List<CourseAssessmentResponse>> getCourseAssessments(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(aiAssessmentService.getCourseAssessments(courseId, authentication.getName()));
+    }
+
+    @PostMapping("/assessments/{assessmentId}/submit")
+    public ResponseEntity<AiAssessmentSubmissionResponse> submitAssessment(
+            @PathVariable Long assessmentId,
+            @Valid @RequestBody AssessmentSubmissionRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(aiAssessmentService.submitAssessment(assessmentId, request, authentication.getName()));
+    }
+
+    @PostMapping(value = "/assessments/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AssessmentAudioUploadResponse> uploadAssessmentAudio(
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
+    ) {
+        String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/student/assessments/audio")
+                .toUriString();
+        return ResponseEntity.ok(assessmentAudioStorageService.store(file, publicUrlBase));
+    }
+
+    @GetMapping("/assessments/audio/{fileName}")
+    public ResponseEntity<Resource> getAssessmentAudio(
+            @PathVariable String fileName,
+            Authentication authentication
+    ) {
+        Resource resource = assessmentAudioStorageService.loadAsResource(fileName);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, assessmentAudioStorageService.detectContentType(fileName))
+                .body(resource);
+    }
 }
