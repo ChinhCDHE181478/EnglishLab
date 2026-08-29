@@ -77,9 +77,6 @@ public class CreateClassroomOfferingRequest {
     @DecimalMin(value = "0.0", inclusive = true, message = "Giá ưu đãi không được âm")
     private BigDecimal salePrice;
 
-    @Size(max = 700)
-    private String thumbnailUrl;
-
     @Size(max = 80)
     private String duration;
 
@@ -88,11 +85,6 @@ public class CreateClassroomOfferingRequest {
 
     @Size(max = 80)
     private String targetScore;
-
-    @Min(0)
-    private Integer displayOrder;
-
-    private Boolean featured;
 
     @AssertTrue(message = "Ngày kết thúc phải từ ngày bắt đầu trở đi")
     public boolean isDateRangeValid() {

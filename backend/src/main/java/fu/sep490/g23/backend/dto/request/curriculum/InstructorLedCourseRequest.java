@@ -26,7 +26,23 @@ public class InstructorLedCourseRequest {
     @Size(max = 160)
     private String slug;
 
-    @NotNull(message = "Hình thức đào tạo không được để trống.")
+    @Size(max = 500)
+    private String shortDescription;
+
+    private String description;
+
+    @Size(max = 80)
+    private String durationLabel;
+
+    @Size(max = 120)
+    private String level;
+
+    @DecimalMin(value = "0.0", message = "Học phí gốc không được âm.")
+    private BigDecimal baseTuitionFeeVnd;
+
+    @DecimalMin(value = "0.0", message = "Học phí ưu đãi không được âm.")
+    private BigDecimal saleTuitionFeeVnd;
+
     private ClassroomDeliveryMode deliveryMode;
 
     @Size(max = 30)
@@ -56,9 +72,6 @@ public class InstructorLedCourseRequest {
 
     @Size(max = 30)
     private String status;
-
-    @Min(0)
-    private Integer displayOrder;
 
     // Cấu hình riêng cho chương trình virtual
     @Size(max = 30)

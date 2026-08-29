@@ -9,6 +9,7 @@ import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
@@ -36,17 +37,34 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
+    /**
+     * Refreshes the progress percent and status of an enrollment.
+     * 
+     * @param enrollment The current enrollment
+     * @param course     The associated course
+     * @param student    The student
+     * @return The updated enrollment (or unchanged if no updates needed)
+     */
     public OnlineCourseEnrollment refreshEnrollmentProgress(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
+        // Build a snapshot of required vs completed lessons/assessments
         CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
 
+        // Calculate progress percentage based on snapshot
         int progressPercent = calculateProgressPercent(snapshot);
+        
+        // Determine new status: keep CANCELLED if already cancelled. 
+        // If eligible for certificate, mark as COMPLETED, otherwise ACTIVE.
         EnrollmentStatus nextStatus = enrollment.getStatus() == EnrollmentStatus.CANCELLED
                 ? EnrollmentStatus.CANCELLED
                 : snapshot.eligibleForCertificate() ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
+                
+        // If nothing changed, return early to avoid unnecessary DB updates
         if (java.util.Objects.equals(enrollment.getProgressPercent(), progressPercent)
                 && enrollment.getStatus() == nextStatus) {
             return enrollment;
         }
+        
+        // Update progress and save to DB
         enrollment.setProgressPercent(progressPercent);
         enrollment.setStatus(nextStatus);
         return enrollmentRepository.save(enrollment);
@@ -89,7 +107,10 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     }
 
     private CompletionSnapshot buildSnapshot(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
-        int liveLessonCount = course.getModules().stream()
+        List<OnlineCourseModule> liveModules = enrollment.getCourseVersion() == null
+                ? course.getPublishedModules()
+                : enrollment.getCourseVersion().getModules();
+        int liveLessonCount = liveModules.stream()
                 .mapToInt(module -> module.getLessons().size())
                 .sum();
         int liveAssessmentCount = Math.toIntExact(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course));

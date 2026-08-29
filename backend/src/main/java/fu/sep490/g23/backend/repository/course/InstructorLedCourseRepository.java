@@ -16,5 +16,5 @@ public interface InstructorLedCourseRepository extends JpaRepository<InstructorL
 
     boolean existsBySlug(String slug);
 
-    List<InstructorLedCourse> findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc();
+    List<InstructorLedCourse> findAllByOrderByUpdatedAtDescIdDesc();
 }

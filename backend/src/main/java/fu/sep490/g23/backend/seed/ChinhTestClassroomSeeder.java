@@ -10,7 +10,6 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
@@ -330,7 +329,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .saleTuitionFeeVnd(BigDecimal.valueOf(4_690_000))
                         .durationLabel("8 tuần")
                         .publicationStatus(PackageStatus.PUBLISHED)
-                        .displayOrder(1)
                         .reviewedBy(teacher)
                         .reviewedAt(LocalDateTime.now())
                         .build()));
@@ -684,7 +682,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .orElseGet(() -> enrollmentRepository.save(ClassEnrollment.builder()
                         .student(learner)
                         .classSection(offering)
-                        .status(ClassroomEnrollmentStatus.ENROLLED)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(4_690_000))

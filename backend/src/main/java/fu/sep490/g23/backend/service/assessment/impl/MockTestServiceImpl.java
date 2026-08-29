@@ -15,8 +15,6 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.MockTestAttemptRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.service.assessment.MockTestService;
-import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
-import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,17 +34,14 @@ public class MockTestServiceImpl implements MockTestService {
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final MockTestAttemptRepository attemptRepository;
     private final UserRepository userRepository;
-    private final ContentBankIdResolver contentBankIdResolver;
-    private final ContentBankLinkSync contentBankLinkSync;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional
     public MockTestAttemptResponse submitMockTest(Long mockTestId, MockTestSubmissionRequest request, String studentEmail) {
         validateSubmission(request);
-        Long resolvedId = contentBankIdResolver.resolve(ContentBankType.ASSESSMENT, mockTestId).orElse(mockTestId);
         AssessmentBankItem mockTest = assessmentBankRepository
-                .findByIdAndTypeAndStatusAndActiveTrue(resolvedId, AssessmentType.MOCK_TEST, "PUBLISHED")
+                .findByIdAndTypeAndStatusAndActiveTrue(mockTestId, AssessmentType.MOCK_TEST, "PUBLISHED")
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi thử đã xuất bản."));
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
@@ -60,7 +55,6 @@ public class MockTestServiceImpl implements MockTestService {
 
         MockTestAttempt attempt = MockTestAttempt.builder()
                 .assessmentBankItem(mockTest)
-                .legacyAssessmentBankItemId(requireLegacyAssessmentId(mockTest))
                 .student(student)
                 .skill(mockTest.getSkill() == null ? AssessmentSkill.MIXED : mockTest.getSkill())
                 .objectiveAnswersJson(safe(request == null ? null : request.getObjectiveAnswersJson()))
@@ -74,14 +68,6 @@ public class MockTestServiceImpl implements MockTestService {
                 .submittedAt(LocalDateTime.now())
                 .build();
         return toResponse(attemptRepository.save(attempt));
-    }
-
-    private Long requireLegacyAssessmentId(AssessmentBankItem mockTest) {
-        Long legacyId = contentBankLinkSync.legacyIdForAssessment(mockTest);
-        if (legacyId == null) {
-            throw new IllegalStateException("Thiếu ánh xạ legacy cho đề thi thử. Chạy lại migration Slice 3 hoặc tạo map.");
-        }
-        return legacyId;
     }
 
     private void validateSubmission(MockTestSubmissionRequest request) {

@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.repository.classroom;
 
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,20 +17,11 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
     Optional<ClassEnrollment> findByStudentIdAndClassSectionId(Long studentId, Long classSectionId);
 
-    boolean existsByStudentIdAndClassSectionIdAndStatusIn(
-            Long studentId,
-            Long classSectionId,
-            Collection<ClassroomEnrollmentStatus> statuses
-    );
-
     boolean existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
             Long studentId,
             Long classSectionId,
             Collection<ClassroomRegistrationStatus> statuses
     );
-
-    @Query("SELECT COUNT(e) FROM ClassEnrollment e WHERE e.classSection.id = :offeringId AND e.status IN :statuses")
-    long countByOfferingAndStatuses(@Param("offeringId") Long offeringId, @Param("statuses") Collection<ClassroomEnrollmentStatus> statuses);
 
     @Query("SELECT COUNT(e) FROM ClassEnrollment e WHERE e.classSection.id = :offeringId AND e.registrationStatus IN :statuses")
     long countByOfferingAndRegistrationStatuses(
@@ -39,14 +29,10 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
             @Param("statuses") Collection<ClassroomRegistrationStatus> statuses
     );
 
-    List<ClassEnrollment> findByStudentIdAndStatusIn(Long studentId, Collection<ClassroomEnrollmentStatus> statuses);
-
     List<ClassEnrollment> findByStudentIdAndRegistrationStatusIn(
             Long studentId,
             Collection<ClassroomRegistrationStatus> statuses
     );
-
-    List<ClassEnrollment> findByClassSectionIdAndStatusIn(Long classSectionId, Collection<ClassroomEnrollmentStatus> statuses);
 
     List<ClassEnrollment> findAllByClassSectionId(Long classSectionId);
 

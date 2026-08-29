@@ -78,7 +78,6 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.setPrice(BigDecimal.valueOf(1_190_000));
         onlineCourse.setThumbnailUrl("https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg");
         onlineCourse.setStatus(PackageStatus.PUBLISHED);
-        onlineCourse.setDisplayOrder(5);
         onlineCourse.setFeatured(true);
         onlineCourse.setDeleted(false);
         onlineCourse.setCategory(category);
@@ -199,7 +198,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         OnlineCourseModule module = findModule(onlineCourse, order);
         module.setTitle("Module " + order + ": " + videoTitle);
         module.setDescription(moduleDescription);
-        module.setDisplayOrder(order);
+        module.setSequenceNumber(order);
 
         upsertLesson(
                 module,
@@ -234,16 +233,14 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 false
         );
 
-        module.getLessons().sort(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
-        if (onlineCourse.getModules() != null) {
-            onlineCourse.getModules().sort(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(moduleItem -> moduleItem.getId() == null ? Long.MAX_VALUE : moduleItem.getId()));
-        }
+        module.getLessons().sort(Comparator.comparing(OnlineLesson::getSequenceNumber).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+        module.getOnlineCourseVersion().getModules().sort(Comparator.comparing(OnlineCourseModule::getSequenceNumber).thenComparing(moduleItem -> moduleItem.getId() == null ? Long.MAX_VALUE : moduleItem.getId()));
     }
 
     private OnlineCourseModule findModule(OnlineCourse onlineCourse, int order) {
         OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
         return draftVersion.getModules().stream()
-                .filter(module -> module.getDisplayOrder() != null && module.getDisplayOrder() == order)
+                .filter(module -> module.getSequenceNumber() != null && module.getSequenceNumber() == order)
                 .findFirst()
                 .orElseGet(() -> {
                     OnlineCourseModule module = new OnlineCourseModule();
@@ -269,7 +266,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
     private void upsertLesson(OnlineCourseModule module, int order, String title, String description, String contentText, BunnyLessonVideo video, int durationMinutes, boolean preview) {
         OnlineLesson lesson = module.getLessons().stream()
-                .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder() == order)
+                .filter(existingLesson -> existingLesson.getSequenceNumber() != null && existingLesson.getSequenceNumber() == order)
                 .findFirst()
                 .orElseGet(() -> {
                     OnlineLesson newLesson = new OnlineLesson();
@@ -287,9 +284,9 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         lesson.setBunnyCdnUrl(video == null ? null : video.embedUrl());
         lesson.setMaterialUrl(null);
         lesson.setDurationMinutes(durationMinutes);
-        lesson.setDisplayOrder(order);
+        lesson.setSequenceNumber(order);
         lesson.setPreview(preview);
-        int moduleOrder = module.getDisplayOrder() == null ? 0 : module.getDisplayOrder();
+        int moduleOrder = module.getSequenceNumber() == null ? 0 : module.getSequenceNumber();
         lesson.setLessonKey("%s-m%d-l%d".formatted(COURSE_SLUG, moduleOrder, order));
     }
 

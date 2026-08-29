@@ -15,7 +15,7 @@ import ContentManagerAnalyticsPage from './ContentManagerAnalyticsPage';
 import ContentManagerPlacementTestPage from './ContentManagerPlacementTestPage';
 import ContentManagerRubricsPage from './ContentManagerRubricsPage';
 import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
-import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
+import ContentManagerInstructorLedCoursesPage from './ContentManagerInstructorLedCoursesPage';
 import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 import ContentManagerCoursePreviewPage from './ContentManagerCoursePreviewPage';
 
@@ -28,7 +28,7 @@ export default function ContentManagerRoutes() {
         <Route path="courses" element={<ContentManagerCoursesPage />} />
         <Route path="courses/:slugOrId" element={<Navigate replace to="edit" />} />
         <Route path="classrooms" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
-        <Route path="instructor-led-courses" element={<ContentManagerSyllabusBuilderPage />} />
+        <Route path="instructor-led-courses" element={<ContentManagerInstructorLedCoursesPage />} />
         <Route path="offline-programs/*" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
         <Route path="virtual-programs/*" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
         <Route path="syllabus-builder" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />

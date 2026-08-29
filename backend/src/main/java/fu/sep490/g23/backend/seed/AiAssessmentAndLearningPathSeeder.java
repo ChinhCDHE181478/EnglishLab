@@ -17,6 +17,10 @@ import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.entity.course.LearningPath;
+import fu.sep490.g23.backend.entity.course.LearningPathCourse;
+import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
+import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +48,8 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
+    private final LearningPathRepository learningPathRepository;
+    private final LearningPathCourseRepository learningPathCourseRepository;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -73,6 +79,43 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                             null);
                     seedPracticeTestAssessments(course, writingRubric, speakingRubric);
                 });
+
+        upsertLearningPathEntity();
+    }
+
+    private void upsertLearningPathEntity() {
+        OnlineCourse vocabCourse = onlineCourseRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus").orElse(null);
+        OnlineCourse e2Course = onlineCourseRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests").orElse(null);
+        if (vocabCourse == null && e2Course == null) return;
+
+        LearningPath path = learningPathRepository.findByCodeIgnoreCase("IELTS_BAND_55_TO_70")
+                .orElseGet(() -> LearningPath.builder()
+                        .code("IELTS_BAND_55_TO_70")
+                        .name("IELTS 5.5 to 7.0 Self-Paced Path")
+                        .examCategory("IELTS")
+                        .targetBand(BigDecimal.valueOf(7.0))
+                        .discountPercent(20)
+                        .minimumCoursesForDiscount(2)
+                        .build());
+        path.setName("IELTS 5.5 to 7.0 Self-Paced Path");
+        path.setExamCategory("IELTS");
+        path.setTargetBand(BigDecimal.valueOf(7.0));
+        LearningPath savedPath = learningPathRepository.save(path);
+
+        if (vocabCourse != null && !learningPathCourseRepository.existsByLearningPathIdAndOnlineCourseId(savedPath.getId(), vocabCourse.getId())) {
+            learningPathCourseRepository.save(LearningPathCourse.builder()
+                    .learningPath(savedPath)
+                    .onlineCourse(vocabCourse)
+                    .displayOrder(1)
+                    .build());
+        }
+        if (e2Course != null && !learningPathCourseRepository.existsByLearningPathIdAndOnlineCourseId(savedPath.getId(), e2Course.getId())) {
+            learningPathCourseRepository.save(LearningPathCourse.builder()
+                    .learningPath(savedPath)
+                    .onlineCourse(e2Course)
+                    .displayOrder(2)
+                    .build());
+        }
     }
 
     private void configurePath(OnlineCourse course, int order, String name, double minBand, double targetBand, String outcome, String nextSlug) {
@@ -176,7 +219,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             assessment.setPassingScore(BigDecimal.valueOf(7.0));
             assessment.setMaxScore(BigDecimal.valueOf(9.0));
             assessment.setTimeLimitMinutes(20);
-            assessment.setDisplayOrder(module.getDisplayOrder());
+            assessment.setDisplayOrder(module.getSequenceNumber());
             assessment.setActive(true);
             CourseAssessment savedAssessment = courseAssessmentRepository.save(assessment);
             if (existingAssessments.stream().noneMatch(item -> item.getId() != null && item.getId().equals(savedAssessment.getId()))) {
@@ -215,7 +258,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                 assessment.setMaxScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(9.0) : null);
             }
             assessment.setTimeLimitMinutes(practiceTimeLimitMinutes(skill));
-            assessment.setDisplayOrder(module.getDisplayOrder());
+            assessment.setDisplayOrder(module.getSequenceNumber());
             assessment.setActive(true);
             CourseAssessment savedAssessment = courseAssessmentRepository.save(assessment);
             if (existingAssessments.stream().noneMatch(item -> item.getId() != null && item.getId().equals(savedAssessment.getId()))) {
@@ -243,7 +286,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private AssessmentSkill resolvePracticeSkill(OnlineCourseModule module) {
-        if (module != null && Integer.valueOf(1).equals(module.getDisplayOrder())) {
+        if (module != null && Integer.valueOf(1).equals(module.getSequenceNumber())) {
             return AssessmentSkill.WRITING;
         }
         return detectSkill(module == null ? null : module.getTitle());
@@ -539,7 +582,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             return List.of();
         }
         return version.getModules().stream()
-                .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
+                .sorted(Comparator.comparing(module -> module.getSequenceNumber() == null ? Integer.MAX_VALUE : module.getSequenceNumber()))
                 .toList();
     }
 }

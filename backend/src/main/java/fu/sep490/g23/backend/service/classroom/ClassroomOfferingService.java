@@ -48,6 +48,8 @@ public interface ClassroomOfferingService {
 
     ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail);
 
+    ClassroomOfferingResponse updatePrelaunchPlan(Long id, UpdateClassroomPlanRequest request, String actorEmail);
+
     ClassroomOfferingResponse closeOffering(Long id, String actorEmail);
 
     List<ClassroomSessionResponse> getSessions(Long offeringId);

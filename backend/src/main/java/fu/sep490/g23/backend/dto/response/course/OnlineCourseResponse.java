@@ -44,7 +44,6 @@ public class OnlineCourseResponse {
     private String thumbnailUrl;
     private Integer totalLessons;
     private Integer totalHours;
-    private Integer displayOrder;
     private boolean featured;
     private boolean registered;
     private Integer progressPercent;

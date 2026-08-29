@@ -118,6 +118,7 @@ public class ClassroomMapper {
 
         return ClassroomOfferingResponse.builder()
                 .id(offering.getId())
+                .code(offering.getCode())
                 .title(offering.getName())
                 .slug(course.getSlug())
                 .shortDescription(course.getShortDescription())
@@ -142,6 +143,8 @@ public class ClassroomMapper {
                 .primaryTeacherName(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getFullName())
                 .roomId(offering.getRoom() == null ? null : offering.getRoom().getId())
                 .roomName(offering.getRoom() == null ? null : offering.getRoom().getName())
+                .regularRoomId(offering.getRoom() == null ? null : offering.getRoom().getId())
+                .regularRoomName(offering.getRoom() == null ? null : offering.getRoom().getName())
                 .offlineAddress(offering.getOfflineAddress())
                 .locationNote(offering.getLocationNote())
                 .googleMeetOwnerId(offering.getGoogleMeetOwner() == null ? null : offering.getGoogleMeetOwner().getId())
@@ -153,13 +156,11 @@ public class ClassroomMapper {
                 .teacherGuide(offering.getTeacherGuide())
                 .interactionActivities(offering.getInteractionActivities())
                 .price(offering.getTuitionFeeVnd())
+                .tuitionFeeVnd(offering.getTuitionFeeVnd())
                 .salePrice(course.getSaleTuitionFeeVnd())
                 .targetScore(course.getTargetScore() == null ? null : String.valueOf(course.getTargetScore()))
                 .duration(course.getDurationLabel())
                 .studyMode(offering.getStudyMode())
-                .displayOrder(course.getDisplayOrder())
-                .featured(course.isFeatured())
-                .thumbnailUrl(course.getThumbnailUrl())
                 .nextSession(nextSession)
                 .progressPercent(progressPercent)
                 .enrollmentId(enrollment == null ? null : enrollment.getId())
@@ -679,6 +680,12 @@ public class ClassroomMapper {
                 .totalSessions(units.stream()
                         .map(CourseUnit::getLessons)
                         .filter(Objects::nonNull)
+                        .flatMap(List::stream)
+                        .mapToInt(lesson -> Math.max(1, Objects.requireNonNullElse(lesson.getPlannedSessionCount(), 1)))
+                        .sum())
+                .totalLessons(units.stream()
+                        .map(CourseUnit::getLessons)
+                        .filter(Objects::nonNull)
                         .mapToInt(List::size)
                         .sum())
                 .totalUnits(units.size())
@@ -688,7 +695,6 @@ public class ClassroomMapper {
                 .submittedAt(course.getSubmittedAt())
                 .reviewedByName(course.getReviewedBy() == null ? null : course.getReviewedBy().getFullName())
                 .reviewedAt(course.getReviewedAt())
-                .displayOrder(course.getDisplayOrder())
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
                 .units(includeUnits ? units.stream().map(this::toCourseUnitResponse).toList() : null)
@@ -724,6 +730,7 @@ public class ClassroomMapper {
                 .programId(unit.getInstructorLedCourse().getId())
                 .sessionNumber(lesson.getSequenceNumber())
                 .displayOrder(lesson.getSequenceNumber())
+                .plannedSessionCount(Math.max(1, Objects.requireNonNullElse(lesson.getPlannedSessionCount(), 1)))
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
                 .learningObjectives(lesson.getLearningObjectives())
@@ -760,14 +767,14 @@ public class ClassroomMapper {
         }
         var item = ref.getContentBankItem();
         String subtitle = item == null ? null : switch (ref.getContentType()) {
-            case ASSESSMENT -> payloadText(item, "assessmentType", "type");
+            case ASSESSMENT -> payloadText(item, "type");
             case EXERCISE -> payloadText(item, "exerciseType");
             case FLASHCARD, MATERIAL -> item.getExamCategory();
         };
         String contentJson = item == null ? null : switch (ref.getContentType()) {
             case EXERCISE -> payloadText(item, "prompt");
             case FLASHCARD -> serializePayload(item);
-            case ASSESSMENT -> payloadText(item, "contentJson", "uiConfigJson");
+            case ASSESSMENT -> payloadText(item, "uiConfigJson");
             case MATERIAL -> null;
         };
         return CourseUnitContentRefResponse.builder()

@@ -36,11 +36,8 @@ public class InstructorLedCourseResponse {
     private BigDecimal salePrice;
     private String duration;
     private String studyMode;
-    private String thumbnailUrl;
     private PackageStatus status;
     private String statusLabel;
-    private Integer displayOrder;
-    private boolean featured;
     private Integer classroomCount;
     private Integer activeClassroomCount;
     private LocalDateTime createdAt;

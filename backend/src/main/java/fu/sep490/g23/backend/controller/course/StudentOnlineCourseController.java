@@ -38,11 +38,24 @@ public class StudentOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.registerCourse(courseId, authentication.getName()));
     }
 
+    /**
+     * Retrieves the detailed content of an online course that the current user is enrolled in.
+     *
+     * @param courseId       the ID of the course
+     * @param authentication current user's authentication info
+     * @return Detailed information about the enrolled course
+     */
     @GetMapping("/{courseId}/content")
     public ResponseEntity<OnlineCourseResponse> getEnrolledCourse(@PathVariable Long courseId, Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.getEnrolledCourse(courseId, authentication.getName()));
     }
 
+    /**
+     * Retrieves the current user's enrolled online courses.
+     *
+     * @param authentication current user's authentication info
+     * @return List of enrolled courses with progress
+     */
     @GetMapping({"/my-enrollments", "/my-courses"})
     public ResponseEntity<List<OnlineCourseEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));

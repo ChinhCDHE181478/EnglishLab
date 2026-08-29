@@ -26,6 +26,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomQuizService;
+import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,12 +65,9 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
     @Transactional(readOnly = true)
     public List<ClassroomQuizResponse> listForLearner(String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        List<Long> offeringIds = enrollmentRepository.findByStudentIdAndStatusIn(
+        List<Long> offeringIds = enrollmentRepository.findByStudentIdAndRegistrationStatusIn(
                         learner.getId(),
-                        java.util.EnumSet.of(
-                                fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus.ENROLLED,
-                                fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus.COMPLETED
-                        ))
+                        ClassroomRegistrationSupport.HAS_LEARNING_ACCESS)
                 .stream()
                 .map(enrollment -> enrollment.getClassSection().getId())
                 .distinct()

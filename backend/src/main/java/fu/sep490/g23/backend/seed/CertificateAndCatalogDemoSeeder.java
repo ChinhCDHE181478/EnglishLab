@@ -151,7 +151,6 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         course.setPrice(java.math.BigDecimal.ZERO);
         course.setThumbnailUrl(thumbnailUrl);
         course.setStatus(PackageStatus.PUBLISHED);
-        course.setDisplayOrder(20 + pathOrder);
         course.setFeatured(true);
         course.setDeleted(false);
         course.setCategory(category);
@@ -167,8 +166,8 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         OnlineCourse savedCourse = onlineCourseRepository.save(course);
         course = savedCourse;
 
-        if (course.getModules().isEmpty()) {
-            OnlineCourseVersion draftVersion = ensureDraftVersion(course);
+        OnlineCourseVersion draftVersion = ensureDraftVersion(course);
+        if (draftVersion.getModules().isEmpty()) {
             OnlineCourseModule module = OnlineCourseModule.builder()
                     .title("Foundation study plan")
                     .description("A guided starting module for this learning path.")

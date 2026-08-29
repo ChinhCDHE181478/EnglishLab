@@ -6,11 +6,18 @@ import {
   BookOpen,
   Check,
   CheckCircle2,
+  Clock,
+  Coins,
   Copy,
+  DollarSign,
   Download,
+  Eye,
   FileSpreadsheet,
+  FileText,
   Filter,
   GraduationCap,
+  HelpCircle,
+  Info,
   Layers,
   Link2,
   LoaderCircle,
@@ -20,8 +27,12 @@ import {
   Save,
   Search,
   Sparkles,
+  Star,
+  Target,
   Trash2,
   UploadCloud,
+  Users,
+  Wand2,
   X,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -84,10 +95,22 @@ const emptyAttach = {
   note: '',
 };
 
+const COURSE_LEVEL_OPTIONS = [
+  { label: 'Căn bản / Sơ cấp (Beginner / Foundation)', value: 'BEGINNER' },
+  { label: 'Tiền trung cấp (Pre-Intermediate)', value: 'PRE_INTERMEDIATE' },
+  { label: 'Trung cấp (Intermediate)', value: 'INTERMEDIATE' },
+  { label: 'Trên trung cấp (Upper-Intermediate)', value: 'UPPER_INTERMEDIATE' },
+  { label: 'Nâng cao / Chuyên sâu (Advanced / Master)', value: 'ADVANCED' },
+];
+
 const emptyProgramForm = {
   title: '',
   code: '',
   slug: '',
+  shortDescription: '',
+  description: '',
+  durationLabel: '',
+  level: 'INTERMEDIATE',
   deliveryMode: 'OFFLINE',
   examCategory: 'IELTS',
   programTrack: 'IELTS_ACADEMIC',
@@ -98,8 +121,6 @@ const emptyProgramForm = {
   entryPlacementLevel: 'BEGINNER',
   outcomes: '',
   status: 'DRAFT',
-  teacherGuide: '',
-  displayOrder: 0,
 };
 
 const typeOptions = [
@@ -186,6 +207,10 @@ const toProgramForm = (program) => {
   return {
     ...emptyProgramForm,
     ...program,
+    shortDescription: program?.shortDescription || '',
+    description: program?.description || '',
+    durationLabel: program?.durationLabel || '',
+    level: program?.level || 'INTERMEDIATE',
     examCategory,
     programTrack: program?.programTrack || defaults.programTrack,
     focusSkills: readEnglishFocusSkills(program?.focusSkills, examCategory),
@@ -193,6 +218,7 @@ const toProgramForm = (program) => {
     targetScore: examCategory === 'TOEIC' ? (program?.targetScore ?? defaults.targetScore) : '',
     entryLevel: normalizeEnglishEntryLevel(program?.entryLevel, examCategory),
     entryPlacementLevel: program?.entryPlacementLevel || (examCategory === 'GENERAL_ENGLISH' ? '' : 'BEGINNER'),
+    outcomes: program?.outcomes || program?.learningOutcomes || '',
   };
 };
 
@@ -200,6 +226,10 @@ const toProgramPayload = (form, forceDraft = false) => ({
   title: form.title.trim(),
   code: form.code.trim() || makeCode(form.title, form.examCategory),
   slug: form.slug.trim() || toSlug(form.title),
+  shortDescription: form.shortDescription?.trim() || null,
+  description: form.description?.trim() || null,
+  durationLabel: form.durationLabel?.trim() || null,
+  level: form.level?.trim() || null,
   deliveryMode: 'OFFLINE',
   examCategory: form.examCategory,
   programTrack: form.programTrack,
@@ -209,12 +239,10 @@ const toProgramPayload = (form, forceDraft = false) => ({
   entryLevel: form.entryLevel?.trim() || null,
   entryPlacementLevel: form.entryPlacementLevel || null,
   outcomes: form.outcomes?.trim() || null,
-  teacherGuide: form.teacherGuide?.trim() || null,
   status: forceDraft ? 'DRAFT' : (form.status || 'DRAFT'),
-  displayOrder: Number(form.displayOrder || 0),
 });
 
-export default function ContentManagerSyllabusBuilderPage() {
+export default function ContentManagerInstructorLedCoursesPage() {
   const { confirm: confirmDialog } = useAppDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProgramId = searchParams.get('programId') || '';
@@ -988,7 +1016,7 @@ export default function ContentManagerSyllabusBuilderPage() {
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#eef1f6] bg-[#fbf3f4] px-6 py-5">
               <div className="min-w-0">
                 <button
-                  className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[#dfbfbd] bg-white px-3 py-1.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3]"
+                  className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[#dfbfbd] bg-white px-3 py-1.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3] cursor-pointer"
                   onClick={closeProgramWorkspace}
                   type="button"
                 >
@@ -1010,14 +1038,14 @@ export default function ContentManagerSyllabusBuilderPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
-                  className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                  className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95 cursor-pointer"
                   onClick={() => openProgramEditor(programDetail)}
                   type="button"
                 >
                   <Pencil className="h-3.5 w-3.5" /> Sửa thông tin
                 </button>
                 <button
-                  className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                  className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95 cursor-pointer"
                   onClick={() => cloneProgram(programDetail)}
                   type="button"
                 >
@@ -1025,7 +1053,7 @@ export default function ContentManagerSyllabusBuilderPage() {
                 </button>
                 {programDetail?.status === 'DRAFT' ? (
                   <button
-                    className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95"
+                    className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95 cursor-pointer"
                     disabled={working}
                     onClick={() => publishProgram(programDetail)}
                     type="button"
@@ -1035,7 +1063,7 @@ export default function ContentManagerSyllabusBuilderPage() {
                 ) : null}
                 <button
                   aria-label="Tải lại chi tiết khóa học"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#ecdedd] bg-white text-[#730014] transition hover:bg-[#fff2f3]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#ecdedd] bg-white text-[#730014] transition hover:bg-[#fff2f3] cursor-pointer"
                   onClick={reloadAll}
                   type="button"
                 >
@@ -1050,7 +1078,7 @@ export default function ContentManagerSyllabusBuilderPage() {
               <InfoTile label="Trình độ đầu vào" value={programDetail?.entryLevel || programDetail?.entryPlacementLevel || '-'} />
               <InfoTile label="Số Unit" value={units.length} />
               <InfoTile label="Tổng bài học" value={`${countStructuredLessons(programDetail?.units || units)} bài`} />
-              <InfoTile label="Tổng số buổi" value={`${programDetail?.totalSessions ?? 0} buổi`} />
+              <InfoTile label="Thời lượng" value={programDetail?.durationLabel || '-'} />
             </div>
           </Panel>
 
@@ -1332,8 +1360,23 @@ function FilterSelect({ compact = false, label, prefix, value, onChange, options
   );
 }
 
+function FormSection({ children, number, title }) {
+  return (
+    <div className="rounded-2xl border border-[#e9d7d6]/80 bg-white p-5 sm:p-6 shadow-2xs">
+      <div className="mb-5 flex items-center gap-3 border-b border-[#f0e4e5] pb-4">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#4b0009] text-xs font-black text-white">
+          {number}
+        </span>
+        <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onClose, onSubmit, saving }) {
   const editing = mode === 'edit';
+
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -1356,113 +1399,272 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-[760px] min-h-0 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+      <div className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-[860px] min-h-0 flex-col overflow-hidden rounded-2xl bg-[#fffafb] shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
         <form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
-          <div className="border-b border-[#dcc0bf]/20 p-5">
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-[#dcc0bf]/25 bg-white p-5 sm:p-6">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Khóa học có giảng viên</p>
-              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{editing ? 'Chỉnh sửa thông tin khóa học' : 'Tạo khóa học mới'}</h2>
-              <p className="mt-1.5 text-xs text-[#8b706e]">
-                {editing ? 'Cập nhật các thông số đào tạo và chuẩn đầu ra của khóa học.' : 'Thiết lập khung khóa học để bắt đầu xây dựng Unit, bài học và gắn tài nguyên học tập.'}
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
+                Khóa học có giảng viên
+              </span>
+              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
+                {editing ? 'Chỉnh sửa thông tin khóa học' : 'Tạo khóa học mới'}
+              </h2>
+              <p className="mt-1 text-xs text-[#8b706e]">
+                {editing
+                  ? 'Cập nhật thông tin khóa học, đầu vào, mục tiêu và mô tả chương trình.'
+                  : 'Thiết lập khung khóa học để bắt đầu xây dựng Unit, bài học và tài nguyên học tập.'}
               </p>
             </div>
+            <button
+              aria-label="Đóng modal"
+              className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+              disabled={saving}
+              onClick={onClose}
+              type="button"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
+          {/* Form Body - Scrollable Sections */}
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5 sm:p-6">
             {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
-            <label className="block">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Tên khóa học</span>
-              <input className={FIELD_CLASS} onChange={(event) => onChange({ title: event.target.value })} required value={form.title} />
-            </label>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Mã khóa học</span>
-                <input className={FIELD_CLASS} onChange={(event) => onChange({ code: event.target.value })} placeholder="Để trống để tự sinh mã..." value={form.code} />
-              </label>
-              <FieldSelect
-                label="Nhóm thi"
-                onChange={(value) => onChange({ examCategory: value, ...getEnglishProfileDefaults(value) })}
-                options={ENGLISH_EXAM_OPTIONS}
-                value={form.examCategory}
-              />
-              <FieldSelect label="Loại chương trình" onChange={(value) => onChange({ programTrack: value })} options={ENGLISH_TRACK_OPTIONS[form.examCategory]} value={form.programTrack} />
-              {form.examCategory === 'IELTS' ? (
-                <IeltsBandSelect
-                  label="Band IELTS mục tiêu"
-                  onChange={(value) => onChange({ targetBand: value })}
-                  value={form.targetBand}
-                />
-              ) : null}
-              {form.examCategory === 'TOEIC' ? (
-                <ToeicScoreField
-                  label="Điểm TOEIC mục tiêu"
-                  onChange={(value) => onChange({ targetScore: value })}
-                  value={form.targetScore}
-                />
-              ) : null}
-              <EnglishEntryLevelField
-                examCategory={form.examCategory}
-                onChange={(value) => onChange({ entryLevel: value })}
-                value={form.entryLevel}
-              />
-              {form.examCategory !== 'GENERAL_ENGLISH' ? (
+
+            {/* Section 01: Thông tin khóa học */}
+            <FormSection number="01" title="Thông tin khóa học">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                      Tên khóa học <span className="text-rose-600">*</span>
+                    </span>
+                    <input
+                      className={FIELD_CLASS}
+                      onChange={(event) => onChange({ title: event.target.value })}
+                      placeholder="Ví dụ: IELTS Master Speaking & Writing 6.5+"
+                      required
+                      value={form.title}
+                    />
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                    Mã khóa học
+                  </span>
+                  <input
+                    className={FIELD_CLASS}
+                    onChange={(event) => onChange({ code: event.target.value })}
+                    placeholder="Để trống để tự sinh mã..."
+                    value={form.code}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                    Đường dẫn tĩnh (Slug)
+                  </span>
+                  <input
+                    className={FIELD_CLASS}
+                    onChange={(event) => onChange({ slug: event.target.value })}
+                    placeholder="Để trống để tự sinh từ tên khóa học..."
+                    value={form.slug}
+                  />
+                </label>
+
                 <FieldSelect
-                  label="Trình độ Placement đầu vào"
-                  onChange={(value) => onChange({ entryPlacementLevel: value })}
-                  options={PLACEMENT_LEVEL_OPTIONS}
-                  value={form.entryPlacementLevel}
+                  label="Danh mục / Nhóm thi"
+                  onChange={(value) => onChange({ examCategory: value, ...getEnglishProfileDefaults(value) })}
+                  options={ENGLISH_EXAM_OPTIONS}
+                  value={form.examCategory}
                 />
-              ) : null}
-            </div>
-            <div>
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Kỹ năng trọng tâm</span>
-              <div className="flex flex-wrap gap-2">
-                {ENGLISH_SKILL_OPTIONS.map((skill) => {
-                  const selected = form.focusSkills.includes(skill.value);
-                  return (
-                    <button
-                      className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${selected ? 'border-[#730014] bg-[#730014] text-white' : 'border-[#dcc0bf] bg-white text-[#584140]'}`}
-                      key={skill.value}
-                      onClick={() => onChange({
-                        focusSkills: selected
-                          ? form.focusSkills.filter((value) => value !== skill.value)
-                          : [...form.focusSkills, skill.value],
-                      })}
-                      type="button"
-                    >
-                      {skill.label}
-                    </button>
-                  );
-                })}
+
+                <FieldSelect
+                  label="Loại chương trình"
+                  onChange={(value) => onChange({ programTrack: value })}
+                  options={ENGLISH_TRACK_OPTIONS[form.examCategory]}
+                  value={form.programTrack}
+                />
+
+                <FieldSelect
+                  label="Trình độ / Cấp độ"
+                  onChange={(value) => onChange({ level: value })}
+                  options={COURSE_LEVEL_OPTIONS}
+                  value={form.level || 'INTERMEDIATE'}
+                />
+
+                <FieldSelect
+                  label="Trạng thái khóa học"
+                  onChange={(value) => onChange({ status: value })}
+                  options={[
+                    { label: 'Bản nháp (DRAFT)', value: 'DRAFT' },
+                    { label: 'Đã xuất bản (PUBLISHED)', value: 'PUBLISHED' },
+                    { label: 'Đã lưu trữ (ARCHIVED)', value: 'ARCHIVED' },
+                  ]}
+                  value={form.status || 'DRAFT'}
+                />
+
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                    Thời gian hoàn thành dự kiến
+                  </span>
+                  <input
+                    className={FIELD_CLASS}
+                    onChange={(event) => onChange({ durationLabel: event.target.value })}
+                    placeholder="Ví dụ: 24 buổi (48 giờ) · 3 tháng"
+                    value={form.durationLabel}
+                  />
+                </label>
               </div>
-            </div>
-            <label className="block">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Chuẩn đầu ra</span>
-              <RichTextEditor
-                helperText=""
-                onChange={(value) => onChange({ outcomes: value })}
-                placeholder="Mô tả chuẩn đầu ra kỳ vọng của học viên sau khóa học..."
-                size="form"
-                value={form.outcomes}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Hướng dẫn giảng viên</span>
-              <RichTextEditor
-                helperText=""
-                onChange={(value) => onChange({ teacherGuide: value })}
-                placeholder="Lưu ý phương pháp và kế hoạch giảng dạy..."
-                size="form"
-                value={form.teacherGuide}
-              />
-            </label>
+            </FormSection>
+
+            {/* Section 02: Đầu vào và kết quả */}
+            <FormSection number="02" title="Đầu vào và kết quả">
+              <div className="grid gap-4 md:grid-cols-2">
+                {form.examCategory === 'IELTS' ? (
+                  <>
+                    <EnglishEntryLevelField
+                      examCategory={form.examCategory}
+                      onChange={(value) => onChange({ entryLevel: value })}
+                      value={form.entryLevel}
+                    />
+                    <IeltsBandSelect
+                      label="Band IELTS mục tiêu"
+                      onChange={(value) => onChange({ targetBand: value })}
+                      value={form.targetBand}
+                    />
+                  </>
+                ) : null}
+
+                {form.examCategory === 'TOEIC' ? (
+                  <>
+                    <EnglishEntryLevelField
+                      examCategory={form.examCategory}
+                      onChange={(value) => onChange({ entryLevel: value })}
+                      value={form.entryLevel}
+                    />
+                    <ToeicScoreField
+                      label="Điểm TOEIC mục tiêu"
+                      onChange={(value) => onChange({ targetScore: value })}
+                      value={form.targetScore}
+                    />
+                  </>
+                ) : null}
+
+                {form.examCategory === 'GENERAL_ENGLISH' ? (
+                  <EnglishEntryLevelField
+                    examCategory={form.examCategory}
+                    onChange={(value) => onChange({ entryLevel: value })}
+                    value={form.entryLevel}
+                  />
+                ) : null}
+
+                {form.examCategory !== 'GENERAL_ENGLISH' ? (
+                  <FieldSelect
+                    label="Trình độ Placement đầu vào"
+                    onChange={(value) => onChange({ entryPlacementLevel: value })}
+                    options={PLACEMENT_LEVEL_OPTIONS}
+                    value={form.entryPlacementLevel}
+                  />
+                ) : null}
+              </div>
+
+              <div className="mt-4">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                  Kỹ năng trọng tâm
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {ENGLISH_SKILL_OPTIONS.map((skill) => {
+                    const selected = form.focusSkills.includes(skill.value);
+                    return (
+                      <button
+                        className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                          selected
+                            ? 'border-[#730014] bg-[#730014] text-white shadow-2xs'
+                            : 'border-[#dcc0bf] bg-white text-[#584140] hover:bg-[#fff0f1]'
+                        }`}
+                        key={skill.value}
+                        onClick={() => onChange({
+                          focusSkills: selected
+                            ? form.focusSkills.filter((value) => value !== skill.value)
+                            : [...form.focusSkills, skill.value],
+                        })}
+                        type="button"
+                      >
+                        {skill.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                    Đầu ra / kết quả hoàn thành khóa học
+                  </span>
+                  <RichTextEditor
+                    helperText=""
+                    onChange={(value) => onChange({ outcomes: value })}
+                    placeholder="Học viên đạt được gì sau khi hoàn thành khóa học..."
+                    size="form"
+                    value={form.outcomes}
+                  />
+                </label>
+              </div>
+            </FormSection>
+
+            {/* Section 03: Giới thiệu khóa học */}
+            <FormSection number="03" title="Giới thiệu khóa học">
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                    Mô tả ngắn
+                  </span>
+                  <RichTextEditor
+                    helperText=""
+                    onChange={(value) => onChange({ shortDescription: value })}
+                    placeholder="Tóm tắt hấp dẫn về khóa học (hiển thị trên thẻ/catalog)..."
+                    size="compact"
+                    value={form.shortDescription}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
+                    Mô tả đầy đủ
+                  </span>
+                  <RichTextEditor
+                    helperText=""
+                    onChange={(value) => onChange({ description: value })}
+                    placeholder="Mô tả chi tiết nội dung, đối tượng học viên, lộ trình..."
+                    size="form"
+                    value={form.description}
+                  />
+                </label>
+              </div>
+            </FormSection>
+
           </div>
 
-          <div className="flex flex-wrap justify-end gap-3 border-t border-[#dcc0bf]/20 p-5">
-            <button className="rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009] disabled:opacity-50" disabled={saving} onClick={onClose} type="button">Hủy</button>
-            <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
+          {/* Footer */}
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#dcc0bf]/20 bg-white p-5 sm:p-6">
+            <button
+              className="rounded-xl border border-[#dfbfbd] bg-white px-5 py-2.5 text-sm font-semibold text-[#4b0009] hover:bg-slate-50 transition disabled:opacity-50 cursor-pointer"
+              disabled={saving}
+              onClick={onClose}
+              type="button"
+            >
+              Hủy
+            </button>
+            <button
+              className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#730014] active:scale-95 transition disabled:opacity-60 cursor-pointer"
+              disabled={saving}
+              type="submit"
+            >
               {editing ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {saving ? 'Đang lưu...' : (editing ? 'Lưu thay đổi' : 'Tạo và biên soạn')}
+              {saving ? 'Đang lưu...' : (editing ? 'Lưu thay đổi' : 'Tạo khóa học')}
             </button>
           </div>
         </form>
@@ -1606,7 +1808,19 @@ function InstructorLedCourseListPanel({
                         <p className="overflow-hidden text-sm font-extrabold leading-5 text-[#26364a] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                           {program.title}
                         </p>
-                        <p className="mt-1 text-xs text-[#8b706e]">{program.code || program.slug || '-'}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#8b706e]">
+                          <span className="font-semibold text-[#584140]">{program.code || program.slug || '-'}</span>
+                          {program.level ? (
+                            <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-bold text-slate-700">
+                              {formatLevel(program.level)}
+                            </span>
+                          ) : null}
+                          {program.durationLabel ? (
+                            <span className="text-[11px] text-slate-500">
+                              · {program.durationLabel}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-sm font-semibold text-[#26364a] whitespace-nowrap">
@@ -1615,7 +1829,7 @@ function InstructorLedCourseListPanel({
                     </td>
                     <td className="px-6 py-5 text-center text-xs font-semibold text-[#0b1c30] whitespace-nowrap">
                       <span className="rounded-md bg-slate-100 px-2.5 py-1 font-bold text-[#0b1c30]">
-                        {Number(program.totalUnits ?? program.units?.length ?? 0)} Unit · {program.totalSessions ?? 0} buổi
+                        {Number(program.totalUnits ?? program.units?.length ?? 0)} Unit · {program.totalLessons ?? countStructuredLessons(program.units || [])} bài học
                       </span>
                     </td>
                     <td className="px-6 py-5 text-center whitespace-nowrap"><StatusPill status={program.status} /></td>
@@ -1791,6 +2005,19 @@ function formatExamCategory(value) {
   return labels[String(value || '').toUpperCase()] || value || 'IELTS';
 }
 
+function formatLevel(value) {
+  if (!value) return '-';
+  const found = COURSE_LEVEL_OPTIONS.find((opt) => opt.value === value);
+  return found ? found.label.split('(')[0].trim() : value;
+}
+
+function formatCurrency(amount) {
+  if (amount == null || amount === '' || Number(amount) === 0) return '-';
+  const num = Number(amount);
+  if (isNaN(num)) return '-';
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+}
+
 function UnitEditorModal({ children, onClose }) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -1921,3 +2148,5 @@ function CurriculumExcelImportModal({
     document.body,
   );
 }
+
+export { ContentManagerInstructorLedCoursesPage as ContentManagerSyllabusBuilderPage };

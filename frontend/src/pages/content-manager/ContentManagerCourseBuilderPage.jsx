@@ -865,7 +865,6 @@ export default function ContentManagerCourseBuilderPage() {
         duration: course.duration,
         price: Number(course.price || 0),
         thumbnailUrl: course.thumbnailUrl,
-        displayOrder: Number(course.displayOrder || 0),
         featured: Boolean(course.featured),
         modules: modulesForSave.map((module, moduleIndex) => ({
           id: module.id,

@@ -86,7 +86,9 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         ClassroomProposal proposal = ClassroomProposal.builder()
                 .proposalCode("CP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .courseOffering(courseOffering)
-                .deliveryType(payload.getDeliveryType())
+                .deliveryType(payload.getDeliveryType() != null
+                        ? payload.getDeliveryType()
+                        : ClassroomDeliveryMode.OFFLINE)
                 .placementLevel(null)
                 .createdBy(staff)
                 .approvalStatus(ClassroomApprovalStatus.DRAFT)
@@ -333,7 +335,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     .roomId(roomId)
                     .courseLessonId(item.getCourseLesson() == null ? null : item.getCourseLesson().getId())
                     .sessionContent(item.getCourseLesson() != null ? null : item.getSessionContent())
-                    .note(item.getNote() != null ? item.getNote() : ("Sinh từ đề xuất " + proposal.getProposalCode()))
+                    .note(item.getNote())
                     .build());
         }
 

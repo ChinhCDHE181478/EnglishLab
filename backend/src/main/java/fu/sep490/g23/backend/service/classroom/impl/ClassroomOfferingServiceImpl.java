@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
@@ -45,6 +44,8 @@ import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.service.classroom.VirtualMeetingService;
 import fu.sep490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.ClassroomSchedulePlanItemRequest;
+import fu.sep490.g23.backend.dto.request.classroom.UpdateClassroomPlanRequest;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 
 
@@ -103,6 +104,11 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private static final Set<ClassroomRegistrationStatus> OCCUPIES_CLASS_SLOT = ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT;
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
     private static final Set<ClassroomRegistrationStatus> HAS_LEARNING_ACCESS = ClassroomRegistrationSupport.HAS_LEARNING_ACCESS;
+    private static final Set<ClassroomSessionStatus> PLAN_CONFLICT_STATUSES = Set.of(
+            ClassroomSessionStatus.SCHEDULED,
+            ClassroomSessionStatus.OPEN,
+            ClassroomSessionStatus.IN_PROGRESS
+    );
     private static final int EMPTY_ROOM_GRACE_MINUTES = 5;
     private static final int SUBSTITUTE_PREPARATION_DAYS = 3;
     private static final int SUBSTITUTE_WRAP_UP_DAYS = 1;
@@ -266,6 +272,24 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         accessHelper.assertStaffOperator(actor);
         ClassSection offering = findOffering(id);
 
+        if (Set.of(
+                ClassroomOfferingStatus.COMPLETED,
+                ClassroomOfferingStatus.CLOSED,
+                ClassroomOfferingStatus.CANCELLED
+        ).contains(offering.getStatus())) {
+            throw new IllegalStateException("Không thể chỉnh sửa lớp đã kết thúc, đã đóng hoặc đã hủy.");
+        }
+
+        validateCapacityAgainstEnrollment(offering, request.getCapacity());
+
+        if (offering.getStatus() == ClassroomOfferingStatus.ACTIVE) {
+            offering.setName(request.getTitle().trim());
+            if (request.getCapacity() != null) {
+                offering.setCapacity(request.getCapacity());
+            }
+            return mapper.toOfferingResponse(offeringRepository.save(offering), true, null, null, true);
+        }
+
         User primaryTeacher = resolveTeacher(request.getPrimaryTeacherId());
         Long previousPrimaryTeacherId = getPrimaryTeacherId(offering);
         Long requestedPrimaryTeacherId = primaryTeacher == null ? null : primaryTeacher.getId();
@@ -315,6 +339,72 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         classroomMaterialSyncService.synchronizeMandatoryMaterials(saved, null);
         return mapper.toOfferingResponse(saved, true, null, null, true);
+    }
+
+    @Override
+    public ClassroomOfferingResponse updatePrelaunchPlan(
+            Long id,
+            UpdateClassroomPlanRequest request,
+            String actorEmail
+    ) {
+        ClassSection current = findOffering(id);
+        if (!Set.of(ClassroomOfferingStatus.DRAFT, ClassroomOfferingStatus.UPCOMING).contains(current.getStatus())) {
+            throw new IllegalStateException("Chỉ lớp bản nháp hoặc sắp khai giảng mới được lập lại toàn bộ kế hoạch.");
+        }
+        ClassroomOfferingStatus requestedStatus = request.getClassroom().getClassroomStatus();
+        if (requestedStatus != null
+                && !Set.of(ClassroomOfferingStatus.DRAFT, ClassroomOfferingStatus.UPCOMING).contains(requestedStatus)) {
+            throw new IllegalArgumentException("Kế hoạch trước khai giảng chỉ hỗ trợ trạng thái bản nháp hoặc sắp khai giảng.");
+        }
+
+        validateSchedulePlanIds(request.getSchedules(), current);
+        updateOffering(id, request.getClassroom(), actorEmail);
+        ClassSection savedClass = findOffering(id);
+        validateSchedulePlan(request.getSchedules(), savedClass);
+
+        List<ClassSchedule> existing = sessionRepository
+                .findByClassSectionIdOrderBySessionDateAscStartTimeAsc(id);
+        Map<Long, ClassSchedule> existingById = existing.stream()
+                .collect(java.util.stream.Collectors.toMap(ClassSchedule::getId, session -> session));
+        Set<Long> retainedIds = new HashSet<>();
+
+        for (ClassroomSchedulePlanItemRequest item : request.getSchedules()) {
+            CreateClassroomSessionRequest sessionRequest = item.toSessionRequest();
+            validateSessionRequest(sessionRequest);
+            ClassSchedule session;
+            if (item.getId() == null) {
+                session = buildPlannedSession(savedClass, sessionRequest);
+            } else {
+                session = existingById.get(item.getId());
+                if (session == null) {
+                    throw new IllegalArgumentException("Buổi học không thuộc lớp đang chỉnh sửa: " + item.getId());
+                }
+                if (session.isImmutable()) {
+                    throw new IllegalStateException("Không thể thay đổi buổi học đã hoàn thành hoặc đã hủy.");
+                }
+                applyPlannedSession(session, savedClass, sessionRequest);
+                retainedIds.add(session.getId());
+            }
+            session = sessionRepository.save(session);
+            synchronizeSubstituteAssignment(session);
+            if (session.getEffectiveDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
+                syncVirtualMeetingSafely(session);
+                sessionRepository.save(session);
+            }
+        }
+
+        for (ClassSchedule session : existing) {
+            if (!retainedIds.contains(session.getId())) {
+                if (session.isImmutable()) {
+                    throw new IllegalStateException("Không thể xóa buổi học đã hoàn thành hoặc đã hủy.");
+                }
+                teacherAssignmentRepository.findByClassScheduleId(session.getId())
+                        .ifPresent(teacherAssignmentRepository::delete);
+                sessionRepository.delete(session);
+            }
+        }
+        sessionRepository.flush();
+        return mapper.toOfferingResponse(findOffering(id), true, null, null, true);
     }
     @Override
     public ClassroomOfferingResponse closeOffering(Long id, String actorEmail) {
@@ -541,14 +631,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
         ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
         enrollment.setNote(request.getNote());
-        enrollment.setPackageEnrollment(ensureOnlineCourseEnrollment(student, offering));
 
         if (isClassFull(offering) && !enrollment.hasClassAccess()) {
             enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
         } else if (!enrollment.hasClassAccess()) {
             tryAssignEnrollment(enrollment, offering, student, null, "Xếp lớp trực tiếp");
         }
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         return mapper.toEnrollmentResponse(enrollment);
     }
@@ -568,7 +656,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Học viên không thuộc lớp này."));
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do xóa khỏi lớp");
         saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         notifyWaitlistIfSlotAvailable(enrollment.getClassSection());
@@ -603,8 +690,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomRegistrationStatus sourcePreviousStatus = sourceEnrollment.getRegistrationStatus();
         sourceEnrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
         sourceEnrollment.setNote(appendNote(sourceEnrollment.getNote(), "Đã chuyển sang lớp #" + target.getId()));
-        ClassroomRegistrationSupport.syncLegacyStatus(sourceEnrollment);
-        sourceEnrollment.setStatus(ClassroomEnrollmentStatus.TRANSFERRED);
         saveEnrollmentWithWaitlistOrder(sourceEnrollment, sourcePreviousStatus);
 
         if (enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
@@ -615,7 +700,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassEnrollment targetEnrollment = ClassEnrollment.builder()
                 .student(student)
                 .classSection(target)
-                .packageEnrollment(ensureOnlineCourseEnrollment(student, target))
                 .holdSpot(sourceEnrollment.isHoldSpot())
                 .tuitionAmountDue(targetDue)
                 .tuitionAmountPaid(carriedPaid)
@@ -641,7 +725,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             tryAssignEnrollment(targetEnrollment, target, student, null, "Chuyển lớp");
         }
 
-        ClassroomRegistrationSupport.syncLegacyStatus(targetEnrollment);
         targetEnrollment = saveEnrollmentWithWaitlistOrder(targetEnrollment, null);
         notifyWaitlistIfSlotAvailable(source);
         return mapper.toEnrollmentResponse(targetEnrollment);
@@ -697,7 +780,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setRegistrationStatus(nextStatus);
         enrollment.setConfirmedAt(LocalDateTime.now());
         enrollment.setConfirmedBy(actor);
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         String classTitle = offering.getName();
@@ -736,7 +818,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.REJECTED);
         enrollment.setNote(appendNote(enrollment.getNote(), request == null ? null : request.getReason()));
         ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do từ chối đăng ký");
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         notificationService.notifyUser(
@@ -833,7 +914,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setTuitionSettlementResolvedAt(LocalDateTime.now());
         enrollment.setTuitionSettlementResolvedBy(actor);
 
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = enrollmentRepository.save(enrollment);
 
         notificationService.notifyUser(
@@ -973,7 +1053,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             tryAssignEnrollment(enrollment, offering, learner, recordedBy, null);
         }
 
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         notificationService.notifyUser(
@@ -1015,7 +1094,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 actor,
                 request == null ? null : request.getAssignmentNote()
         );
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         if (enrollment.hasClassAccess()) {
@@ -1607,6 +1685,173 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 );
     }
 
+    private void validateCapacityAgainstEnrollment(ClassSection offering, Integer requestedCapacity) {
+        if (requestedCapacity == null) {
+            return;
+        }
+        long occupied = enrollmentRepository.countByOfferingAndRegistrationStatuses(
+                offering.getId(),
+                OCCUPIES_CLASS_SLOT
+        );
+        if (requestedCapacity < occupied) {
+            throw new IllegalArgumentException(
+                    "Sĩ số tối đa không được nhỏ hơn " + occupied + " học viên hiện có."
+            );
+        }
+    }
+
+    private void validateSchedulePlanIds(
+            List<ClassroomSchedulePlanItemRequest> items,
+            ClassSection offering
+    ) {
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Kế hoạch lớp phải có ít nhất một buổi học.");
+        }
+        Set<Long> existingIds = sessionRepository
+                .findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+                .stream()
+                .map(ClassSchedule::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        Set<Long> submittedIds = new HashSet<>();
+        for (ClassroomSchedulePlanItemRequest item : items) {
+            if (item.getId() != null
+                    && (!existingIds.contains(item.getId()) || !submittedIds.add(item.getId()))) {
+                throw new IllegalArgumentException("Danh sách buổi học chứa mã không hợp lệ hoặc bị trùng.");
+            }
+        }
+    }
+
+    private void validateSchedulePlan(
+            List<ClassroomSchedulePlanItemRequest> items,
+            ClassSection offering
+    ) {
+        List<ResolvedPlanItem> resolved = new java.util.ArrayList<>();
+        List<Long> learnerIds = resolveActiveLearnerIds(offering.getId());
+
+        for (ClassroomSchedulePlanItemRequest item : items) {
+            CreateClassroomSessionRequest request = item.toSessionRequest();
+            validateSessionRequest(request);
+            if (request.getStatus() != null && request.getStatus() != ClassroomSessionStatus.SCHEDULED) {
+                throw new IllegalArgumentException("Buổi học trước khai giảng phải ở trạng thái đã lên lịch.");
+            }
+            User teacher = resolveTeacher(
+                    request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering)
+            );
+            if (teacher == null) {
+                throw new IllegalArgumentException("Mỗi buổi học phải có giáo viên phụ trách.");
+            }
+            ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, offering);
+            Room room = resolveSessionRoom(request, offering, deliveryMode);
+            if (deliveryMode == ClassroomDeliveryMode.OFFLINE && room == null) {
+                throw new IllegalArgumentException("Buổi học tại trung tâm phải có phòng học.");
+            }
+            CourseLesson lesson = request.getCourseLessonId() == null
+                    ? null : resolveCourseLesson(request.getCourseLessonId(), offering);
+            if (lesson == null && !StringUtils.hasText(request.getSessionContent())) {
+                throw new IllegalArgumentException("Buổi đặc biệt phải có nội dung buổi học.");
+            }
+            validateRoomCapacity(room, offering.getCapacity());
+            assertNoExternalPlanConflict(offering, request, teacher, room, learnerIds);
+            resolved.add(new ResolvedPlanItem(item, teacher, room, lesson));
+        }
+
+        for (int left = 0; left < resolved.size(); left++) {
+            for (int right = left + 1; right < resolved.size(); right++) {
+                ClassroomSchedulePlanItemRequest first = resolved.get(left).item();
+                ClassroomSchedulePlanItemRequest second = resolved.get(right).item();
+                if (first.getSessionDate().equals(second.getSessionDate())
+                        && first.getStartTime().isBefore(second.getEndTime())
+                        && first.getEndTime().isAfter(second.getStartTime())) {
+                    throw new IllegalArgumentException("Hai buổi học trong cùng lớp không được trùng thời gian.");
+                }
+            }
+        }
+
+        Map<Long, Long> requiredLessonCounts = offering.getInstructorLedCourse().getUnits().stream()
+                .flatMap(unit -> unit.getLessons().stream())
+                .collect(java.util.stream.Collectors.toMap(
+                        CourseLesson::getId,
+                        lesson -> (long) Math.max(1, Objects.requireNonNullElse(lesson.getPlannedSessionCount(), 1))
+                ));
+        Map<Long, Long> scheduledLessonCounts = items.stream()
+                .filter(item -> item.getCourseLessonId() != null)
+                .collect(java.util.stream.Collectors.groupingBy(
+                        ClassroomSchedulePlanItemRequest::getCourseLessonId,
+                        java.util.stream.Collectors.counting()
+                ));
+        boolean missingLesson = requiredLessonCounts.entrySet().stream()
+                .anyMatch(entry -> scheduledLessonCounts.getOrDefault(entry.getKey(), 0L) < entry.getValue());
+        if (missingLesson) {
+            throw new IllegalArgumentException("Lịch học chưa phân bổ đủ số buổi cho toàn bộ bài học của khóa học.");
+        }
+    }
+
+    private void assertNoExternalPlanConflict(
+            ClassSection offering,
+            CreateClassroomSessionRequest request,
+            User teacher,
+            Room room,
+            List<Long> learnerIds
+    ) {
+        if (!sessionRepository.findTeacherConflictsOutsideClass(
+                teacher.getId(), offering.getId(), request.getSessionDate(), request.getStartTime(),
+                request.getEndTime(), PLAN_CONFLICT_STATUSES
+        ).isEmpty()) {
+            throw new IllegalArgumentException("Giáo viên bị trùng lịch với lớp khác.");
+        }
+        if (room != null && !sessionRepository.findRoomConflictsOutsideClass(
+                room.getId(), offering.getId(), request.getSessionDate(), request.getStartTime(),
+                request.getEndTime(), PLAN_CONFLICT_STATUSES
+        ).isEmpty()) {
+            throw new IllegalArgumentException("Phòng học bị trùng lịch với lớp khác.");
+        }
+        for (Long learnerId : learnerIds) {
+            if (!sessionRepository.findLearnerConflictsOutsideClass(
+                    learnerId, offering.getId(), request.getSessionDate(), request.getStartTime(),
+                    request.getEndTime(), PLAN_CONFLICT_STATUSES
+            ).isEmpty()) {
+                throw new IllegalArgumentException("Có học viên bị trùng lịch với lớp khác.");
+            }
+        }
+    }
+
+    private ClassSchedule buildPlannedSession(
+            ClassSection offering,
+            CreateClassroomSessionRequest request
+    ) {
+        User teacher = resolveTeacher(
+                request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering)
+        );
+        ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, offering);
+        Room room = resolveSessionRoom(request, offering, deliveryMode);
+        CourseLesson lesson = request.getCourseLessonId() == null
+                ? null : resolveCourseLesson(request.getCourseLessonId(), offering);
+        return buildSession(offering, request, teacher, room, deliveryMode, lesson);
+    }
+
+    private void applyPlannedSession(
+            ClassSchedule session,
+            ClassSection offering,
+            CreateClassroomSessionRequest request
+    ) {
+        User teacher = resolveTeacher(
+                request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering)
+        );
+        ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, offering);
+        Room room = resolveSessionRoom(request, offering, deliveryMode);
+        CourseLesson lesson = request.getCourseLessonId() == null
+                ? null : resolveCourseLesson(request.getCourseLessonId(), offering);
+        applySessionRequest(session, request, teacher, room, deliveryMode, lesson);
+    }
+
+    private record ResolvedPlanItem(
+            ClassroomSchedulePlanItemRequest item,
+            User teacher,
+            Room room,
+            CourseLesson lesson
+    ) {
+    }
+
     private Comparator<ClassEnrollment> registrationQueueComparator() {
         return (left, right) -> {
             boolean leftWaitlisted = left.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST;
@@ -1647,11 +1892,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return assigned >= capacity;
     }
 
-    private fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment ensureOnlineCourseEnrollment(User student, ClassSection offering) {
-        // TODO(slice10): InstructorLedCourse does not have a direct mapping to OnlineCourse yet.
-        return null;
-    }
-
     private void tryAssignEnrollment(
             ClassEnrollment enrollment,
             ClassSection offering,
@@ -1681,7 +1921,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (assignmentNote != null && !assignmentNote.isBlank()) {
             enrollment.setAssignmentNote(assignmentNote);
         }
-        enrollment.setPackageEnrollment(ensureOnlineCourseEnrollment(student, offering));
         ensureGradebookEntry(offering, student);
     }
 

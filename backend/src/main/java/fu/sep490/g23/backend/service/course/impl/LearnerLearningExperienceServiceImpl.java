@@ -123,7 +123,7 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
     private LearningContext findLearningContext(Long courseId, Long lessonId, User user) {
         OnlineCourse course = onlineCourseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        OnlineLesson lesson = lessonRepository.findByIdAndModuleOnlineCourseId(lessonId, courseId)
+        OnlineLesson lesson = lessonRepository.findByIdAndModuleOnlineCourseVersionOnlineCourseId(lessonId, courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong khóa học này."));
         OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(user, course);
         return new LearningContext(course, lesson, enrollment);
@@ -156,7 +156,9 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
     private LearnerLessonReviewFlagResponse toFlagResponse(LessonProgress progress) {
         OnlineCourse course = progress.getEnrollment() != null && progress.getEnrollment().getOnlineCourse() != null
                 ? progress.getEnrollment().getOnlineCourse()
-                : (progress.getLesson().getModule() == null ? null : progress.getLesson().getModule().getOnlineCourse());
+                : (progress.getLesson().getModule() == null || progress.getLesson().getModule().getOnlineCourseVersion() == null
+                        ? null
+                        : progress.getLesson().getModule().getOnlineCourseVersion().getOnlineCourse());
         String courseTitle = course == null || false
                 ? null
                 : course.getTitle();

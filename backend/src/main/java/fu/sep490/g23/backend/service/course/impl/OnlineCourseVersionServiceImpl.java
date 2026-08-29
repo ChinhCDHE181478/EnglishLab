@@ -329,14 +329,25 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         versionRepository.save(published);
     }
 
+    /**
+     * Constructs the full course details tailored for a specific student's enrollment.
+     * This ensures the student sees the correct version of the course (pinned or latest)
+     * and attaches their personal learning progress.
+     */
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse) {
+        // 1. Determine which version of the course this student should see
         OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, liveCourse);
+        
+        // 2. Read the course structure (modules/lessons) from that specific version
         OnlineCourseResponse response = readSnapshot(pinned, liveCourse);
+        
+        // 3. Attach student's personal enrollment data to the response
         response.setRegistered(true);
         response.setProgressPercent(enrollment.getProgressPercent());
         response.setEnrollmentId(enrollment.getId());
+        
         return response;
     }
 
@@ -935,7 +946,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     private int countLessons(OnlineCourse course) {
-        return countLessons(course.getModules());
+        return countLessons(course.getLatestModules());
     }
 
     private int countLessons(List<OnlineCourseModule> modules) {
@@ -977,9 +988,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                             .onlineCourse(assessment.getOnlineCourse())
                             .module(assessment.getModule())
                             .rubric(assessment.getRubric())
-                            .legacyRubricId(assessment.getLegacyRubricId())
                             .assessmentBankItem(assessment.getAssessmentBankItem())
-                            .legacyAssessmentBankItemId(assessment.getLegacyAssessmentBankItemId())
                             .progressKey(progressKey)
                             .title(assessment.getTitle())
                             .description(assessment.getDescription())
@@ -1025,7 +1034,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         OnlineCourse course = onlineCourseRepository.findWithModulesById(courseId)
                 .filter(item -> !item.isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        course.getModules().forEach(module -> module.getLessons().size());
+        course.getLatestModules().forEach(module -> module.getLessons().size());
         return course;
     }
 

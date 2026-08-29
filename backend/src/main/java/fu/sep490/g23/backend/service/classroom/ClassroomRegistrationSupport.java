@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.service.classroom;
 
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
@@ -70,25 +69,6 @@ public final class ClassroomRegistrationSupport {
             return NEEDS_ACTION_STATUSES;
         }
         return filterStatuses(status);
-    }
-
-    @SuppressWarnings("deprecation")
-    public static void syncLegacyStatus(ClassEnrollment enrollment) {
-        ClassroomRegistrationStatus registrationStatus = enrollment.getRegistrationStatus();
-        if (registrationStatus == null) {
-            return;
-        }
-        ClassroomEnrollmentStatus legacy = switch (registrationStatus) {
-            case ASSIGNED -> ClassroomEnrollmentStatus.ENROLLED;
-            case WAITLIST,
-                 PENDING_CONFIRMATION,
-                 PENDING_TUITION_PAYMENT,
-                 DEPOSIT_PAID,
-                 PARTIALLY_PAID,
-                 FULLY_PAID -> ClassroomEnrollmentStatus.WAITING;
-            case REJECTED, CANCELLED -> ClassroomEnrollmentStatus.CANCELLED;
-        };
-        enrollment.setStatus(legacy);
     }
 
     public static ClassroomRegistrationStatus resolveRegistrationStatusAfterPayment(

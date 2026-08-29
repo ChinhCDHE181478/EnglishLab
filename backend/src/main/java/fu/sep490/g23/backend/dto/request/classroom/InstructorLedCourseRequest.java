@@ -42,8 +42,5 @@ public class InstructorLedCourseRequest {
     @Size(max = 120)
     private String studyMode;
 
-    private String thumbnailUrl;
     private PackageStatus status;
-    private Integer displayOrder;
-    private Boolean featured;
 }

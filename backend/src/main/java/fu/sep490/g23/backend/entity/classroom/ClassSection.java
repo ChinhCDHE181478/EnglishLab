@@ -159,10 +159,6 @@ public class ClassSection {
         return instructorLedCourse == null ? null : instructorLedCourse.getDescription();
     }
 
-    public String getThumbnailUrl() {
-        return instructorLedCourse == null ? null : instructorLedCourse.getThumbnailUrl();
-    }
-
     public String getStudyMode() {
         return deliveryMode == null ? null : deliveryMode.name();
     }
