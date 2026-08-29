@@ -57,6 +57,24 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
         return buildClassGradebookResponses(offeringId, true);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ClassroomGradebookResponse getMyGradebook(Long offeringId, String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        ClassroomGradebookEntry entry = gradebookEntryRepository
+                .findByClassSectionIdAndStudentId(offeringId, learner.getId())
+                .orElse(null);
+        if (entry == null || entry.getStatus() != GradebookEntryStatus.PUBLISHED) {
+            return null;
+        }
+        List<ClassroomHomework> homeworks = homeworkRepository
+                .findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
+                .filter(homework -> homework.getStatus() != HomeworkStatus.DRAFT)
+                .toList();
+        List<ClassroomHomeworkSubmission> submissions = submissionRepository
+                .findAllForStudentGradebook(offeringId, learner.getId());
+        return buildResponse(entry, homeworks, submissions);
+    }
 
     @Override
     public ClassroomGradebookResponse updateEntry(Long offeringId, UpdateGradebookRequest request, String updaterEmail) {

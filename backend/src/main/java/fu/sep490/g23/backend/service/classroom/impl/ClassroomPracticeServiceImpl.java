@@ -42,7 +42,107 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     private final ExerciseBankItemRepository exerciseRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomPracticeResponse> listForLearner(Long offeringId, String learnerEmail) {
+        User learner = requireLearnerAccess(offeringId, learnerEmail);
+        ClassSection offering = requireOffering(offeringId);
+        Map<Long, ClassroomPracticeAttemptHistory> attempts = latestAttempts(offeringId, learner.getId());
+        return practiceRefs(offering).stream()
+                .map(ref -> toResponse(offering, ref, attempts.get(ref.exercise().getId()), learner.getId()))
+                .toList();
+    }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomPracticeResponse> listAllForLearner(String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), HAS_LEARNING_ACCESS).stream()
+                .map(ClassEnrollment::getClassSection)
+                .filter(Objects::nonNull)
+                .distinct()
+                .flatMap(offering -> {
+                    Map<Long, ClassroomPracticeAttemptHistory> attempts = latestAttempts(offering.getId(), learner.getId());
+                    return practiceRefs(offering).stream()
+                            .map(ref -> toResponse(offering, ref, attempts.get(ref.exercise().getId()), learner.getId()));
+                })
+                .sorted(Comparator
+                        .comparing(ClassroomPracticeResponse::getClassroomTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(item -> Optional.ofNullable(item.getUnitDisplayOrder()).orElse(0))
+                        .thenComparing(ClassroomPracticeResponse::getTitle, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .toList();
+    }
+
+    @Override
+    public ClassroomPracticeResponse complete(
+            Long offeringId,
+            Long exerciseId,
+            CompletePracticeRequest request,
+            String learnerEmail
+    ) {
+        submitAttempt(offeringId, exerciseId, request, learnerEmail);
+        User learner = requireLearnerAccess(offeringId, learnerEmail);
+        ClassSection offering = requireOffering(offeringId);
+        PracticeRef ref = requirePracticeRef(offering, exerciseId);
+        ClassroomPracticeAttemptHistory attempt = attemptHistoryRepository
+                .findByClassSectionIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
+                        offeringId, learner.getId(), exerciseId
+                ).stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lượt luyện tập vừa hoàn thành."));
+        return toResponse(offering, ref, attempt, learner.getId());
+    }
+
+    @Override
+    public ClassroomPracticeAttemptResponse submitAttempt(
+            Long offeringId,
+            Long exerciseId,
+            CompletePracticeRequest request,
+            String learnerEmail
+    ) {
+        User learner = requireLearnerAccess(offeringId, learnerEmail);
+        ClassSection offering = requireOffering(offeringId);
+        PracticeRef ref = requirePracticeRef(offering, exerciseId);
+        validateSubmission(request);
+
+        LocalDateTime completedAt = LocalDateTime.now();
+        long historyCount = attemptHistoryRepository
+                .countByClassSectionIdAndStudentIdAndExerciseId(offeringId, learner.getId(), exerciseId);
+
+        ScoreResult score = score(request.getAnswersJson(), ref.exercise().getAnswerKey());
+        int attemptNumber = Math.toIntExact(historyCount + 1);
+        ClassroomPracticeAttemptHistory history = ClassroomPracticeAttemptHistory.builder()
+                .classSection(offering)
+                .student(learner)
+                .exercise(ref.exercise())
+                .attemptNumber(attemptNumber)
+                .responseText(request.getResponseText())
+                .answersJson(request.getAnswersJson())
+                .correctAnswers(score.correctAnswers())
+                .totalQuestions(score.totalQuestions())
+                .scorePercent(score.scorePercent())
+                .durationSeconds(request.getDurationSeconds())
+                .startedAt(request.getStartedAt() == null
+                        ? null
+                        : LocalDateTime.ofInstant(request.getStartedAt(), java.time.ZoneId.systemDefault()))
+                .completedAt(completedAt)
+                .build();
+        return toAttemptResponse(attemptHistoryRepository.save(history));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomPracticeAttemptResponse> listAttempts(Long offeringId, Long exerciseId, String learnerEmail) {
+        User learner = requireLearnerAccess(offeringId, learnerEmail);
+        ClassSection offering = requireOffering(offeringId);
+        requirePracticeRef(offering, exerciseId);
+        List<ClassroomPracticeAttemptResponse> history = attemptHistoryRepository
+                .findByClassSectionIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
+                        offeringId, learner.getId(), exerciseId
+                ).stream()
+                .map(this::toAttemptResponse)
+                .toList();
+        return history;
+    }
 
     private User requireLearnerAccess(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);

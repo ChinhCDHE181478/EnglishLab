@@ -54,6 +54,30 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private final OnlineCourseVersionService onlineCourseVersionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Override
+    public List<VocabularyTermResponse> getPracticeTerms(FlashcardPracticeSource source, Long courseId, boolean starredOnly, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
+        FlashcardPracticeSource resolvedSource = source == null ? FlashcardPracticeSource.ENROLLED : source;
+        if (resolvedSource == FlashcardPracticeSource.ENROLLED) {
+            return getEnrolledVersionTerms(student, courseId, starredOnly);
+        }
+        List<OnlineCourse> courses = resolveCourses(resolvedSource, student).stream()
+                .filter(course -> courseId == null || course.getId().equals(courseId))
+                .toList();
+
+        Map<String, VocabularyTermResponse> uniqueTerms = new LinkedHashMap<>();
+        for (OnlineCourse course : courses) {
+            initializeCourse(course);
+            List<VocabularyProgress> progress = progressRepository.findByStudentAndCourse(student, course);
+            for (VocabularyTermResponse term : extractTerms(course)) {
+                applyProgress(term, progress);
+                if (!starredOnly || term.isStarred()) {
+                    uniqueTerms.putIfAbsent(term.getTermKey(), term);
+                }
+            }
+        }
+        return new ArrayList<>(uniqueTerms.values());
+    }
 
     private List<VocabularyTermResponse> getEnrolledVersionTerms(User student, Long courseId, boolean starredOnly) {
         Map<String, VocabularyTermResponse> uniqueTerms = new LinkedHashMap<>();

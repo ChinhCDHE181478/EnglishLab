@@ -19,5 +19,19 @@ import java.util.List;
 @RequestMapping("/api/student/course-enrollment-requests")
 @RequiredArgsConstructor
 public class StudentEnrollmentRequestController {
+    private final EnrollmentRequestService enrollmentRequestService;
+
+    @PostMapping
+    public ResponseEntity<CourseEnrollmentRequestResponse> submit(
+            @Valid @RequestBody CreateCourseEnrollmentRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.submit(request, authentication.getName()));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<CourseEnrollmentRequestResponse>> listMine(Authentication authentication) {
+        return ResponseEntity.ok(enrollmentRequestService.listMine(authentication.getName()));
+    }
 
 }

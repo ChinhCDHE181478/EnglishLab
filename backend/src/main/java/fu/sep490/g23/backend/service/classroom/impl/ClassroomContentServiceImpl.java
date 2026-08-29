@@ -72,6 +72,15 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         return getMaterials(offeringId);
     }
 
+    @Override
+    public List<ClassroomMaterialResponse> getLearnerMaterials(Long offeringId, String learnerEmail) {
+        assertLearnerPortalAccess(offeringId, learnerEmail);
+        ClassSection offering = findOffering(offeringId);
+        classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, null);
+        return materialRepository.findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
+                .map(mapper::toMaterialResponse)
+                .toList();
+    }
 
     @Override
     public ClassroomMaterialResponse createMaterial(Long offeringId, CreateMaterialRequest request, String uploaderEmail) {
@@ -148,6 +157,12 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomAnnouncementResponse> getLearnerAnnouncements(Long offeringId, String learnerEmail) {
+        assertLearnerPortalAccess(offeringId, learnerEmail);
+        return getAnnouncements(offeringId);
+    }
 
     @Override
     public ClassroomAnnouncementResponse createAnnouncement(
@@ -182,6 +197,14 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomSyllabusItemResponse> getLearnerSyllabus(Long offeringId, String learnerEmail) {
+        assertLearnerPortalAccess(offeringId, learnerEmail);
+        return syllabusItemRepository.findByClassSectionIdOrderByDisplayOrderAsc(offeringId).stream()
+                .map(mapper::toSyllabusItemResponse)
+                .toList();
+    }
 
     @Override
     public ClassroomSyllabusItemResponse createSyllabusItem(Long offeringId, CreateSyllabusItemRequest request) {

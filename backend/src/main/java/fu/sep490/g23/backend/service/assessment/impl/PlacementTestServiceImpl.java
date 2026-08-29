@@ -68,6 +68,113 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private final ContentBankItemRepository contentBankItemRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /** Build the test payload for the student UI. Answer keys are stripped so they cannot cheat. */
+    @Transactional
+    public Map<String, Object> getTest(String studentEmail) {
+        User student = requireStudent(studentEmail);
+        var definition = definitionService.getDefinition();
+        if (!definition.isActive()) {
+            throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
+        }
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("testCode", TEST_CODE);
+        response.put("title", definition.getTitle());
+        response.put("description", definition.getDescription());
+        response.put("examType", definition.getExamType());
+        long attemptCount = attemptRepository.countByStudentAndTestCode(student, TEST_CODE);
+        response.put("attemptCount", attemptCount);
+        response.put("canRetake", true);
+        Map<String, Object> sections = new LinkedHashMap<>();
+        // Objective sections: send questions only. Writing/Speaking have no answer key.
+        sections.put("listening", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "listening"))));
+        sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
+        sections.put("writing", toPlainObject(definitionService.getConfig(definition, "writing")));
+        sections.put("speaking", toPlainObject(definitionService.getConfig(definition, "speaking")));
+        sections.put("toeic", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "toeic"))));
+        response.put("sections", sections);
+        // Let the UI show the last result without a second request.
+        attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(student, TEST_CODE)
+                .ifPresent(attempt -> response.put("latestAttempt", toResponse(attempt)));
+        return response;
+    }
+
+    /**
+     * Score and save one attempt.
+     * Exam type picks IELTS (4 skills), TOEIC, or a skill-only diagnostic.
+     */
+    @Transactional
+    public PlacementTestAttemptResponse submit(PlacementTestSubmissionRequest request, String studentEmail) {
+        User student = requireStudent(studentEmail);
+        var definition = definitionService.getDefinition();
+        if (!definition.isActive()) {
+            throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
+        }
+        String examType = normalizeExamType(request.getExamType() == null ? definition.getExamType() : request.getExamType());
+        if ("TOEIC".equals(examType)) {
+            validateToeicSubmission(request);
+            return submitToeicPlacement(request, student, definition);
+        }
+        if ("SKILL".equals(examType)) {
+            validateSkillAssessmentSubmission(request);
+            return submitSkillAssessment(request, student, definition);
+        }
+
+        validateSubmission(request); // IELTS needs all 4 skills + a completed device check.
+
+        JsonNode listeningConfig = definitionService.getConfig(definition, "listening");
+        JsonNode readingConfig = definitionService.getConfig(definition, "reading");
+        JsonNode listeningAnswers = objectMapper.valueToTree(request.getListeningAnswers());
+        JsonNode readingAnswers = objectMapper.valueToTree(request.getReadingAnswers());
+        JsonNode writingAnswers = objectMapper.valueToTree(request.getWritingAnswers());
+        JsonNode deviceCheck = objectMapper.valueToTree(request.getDeviceCheck());
+        ObjectiveScore listening = scoreObjective(listeningAnswers, listeningConfig.path("answerKey"));
+        ObjectiveScore reading = scoreObjective(readingAnswers, readingConfig.path("answerKey"));
+
+        BigDecimal listeningBand = listeningBand(listening.correct()); // Raw correct-count -> IELTS band.
+        BigDecimal readingBand = readingBand(reading.correct());
+        JsonNode writingConfig = definitionService.getConfig(definition, "writing");
+        JsonNode speakingConfig = definitionService.getConfig(definition, "speaking");
+        // AI CALL (IELTS): Writing + Speaking go to the LLM. Listening/Reading stay answer-key.
+        AiEvaluationResult aiResult = evaluateProductiveSkills(request, writingConfig, speakingConfig);
+        BigDecimal productiveBand = normalizeBand(aiResult == null ? null : aiResult.getEstimatedScore());
+        BigDecimal writingBand = extractBand(aiResult, "writingBand", productiveBand);
+        BigDecimal speakingBand = extractBand(aiResult, "speakingBand", productiveBand);
+        // COMPLETED when AI returned bands; otherwise only L/R are scored.
+        String status = aiResult == null || (writingBand == null && speakingBand == null) ? "OBJECTIVE_EVALUATED" : "COMPLETED";
+
+        BigDecimal overall = averageAvailable(listeningBand, readingBand, writingBand, speakingBand);
+        ObjectNode answers = objectMapper.createObjectNode();
+        answers.set("listening", listeningAnswers);
+        answers.set("reading", readingAnswers);
+        answers.set("writing", writingAnswers);
+        answers.put("speakingTranscript", safe(request.getSpeakingTranscript()));
+        answers.put("speakingAudioUrl", safe(request.getSpeakingAudioUrl()));
+
+        PlacementTestAttempt attempt = PlacementTestAttempt.builder()
+                .student(student)
+                .testCode(TEST_CODE)
+                .contentBankItem(placementBankItem(definition))
+                .answersJson(writeJson(answers))
+                .deviceCheckJson(writeJson(deviceCheck))
+                .listeningScore(listeningBand)
+                .readingScore(readingBand)
+                .writingScore(writingBand)
+                .speakingScore(speakingBand)
+                .overallScore(overall)
+                .correctListening(listening.correct())
+                .correctReading(reading.correct())
+                .aiFeedbackJson(aiResult == null ? fallbackFeedback() : aiResult.getFeedbackJson())
+                .status(status)
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED) // Staff must still confirm W/S.
+                .recommendedLevel(null) // Staff assigns the level after review.
+                .submittedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(180)) // Result stays valid for 6 months.
+                .build();
+        PlacementTestAttempt savedAttempt = attemptRepository.save(attempt);
+        student.setCurrentBand(overall == null ? null : overall.doubleValue()); // Keep learner profile in sync.
+        userRepository.save(student);
+        return toResponse(savedAttempt);
+    }
 
     /** Diagnostic mode: score only the skills the student picked. Not used for course placement. */
     private PlacementTestAttemptResponse submitSkillAssessment(

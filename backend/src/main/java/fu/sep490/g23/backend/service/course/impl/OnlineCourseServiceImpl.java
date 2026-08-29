@@ -575,7 +575,38 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return mapper.toResponse(findCourse(courseId));
     }
 
+    @Override
+    public OnlineCourseResponse registerCourse(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+        if (!isFreeCourse(course)) {
+            throw new IllegalStateException("Khóa học trả phí chỉ được kích hoạt sau khi thanh toán thành công.");
+        }
+        return activateEnrollment(course, student);
+    }
 
+    /**
+     * Retrieves the detailed content of a course for an enrolled student.
+     * Includes checking if the student has valid learning access, 
+     * and fetches the latest published version of the course content.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail) {
+        // Find student by email
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Find the published course
+        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+
+        // Verify that the student has valid access to learn this course (e.g., active enrollment)
+        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+
+        // Fetch and return the latest published course content tailored for this enrollment
+        return onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course);
+    }
 
     @Override
     public OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail) {
@@ -637,6 +668,42 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
     }
 
+    /**
+     * Retrieves enrolled courses for a student, refreshes their progress,
+     * and filters out deleted or cancelled courses.
+     */
+    @Override
+    @Transactional
+    public List<OnlineCourseEnrollmentResponse> getMyEnrollments(String studentEmail) {
+        // Find student by email
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+                
+        // Get enrollments, ordered by most recent
+        return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
+                // Filter out cancelled enrollments
+                .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
+                // Filter out deleted courses
+                .filter(enrollment -> {
+                    OnlineCourse course = enrollment.getOnlineCourse();
+                    if (course != null) {
+                        return !course.isDeleted();
+                    }
+                    return enrollment.getOnlineCourse() != null && !false;
+                })
+                // Refresh progress for each course
+                .map(enrollment -> {
+                    OnlineCourse course = enrollment.getOnlineCourse() != null
+                            ? enrollment.getOnlineCourse()
+                            : java.util.Optional.of(enrollment.getOnlineCourse()).orElse(null);
+                    // Update latest progress
+                    return course == null ? null : courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
+                })
+                .filter(java.util.Objects::nonNull)
+                // Map to DTO
+                .map(mapper::toEnrollmentResponse)
+                .toList();
+    }
 
     @Override
     public List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request) {
@@ -663,6 +730,30 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return responses;
     }
 
+    /**
+     * Catalog "recommended for you" when the learner is not coming from a specific attempt.
+     * Builds context from the latest attempt (or profile target if none), then reuses recommendCourses().
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<OnlineCourseResponse> getRecommendedCourses(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        PlacementTestAttempt latestAttempt = placementTestAttemptRepository
+                .findTopByStudentOrderBySubmittedAtDesc(student)
+                .orElse(null);
+        PlacementRecommendationContext context = latestAttempt == null
+                ? PlacementRecommendationContext.builder()
+                    .learnerId(student.getId())
+                    .examType(safe(student.getTargetExam()).toUpperCase(Locale.ROOT))
+                    .overallScore(student.getCurrentBand() == null ? null : BigDecimal.valueOf(student.getCurrentBand()))
+                    .targetExam(student.getTargetExam())
+                    .targetScore(parseBand(student.getTargetScore()) == null ? null : BigDecimal.valueOf(parseBand(student.getTargetScore())))
+                    .weakSkills(Set.of())
+                    .build()
+                : placementRecommendationContextFactory.fromAttempt(student, latestAttempt, latestAttempt.getRecommendedLevel());
+        return recommendCourses(student, context);
+    }
 
     /**
      * Core ranking for placement → online-course suggestions.
@@ -1083,6 +1174,152 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return enrollment;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        OnlineCourse course = findCourse(courseId);
+        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        return courseProgressService.buildCompletionResponse(enrollment, course, student);
+    }
+
+    @Override
+    public CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        OnlineCourse course = findCourse(courseId);
+        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        CourseCompletionResponse completion = courseProgressService.buildCompletionResponse(enrollment, course, student);
+        return buildCertificateResponse(course, enrollment, student, completion, false);
+    }
+
+    @Override
+    public OnlineCourseEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findCourse(courseId);
+        OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        onlineCourseVersionService.assertLessonBelongsToEnrollment(enrollment, lessonId);
+        OnlineCourseVersion pinnedVersion = enrollment.getCourseVersion() != null
+                ? enrollment.getCourseVersion()
+                : onlineCourseVersionService.requirePublishedVersion(course);
+        OnlineLesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("OnlineLesson not found"));
+
+        if (lesson.getModule() == null
+                || lesson.getModule().getOnlineCourseVersion() == null
+                || !pinnedVersion.getId().equals(lesson.getModule().getOnlineCourseVersion().getId())) {
+            throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
+        }
+
+        LessonProgress progress = lessonProgressRepository.findByEnrollmentAndLesson(enrollment, lesson)
+                .or(() -> lessonProgressRepository.findByStudentAndLesson(student, lesson))
+                .orElseGet(() -> LessonProgress.builder()
+                        .student(student)
+                        .lesson(lesson)
+                        .enrollment(enrollment)
+                        .courseVersion(pinnedVersion)
+                        .lessonKey(lesson.getLessonKey())
+                        .build());
+        if (progress.getCourseVersion() == null) {
+            progress.setCourseVersion(pinnedVersion);
+        }
+        if (progress.getEnrollment() == null) {
+            progress.setEnrollment(enrollment);
+        }
+        if (progress.getLessonKey() == null || progress.getLessonKey().isBlank()) {
+            progress.setLessonKey(lesson.getLessonKey());
+        }
+
+        progress.setLastAccessedAt(LocalDateTime.now());
+        if (progress.getFirstAccessedAt() == null) {
+            progress.setFirstAccessedAt(progress.getLastAccessedAt());
+        }
+        if (completed) {
+            onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, true);
+            progress.setStatus(LessonProgressStatus.COMPLETED);
+            progress.setProgressPercent(100);
+            if (progress.getCompletedAt() == null) {
+                progress.setCompletedAt(LocalDateTime.now());
+            }
+        } else {
+            onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, false);
+            progress.setStatus(LessonProgressStatus.IN_PROGRESS);
+            progress.setProgressPercent(0);
+            progress.setCompletedAt(null);
+        }
+        lessonProgressRepository.save(progress);
+
+        OnlineCourseEnrollment savedEnrollment = courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
+        return mapper.toEnrollmentResponse(savedEnrollment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VocabularyTermResponse> getVocabularyTerms(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findCourse(courseId);
+        ensureEnrolled(student, course);
+
+        return flashcardPracticeService.getPracticeTerms(
+                FlashcardPracticeSource.ENROLLED,
+                courseId,
+                false,
+                studentEmail
+        );
+    }
+
+    @Override
+    public VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, Boolean reviewed, Boolean correct, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findCourse(courseId);
+        ensureEnrolled(student, course);
+
+        VocabularyTermResponse term = flashcardPracticeService.getPracticeTerms(
+                        FlashcardPracticeSource.ENROLLED,
+                        courseId,
+                        false,
+                        studentEmail
+                ).stream()
+                .filter(item -> item.getTermKey().equals(termKey))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Vocabulary term not found"));
+
+        VocabularyProgress progress = vocabularyProgressRepository.findByStudentAndCourseAndTermKey(student, course, termKey)
+                .orElseGet(() -> VocabularyProgress.builder()
+                        .student(student)
+                        .course(course)
+                        .termKey(termKey)
+                        .build());
+
+        if (status != null) {
+            progress.setStatus(status);
+        }
+        if (starred != null) {
+            progress.setStarred(starred);
+        }
+        if (Boolean.TRUE.equals(reviewed)) {
+            progress.setReviewCount((progress.getReviewCount() == null ? 0 : progress.getReviewCount()) + 1);
+            progress.setLastReviewedAt(LocalDateTime.now());
+        }
+        if (correct != null) {
+            progress.setLastResultCorrect(correct);
+            if (correct) {
+                progress.setCorrectCount((progress.getCorrectCount() == null ? 0 : progress.getCorrectCount()) + 1);
+            } else {
+                progress.setIncorrectCount((progress.getIncorrectCount() == null ? 0 : progress.getIncorrectCount()) + 1);
+            }
+        }
+        if (progress.getLastReviewedAt() == null) {
+            progress.setLastReviewedAt(LocalDateTime.now());
+        }
+        VocabularyProgress savedProgress = vocabularyProgressRepository.save(progress);
+
+        return applyVocabularyProgress(term, List.of(savedProgress));
+    }
 
     private OnlineCourse findCourse(Long id) {
         OnlineCourse course = onlineCourseRepository.findWithModulesById(id)

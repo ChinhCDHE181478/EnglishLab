@@ -30,4 +30,100 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentOnlineCourseController {
 
+    private final OnlineCourseService onlineCourseService;
+    private final CourseReviewService courseReviewService;
+
+    @PostMapping("/{courseId}/register")
+    public ResponseEntity<OnlineCourseResponse> registerCourse(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.registerCourse(courseId, authentication.getName()));
+    }
+
+    /**
+     * Retrieves the detailed content of an online course that the current user is enrolled in.
+     *
+     * @param courseId       the ID of the course
+     * @param authentication current user's authentication info
+     * @return Detailed information about the enrolled course
+     */
+    @GetMapping("/{courseId}/content")
+    public ResponseEntity<OnlineCourseResponse> getEnrolledCourse(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.getEnrolledCourse(courseId, authentication.getName()));
+    }
+
+    /**
+     * Retrieves the current user's enrolled online courses.
+     *
+     * @param authentication current user's authentication info
+     * @return List of enrolled courses with progress
+     */
+    @GetMapping({"/my-enrollments", "/my-courses"})
+    public ResponseEntity<List<OnlineCourseEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));
+    }
+
+    @GetMapping("/recommendations")
+    public ResponseEntity<List<OnlineCourseResponse>> getRecommendations(Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.getRecommendedCourses(authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/completion")
+    public ResponseEntity<CourseCompletionResponse> getCourseCompletion(
+            @PathVariable Long courseId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.getCourseCompletion(courseId, authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/certificate")
+    public ResponseEntity<CourseCertificateResponse> getCourseCertificate(
+            @PathVariable Long courseId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.getCourseCertificate(courseId, authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/rating")
+    public ResponseEntity<CourseRatingResponse> getMyRating(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(courseReviewService.getMyRating(courseId, authentication.getName()));
+    }
+
+    @PostMapping("/{courseId}/rating")
+    public ResponseEntity<CourseRatingResponse> saveRating(
+            @PathVariable Long courseId,
+            @Valid @RequestBody CourseReviewRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(courseReviewService.saveRating(courseId, request, authentication.getName()));
+    }
+
+    @PatchMapping("/{courseId}/lessons/{lessonId}/progress")
+    public ResponseEntity<OnlineCourseEnrollmentResponse> updateLessonProgress(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @RequestParam(defaultValue = "true") boolean completed,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.updateLessonProgress(courseId, lessonId, completed, authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/vocabulary")
+    public ResponseEntity<List<VocabularyTermResponse>> getVocabularyTerms(
+            @PathVariable Long courseId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.getVocabularyTerms(courseId, authentication.getName()));
+    }
+
+    @PatchMapping("/{courseId}/vocabulary/{termKey}/progress")
+    public ResponseEntity<VocabularyTermResponse> updateVocabularyProgress(
+            @PathVariable Long courseId,
+            @PathVariable String termKey,
+            @RequestParam(required = false) VocabularyProgressStatus status,
+            @RequestParam(required = false) Boolean starred,
+            @RequestParam(required = false) Boolean reviewed,
+            @RequestParam(required = false) Boolean correct,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.updateVocabularyProgress(courseId, termKey, status, starred, reviewed, correct, authentication.getName()));
+    }
 }

@@ -34,7 +34,76 @@ public class LearnerLearningExperienceServiceImpl implements LearnerLearningExpe
     private final OnlineLessonRepository lessonRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<LearnerLessonNoteResponse> getNotes(String email) {
+        User user = findUser(email);
+        return noteRepository.findByUserOrderByUpdatedAtDesc(user).stream().map(this::toNoteResponse).toList();
+    }
 
+    @Override
+    public LearnerLessonNoteResponse createNote(Long courseId, Long lessonId, LearnerLessonNoteRequest request, String email) {
+        User user = findUser(email);
+        LearningContext context = findLearningContext(courseId, lessonId, user);
+        LearnerLessonNote note = LearnerLessonNote.builder()
+                .user(user)
+                .course(context.course())
+                .lesson(context.lesson())
+                .content(request.getContent().trim())
+                .selectedText(cleanNullable(request.getSelectedText()))
+                .transcriptStartSeconds(request.getTranscriptStartSeconds())
+                .build();
+        return toNoteResponse(noteRepository.save(note));
+    }
+
+    @Override
+    public LearnerLessonNoteResponse updateNote(Long noteId, LearnerLessonNoteRequest request, String email) {
+        User user = findUser(email);
+        LearnerLessonNote note = noteRepository.findByIdAndUser(noteId, user)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy ghi chú của bạn."));
+        courseEnrollmentAccessPolicy.requireLearningAccess(user, note.getCourse());
+        note.setContent(request.getContent().trim());
+        note.setSelectedText(cleanNullable(request.getSelectedText()));
+        note.setTranscriptStartSeconds(request.getTranscriptStartSeconds());
+        return toNoteResponse(note);
+    }
+
+    @Override
+    public void deleteNote(Long noteId, String email) {
+        User user = findUser(email);
+        LearnerLessonNote note = noteRepository.findByIdAndUser(noteId, user)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy ghi chú của bạn."));
+        noteRepository.delete(note);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LearnerLessonReviewFlagResponse> getReviewFlags(String email) {
+        User user = findUser(email);
+        return lessonProgressRepository.findByStudentAndNeedsReviewTrueOrderByUpdatedAtDesc(user).stream()
+                .map(this::toFlagResponse)
+                .toList();
+    }
+
+    @Override
+    public LearnerLessonReviewFlagResponse addReviewFlag(Long courseId, Long lessonId, String email) {
+        User user = findUser(email);
+        LearningContext context = findLearningContext(courseId, lessonId, user);
+        LessonProgress progress = ensureLessonProgress(context.enrollment(), context.lesson(), user);
+        progress.setNeedsReview(true);
+        return toFlagResponse(lessonProgressRepository.save(progress));
+    }
+
+    @Override
+    public void removeReviewFlag(Long courseId, Long lessonId, String email) {
+        User user = findUser(email);
+        LearningContext context = findLearningContext(courseId, lessonId, user);
+        lessonProgressRepository.findByEnrollmentAndLesson(context.enrollment(), context.lesson())
+                .ifPresent(progress -> {
+                    progress.setNeedsReview(false);
+                    lessonProgressRepository.save(progress);
+                });
+    }
 
     private LessonProgress ensureLessonProgress(OnlineCourseEnrollment enrollment, OnlineLesson lesson, User user) {
         return lessonProgressRepository.findByEnrollmentAndLesson(enrollment, lesson)
