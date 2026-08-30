@@ -14,13 +14,15 @@ import java.util.Optional;
 
 @Repository
 public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long>, JpaSpecificationExecutor<OnlineCourse> {
-    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
+    // Fetch only one List collection per query. Modules are initialized separately
+    // inside the service transaction to avoid Hibernate's MultipleBagFetchException.
+    @EntityGraph(attributePaths = {"category", "versions"})
     Optional<OnlineCourse> findWithModulesById(Long id);
 
-    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
+    @EntityGraph(attributePaths = {"category", "versions"})
     Optional<OnlineCourse> findWithModulesByIdAndDeletedFalseAndStatus(Long id, PackageStatus status);
 
-    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
+    @EntityGraph(attributePaths = {"category", "versions"})
     Optional<OnlineCourse> findBySlugAndDeletedFalseAndStatus(String slug, PackageStatus status);
 
     Optional<OnlineCourse> findBySlug(String slug);
