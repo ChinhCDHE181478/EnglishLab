@@ -148,21 +148,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return mapper.toPublicOfferingDetailResponse(offering);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClassroomOfferingResponse> getMyClasses(String learnerEmail) {
-        User learner = accessHelper.requireUser(learnerEmail);
-        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), HAS_LEARNING_ACCESS).stream()
-                .map(ClassEnrollment::getClassSection)
-                .map(offering -> mapper.toOfferingResponse(
-                        offering,
-                        false,
-                        learner.getId(),
-                        enrollmentRepository.findByStudentIdAndClassSectionId(learner.getId(), offering.getId()).orElse(null),
-                        false
-                ))
-                .toList();
-    }
+
 
     @Override
     @Transactional(readOnly = true)
