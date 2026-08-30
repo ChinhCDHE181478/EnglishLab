@@ -376,7 +376,9 @@ export default function MyHomeworkPage() {
         ]));
         await classroomApi.submitStudentQuiz(examHomework.legacyQuizId, JSON.stringify(legacyAnswers));
       } else {
-        const textAnswer = payload?.submittedText || JSON.stringify(objective, null, 2);
+        const textAnswer = examHomework.skill === 'SPEAKING'
+          ? ''
+          : payload?.submittedText || JSON.stringify(objective, null, 2);
         await classroomApi.submitHomework(examHomework.id, {
           textAnswer,
           attachmentUrl: payload?.submittedAudioUrl || '',
