@@ -54,41 +54,36 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private final OnlineCourseVersionService onlineCourseVersionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Core logic to fetch and merge flashcards based on user's practice source (Enrolled courses, Wishlist, or All).
+     * Automatically merges user's learning progress (VocabularyProgress) into the returned terms.
+     */
     @Override
     public List<VocabularyTermResponse> getPracticeTerms(FlashcardPracticeSource source, Long courseId, boolean starredOnly, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
-        FlashcardPracticeSource resolvedSource = source == null ? FlashcardPracticeSource.ENROLLED : source;
-        if (resolvedSource == FlashcardPracticeSource.ENROLLED) {
-            return getEnrolledVersionTerms(student, courseId, starredOnly);
-        }
-        List<OnlineCourse> courses = resolveCourses(resolvedSource, student).stream()
-                .filter(course -> courseId == null || course.getId().equals(courseId))
-                .toList();
-
-        Map<String, VocabularyTermResponse> uniqueTerms = new LinkedHashMap<>();
-        for (OnlineCourse course : courses) {
-            initializeCourse(course);
-            List<VocabularyProgress> progress = progressRepository.findByStudentAndCourse(student, course);
-            for (VocabularyTermResponse term : extractTerms(course)) {
-                applyProgress(term, progress);
-                if (!starredOnly || term.isStarred()) {
-                    uniqueTerms.putIfAbsent(term.getTermKey(), term);
-                }
-            }
-        }
-        return new ArrayList<>(uniqueTerms.values());
+        return getEnrolledVersionTerms(student, courseId, starredOnly);
     }
 
+    /**
+     * Extracts flashcard terms specifically from the user's Enrolled courses.
+     * Uses the snapshot logic via OnlineCourseVersionService to get the course version exactly as the user sees it.
+     */
     private List<VocabularyTermResponse> getEnrolledVersionTerms(User student, Long courseId, boolean starredOnly) {
         Map<String, VocabularyTermResponse> uniqueTerms = new LinkedHashMap<>();
         for (OnlineCourseEnrollment enrollment : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)) {
             OnlineCourse course = enrollment.getOnlineCourse();
+            
+            // Skip if course is missing or does not match the requested courseId
             if (course == null || false
                     || (courseId != null && !course.getId().equals(courseId))) {
                 continue;
             }
+            
+            // Read snapshot data to ensure terms match exactly what the user enrolled in
             OnlineCourseResponse snapshot = onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course);
             List<VocabularyProgress> progress = progressRepository.findByStudentAndCourse(student, course);
+            
+            // Extract terms from snapshot and merge with progress
             for (VocabularyTermResponse term : extractTerms(snapshot)) {
                 applyProgress(term, progress);
                 if (!starredOnly || term.isStarred()) {
@@ -99,19 +94,27 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return new ArrayList<>(uniqueTerms.values());
     }
 
+    /**
+     * Resolves the list of target courses to extract flashcards from based on the specified source.
+     */
     private List<OnlineCourse> resolveCourses(FlashcardPracticeSource source, User student) {
+        // Return active enrolled courses for the student
         if (source == FlashcardPracticeSource.ENROLLED) {
             return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
                     .map(enrollment -> enrollment.getOnlineCourse())
                     .filter(course -> course != null)
                     .toList();
         }
+        
+        // Return published courses from the student's wishlist
         if (source == FlashcardPracticeSource.WISHLIST) {
             return courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.WISHLIST).stream()
                     .map(CourseListItem::getOnlineCourse)
                     .filter(course -> course.isPublished())
                     .toList();
         }
+        
+        // Return all globally published courses
         return onlineCourseRepository.findAll().stream()
                 .filter(course -> course.isPublished())
                 .toList();
@@ -122,6 +125,11 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
                 lesson.getFlashcardRefs().forEach(ref -> ref.getContentBankItem().getTitle())));
     }
 
+    /**
+     * Extracts all vocabulary terms from the given course entity.
+     * Prioritizes dedicated flashcard sets (ContentBankItem) attached to lessons.
+     * Fallbacks to extracting inline vocabulary defined in the lesson's rich text content.
+     */
     private List<VocabularyTermResponse> extractTerms(OnlineCourse course) {
         List<VocabularyTermResponse> bankTerms = new ArrayList<>();
         for (OnlineCourseModule module : course.getPublishedModules()) {
@@ -169,6 +177,10 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return contentTerms;
     }
 
+    /**
+     * Parses the JSON payload of a ContentBankItem (Flashcard Set) and converts it into a list of vocabulary terms.
+     * Supports multiple JSON schema variants (term/meaning, front/back, question/answer, etc.).
+     */
     private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson, ContentBankItem item) {
         List<VocabularyTermResponse> terms = new ArrayList<>();
         try {
@@ -228,6 +240,10 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return terms;
     }
 
+    /**
+     * Extracts vocabulary implicitly defined inside the Markdown/Rich Text of a lesson (e.g., using '### 1. Word' format).
+     * Uses Regex to find headings and associated meaning/example fields.
+     */
     private List<VocabularyTermResponse> extractLessonContent(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson) {
         String content = lesson.getContentText();
         if (content == null || !content.contains("### ")) return List.of();
@@ -328,6 +344,9 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return lesson.getFlashcardSets() == null ? List.of() : lesson.getFlashcardSets();
     }
 
+    /**
+     * Merges a user's persistent learning progress (status, starred, correct/incorrect counts) into the runtime term object.
+     */
     private void applyProgress(VocabularyTermResponse term, List<VocabularyProgress> progressItems) {
         progressItems.stream().filter(item -> item.getTermKey().equals(term.getTermKey())).findFirst().ifPresent(progress -> {
             term.setStatus(progress.getStatus());
@@ -339,6 +358,9 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         });
     }
 
+    /**
+     * Utility to find the first non-blank text value among multiple possible JSON fields.
+     */
     private String firstText(JsonNode node, String... fields) {
         for (String field : fields) {
             String value = clean(node.path(field).asText(""));
@@ -347,6 +369,9 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return "";
     }
 
+    /**
+     * Regex utility to extract a specific field value (e.g., "**Meaning:** ...") from a Markdown text block.
+     */
     private String field(String block, String label) {
         var matcher = Pattern.compile("(?m)^\\*\\*" + Pattern.quote(label) + ":\\*\\*\\s*(.+)$", Pattern.CASE_INSENSITIVE).matcher(block);
         return matcher.find() ? clean(matcher.group(1)) : "";

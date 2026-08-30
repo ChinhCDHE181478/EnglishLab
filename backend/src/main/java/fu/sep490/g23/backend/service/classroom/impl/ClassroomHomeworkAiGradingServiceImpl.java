@@ -30,14 +30,28 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
     private final AiEvaluationClient aiEvaluationClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Attempts to automatically grade a homework submission using an AI evaluation model.
+     * This method acts as a safeguard, ensuring the homework meets all prerequisites 
+     * for AI grading before constructing a prompt and calling the external AI service.
+     *
+     * @param submission The student's homework submission to be graded
+     * @return true if the AI successfully graded the submission; false if it failed or was skipped
+     */
     public boolean tryAutoGrade(ClassroomHomeworkSubmission submission) {
         ClassroomHomework homework = submission.getHomework();
+        
+        // Ensure the homework is explicitly configured to use AI grading
         if (homework.getGradingMode() != HomeworkGradingMode.AI) {
             return false;
         }
+        // AI grading requires a scoring rubric to evaluate the student's work accurately
         if (homework.getRubric() == null) {
             return false;
         }
+        
+        // Ensure there is actual content to grade. 
+        // If the text answer is empty, check if an attachment URL is provided.
         if (submission.getTextAnswer() == null || submission.getTextAnswer().isBlank()) {
             if (submission.getAttachmentUrl() == null || submission.getAttachmentUrl().isBlank()) {
                 return false;
@@ -45,12 +59,20 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
         }
 
         try {
+            // Construct a detailed prompt combining instructions, rubric criteria, and the student's answer
             String prompt = buildPrompt(homework, submission);
+            
+            // Call the external AI service (e.g., OpenAI API) to evaluate the prompt
             AiEvaluationResult result = aiEvaluationClient.evaluate(prompt);
+            
+            // Parse the AI's JSON response and apply the calculated score and feedback to the submission
             applyAiResult(submission, homework, result);
+            
             return true;
         } catch (Exception ex) {
-            log.warn("Không thể chấm AI bài tập homeworkId={}: {}", homework.getId(), ex.getMessage());
+            // Log the error but do not throw an exception, allowing the system to gracefully 
+            // fall back to manual grading (keeping the submission in SUBMITTED state).
+            log.warn("Cannot AI grade homeworkId={}: {}", homework.getId(), ex.getMessage());
             return false;
         }
     }
