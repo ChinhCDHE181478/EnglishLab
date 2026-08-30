@@ -488,6 +488,10 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         }
     }
 
+    /**
+     * Asserts whether a student is allowed to transition a lesson's progress (e.g., mark as completed)
+     * based on the sequential learning rules of the course version.
+     */
     @Override
     @Transactional(readOnly = true)
     public void assertLessonProgressTransitionAllowed(
@@ -495,37 +499,55 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
             Long lessonId,
             boolean completed
     ) {
+        // 1. Resolve the correct course and the specific version the student is enrolled in
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
         OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, course);
         OnlineCourseResponse snapshot = readVersionContent(pinned, course);
+        
+        // 2. Build a flattened, ordered list of all lesson IDs in this course version
         List<Long> orderedLessonIds = snapshot.getModules() == null
                 ? List.of()
                 : snapshot.getModules().stream()
                 .flatMap(module -> module.getLessons().stream())
                 .map(LessonResponse::getId)
                 .toList();
+                
+        // 3. Find the position (index) of the requested lesson within the course
         int lessonIndex = orderedLessonIds.indexOf(lessonId);
         if (lessonIndex < 0) {
             throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
         }
+        
+        // 4. If the user is un-completing a lesson (completed = false), always allow it
         if (!completed) {
             return;
         }
+        
+        // 5. Fetch all lessons the user has previously completed in this course version
         var completedLessonIds = lessonProgressRepository
                 .findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED)
                 .stream()
                 .map(progress -> progress.getLesson().getId())
                 .collect(java.util.stream.Collectors.toSet());
+                
+        // 6. Find the furthest lesson index the user has reached so far
         int furthestCompletedIndex = completedLessonIds.stream()
                 .mapToInt(orderedLessonIds::indexOf)
                 .max()
                 .orElse(-1);
+                
+        // 7. If the requested lesson is at or before their furthest reached index, allow it (e.g., re-completing an old lesson)
         if (lessonIndex <= furthestCompletedIndex) {
             return;
         }
+        
+        // 8. Enforce sequential progression: if it's a new lesson (beyond furthest reached), 
+        // the immediate preceding lesson must have been completed.
         if (lessonIndex > 0 && !completedLessonIds.contains(orderedLessonIds.get(lessonIndex - 1))) {
             throw new IllegalStateException("Bạn cần hoàn thành bài học trước đó trong phiên bản này trước khi tiếp tục.");
         }
+        
+        // 9. Ensure any required module assessments preceding this lesson have been passed
         assertPreviousModuleAssessmentsPassed(enrollment, course, snapshot, lessonId);
     }
 

@@ -80,15 +80,23 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
     @Override
     @Transactional
+    // Retrieves a list of course assessments for a given course and student.
     public List<CourseAssessmentResponse> getCourseAssessments(Long courseId, String studentEmail) {
+        // Find the student by email or throw an error.
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
+        // Find the course by ID or throw an error.
         OnlineCourse course = onlineCourseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
+        // Ensure the student is enrolled in the course.
         OnlineCourseEnrollment enrollment = ensureEnrolled(student, course);
+        
+        // Fetch assessments, filter by course ID, and sort by display order.
         List<CourseAssessment> assessments = courseAssessmentRepository
                 .findAllById(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).stream()
                 .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
                 .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
                 .toList();
+                
+        // Map assessments to response objects.
         return assessments
                 .stream()
                 .map(assessment -> toResponse(assessment, student))

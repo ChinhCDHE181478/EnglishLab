@@ -27,6 +27,7 @@ public class StudentAssessmentController {
     private final AiAssessmentService aiAssessmentService;
     private final AssessmentAudioStorageService assessmentAudioStorageService;
 
+    // Get course assessments for a specific course and the authenticated student.
     @GetMapping({"/online-courses/{courseId}/assessments", "/courses/{courseId}/assessments"})
     public ResponseEntity<List<CourseAssessmentResponse>> getCourseAssessments(@PathVariable Long courseId, Authentication authentication) {
         return ResponseEntity.ok(aiAssessmentService.getCourseAssessments(courseId, authentication.getName()));
