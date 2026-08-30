@@ -32,7 +32,7 @@ public interface ClassroomOfferingService {
 
     ClassroomOfferingResponse getPublicOffering(String slugOrId);
 
-
+    List<ClassroomOfferingResponse> getMyClasses(String learnerEmail);
 
     List<ClassroomOfferingResponse> getAssignedClasses(String teacherEmail);
 
