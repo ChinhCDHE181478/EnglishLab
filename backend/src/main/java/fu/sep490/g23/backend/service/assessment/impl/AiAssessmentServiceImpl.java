@@ -80,15 +80,23 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
     @Override
     @Transactional
+    // Retrieves a list of course assessments for a given course and student.
     public List<CourseAssessmentResponse> getCourseAssessments(Long courseId, String studentEmail) {
+        // Find the student by email or throw an error.
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
+        // Find the course by ID or throw an error.
         OnlineCourse course = onlineCourseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
+        // Ensure the student is enrolled in the course.
         OnlineCourseEnrollment enrollment = ensureEnrolled(student, course);
+        
+        // Fetch assessments, filter by course ID, and sort by display order.
         List<CourseAssessment> assessments = courseAssessmentRepository
                 .findAllById(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).stream()
                 .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
                 .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
                 .toList();
+                
+        // Map assessments to response objects.
         return assessments
                 .stream()
                 .map(assessment -> toResponse(assessment, student))
@@ -96,26 +104,36 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     }
 
     @Override
+    // Submits and evaluates an assessment for a given student.
     public AiAssessmentSubmissionResponse submitAssessment(Long assessmentId, AssessmentSubmissionRequest request, String studentEmail) {
+        // Fetch student and assessment, throwing an error if either is missing.
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         CourseAssessment assessment = courseAssessmentRepository.findById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        
+        // Normalize the rubric and verify the student is properly enrolled in this assessment's course.
         normalizeAssessmentRubricCompatibility(assessment);
         OnlineCourseEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourse());
         onlineCourseVersionService.assertAssessmentBelongsToEnrollment(enrollment, assessmentId);
 
+        // Check if AI evaluation is enabled for this assessment.
         if (assessment.getAiEvaluationMode() == AiEvaluationMode.NONE) {
             throw new RuntimeException("Bài đánh giá này chưa bật phản hồi tự động.");
         }
+        // Ensure there is actually content submitted by the student.
         if (!hasSubmissionContent(request)) {
             throw new RuntimeException("Vui lòng nhập nội dung bài làm trước khi nộp.");
         }
+        // Validate the skill configuration (e.g. writing/speaking).
         validateSkillAssessmentConfiguration(assessment);
 
+        // Prepare the necessary data for AI evaluation (audio, prompt, text, target vocabulary).
         var speakingAudio = resolveSpeakingAudio(assessment, request);
         String prompt = buildRubricPrompt(assessment, request, student, speakingAudio.isPresent());
         String submittedText = firstNonBlank(request.getSubmittedText(), request.getObjectiveAnswersJson());
         String targetVocabulary = extractTargetVocabulary(assessment.getModule());
+        
         AiEvaluationResult aiResult;
+        // Determine the evaluation strategy based on the assessment type.
         if (usesObjectiveAnswerKey(assessment, request)) {
             aiResult = evaluateObjectiveAssessment(assessment, request);
         } else if (isObjectiveAssessmentSkill(assessment.getSkill())) {
@@ -123,17 +141,22 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         } else if (isInsufficientWritingSubmission(assessment, request)) {
             aiResult = buildInsufficientWritingResult(assessment);
         } else {
+            // Send the prompt (and potentially audio) to the AI client for evaluation.
             aiResult = speakingAudio
                     .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
                     .orElseGet(() -> aiEvaluationClient.evaluate(prompt));
+            // Apply normalization and guardrails (e.g. vocabulary relevance, speaking evidence) to the AI result.
             aiResult = normalizeEvaluationResult(aiResult, assessment);
             aiResult = applyVocabularyRelevanceGuard(aiResult, assessment, submittedText, targetVocabulary);
             aiResult = applySpeakingEvidenceGuard(aiResult, assessment, request);
         }
+        
+        // Final normalization to get the estimated score and pass/fail status.
         aiResult = normalizeEvaluationResult(aiResult, assessment);
         BigDecimal score = aiResult.getEstimatedScore();
         SubmissionStatus status = resolveSubmissionStatus(score, assessment);
 
+        // Build the submission entity with all collected data, AI feedback, and metadata.
         AssessmentSubmission submission = AssessmentSubmission.builder()
                 .assessment(assessment)
                 .student(student)
@@ -153,13 +176,18 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .status(status)
                 .build();
 
+        // Save the submission to the database.
         AssessmentSubmission savedSubmission = submissionRepository.save(submission);
+        
+        // If the student has an active enrollment, refresh their course progress based on this new submission.
         enrollmentRepository.findByStudentAndOnlineCourse(student, assessment.getOnlineCourse())
                 .ifPresent(activeEnrollment -> courseProgressService.refreshEnrollmentProgress(
                         activeEnrollment,
                         assessment.getOnlineCourse(),
                         student
                 ));
+                
+        // Return the final formatted response back to the controller.
         return toSubmissionResponse(savedSubmission);
     }
 

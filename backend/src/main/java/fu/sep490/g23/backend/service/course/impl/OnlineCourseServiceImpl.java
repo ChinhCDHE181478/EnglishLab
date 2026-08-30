@@ -1194,25 +1194,41 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return buildCertificateResponse(course, enrollment, student, completion, false);
     }
 
+    /**
+     * Updates the progress of a lesson for a specific student and recalculates overall course progress.
+     *
+     * @param courseId     the ID of the course
+     * @param lessonId     the ID of the lesson
+     * @param completed    true to mark the lesson as completed, false for in progress
+     * @param studentEmail the email of the student
+     * @return The updated OnlineCourseEnrollmentResponse with recalculated overall progress
+     */
     @Override
     public OnlineCourseEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail) {
+        // 1. Validate the student and the course
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findCourse(courseId);
+        
+        // 2. Ensure the student has learning access to the course
         OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
         onlineCourseVersionService.assertLessonBelongsToEnrollment(enrollment, lessonId);
+        
+        // 3. Determine the correct course version for this enrollment
         OnlineCourseVersion pinnedVersion = enrollment.getCourseVersion() != null
                 ? enrollment.getCourseVersion()
                 : onlineCourseVersionService.requirePublishedVersion(course);
         OnlineLesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("OnlineLesson not found"));
 
+        // Validate that the lesson belongs to the expected course version
         if (lesson.getModule() == null
                 || lesson.getModule().getOnlineCourseVersion() == null
                 || !pinnedVersion.getId().equals(lesson.getModule().getOnlineCourseVersion().getId())) {
             throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
         }
 
+        // 4. Retrieve existing LessonProgress or create a new one if it doesn't exist
         LessonProgress progress = lessonProgressRepository.findByEnrollmentAndLesson(enrollment, lesson)
                 .or(() -> lessonProgressRepository.findByStudentAndLesson(student, lesson))
                 .orElseGet(() -> LessonProgress.builder()
@@ -1222,6 +1238,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         .courseVersion(pinnedVersion)
                         .lessonKey(lesson.getLessonKey())
                         .build());
+                        
+        // Ensure relationships and keys are properly set
         if (progress.getCourseVersion() == null) {
             progress.setCourseVersion(pinnedVersion);
         }
@@ -1232,11 +1250,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             progress.setLessonKey(lesson.getLessonKey());
         }
 
+        // Update access timestamps
         progress.setLastAccessedAt(LocalDateTime.now());
         if (progress.getFirstAccessedAt() == null) {
             progress.setFirstAccessedAt(progress.getLastAccessedAt());
         }
+        
+        // 5. Update progress status based on the 'completed' flag
         if (completed) {
+            // Check if marking as completed is allowed (e.g., prerequisites met)
             onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, true);
             progress.setStatus(LessonProgressStatus.COMPLETED);
             progress.setProgressPercent(100);
@@ -1244,13 +1266,17 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 progress.setCompletedAt(LocalDateTime.now());
             }
         } else {
+            // Check if uncompleting is allowed
             onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, false);
             progress.setStatus(LessonProgressStatus.IN_PROGRESS);
             progress.setProgressPercent(0);
             progress.setCompletedAt(null);
         }
+        
+        // 6. Save the lesson progress
         lessonProgressRepository.save(progress);
 
+        // 7. Recalculate and refresh the overall course progress for the student
         OnlineCourseEnrollment savedEnrollment = courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
         return mapper.toEnrollmentResponse(savedEnrollment);
     }

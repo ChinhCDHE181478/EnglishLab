@@ -55,6 +55,10 @@ public interface OnlineCourseVersionService {
 
     void assertLessonBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long lessonId);
 
+    /**
+     * Asserts whether a student is allowed to transition a lesson's progress (e.g., mark as completed)
+     * based on the sequential learning rules of the course version.
+     */
     void assertLessonProgressTransitionAllowed(OnlineCourseEnrollment enrollment, Long lessonId, boolean completed);
 
     boolean isAssessmentReferencedByPublishedHistory(OnlineCourse course, Long assessmentId);
