@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface AiAssessmentService {
     List<CourseAssessmentResponse> getCourseAssessments(Long courseId, String studentEmail);
-    AiAssessmentSubmissionResponse submitAssessment(Long assessmentId, AssessmentSubmissionRequest request, String studentEmail);
+
 }

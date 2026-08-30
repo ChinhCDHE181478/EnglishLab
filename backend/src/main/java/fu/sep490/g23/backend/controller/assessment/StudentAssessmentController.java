@@ -33,6 +33,7 @@ public class StudentAssessmentController {
         return ResponseEntity.ok(aiAssessmentService.getCourseAssessments(courseId, authentication.getName()));
     }
 
+    // Submit a student's answer for a specific AI assessment.
     @PostMapping("/assessments/{assessmentId}/submit")
     public ResponseEntity<AiAssessmentSubmissionResponse> submitAssessment(
             @PathVariable Long assessmentId,
