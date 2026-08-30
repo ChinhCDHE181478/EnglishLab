@@ -3,6 +3,7 @@ import fu.sep490.g23.backend.dto.response.assessment.RubricCriterionResponse;
 import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
 import fu.sep490.g23.backend.service.assessment.AssessmentPassingThresholdResolver;
 import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
@@ -143,7 +144,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             // Case 1: Objective test with an answer key (e.g. multiple choice).
             // The system automatically checks student answers against the key (saves AI API cost).
             aiResult = evaluateObjectiveAssessment(assessment, request);
-        } else if (isObjectiveAssessmentSkill(assessment.getSkill())) {
+        } else if (isObjectiveAssessment(assessment)) {
             // Case 2: Objective test but without a provided answer key.
             // The AI might read the question and figure out the correct answer to grade it.
             aiResult = evaluateObjectiveAssessmentWithoutAnswerKey(assessment);
@@ -259,7 +260,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         if (assessment == null || request == null) {
             return false;
         }
-        if (!isObjectiveAssessmentSkill(assessment.getSkill())) {
+        if (!isObjectiveAssessment(assessment)) {
             return false;
         }
         return hasText(assessment.getObjectiveAnswerKey()) && hasText(request.getObjectiveAnswersJson());
@@ -267,6 +268,12 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
     private boolean isObjectiveAssessmentSkill(AssessmentSkill skill) {
         return skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING;
+    }
+
+    private boolean isObjectiveAssessment(CourseAssessment assessment) {
+        return assessment != null
+                && (assessment.getType() == AssessmentType.QUIZ
+                || isObjectiveAssessmentSkill(assessment.getSkill()));
     }
 
     private AiEvaluationResult evaluateObjectiveAssessmentWithoutAnswerKey(CourseAssessment assessment) {
@@ -1449,8 +1456,10 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .id(assessment.getId())
                 .courseId(assessment.getOnlineCourse().getId())
                 .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .lessonId(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getId())
                 .assessmentBankItemId(assessment.getAssessmentBankItem() == null ? null : assessment.getAssessmentBankItem().getId())
                 .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
+                .lessonTitle(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getTitle())
                 .title(assessment.getTitle())
                 .description(assessment.getDescription())
                 .type(assessment.getType())
