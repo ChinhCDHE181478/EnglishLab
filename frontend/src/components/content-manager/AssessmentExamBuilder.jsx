@@ -12,6 +12,7 @@ const OBJECTIVE_SKILLS = ['LISTENING', 'READING'];
 const SUPPORTED_SKILLS = [...OBJECTIVE_SKILLS, 'WRITING', 'SPEAKING'];
 
 const getAssessmentSkill = (assessment) => String(assessment?.skill || '').toUpperCase();
+const isQuizAssessment = (assessment) => String(assessment?.type || '').toUpperCase() === 'QUIZ';
 
 const createQuestion = (number = 1) => ({
   number,
@@ -141,11 +142,13 @@ const createSpeakingConfig = (assessment) => ({
 
 const createConfig = (assessment) => {
   const skill = getAssessmentSkill(assessment);
-  const examType = resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
+  const examType = isQuizAssessment(assessment)
+    ? 'GENERAL'
+    : resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
   return {
     version: 1,
     examType,
-    type: resolveObjectiveExamTypeLabel(examType, skill),
+    type: examType === 'GENERAL' ? 'lesson_quiz' : resolveObjectiveExamTypeLabel(examType, skill),
     key: `englishlab_${String(assessment.title || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
     title: assessment.title || 'Bài thi mới',
     durationMinutes: Number(assessment.timeLimitMinutes || 40),
@@ -169,15 +172,17 @@ const safeParse = (value, fallback) => {
 
 const resolveObjectiveExamType = (assessment, parsed = {}) => {
   const fromProp = String(assessment?.examType || '').toUpperCase();
-  if (fromProp === 'TOEIC' || fromProp === 'IELTS') return fromProp;
+  if (['TOEIC', 'IELTS', 'GENERAL'].includes(fromProp)) return fromProp;
   const fromConfig = String(parsed?.examType || '').toUpperCase();
-  if (fromConfig === 'TOEIC' || fromConfig === 'IELTS') return fromConfig;
+  if (['TOEIC', 'IELTS', 'GENERAL'].includes(fromConfig)) return fromConfig;
   const type = String(parsed?.type || '').toLowerCase();
+  if (type === 'lesson_quiz') return 'GENERAL';
   if (type.startsWith('toeic_')) return 'TOEIC';
   return 'IELTS';
 };
 
 const resolveObjectiveExamTypeLabel = (examType, skill) => {
+  if (examType === 'GENERAL') return 'lesson_quiz';
   if (examType === 'TOEIC') {
     return skill === 'READING' ? 'toeic_reading_exam' : 'toeic_listening_exam';
   }
@@ -296,8 +301,10 @@ const normalizeConfig = (assessment) => {
   return {
     ...fallback,
     ...safeConfig,
-    examType: resolveObjectiveExamType(assessment, safeConfig),
-    type: resolveObjectiveExamTypeLabel(resolveObjectiveExamType(assessment, safeConfig), skill),
+    examType: isQuizAssessment(assessment) ? 'GENERAL' : resolveObjectiveExamType(assessment, safeConfig),
+    type: isQuizAssessment(assessment)
+      ? 'lesson_quiz'
+      : resolveObjectiveExamTypeLabel(resolveObjectiveExamType(assessment, safeConfig), skill),
     parts: normalizedParts,
   };
 };
@@ -359,10 +366,10 @@ const getBuilderLabels = (skill) => ({
 
 export default function AssessmentExamBuilder({ assessment, onChange }) {
   const skill = getAssessmentSkill(assessment);
-  const isObjectiveSkill = OBJECTIVE_SKILLS.includes(skill);
+  const isObjectiveSkill = OBJECTIVE_SKILLS.includes(skill) || isQuizAssessment(assessment);
   const isWritingSkill = skill === 'WRITING';
   const isSpeakingSkill = skill === 'SPEAKING';
-  const isSupported = SUPPORTED_SKILLS.includes(skill);
+  const isSupported = SUPPORTED_SKILLS.includes(skill) || isQuizAssessment(assessment);
   const builderLabels = getBuilderLabels(skill);
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState(() => normalizeConfig(assessment));

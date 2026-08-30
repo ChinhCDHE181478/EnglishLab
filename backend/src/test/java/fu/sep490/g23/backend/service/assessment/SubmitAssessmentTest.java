@@ -264,4 +264,36 @@ class SubmitAssessmentTest {
         assertNull(assessment.getRubric());
         verify(aiEvaluationClient, never()).evaluate(anyString());
     }
+
+    @Test
+    void submitAssessment_VocabularyQuiz_UsesDeterministicAnswerKey() {
+        assessment.setType(AssessmentType.QUIZ);
+        assessment.setSkill(AssessmentSkill.VOCABULARY);
+        assessment.setRubric(null);
+        assessment.setObjectiveAnswerKey("{\"1\":\"A\"}");
+        assessment.setMaxScore(BigDecimal.ONE);
+        request.setSubmittedText(null);
+        request.setObjectiveAnswersJson("{\"responses\":[{\"questionNumber\":\"1\",\"part\":\"part_1\",\"answerType\":\"single_choice\",\"answer\":\"A\"}]}");
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.empty());
+        when(passingThresholdResolver.resolve(assessment)).thenReturn(BigDecimal.ONE);
+        when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
+            AssessmentSubmission saved = invocation.getArgument(0);
+            saved.setId(1002L);
+            return saved;
+        });
+
+        AiAssessmentSubmissionResponse result = aiAssessmentService.submitAssessment(
+                assessment.getId(),
+                request,
+                student.getEmail()
+        );
+
+        assertEquals(0, BigDecimal.ONE.compareTo(result.getAiScore()));
+        assertTrue(result.getAiFeedbackJson().contains("\"correctCount\":1"));
+        verify(aiEvaluationClient, never()).evaluate(anyString());
+    }
 }

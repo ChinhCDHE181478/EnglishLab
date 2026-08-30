@@ -68,6 +68,7 @@ import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
@@ -1673,6 +1674,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             }
 
             OnlineCourseModule targetModule = resolveAssessmentModule(modules, request.getModuleId());
+            OnlineLesson targetLesson = resolveAssessmentLesson(targetModule, request.getLessonId());
             AssessmentBankItem bankItem = resolveAssessmentBankItem(request.getAssessmentBankItemId());
             AssessmentRubric rubric = bankItem == null
                     ? resolveAssessmentRubric(request.getRubricId())
@@ -1690,6 +1692,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
             assessment.setOnlineCourse(course);
             assessment.setModule(targetModule);
+            assessment.setOnlineLesson(targetLesson);
             assessment.setRubric(rubric);
             assessment.setAssessmentBankItem(bankItem);
             if (bankItem == null) {
@@ -1780,13 +1783,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             if (!root.isObject()) {
                 throw new RuntimeException("Cấu hình đề thi phải là JSON object.");
             }
-            if (skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING) {
+            if (request.getType() == AssessmentType.QUIZ
+                    || skill == AssessmentSkill.LISTENING
+                    || skill == AssessmentSkill.READING) {
                 if (!root.path("parts").isArray() || root.path("parts").isEmpty()) {
-                    throw new RuntimeException("Cấu hình đề thi phải có ít nhất một phần.");
+                    throw new RuntimeException("Bài trắc nghiệm phải có ít nhất một phần câu hỏi.");
                 }
                 if (objectiveAnswerKey == null || objectiveAnswerKey.isBlank()
                         || !objectMapper.readTree(objectiveAnswerKey).isObject()) {
-                    throw new RuntimeException("Đáp án tham chiếu của đề thi không hợp lệ.");
+                    throw new RuntimeException("Đáp án của bài trắc nghiệm không hợp lệ.");
                 }
                 return;
             }
@@ -1841,6 +1846,19 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .filter(module -> moduleId.equals(module.getId()))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Assessment module does not belong to this course"));
+    }
+
+    private OnlineLesson resolveAssessmentLesson(OnlineCourseModule module, Long lessonId) {
+        if (lessonId == null) {
+            return null;
+        }
+        if (module == null) {
+            throw new RuntimeException("Bài đánh giá trong bài học phải thuộc một mô-đun.");
+        }
+        return module.getLessons().stream()
+                .filter(lesson -> lessonId.equals(lesson.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Bài học không thuộc mô-đun đã chọn."));
     }
 
     private AssessmentRubric resolveAssessmentRubric(Long rubricId) {
@@ -1923,6 +1941,17 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                     "Không thể xóa bài học \"" + lesson.getTitle() + "\" vì đã có tiến độ học viên."
             );
         }
+        List<CourseAssessment> lessonAssessments = courseAssessmentRepository.findByOnlineLesson(lesson);
+        for (CourseAssessment assessment : lessonAssessments) {
+            if (assessment.getId() != null && assessmentSubmissionRepository.existsByAssessmentId(assessment.getId())) {
+                throw new RuntimeException(
+                        "Không thể xóa bài học \"" + lesson.getTitle()
+                                + "\" vì đã có bài làm học viên."
+                );
+            }
+        }
+        courseAssessmentRepository.deleteAll(lessonAssessments);
+        courseAssessmentRepository.flush();
     }
 
     private CourseAssessmentResponse toManagerAssessmentResponse(CourseAssessment assessment) {
@@ -1931,8 +1960,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .id(assessment.getId())
                 .courseId(assessment.getOnlineCourse().getId())
                 .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .lessonId(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getId())
                 .assessmentBankItemId(assessment.getAssessmentBankItem() == null ? null : assessment.getAssessmentBankItem().getId())
                 .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
+                .lessonTitle(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getTitle())
                 .title(assessment.getTitle())
                 .description(assessment.getDescription())
                 .type(assessment.getType())
