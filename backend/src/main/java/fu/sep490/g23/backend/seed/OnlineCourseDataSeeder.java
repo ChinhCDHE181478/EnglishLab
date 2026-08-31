@@ -4,12 +4,8 @@ import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.PackageType;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -30,8 +26,6 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
             "English Communication"
     );
 
-    private final LearningPackageRepository learningPackageRepository;
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
     private final OnlineCourseRepository onlineCourseRepository;
 
@@ -46,7 +40,6 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     public void run(String... args) {
         repairLegacyCourseCategories();
         if (seedEnabled || sheetEnabled) {
-            seedPackageTypes();
             seedCourseCategories();
             backfillMissingCourseCategories();
         }
@@ -54,20 +47,6 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
             return;
         }
         cleanupPlaceholderCourses();
-    }
-
-    private void seedPackageTypes() {
-        seedPackageType(PackageTypeCode.ONLINE_COURSE, "Online Course", "Self-paced or mentor-supported online learning package.");
-        seedPackageType(PackageTypeCode.CLASSROOM, "Classroom", "Offline or blended classroom package.");
-        seedPackageType(PackageTypeCode.BUNDLE, "Bundle", "Combined learning package.");
-        seedPackageType(PackageTypeCode.MOCK_TEST, "Mock Test", "Certification exam simulation package.");
-        seedPackageType(PackageTypeCode.SUBSCRIPTION, "Subscription", "Recurring access package.");
-    }
-
-    private void seedPackageType(PackageTypeCode code, String name, String description) {
-        if (!packageTypeRepository.existsByCode(code)) {
-            packageTypeRepository.save(PackageType.builder().code(code).name(name).description(description).build());
-        }
     }
 
     private void seedCourseCategories() {
@@ -151,7 +130,7 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     }
 
     private CourseCategory resolveCategory(OnlineCourse course, CourseCategory defaultCategory) {
-        String normalized = (course.getLearningPackage().getTitle() + " " + course.getLearningPackage().getSlug())
+        String normalized = (course.getTitle() + " " + course.getSlug())
                 .toLowerCase(Locale.ROOT);
         if (normalized.contains("ielts")) {
             return findCategory(CourseCategoryCode.IELTS, defaultCategory);
@@ -173,12 +152,12 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     }
 
     private void cleanupPlaceholderCourses() {
-        learningPackageRepository.findAll().stream()
-                .filter(learningPackage -> PLACEHOLDER_COURSE_TITLES.contains(learningPackage.getTitle()))
-                .forEach(learningPackage -> {
-                    learningPackage.setDeleted(true);
-                    learningPackage.setFeatured(false);
-                    learningPackage.setStatus(PackageStatus.DRAFT);
+        onlineCourseRepository.findAll().stream()
+                .filter(course -> PLACEHOLDER_COURSE_TITLES.contains(course.getTitle()))
+                .forEach(course -> {
+                    course.setDeleted(true);
+                    course.setFeatured(false);
+                    course.setStatus(PackageStatus.DRAFT);
                 });
     }
 }

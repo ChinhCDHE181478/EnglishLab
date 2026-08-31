@@ -4,7 +4,7 @@ const FIELD_LABELS = {
   endTime: 'Giờ kết thúc',
   teacherId: 'Giáo viên (ID)',
   roomId: 'Phòng học (ID)',
-  larkMeetingUrl: 'Liên kết Google Meet',
+  googleMeetUrl: 'Liên kết Google Meet',
   status: 'Trạng thái buổi',
   classroomOfferingId: 'Lớp học (ID)',
 };

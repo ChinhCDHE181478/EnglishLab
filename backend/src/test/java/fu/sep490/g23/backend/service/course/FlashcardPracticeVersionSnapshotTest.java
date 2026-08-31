@@ -5,16 +5,15 @@ import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.service.course.impl.FlashcardPracticeServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -36,7 +35,7 @@ class FlashcardPracticeVersionSnapshotTest {
     @Mock
     private OnlineCourseRepository onlineCourseRepository;
     @Mock
-    private PackageEnrollmentRepository enrollmentRepository;
+    private OnlineCourseEnrollmentRepository enrollmentRepository;
     @Mock
     private CourseListItemRepository courseListItemRepository;
     @Mock
@@ -50,18 +49,17 @@ class FlashcardPracticeVersionSnapshotTest {
     @Test
     void enrolledPracticeReadsVocabularyFromLatestPublishedVersion() {
         User learner = User.builder().id(1L).email("learner@test.com").build();
-        LearningPackage learningPackage = LearningPackage.builder().id(2L).title("IELTS v1").deleted(false).build();
-        OnlineCourse course = OnlineCourse.builder().id(3L).learningPackage(learningPackage).build();
+        OnlineCourse course = OnlineCourse.builder().id(3L).title("IELTS v1").build();
         OnlineCourseVersion versionOne = OnlineCourseVersion.builder()
                 .id(4L)
                 .onlineCourse(course)
                 .versionNumber(1)
                 .status(CourseVersionStatus.RETIRED)
                 .build();
-        PackageEnrollment enrollment = PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(5L)
                 .student(learner)
-                .learningPackage(learningPackage)
+                .onlineCourse(course)
                 .courseVersion(versionOne)
                 .build();
         OnlineCourseResponse snapshot = OnlineCourseResponse.builder()
@@ -83,7 +81,6 @@ class FlashcardPracticeVersionSnapshotTest {
 
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
         when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner)).thenReturn(List.of(enrollment));
-        when(onlineCourseRepository.findByLearningPackage(learningPackage)).thenReturn(Optional.of(course));
         when(onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course)).thenReturn(snapshot);
         when(progressRepository.findByStudentAndCourse(learner, course)).thenReturn(List.of());
 

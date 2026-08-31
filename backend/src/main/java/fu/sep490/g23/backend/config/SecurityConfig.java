@@ -37,7 +37,6 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/google",
-                                "/api/auth/facebook",
                                 "/api/auth/verify-email",
                                 "/api/auth/resend-verification",
                                 "/api/auth/forgot-password",
@@ -50,7 +49,6 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/payos/webhook").permitAll()
-                        .requestMatchers("/api/lark/events").permitAll()
                         .requestMatchers("/api/teacher/google-meet/callback").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/online-courses", "/api/online-courses/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/learning-paths", "/api/learning-paths/**").permitAll()
@@ -64,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/student/notifications/**").authenticated()
                         .requestMatchers("/api/student/classrooms/**").hasAnyRole("LEARNER", "TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers("/api/content-manager/**").hasAnyRole("CONTENT_MANAGER", "ADMIN")
                         .requestMatchers("/api/student/**").hasAnyRole("LEARNER", "CONTENT_MANAGER", "MANAGER", "ADMIN")

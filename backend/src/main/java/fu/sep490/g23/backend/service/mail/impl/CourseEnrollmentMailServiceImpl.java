@@ -1,9 +1,9 @@
 package fu.sep490.g23.backend.service.mail.impl;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import fu.sep490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.mail.internet.InternetAddress;
@@ -62,7 +62,7 @@ public class CourseEnrollmentMailServiceImpl implements CourseEnrollmentMailServ
     @Value("${englishlab.mail.privacy-policy-url:http://localhost:5173/privacy}")
     private String privacyPolicyUrl;
 
-    public void sendEnrollmentSuccessEmail(User student, OnlineCourse course, PackageEnrollment enrollment) {
+    public void sendEnrollmentSuccessEmail(User student, OnlineCourse course, OnlineCourseEnrollment enrollment) {
         if (student != null && !notificationPreferenceService.isEmailEnabled(student)) {
             log.debug("Course enrollment email was skipped because user {} disabled email notifications.", student.getId());
             return;
@@ -99,8 +99,8 @@ public class CourseEnrollmentMailServiceImpl implements CourseEnrollmentMailServ
         }
     }
 
-    private String renderTemplate(User student, OnlineCourse course, PackageEnrollment enrollment) throws Exception {
-        LearningPackage learningPackage = course.getLearningPackage();
+    private String renderTemplate(User student, OnlineCourse course, OnlineCourseEnrollment enrollment) throws Exception {
+        OnlineCourse learningPackage = course;
         String template = new ClassPathResource(TEMPLATE_PATH).getContentAsString(StandardCharsets.UTF_8);
 
         Map<String, String> values = new LinkedHashMap<>();
@@ -125,7 +125,7 @@ public class CourseEnrollmentMailServiceImpl implements CourseEnrollmentMailServ
     }
 
     private String courseDuration(OnlineCourse course) {
-        LearningPackage learningPackage = course.getLearningPackage();
+        OnlineCourse learningPackage = course;
         if (!isBlank(learningPackage.getDuration())) {
             return learningPackage.getDuration();
         }
@@ -136,7 +136,7 @@ public class CourseEnrollmentMailServiceImpl implements CourseEnrollmentMailServ
     }
 
     private String courseOutcome(OnlineCourse course) {
-        LearningPackage learningPackage = course.getLearningPackage();
+        OnlineCourse learningPackage = course;
         if (!isBlank(course.getTargetOutcome())) {
             return course.getTargetOutcome();
         }
@@ -146,19 +146,19 @@ public class CourseEnrollmentMailServiceImpl implements CourseEnrollmentMailServ
         return "Hoàn thành lộ trình học tập trong workspace EnglishLab";
     }
 
-    private String courseUrl(LearningPackage learningPackage) {
+    private String courseUrl(OnlineCourse learningPackage) {
         String slugOrId = !isBlank(learningPackage.getSlug()) ? learningPackage.getSlug() : String.valueOf(learningPackage.getId());
         return normalizedBaseUrl() + "/courses/" + slugOrId + "/learn";
     }
 
-    private String enrollmentCode(PackageEnrollment enrollment) {
+    private String enrollmentCode(OnlineCourseEnrollment enrollment) {
         if (enrollment.getId() == null) {
             return "EL-ENR";
         }
         return "EL-ENR-%06d".formatted(enrollment.getId());
     }
 
-    private String activatedAt(PackageEnrollment enrollment) {
+    private String activatedAt(OnlineCourseEnrollment enrollment) {
         LocalDateTime registeredAt = enrollment.getRegisteredAt() == null ? LocalDateTime.now() : enrollment.getRegisteredAt();
         return registeredAt.format(DATE_TIME_FORMATTER);
     }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Search } from 'lucide-react';
 
 const normalizeOptions = (options = []) => options.map((option) => {
@@ -23,11 +24,37 @@ export default function BrandedSelect({
   disabled = false,
   buttonClassName = '',
   menuClassName = '',
+  menuPlacement = 'auto',
   searchable = false,
 }) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [menuCoords, setMenuCoords] = useState({ top: 0, left: 0, width: 0, isTop: false });
   const containerRef = useRef(null);
+  const menuRef = useRef(null);
+
+  const updatePosition = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+
+    setMenuCoords({
+      top: rect.bottom + 6,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
+      width: Math.max(rect.width, 260),
+    });
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    updatePosition();
+    const handleScrollOrResize = () => updatePosition();
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    return () => {
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [open, menuPlacement]);
 
   const normalized = useMemo(() => normalizeOptions(options), [options]);
   const selected = normalized.find((option) => String(option.value) === String(value));
@@ -37,7 +64,12 @@ export default function BrandedSelect({
   useEffect(() => {
     if (!open) return;
     function handleClickOutside(event) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (
+        containerRef.current
+        && !containerRef.current.contains(event.target)
+        && menuRef.current
+        && !menuRef.current.contains(event.target)
+      ) {
         setOpen(false);
       }
     }
@@ -71,15 +103,28 @@ export default function BrandedSelect({
         aria-expanded={open}
         className={`flex w-full items-center justify-between gap-3 rounded-[18px] border border-[#dfbfbd]/75 bg-white px-4 py-3 text-left text-sm font-semibold text-[#584140] shadow-[0_10px_24px_rgba(75,0,9,0.06)] transition hover:border-[#cf6f83] focus:border-[#cf6f83] focus:outline-none ${buttonClassName}`}
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (!open) updatePosition();
+          setOpen((current) => !current);
+        }}
         type="button"
         title={label}
       >
         <span className="truncate">{label}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-[#730014] transition ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open ? (
-        <div className={`absolute left-0 top-full z-50 mt-2 max-h-80 min-w-full overflow-hidden rounded-2xl border border-[#dfbfbd]/75 bg-white p-1 shadow-[0_18px_45px_rgba(75,0,9,0.16)] flex flex-col ${menuClassName}`}>
+      {open && typeof document !== 'undefined' ? createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: `${menuCoords.top}px`,
+            left: `${menuCoords.left}px`,
+            width: `${menuCoords.width}px`,
+            zIndex: 99999,
+          }}
+          className={`max-h-80 overflow-hidden rounded-2xl border border-[#dfbfbd]/75 bg-white p-1 shadow-[0_18px_45px_rgba(75,0,9,0.22)] flex flex-col ${menuClassName}`}
+        >
           {isSearchEnabled ? (
             <div className="sticky top-0 z-10 bg-white px-2 py-1.5 border-b border-[#dfbfbd]/30">
               <div className="relative flex items-center">
@@ -121,17 +166,14 @@ export default function BrandedSelect({
                 </button>
               ))
             ) : (
-              <p className="px-4 py-3 text-center text-xs text-slate-400">Không tìm thấy kết quả.</p>
+              <div className="px-4 py-3 text-center text-xs text-slate-500">
+                Không tìm thấy kết quả
+              </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
-      <select className="sr-only" disabled={disabled} id={id} name={name} onChange={onChange} value={value}>
-        {!selected && placeholder ? <option value="">{placeholder}</option> : null}
-        {normalized.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
-      </select>
     </div>
   );
 }

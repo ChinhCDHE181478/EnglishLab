@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.service.user;
 import fu.sep490.g23.backend.dto.request.ChangePasswordRequest;
 import fu.sep490.g23.backend.dto.response.UserResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.service.user.impl.UserServiceImpl;
@@ -49,7 +49,7 @@ class UserServiceImplTest {
                 .fullName("Learner Test")
                 .email("learner@test.vn")
                 .password("encoded-current")
-                .role(RoleEnum.LEARNER)
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
                 .emailVerified(true)
                 .build();
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));

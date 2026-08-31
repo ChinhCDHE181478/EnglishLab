@@ -36,9 +36,6 @@ public class CourseEnrollmentRequestResponse {
     private String requestedClassroomTeacherName;
     private String requestedClassroomLocation;
     private ClassroomDeliveryMode deliveryType;
-    private LocalDate plannedStartDate;
-    private String plannedSchedule;
-    private Integer capacity;
     private EnrollmentRequestStatus status;
     private String statusLabel;
     private EnrollmentRequestSource requestSource;

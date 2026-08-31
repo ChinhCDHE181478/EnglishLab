@@ -8,6 +8,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class HomeworkAttachmentStorageServiceImplTest {
 
@@ -43,5 +44,32 @@ class HomeworkAttachmentStorageServiceImplTest {
         );
 
         assertThrows(IllegalArgumentException.class, () -> service.load("../secret.pdf"));
+    }
+
+    @Test
+    void loadStoredAttachmentFromUrl_loadsUploadedAudioWithAudioMimeType() {
+        HomeworkAttachmentStorageServiceImpl service = new HomeworkAttachmentStorageServiceImpl(
+                storageDirectory.toString(),
+                100L * 1024 * 1024,
+                10,
+                100L * 1024 * 1024
+        );
+        byte[] audioBytes = new byte[]{1, 2, 3, 4};
+        MockMultipartFile audio = new MockMultipartFile(
+                "file", "answer.webm", "video/webm", audioBytes
+        );
+        String url = service.store(
+                audio,
+                "/api/classroom-homework/attachments",
+                "learner@example.com"
+        ).getUrl();
+
+        HomeworkAttachmentStorageService.StoredHomeworkAttachment stored = service
+                .loadStoredAttachmentFromUrl(url)
+                .orElseThrow();
+
+        assertThat(stored.contentType()).isEqualTo("audio/webm");
+        assertThat(stored.bytes()).containsExactly(audioBytes);
+        assertThat(service.loadStoredAttachmentFromUrl("https://example.com/answer.webm")).isEmpty();
     }
 }

@@ -278,7 +278,7 @@ export default function TeacherClassroomPage() {
 
   const renderContent = () => {
     if (activeTab === 'curriculum') {
-      return <TeacherCurriculumPanel curriculum={classroom?.curriculumProgram} />;
+      return <TeacherCurriculumPanel curriculum={classroom?.instructorLedCourse} />;
     }
 
     if (activeTab === 'sessions') {
@@ -496,7 +496,7 @@ export default function TeacherClassroomPage() {
       return (
         <TeacherHomeworkSection
           classroomId={id}
-          curriculumUnits={classroom?.curriculumProgram?.units || []}
+          courseUnits={classroom?.instructorLedCourse?.units || []}
           homework={homework}
           initialOpenCreate={searchParams.get('action') === 'create'}
           onGradebookChange={setGradebook}
@@ -528,7 +528,7 @@ export default function TeacherClassroomPage() {
       return (
         <TeacherGradebookSection
           classroomId={id}
-          curriculumUnits={classroom?.curriculumProgram?.units || []}
+          courseUnits={classroom?.instructorLedCourse?.units || []}
           gradebook={gradebook}
           homework={homework}
           onExport={handleExportGradebook}
@@ -693,7 +693,7 @@ export default function TeacherClassroomPage() {
                 <HeaderStat
                   icon={Users}
                   label="Sĩ số"
-                  value={`${classroom.enrolledCount ?? 0}/${classroom.maxCapacity ?? '—'}`}
+                  value={classroom.enrolledCount ?? 0}
                   tone="rose"
                 />
                 <HeaderStat
@@ -889,9 +889,9 @@ function CurriculumUnitCard({ expanded, onToggle, unit }) {
       {expanded ? (
         <div className="space-y-4 border-t border-gray-100 bg-[#fafafa]/50 p-5">
           {unit.description ? <p className="text-sm text-[#584140]">{unit.description}</p> : null}
-          {unit.sessionPlans?.length ? (
+          {unit.lessons?.length ? (
             <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
-              {unit.sessionPlans.map((plan) => (
+              {unit.lessons.map((plan) => (
                 <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
                   <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
                   <p className="text-sm font-bold text-[#2b2828]">{plan.title}</p>

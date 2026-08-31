@@ -7,12 +7,12 @@ import fu.sep490.g23.backend.service.mail.ClassroomHomeworkMailService;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.service.mail.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -98,7 +98,7 @@ public class DevMailTestController {
 
         // 5. Test & Placement Appointment Email
         try {
-            EnrollmentRequest testRequest = EnrollmentRequest.builder()
+            CourseRegistrationRequest testRequest = CourseRegistrationRequest.builder()
                     .id(202L)
                     .contactName("Phạm Minh Đức")
                     .contactEmail(email)
@@ -114,21 +114,26 @@ public class DevMailTestController {
 
         // 6. Class Assignment Email
         try {
-            LearningPackage pkg = LearningPackage.builder()
+            InstructorLedCourse instructorLedCourse = InstructorLedCourse.builder()
                     .id(301L)
+                    .code("DEMO-IELTS-65")
+                    .slug("demo-ielts-65")
                     .title("IELTS Intensive Master 6.5+")
                     .build();
 
-            ClassroomOffering offering = ClassroomOffering.builder()
+            ClassSection offering = ClassSection.builder()
                     .id(303L)
+                    .name("IELTS Intensive Master 6.5+ - Demo")
+                    .code("DEMO-IELTS-65-A")
+                    .instructorLedCourse(instructorLedCourse)
                     .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                     .offlineAddress("Phòng A201 - EnglishLab Cơ sở 1")
                     .startDate(LocalDate.now().plusDays(7))
                     .primaryTeacher(teacherUser)
-                    .learningPackage(pkg)
+                    //.learningPackage(pkg)
                     .build();
 
-            EnrollmentRequest classRequest = EnrollmentRequest.builder()
+            CourseRegistrationRequest classRequest = CourseRegistrationRequest.builder()
                     .id(203L)
                     .contactName("Phạm Minh Đức")
                     .contactEmail(email)
@@ -157,22 +162,17 @@ public class DevMailTestController {
 
         // 8. Course Enrollment Success Email
         try {
-            LearningPackage coursePkg = LearningPackage.builder()
-                    .id(404L)
+            OnlineCourse onlineCourse = OnlineCourse.builder()
+                    .id(4040L)
                     .title("Bứt phá IELTS Speaking & Writing 7.0+")
                     .slug("but-pha-ielts-70")
                     .duration("12 tuần")
                     .shortDescription("Khóa học bứt phá kỹ năng IELTS Speaking & Writing từ mốc 5.5 lên 7.0+")
-                    .build();
-
-            OnlineCourse onlineCourse = OnlineCourse.builder()
-                    .id(4040L)
-                    .learningPackage(coursePkg)
                     .totalHours(48)
                     .targetOutcome("Đạt mốc 7.0+ Speaking & Writing theo chuẩn Cambridge IELTS")
                     .build();
 
-            PackageEnrollment packageEnrollment = PackageEnrollment.builder()
+            OnlineCourseEnrollment packageEnrollment = OnlineCourseEnrollment.builder()
                     .id(505L)
                     .registeredAt(LocalDateTime.now())
                     .build();

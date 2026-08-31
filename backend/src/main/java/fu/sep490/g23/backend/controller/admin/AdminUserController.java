@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.dto.request.admin.UpsertAdminUserRequest;
 import fu.sep490.g23.backend.dto.response.admin.AdminUserResponse;
 import fu.sep490.g23.backend.dto.response.admin.AdminDashboardResponse;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.service.admin.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUserController {
     private final AdminUserService adminUserService;
     @GetMapping("/dashboard") public ResponseEntity<AdminDashboardResponse> dashboard() { return ResponseEntity.ok(adminUserService.getDashboard()); }
-    @GetMapping("/users") public ResponseEntity<Page<AdminUserResponse>> users(@RequestParam(required=false) String keyword, @RequestParam(required=false) RoleEnum role, Pageable pageable) { return ResponseEntity.ok(adminUserService.getUsers(keyword, role, pageable)); }
+    @GetMapping("/users") public ResponseEntity<Page<AdminUserResponse>> users(@RequestParam(required=false) String keyword, @RequestParam(required=false) String role, Pageable pageable) { return ResponseEntity.ok(adminUserService.getUsers(keyword, role, pageable)); }
     @PostMapping("/users") public ResponseEntity<AdminUserResponse> create(@Valid @RequestBody UpsertAdminUserRequest request, Authentication auth) { return ResponseEntity.ok(adminUserService.createUser(request, auth.getName())); }
     @PutMapping("/users/{id}") public ResponseEntity<AdminUserResponse> update(@PathVariable Long id, @Valid @RequestBody UpsertAdminUserRequest request, Authentication auth) { return ResponseEntity.ok(adminUserService.updateUser(id, request, auth.getName())); }
     @PatchMapping("/users/{id}/roles") public ResponseEntity<AdminUserResponse> roles(@PathVariable Long id, @Valid @RequestBody UpdateUserRolesRequest request, Authentication auth) { return ResponseEntity.ok(adminUserService.updateRoles(id, request, auth.getName())); }

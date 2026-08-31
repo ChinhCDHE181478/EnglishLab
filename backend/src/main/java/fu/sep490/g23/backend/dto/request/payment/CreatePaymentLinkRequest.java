@@ -14,7 +14,7 @@ public class CreatePaymentLinkRequest {
 
     private List<@NotNull(message = "Mã khóa học không hợp lệ.") Long> courseIds;
 
-    private List<@NotNull(message = "Mã lớp học không hợp lệ.") Long> classroomOfferingIds;
+    private List<@NotNull(message = "Mã lớp học không hợp lệ.") Long> classSectionIds;
 
     private Long learningPathId;
 

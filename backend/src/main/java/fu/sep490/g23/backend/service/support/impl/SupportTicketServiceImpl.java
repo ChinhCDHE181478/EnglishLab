@@ -7,7 +7,7 @@ import fu.sep490.g23.backend.dto.request.support.UpdateSupportTicketRequest;
 import fu.sep490.g23.backend.dto.response.support.SupportTicketMessageResponse;
 import fu.sep490.g23.backend.dto.response.support.SupportTicketResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.support.SupportTicket;
 import fu.sep490.g23.backend.entity.support.SupportTicketMessage;
 import fu.sep490.g23.backend.entity.support.enums.SupportTicketPriority;
@@ -34,11 +34,8 @@ import java.util.Set;
 @Transactional
 public class SupportTicketServiceImpl implements SupportTicketService {
 
-    private static final Set<RoleEnum> SUPPORT_STAFF_ROLES = Set.of(
-            RoleEnum.STAFF,
-            RoleEnum.MANAGER,
-            RoleEnum.ADMIN
-    );
+    private static final Set<String> SUPPORT_STAFF_ROLES = Set.of(
+            RoleCodes.STAFF, RoleCodes.MANAGER, RoleCodes.ADMIN);
 
     private final SupportTicketRepository ticketRepository;
     private final SupportTicketMessageRepository messageRepository;
@@ -265,7 +262,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
 
     private User requireLearner(String email) {
         User user = requireUser(email);
-        if (!user.hasRole(RoleEnum.LEARNER)) {
+        if (!user.hasRole(RoleCodes.LEARNER)) {
             throw new IllegalArgumentException("Chỉ học viên mới có thể sử dụng cổng gửi yêu cầu hỗ trợ.");
         }
         return user;
@@ -273,7 +270,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
 
     private User requireSupportStaff(String email) {
         User user = requireUser(email);
-        if (!user.hasAnyRole(SUPPORT_STAFF_ROLES)) {
+        if (!user.hasAnyRoleCodes(SUPPORT_STAFF_ROLES)) {
             throw new IllegalArgumentException("Bạn không có quyền xử lý support ticket.");
         }
         return user;

@@ -10,15 +10,15 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomGradebookService;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkScoreCalculator;
@@ -43,8 +43,8 @@ import java.util.stream.Collectors;
 public class ClassroomGradebookServiceImpl implements ClassroomGradebookService {
 
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
     private final ClassroomHomeworkSubmissionRepository submissionRepository;
     private final ClassroomAccessHelper accessHelper;
@@ -62,13 +62,13 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
     public ClassroomGradebookResponse getMyGradebook(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomGradebookEntry entry = gradebookEntryRepository
-                .findByClassroomOfferingIdAndStudentId(offeringId, learner.getId())
+                .findByClassSectionIdAndStudentId(offeringId, learner.getId())
                 .orElse(null);
         if (entry == null || entry.getStatus() != GradebookEntryStatus.PUBLISHED) {
             return null;
         }
         List<ClassroomHomework> homeworks = homeworkRepository
-                .findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+                .findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .filter(homework -> homework.getStatus() != HomeworkStatus.DRAFT)
                 .toList();
         List<ClassroomHomeworkSubmission> submissions = submissionRepository
@@ -81,22 +81,22 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
         User updater = accessHelper.requireUser(updaterEmail);
         accessHelper.assertTeacher(updater);
 
-        ClassroomOffering offering = offeringRepository.findById(offeringId)
+        ClassSection offering = offeringRepository.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
-        User student = enrollmentRepository.findByStudentIdAndClassroomOfferingId(request.getStudentId(), offeringId)
+        User student = enrollmentRepository.findByStudentIdAndClassSectionId(request.getStudentId(), offeringId)
                 .map(enrollment -> enrollment.getStudent())
                 .orElseThrow(() -> new RuntimeException("Học viên không thuộc lớp này."));
 
         ClassroomGradebookEntry entry = gradebookEntryRepository
-                .findByClassroomOfferingIdAndStudentId(offeringId, student.getId())
+                .findByClassSectionIdAndStudentId(offeringId, student.getId())
                 .orElseGet(() -> ClassroomGradebookEntry.builder()
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .student(student)
                         .status(GradebookEntryStatus.PENDING)
                         .build());
 
         List<ClassroomHomework> homeworks = homeworkRepository
-                .findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId);
+                .findByClassSectionIdOrderByCreatedAtDesc(offeringId);
         List<ClassroomHomeworkSubmission> submissions = new ArrayList<>(submissionRepository
                 .findAllForStudentGradebook(offeringId, student.getId()));
         applyHomeworkScoreUpdates(request.getHomeworkScores(), homeworks, submissions, student, updater);
@@ -126,7 +126,7 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
         User publisher = accessHelper.requireUser(publisherEmail);
         accessHelper.assertTeacher(publisher);
 
-        List<ClassroomGradebookEntry> entries = gradebookEntryRepository.findByClassroomOfferingId(offeringId);
+        List<ClassroomGradebookEntry> entries = gradebookEntryRepository.findByClassSectionId(offeringId);
         if (entries.isEmpty()) {
             throw new RuntimeException("Chưa có dữ liệu bảng điểm để công bố.");
         }
@@ -144,7 +144,7 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
         User publisher = accessHelper.requireUser(publisherEmail);
         accessHelper.assertTeacher(publisher);
 
-        List<ClassroomGradebookEntry> entries = gradebookEntryRepository.findByClassroomOfferingId(offeringId);
+        List<ClassroomGradebookEntry> entries = gradebookEntryRepository.findByClassSectionId(offeringId);
         List<ClassroomGradebookEntry> publishedEntries = entries.stream()
                 .filter(entry -> entry.getStatus() == GradebookEntryStatus.PUBLISHED)
                 .toList();
@@ -239,14 +239,14 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
 
     private List<ClassroomGradebookResponse> buildClassGradebookResponses(Long offeringId, boolean includeDraftHomework) {
         List<ClassroomHomework> homeworks = homeworkRepository
-                .findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+                .findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .filter(homework -> includeDraftHomework || homework.getStatus() != HomeworkStatus.DRAFT)
                 .toList();
         Map<Long, List<ClassroomHomeworkSubmission>> submissionsByStudent = submissionRepository
                 .findAllForGradebook(offeringId).stream()
                 .collect(Collectors.groupingBy(submission -> submission.getStudent().getId()));
 
-        return gradebookEntryRepository.findByClassroomOfferingId(offeringId).stream()
+        return gradebookEntryRepository.findByClassSectionId(offeringId).stream()
                 .map(entry -> buildResponse(
                         entry,
                         homeworks,

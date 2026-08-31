@@ -92,10 +92,10 @@ public class ContentManagerOnlineCourseController {
     private Sort resolveSort(String value) {
         return switch (value == null ? "newest" : value) {
             case "oldest" -> Sort.by("id").ascending();
-            case "titleAsc" -> Sort.by("learningPackage.title").ascending();
-            case "titleDesc" -> Sort.by("learningPackage.title").descending();
-            case "priceAsc" -> Sort.by("learningPackage.price").ascending();
-            case "priceDesc" -> Sort.by("learningPackage.price").descending();
+            case "titleAsc" -> Sort.by("title").ascending();
+            case "titleDesc" -> Sort.by("title").descending();
+            case "priceAsc" -> Sort.by("price").ascending();
+            case "priceDesc" -> Sort.by("price").descending();
             default -> Sort.by("id").descending();
         };
     }

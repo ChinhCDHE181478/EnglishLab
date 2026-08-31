@@ -194,7 +194,7 @@ export default function ManagerSupportTicketsPage() {
           </div>
         </div>
 
-        {!loading && filtered.length === 0 ? (
+        {!loading && totalItems === 0 ? (
           <div className="px-5 py-14 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fff1f3] text-[#730014]">
               <Inbox className="h-7 w-7" />

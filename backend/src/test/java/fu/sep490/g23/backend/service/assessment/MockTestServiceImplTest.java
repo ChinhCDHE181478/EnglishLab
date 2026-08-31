@@ -25,7 +25,11 @@ class MockTestServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new MockTestServiceImpl(assessmentBankRepository, attemptRepository, userRepository);
+        service = new MockTestServiceImpl(
+                assessmentBankRepository,
+                attemptRepository,
+                userRepository
+        );
     }
 
     @Test

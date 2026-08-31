@@ -8,5 +8,5 @@ public enum ClassroomChangeRequestType {
     CREATE_MAKEUP_SESSION,
     TRANSFER_STUDENT,
     TRANSFER_CLASS,
-    UPDATE_LARK_LINK
+    RECREATE_GOOGLE_MEET
 }

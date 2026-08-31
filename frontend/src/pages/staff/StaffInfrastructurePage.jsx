@@ -19,7 +19,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
 
-const emptyRoomForm = { name: '', capacity: '', active: true };
+const emptyRoomForm = { name: '', locationName: '', locationAddress: '', capacity: '', active: true };
 
 const statusOptions = [
   { label: 'Tất cả trạng thái', value: 'ALL' },
@@ -40,7 +40,6 @@ const activeFormOptions = [
 ];
 
 export default function StaffInfrastructurePage() {
-  const [centralCampus, setCentralCampus] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -60,11 +59,7 @@ export default function StaffInfrastructurePage() {
     setLoading(true);
     setError('');
     try {
-      const [campusData, roomData] = await Promise.all([
-        classroomApi.listCampuses(),
-        classroomApi.listRooms(),
-      ]);
-      setCentralCampus(campusData.find((campus) => campus.active !== false) || campusData[0] || null);
+      const roomData = await classroomApi.listRooms();
       setRooms(roomData || []);
     } catch (err) {
       setRooms([]);
@@ -141,6 +136,8 @@ export default function StaffInfrastructurePage() {
     setEditingRoomId(room.id);
     setRoomForm({
       name: room.name || '',
+      locationName: room.locationName || '',
+      locationAddress: room.locationAddress || '',
       capacity: room.capacity || '',
       active: room.active !== false,
     });
@@ -162,16 +159,12 @@ export default function StaffInfrastructurePage() {
       return;
     }
 
-    if (!centralCampus?.id) {
-      setEditorError('Không tìm thấy địa điểm học. Vui lòng tải lại trang.');
-      return;
-    }
-
     setWorking(true);
     try {
       const payload = {
         name: roomForm.name.trim(),
-        campusId: centralCampus.id,
+        locationName: roomForm.locationName.trim() || null,
+        locationAddress: roomForm.locationAddress.trim() || null,
         capacity,
         active: Boolean(roomForm.active),
       };
@@ -299,7 +292,7 @@ export default function StaffInfrastructurePage() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2 text-xs font-semibold text-[#584140]">
                           <Building2 className="h-3.5 w-3.5 text-[#8b706e]" />
-                          <span>{centralCampus?.name || 'Cơ sở trung tâm'}</span>
+                          <span>{room.locationName || 'EnglishLab Center'}</span>
                         </div>
                       </td>
                       <td className="px-5 py-4">
@@ -378,6 +371,18 @@ export default function StaffInfrastructurePage() {
                 onChange={(value) => setRoomForm((current) => ({ ...current, name: value }))}
                 placeholder="Ví dụ: Phòng A01, Lab 3..."
                 value={roomForm.name}
+              />
+              <TextField
+                label="Tên địa điểm"
+                onChange={(value) => setRoomForm((current) => ({ ...current, locationName: value }))}
+                placeholder="Ví dụ: EnglishLab Center"
+                value={roomForm.locationName}
+              />
+              <TextField
+                label="Địa chỉ"
+                onChange={(value) => setRoomForm((current) => ({ ...current, locationAddress: value }))}
+                placeholder="Nhập địa chỉ phòng học"
+                value={roomForm.locationAddress}
               />
               <TextField
                 label="Sức chứa (số chỗ ngồi)"

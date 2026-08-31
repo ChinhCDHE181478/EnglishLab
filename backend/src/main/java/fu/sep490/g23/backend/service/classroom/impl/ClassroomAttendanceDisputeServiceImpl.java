@@ -6,12 +6,12 @@ import fu.sep490.g23.backend.dto.response.classroom.AttendanceDisputeResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendanceDispute;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.AttendanceDisputeStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceDisputeRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomAttendanceDisputeService;
@@ -30,7 +30,7 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
 
     private final ClassroomAttendanceDisputeRepository disputeRepository;
     private final ClassroomAttendanceRepository attendanceRepository;
-    private final ClassroomOfferingRepository offeringRepository;
+    private final ClassSectionRepository offeringRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomAccessHelper accessHelper;
 
@@ -71,7 +71,7 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
     public List<AttendanceDisputeResponse> listForClass(Long offeringId, String teacherEmail) {
         User teacher = accessHelper.requireUser(teacherEmail);
         assertAssignedTeacher(teacher, offeringId);
-        return disputeRepository.findByAttendanceSessionClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+        return disputeRepository.findByAttendanceSessionClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -81,7 +81,7 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
     public List<AttendanceDisputeResponse> listPending(String teacherEmail) {
         User teacher = accessHelper.requireUser(teacherEmail);
         return disputeRepository.findByStatusOrderByCreatedAtDesc(AttendanceDisputeStatus.PENDING).stream()
-                .filter(dispute -> canReview(teacher, dispute.getAttendance().getSession().getClassroomOffering().getId()))
+                .filter(dispute -> canReview(teacher, dispute.getAttendance().getSession().getClassSection().getId()))
                 .map(this::toResponse)
                 .toList();
     }
@@ -91,7 +91,7 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
         User reviewer = accessHelper.requireUser(reviewerEmail);
         ClassroomAttendanceDispute dispute = disputeRepository.findById(disputeId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khiếu nại."));
-        assertAssignedTeacher(reviewer, dispute.getAttendance().getSession().getClassroomOffering().getId());
+        assertAssignedTeacher(reviewer, dispute.getAttendance().getSession().getClassSection().getId());
         if (dispute.getStatus() != AttendanceDisputeStatus.PENDING) {
             throw new RuntimeException("Khiếu nại này đã được xử lý.");
         }
@@ -140,7 +140,7 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
             return true;
         }
         LocalDate today = LocalDate.now();
-        return teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offeringId, teacher.getId())
+        return teacherAssignmentRepository.findAllByClassSectionIdAndTeacherId(offeringId, teacher.getId())
                 .stream()
                 .anyMatch(assignment -> (assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
                         && (assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today)));
@@ -165,7 +165,7 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
                 .build();
     }
 
-    private String formatSessionTitle(ClassroomSession session) {
+    private String formatSessionTitle(ClassSchedule session) {
         return session.getSessionDate() + " " + session.getStartTime() + "-" + session.getEndTime();
     }
 }

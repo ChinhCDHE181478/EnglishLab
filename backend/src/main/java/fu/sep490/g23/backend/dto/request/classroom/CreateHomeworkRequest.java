@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.request.classroom;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
@@ -34,7 +35,8 @@ public class CreateHomeworkRequest {
 
     private HomeworkStatus status;
     private Long sessionId;
-    private Long curriculumUnitId;
+    @JsonAlias("curriculumUnitId")
+    private Long courseUnitId;
     private HomeworkActivityType activityType;
     private String activityConfigJson;
     private Boolean aiReviewEnabled;

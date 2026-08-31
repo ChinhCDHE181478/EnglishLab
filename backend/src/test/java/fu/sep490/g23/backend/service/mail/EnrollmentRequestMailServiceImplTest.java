@@ -1,10 +1,9 @@
 package fu.sep490.g23.backend.service.mail;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.service.mail.impl.EnrollmentRequestMailServiceImpl;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import jakarta.mail.Multipart;
@@ -32,7 +31,7 @@ class EnrollmentRequestMailServiceImplTest {
 
     private EnrollmentRequestMailServiceImpl service;
     private MimeMessage message;
-    private EnrollmentRequest request;
+    private CourseRegistrationRequest request;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +47,7 @@ class EnrollmentRequestMailServiceImplTest {
                 .fullName("Nguyễn Văn A")
                 .email("account@example.com")
                 .build();
-        request = EnrollmentRequest.builder()
+        request = CourseRegistrationRequest.builder()
                 .id(20L)
                 .learner(learner)
                 .contactName("Nguyễn Văn A")
@@ -61,9 +60,9 @@ class EnrollmentRequestMailServiceImplTest {
 
     @Test
     void sendsAssignmentEmailToContactAddressWithVietnameseDate() throws Exception {
-        ClassroomOffering classroom = ClassroomOffering.builder()
+        ClassSection classroom = ClassSection.builder()
                 .id(30L)
-                .learningPackage(LearningPackage.builder().title("IELTS Foundation F01").build())
+                .name("IELTS Foundation F01")
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .offlineAddress("EnglishLab Campus")
                 .startDate(LocalDate.of(2026, 8, 5))

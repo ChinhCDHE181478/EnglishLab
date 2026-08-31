@@ -27,7 +27,7 @@ public interface ClassroomHomeworkSubmissionRepository extends JpaRepository<Cla
             from ClassroomHomeworkSubmission submission
             join fetch submission.homework homework
             join fetch submission.student student
-            where homework.classroomOffering.id = :offeringId
+            where homework.classSection.id = :offeringId
             """)
     List<ClassroomHomeworkSubmission> findAllForGradebook(@Param("offeringId") Long offeringId);
 
@@ -35,7 +35,7 @@ public interface ClassroomHomeworkSubmissionRepository extends JpaRepository<Cla
             select submission
             from ClassroomHomeworkSubmission submission
             join fetch submission.homework homework
-            where homework.classroomOffering.id = :offeringId
+            where homework.classSection.id = :offeringId
               and submission.student.id = :studentId
             """)
     List<ClassroomHomeworkSubmission> findAllForStudentGradebook(

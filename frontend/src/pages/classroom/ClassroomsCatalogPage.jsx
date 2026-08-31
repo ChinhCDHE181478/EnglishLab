@@ -96,7 +96,7 @@ const createInitialForm = (user) => ({
 });
 
 const suggestedTrack = (program) => {
-  const category = String(program?.curriculumProgramExamCategory || program?.code || '').toUpperCase();
+  const category = String(program?.examType || program?.examCategory || program?.instructorLedCourseExamType || program?.code || '').toUpperCase();
   if (category.includes('TOEIC')) return 'TOEIC_2_SKILLS';
   if (category.includes('IELTS')) return 'IELTS_4_SKILLS';
   return 'ENGLISH_FOUNDATION';
@@ -516,7 +516,7 @@ function ProgramTableRow({ onSelect, program, registered, selected }) {
       <td className="max-w-xs px-4 py-3 align-top">
         <p className="font-extrabold text-slate-900">{program.title}</p>
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#8a0018]">
-          {program.curriculumProgramExamCategory === 'GENERAL_ENGLISH' ? 'General English' : program.curriculumProgramExamCategory}
+          {(program.examType || program.examCategory || program.instructorLedCourseExamType) === 'GENERAL_ENGLISH' ? 'General English' : (program.examType || program.examCategory || program.instructorLedCourseExamType || 'IELTS')}
           {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
         </p>
         <RichTextHtml
@@ -547,7 +547,7 @@ function ProgramMobileRow({ onSelect, program, registered, selected }) {
           <p className="text-xs font-extrabold text-[#a0001c]">{program.code}</p>
           <h3 className="mt-1 font-['Manrope'] text-base font-black text-slate-900">{program.title}</h3>
           <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a0018]">
-            {program.curriculumProgramExamCategory === 'GENERAL_ENGLISH' ? 'General English' : program.curriculumProgramExamCategory}
+            {(program.examType || program.examCategory || program.instructorLedCourseExamType) === 'GENERAL_ENGLISH' ? 'General English' : (program.examType || program.examCategory || program.instructorLedCourseExamType || 'IELTS')}
             {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
           </p>
         </div>

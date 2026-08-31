@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.entity.admin;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.admin.enums.BroadcastStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -30,9 +29,8 @@ public class AdminBroadcast {
     @Column(nullable = false, length = 4000)
     private String message;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "target_role", length = 30)
-    private RoleEnum targetRole;
+    private String targetRole;
 
     @Column(name = "action_path", length = 500)
     private String actionPath;

@@ -444,8 +444,18 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async getStaffProgram(id) {
+    const response = await axiosClient.get(`/api/staff/classrooms/training-programs/${id}`);
+    return unwrapData(response);
+  },
+
   async updateStaffClassroom(id, payload) {
     const response = await axiosClient.put(`/api/staff/classrooms/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async updateStaffClassroomPrelaunchPlan(id, payload) {
+    const response = await axiosClient.put(`/api/staff/classrooms/${id}/prelaunch-plan`, payload);
     return unwrapData(response);
   },
 
@@ -628,25 +638,8 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async listCampuses() {
-    const response = await axiosClient.get('/api/staff/infrastructure/campuses');
-    return asList(unwrapData(response));
-  },
-
-  async createCampus(payload) {
-    const response = await axiosClient.post('/api/staff/infrastructure/campuses', payload);
-    return unwrapData(response);
-  },
-
-  async updateCampus(id, payload) {
-    const response = await axiosClient.put(`/api/staff/infrastructure/campuses/${id}`, payload);
-    return unwrapData(response);
-  },
-
-  async listRooms(campusId) {
-    const response = await axiosClient.get('/api/staff/infrastructure/rooms', {
-      params: campusId ? { campusId } : undefined,
-    });
+  async listRooms() {
+    const response = await axiosClient.get('/api/staff/infrastructure/rooms');
     return asList(unwrapData(response));
   },
 

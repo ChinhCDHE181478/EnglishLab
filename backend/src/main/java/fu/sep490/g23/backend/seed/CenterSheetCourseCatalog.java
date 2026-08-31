@@ -2,22 +2,22 @@ package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageType;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,11 +26,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CenterSheetCourseCatalog {
 
-    private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
+    private final PlatformTransactionManager transactionManager;
 
     record CourseSpec(
             String slug,
@@ -54,59 +54,59 @@ public class CenterSheetCourseCatalog {
                 new CourseSpec(
                         "center-sheet-ielts-listening",
                         "IELTS Listening Foundations",
-                        "Khóa luyện Listening theo 4 section, form completion, map labelling và lecture notes.",
+                        "Luyện nghe IELTS từ 4.5 lên 6.5: chiến lược gạch keyword, bẫy distractors và chính tả.",
                         CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
-                        "IELTS_BAND_45_TO_65", "IELTS 4.5 to 6.5 Classroom Path", 1,
-                        "center-sheet-ielts-reading", 10, "/course-covers/ielts-listening.png",
-                        List.of("Section 1 Everyday Conversations", "Section 2 Public Talks", "Section 3 Academic Dialogue", "Section 4 Lectures")),
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 3,
+                        "center-sheet-ielts-reading", 11, "/course-covers/ielts-listening.png",
+                        List.of("Section 1 Forms and Notes", "Section 2 Maps and Plans", "Section 3 Academic Discussion", "Section 4 Lecture Monologue")),
                 new CourseSpec(
                         "center-sheet-ielts-reading",
                         "IELTS Academic Reading",
-                        "Khóa Reading Academic: matching headings, True/False/Not Given, summary completion.",
-                        CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 5.0, 6.5,
-                        "IELTS_BAND_45_TO_65", "IELTS 4.5 to 6.5 Classroom Path", 2,
-                        "center-sheet-ielts-writing", 11, "/course-covers/ielts-reading.png",
-                        List.of("Skimming and Scanning", "True False Not Given", "Matching Headings", "Summary Completion")),
+                        "Kỹ năng skim, scan, True/False/Not Given và Summary Completion cho bài thi Academic.",
+                        CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 4,
+                        "center-sheet-ielts-writing", 12, "/course-covers/ielts-reading.png",
+                        List.of("Skimming and Scanning", "True False Not Given Mastery", "Headings and Matching", "Multiple Choice and Summary")),
                 new CourseSpec(
                         "center-sheet-ielts-writing",
                         "IELTS Writing Task 1 and Task 2",
-                        "Khóa Writing: mô tả biểu đồ, luận điểm Task 2, paraphrase và cohesion.",
-                        CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.5, 7.0,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 3,
-                        "center-sheet-ielts-speaking", 12, "/course-covers/ielts-writing.png",
-                        List.of("Task 1 Charts", "Task 1 Processes", "Task 2 Opinion", "Task 2 Discussion")),
+                        "Cấu trúc bài viết chuẩn học thuật: phân tích biểu đồ Task 1 và lập luận Task 2 band 6.5+.",
+                        CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 5,
+                        "center-sheet-ielts-speaking", 13, "/course-covers/ielts-writing.png",
+                        List.of("Task 1 Trend Charts", "Task 1 Process and Maps", "Task 2 Opinion Essays", "Task 2 Discussion and Problem Solution")),
                 new CourseSpec(
                         "center-sheet-ielts-speaking",
                         "IELTS Speaking Fluency Studio",
-                        "Khóa Speaking Part 1-3, cue card, phát triển ý và collocation tự nhiên.",
-                        CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 5.0, 6.5,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 4,
-                        null, 13, "/course-covers/ielts-speaking.png",
-                        List.of("Part 1 Daily Topics", "Part 2 Cue Cards", "Part 3 Abstract Ideas", "Pronunciation and Fluency")),
+                        "Mở rộng ý tưởng Part 1, kéo dài câu Part 2 và lập luận phản biện Part 3.",
+                        CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
+                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 6,
+                        "center-sheet-toeic-lr", 14, "/course-covers/ielts-speaking.png",
+                        List.of("Part 1 Fluency and Natural Idioms", "Part 2 The 1-Minute Plan", "Part 3 Counterarguments and Examples", "Pronunciation and Linking")),
                 new CourseSpec(
                         "center-sheet-toeic-lr",
                         "TOEIC Listening and Reading 650+",
-                        "Khóa TOEIC L&R: photographs, Q&A, conversations, incomplete sentences và reading sets.",
-                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 4.0, 6.0,
-                        "TOEIC_650_PATH", "TOEIC 650+ Workplace Path", 1,
-                        "center-sheet-toeic-sw", 14, "/course-covers/toeic-lr.png",
-                        List.of("Listening Photographs", "Listening Conversations", "Reading Incomplete Sentences", "Reading Passages")),
+                        "Chiến lược xử lý nhanh part 3-4-7 và hệ thống ngữ pháp - từ vựng trọng tâm TOEIC.",
+                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 350.0, 650.0,
+                        "TOEIC_ACCELERATOR", "TOEIC Career Accelerator", 1,
+                        "center-sheet-toeic-sw", 15, "/course-covers/toeic-lr.png",
+                        List.of("Part 1 and 2 Quick Response", "Part 3 and 4 Audio Inference", "Part 5 and 6 Speed Grammar", "Part 7 Double Passage Time Saving")),
                 new CourseSpec(
                         "center-sheet-toeic-sw",
                         "TOEIC Speaking and Writing 140+",
-                        "Khóa TOEIC S&W: read aloud, describe picture, opinion essay và email writing.",
-                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 4.5, 6.0,
-                        "TOEIC_650_PATH", "TOEIC 650+ Workplace Path", 2,
-                        null, 15, "/course-covers/toeic-sw.png",
-                        List.of("Read Aloud", "Describe a Picture", "Respond to Questions", "Opinion Essay")),
+                        "Giao tiếp công sở chuẩn quốc tế: trả lời điện thoại, viết email và giải quyết than phiền.",
+                        CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 110.0, 160.0,
+                        "TOEIC_ACCELERATOR", "TOEIC Career Accelerator", 2,
+                        "center-sheet-communication-work", 16, "/course-covers/toeic-sw.png",
+                        List.of("Speaking Read Aloud and Describe Picture", "Speaking Respond to Questions", "Writing Business Email", "Writing Opinion Essay")),
                 new CourseSpec(
                         "center-sheet-communication-work",
                         "English Communication for Work",
-                        "Khóa giao tiếp công sở: họp, email, thuyết trình và xử lý tình huống khách hàng.",
-                        CourseCategoryCode.COMMUNICATION, CourseLevel.BEGINNER, 3.5, 5.5,
+                        "Kỹ năng thuyết trình, họp dự án, đàm phán nhẹ và viết thư công việc chuyên nghiệp.",
+                        CourseCategoryCode.COMMUNICATION, CourseLevel.INTERMEDIATE, 4.0, 6.0,
                         "COMMUNICATION_PATH", "Workplace Communication Path", 1,
-                        "center-sheet-grammar-foundation", 16, "/course-covers/communication.png",
-                        List.of("Meetings and Small Talk", "Emails and Requests", "Presentations", "Customer Situations")),
+                        "center-sheet-grammar-foundation", 10, "/course-covers/communication.png",
+                        List.of("Small Talk and Introductions", "Meetings and Opinions", "Email Etiquette", "Presentations and Pitches")),
                 new CourseSpec(
                         "center-sheet-grammar-foundation",
                         "English Grammar Foundation",
@@ -119,20 +119,15 @@ public class CenterSheetCourseCatalog {
     }
 
     void seed(User contentManager) {
-        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
-                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
-                        .code(PackageTypeCode.ONLINE_COURSE)
-                        .name("Online Course")
-                        .description("Self-paced online learning package")
-                        .active(true)
-                        .build()));
-
-        for (CourseSpec spec : specs()) {
-            upsertCourse(spec, packageType, contentManager);
-        }
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.executeWithoutResult(status -> {
+            for (CourseSpec spec : specs()) {
+                upsertCourse(spec, contentManager);
+            }
+        });
     }
 
-    private void upsertCourse(CourseSpec spec, PackageType packageType, User contentManager) {
+    private void upsertCourse(CourseSpec spec, User contentManager) {
         CourseCategory category = courseCategoryRepository.findByCode(spec.category().name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
                         .code(spec.category().name())
@@ -142,30 +137,22 @@ public class CenterSheetCourseCatalog {
                         .active(true)
                         .build()));
 
-        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(spec.slug())
-                .orElseGet(() -> LearningPackage.builder()
+        OnlineCourse course = onlineCourseRepository.findBySlug(spec.slug())
+                .orElseGet(() -> OnlineCourse.builder()
                         .slug(spec.slug())
-                        .packageType(packageType)
                         .build());
-        learningPackage.setPackageType(packageType);
-        learningPackage.setTitle(spec.title());
-        learningPackage.setShortDescription(spec.description());
-        learningPackage.setDescription(spec.description());
-        learningPackage.setTargetScore(spec.category() == CourseCategoryCode.TOEIC ? "TOEIC 650+" : "IELTS " + spec.targetBand());
-        learningPackage.setDuration("8 giờ học");
-        learningPackage.setStudyMode("Tự học online, 4 module");
-        learningPackage.setPrice(BigDecimal.valueOf(1_490_000));
-        learningPackage.setThumbnailUrl(spec.thumbnailUrl());
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setDisplayOrder(spec.displayOrder());
-        learningPackage.setFeatured(spec.pathOrder() <= 2);
-        learningPackage.setDeleted(false);
-        learningPackage.setCreatedBy(contentManager);
-        LearningPackage savedPackage = learningPackageRepository.save(learningPackage);
-
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(savedPackage)
-                .orElseGet(() -> OnlineCourse.builder().learningPackage(savedPackage).build());
-        course.setLearningPackage(savedPackage);
+        course.setTitle(spec.title());
+        course.setShortDescription(spec.description());
+        course.setDescription(spec.description());
+        course.setTargetScore(spec.category() == CourseCategoryCode.TOEIC ? "TOEIC 650+" : "IELTS " + spec.targetBand());
+        course.setDuration("8 giờ học");
+        course.setStudyMode("Tự học online, 4 module");
+        course.setPrice(BigDecimal.valueOf(1_490_000));
+        course.setThumbnailUrl(spec.thumbnailUrl());
+        course.setStatus(PackageStatus.PUBLISHED);
+        course.setFeatured(spec.pathOrder() <= 2);
+        course.setDeleted(false);
+        course.setCreatedBy(contentManager);
         course.setCategory(category);
         course.setLevel(spec.level());
         course.setRecommendedCurrentBandMin(spec.minBand());
@@ -175,41 +162,72 @@ public class CenterSheetCourseCatalog {
         course.setLearningPathOrder(spec.pathOrder());
         course.setRecommendedNextCourseSlug(spec.nextSlug());
         course.setTargetOutcome(spec.description());
-        if (course.getModules() == null || course.getModules().isEmpty()) {
+        final OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        OnlineCourseVersion targetVersion = onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(savedCourse, CourseVersionStatus.PUBLISHED)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(savedCourse))
+                .orElse(null);
+        if (targetVersion == null || targetVersion.getModules() == null || targetVersion.getModules().isEmpty()) {
+            targetVersion = ensureDraftVersion(savedCourse);
             int order = 1;
             for (String moduleTitle : spec.moduleTitles()) {
-                CourseModule module = CourseModule.builder()
+                OnlineCourseModule module = OnlineCourseModule.builder()
                         .title(moduleTitle)
                         .description("Module " + order + ": " + moduleTitle)
-                        .displayOrder(order)
+                        .sequenceNumber(order)
                         .build();
-                module.addLesson(article(moduleTitle + " - Orientation", 1, true,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Orientation", 1, true,
                         "# " + moduleTitle + "\n\nMục tiêu: nắm chiến lược, từ vựng chủ đề và lỗi thường gặp.\n\n## Trước khi học\nViết 4 câu trả lời nhanh về chủ đề này, không dùng từ điển.\n\n## Cách học\n1. Đọc overview.\n2. Học collocation.\n3. Làm bài tập output."));
-                module.addLesson(article(moduleTitle + " - Strategy", 2, true,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Strategy", 2, true,
                         "# Strategy\n\n- Đọc câu hỏi trước.\n- Gạch keyword.\n- Đoán loại thông tin (số, tên, danh từ).\n- Kiểm tra spelling.\n\nVí dụ: If the note says *opening time*, listen for a clock time such as 18:00."));
-                module.addLesson(article(moduleTitle + " - Vocabulary", 3, false,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Vocabulary", 3, false,
                         "# Vocabulary bank\n\n1. **evening class** — lớp ca tối\n2. **intake** — đợt tuyển sinh\n3. **placement test** — bài xếp lớp\n4. **collocation** — cụm từ đi kèm\n5. **band descriptor** — mô tả band điểm\n\nViết 1 đoạn 80 từ dùng ít nhất 4 cụm trên."));
-                module.addLesson(article(moduleTitle + " - Practice", 4, false,
+                module.addLesson(article(spec.slug(), order, moduleTitle + " - Practice", 4, false,
                         "# Practice\n\n1. Trả lời 3 câu Speaking trong 45 giây.\n2. Viết 1 đoạn Writing 120 từ.\n3. Ghi 5 lỗi bản thân hay mắc và cách sửa."));
-                course.addModule(module);
+                targetVersion.addModule(module);
                 order++;
             }
+            onlineCourseVersionRepository.save(targetVersion);
         }
-        int lessonCount = course.getModules().stream().mapToInt(module -> module.getLessons().size()).sum();
-        course.setTotalLessons(lessonCount);
-        course.setTotalHours(Math.max(4, lessonCount / 4));
-        onlineCourseRepository.save(course);
-        onlineCourseVersionService.refreshPublishedSnapshot(course);
+        List<OnlineCourseModule> modulesForTotals = targetVersion.getModules() == null ? List.of() : targetVersion.getModules();
+        int lessonCount = modulesForTotals.stream().mapToInt(module -> module.getLessons().size()).sum();
+        savedCourse.setTotalLessons(lessonCount);
+        savedCourse.setTotalHours(Math.max(4, lessonCount / 4));
+        onlineCourseRepository.save(savedCourse);
+        onlineCourseVersionService.refreshPublishedSnapshot(savedCourse);
     }
 
-    private Lesson article(String title, int order, boolean preview, String content) {
-        return Lesson.builder()
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .or(() -> onlineCourseVersionRepository.findFirstByOnlineCourseOrderByVersionNumberDesc(course))
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
+    }
+
+    private OnlineLesson article(
+            String courseSlug,
+            int moduleOrder,
+            String title,
+            int lessonOrder,
+            boolean preview,
+            String content
+    ) {
+        return OnlineLesson.builder()
+                .stableLessonKey("%s-m%d-l%d".formatted(courseSlug, moduleOrder, lessonOrder))
                 .title(title)
                 .description(title)
                 .contentType("ARTICLE")
                 .contentText(content)
                 .durationMinutes(12)
-                .displayOrder(order)
+                .sequenceNumber(lessonOrder)
                 .preview(preview)
                 .build();
     }

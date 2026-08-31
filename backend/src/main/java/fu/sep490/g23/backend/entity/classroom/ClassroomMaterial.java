@@ -4,7 +4,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "classroom_materials")
+@Table(name = "class_resources")
 @EntityListeners(AuditingEntityListener.class)
 public class ClassroomMaterial {
     @Id
@@ -27,16 +27,16 @@ public class ClassroomMaterial {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
-    private ClassroomSession session;
+    private ClassSchedule session;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "curriculum_unit_id")
-    private CurriculumUnit curriculumUnit;
+    @JoinColumn(name = "course_unit_id")
+    private CourseUnit courseUnit;
 
     @Column(nullable = false, length = 220)
     private String title;

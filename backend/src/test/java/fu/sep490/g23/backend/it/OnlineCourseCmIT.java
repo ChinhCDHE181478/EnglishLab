@@ -53,6 +53,10 @@ public class OnlineCourseCmIT {
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value(title));
+        mockMvc.perform(get("/api/content-manager/online-courses/" + courseId + "/preview")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.course.title").value(title));
     }
 
     @Test

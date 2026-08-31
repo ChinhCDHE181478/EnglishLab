@@ -1,21 +1,20 @@
 package fu.sep490.g23.backend.security;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.EnumSet;
 import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class ClassroomAccessHelper {
 
-    private static final Set<RoleEnum> MANAGER_ROLES = EnumSet.of(RoleEnum.STAFF, RoleEnum.MANAGER, RoleEnum.ADMIN);
-    private static final Set<RoleEnum> TEACHER_ROLES = EnumSet.of(RoleEnum.TEACHER, RoleEnum.MANAGER, RoleEnum.ADMIN);
-    private static final Set<RoleEnum> CONTENT_MANAGER_ROLES = EnumSet.of(RoleEnum.CONTENT_MANAGER, RoleEnum.MANAGER, RoleEnum.ADMIN);
+    private static final Set<String> MANAGER_ROLES = Set.of(RoleCodes.STAFF, RoleCodes.MANAGER, RoleCodes.ADMIN);
+    private static final Set<String> TEACHER_ROLES = Set.of(RoleCodes.TEACHER, RoleCodes.MANAGER, RoleCodes.ADMIN);
+    private static final Set<String> CONTENT_MANAGER_ROLES = Set.of(RoleCodes.CONTENT_MANAGER, RoleCodes.MANAGER, RoleCodes.ADMIN);
 
     private final UserRepository userRepository;
 
@@ -25,11 +24,11 @@ public class ClassroomAccessHelper {
     }
 
     public boolean canManageClassroom(User user) {
-        return user.hasAnyRole(MANAGER_ROLES) || user.hasAnyRole(CONTENT_MANAGER_ROLES);
+        return user.hasAnyRoleCodes(MANAGER_ROLES) || user.hasAnyRoleCodes(CONTENT_MANAGER_ROLES);
     }
 
     public boolean canTeach(User user) {
-        return user.hasAnyRole(TEACHER_ROLES);
+        return user.hasAnyRoleCodes(TEACHER_ROLES);
     }
 
     public boolean canApproveRequests(User user) {

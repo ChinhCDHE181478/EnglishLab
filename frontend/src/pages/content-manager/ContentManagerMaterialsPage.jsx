@@ -297,7 +297,7 @@ export default function ContentManagerMaterialsPage() {
     })) return;
     setMessage('');
     try {
-      const saved = await classroomApi.updateContentManagerMaterialLibraryItem(item.id, toPayload({
+      const saved = await classroomApi.updateContentManagerMaterialLibraryItem(item.id, toRequestPayload({
         ...emptyForm,
         ...item,
         status,

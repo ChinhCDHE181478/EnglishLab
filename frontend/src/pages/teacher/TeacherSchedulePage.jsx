@@ -30,7 +30,7 @@ import {
   ClassroomLoadingState,
   ClassroomTypeBadge,
   DetailDrawer,
-  LarkJoinButton,
+  GoogleMeetJoinButton,
   StatusBadge,
 } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
@@ -487,7 +487,7 @@ function LegendDot({ color, label }) {
 function SessionGridCard({ session, onClick }) {
   const style = getSessionStyle(session);
   const isLive = getEffectiveStatus(session) === 'IN_PROGRESS';
-  const isVirtual = session.deliveryMode === 'VIRTUAL';
+  const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL';
 
   return (
     <div
@@ -531,7 +531,7 @@ function SessionGridCard({ session, onClick }) {
 function SessionListRow({ session, onClick }) {
   const style = getSessionStyle(session);
   const isLive = getEffectiveStatus(session) === 'IN_PROGRESS';
-  const isVirtual = session.deliveryMode === 'VIRTUAL';
+  const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL';
 
   return (
     <div className={`flex flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center ${
@@ -551,7 +551,7 @@ function SessionListRow({ session, onClick }) {
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusBadge status={getEffectiveStatus(session)} />
-          <ClassroomTypeBadge mode={session.deliveryMode} />
+          <ClassroomTypeBadge mode={session.effectiveDeliveryMode} />
         </div>
         <h4 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828] line-clamp-1">{session.classroomTitle}</h4>
         <p className="flex flex-wrap items-center gap-3 text-[10px] text-[#8b706e]">
@@ -659,21 +659,21 @@ function TodayTimeline({ sessions, onSelect }) {
 }
 
 function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
-  const isVirtual = session.deliveryMode === 'VIRTUAL';
+  const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL';
   const effectiveStatus = getEffectiveStatus(session);
-  const isLocked = ['COMPLETED', 'CANCELLED'].includes(effectiveStatus) || session.locked;
+  const isLocked = ['COMPLETED', 'CANCELLED'].includes(effectiveStatus);
   const [showReschedule, setShowReschedule] = useState(false);
-  const [larkMessage, setLarkMessage] = useState('');
+  const [meetMessage, setMeetMessage] = useState('');
 
-  const handleOpenLarkRoom = () => {
-    setLarkMessage('');
-    if (!session.larkMeetingUrl) {
-      setLarkMessage('Staff chưa tạo liên kết Google Meet cho buổi học này.');
+  const handleOpenMeetRoom = () => {
+    setMeetMessage('');
+    if (!session.googleMeetUrl) {
+      setMeetMessage('Staff chưa tạo liên kết Google Meet cho buổi học này.');
       return;
     }
-    const roomWindow = window.open(session.larkMeetingUrl, '_blank', 'noopener,noreferrer');
+    const roomWindow = window.open(session.googleMeetUrl, '_blank', 'noopener,noreferrer');
     if (!roomWindow) {
-      setLarkMessage('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup cho EnglishLab rồi thử lại.');
+      setMeetMessage('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup cho EnglishLab rồi thử lại.');
     }
   };
 
@@ -686,7 +686,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
           {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
         </h3>
         <div className="flex flex-wrap gap-2">
-          <ClassroomTypeBadge mode={session.deliveryMode} />
+          <ClassroomTypeBadge mode={session.effectiveDeliveryMode} />
           <StatusBadge status={effectiveStatus} />
         </div>
       </div>
@@ -714,22 +714,22 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
         </div>
       </div>
 
-      {/* Lark block */}
+      {/* Google Meet */}
       {isVirtual && (
         <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50/50 p-5">
           <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-sky-700">
             <Video className="h-3.5 w-3.5" /> Phòng học Google Meet
           </h4>
-          {session.larkMeetingUrl ? (
+          {session.googleMeetUrl ? (
             <>
               <p className="text-xs leading-6 text-[#8b706e]">
                 Liên kết phòng học đã sẵn sàng. Bạn có thể vào phòng trực tiếp từ đây.
               </p>
-              <LarkJoinButton
+              <GoogleMeetJoinButton
                 label={effectiveStatus === 'COMPLETED' ? 'Mở Google Meet' : 'Vào Google Meet'}
-                onBlocked={setLarkMessage}
-                onClick={handleOpenLarkRoom}
-                url={session.larkMeetingUrl}
+                onBlocked={setMeetMessage}
+                onClick={handleOpenMeetRoom}
+                url={session.googleMeetUrl}
               />
             </>
           ) : (
@@ -737,8 +737,8 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
               Staff đang chuẩn bị liên kết Google Meet cho buổi học này. Giáo viên sẽ chỉ cần vào phòng từ đây khi liên kết đã sẵn sàng.
             </p>
           )}
-          {larkMessage ? (
-            <p className="text-xs font-semibold text-[#93000a]">{larkMessage}</p>
+          {meetMessage ? (
+            <p className="text-xs font-semibold text-[#93000a]">{meetMessage}</p>
           ) : null}
         </div>
       )}

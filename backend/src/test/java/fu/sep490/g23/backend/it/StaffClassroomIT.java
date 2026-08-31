@@ -55,7 +55,7 @@ public class StaffClassroomIT {
                   "courseOfferingId":%d,
                   "capacity":20,
                   "plannedStartDate":"%s",
-                  "plannedEndDate":"%s",
+                  "endDate":"%s",
                   "weekdays":["MONDAY","WEDNESDAY"],
                   "sessionStartTime":"18:00:00",
                   "sessionEndTime":"20:00:00",
@@ -95,16 +95,15 @@ public class StaffClassroomIT {
         var body = mapper().createObjectNode();
         body.put("title", updatedTitle);
         body.put("deliveryMode", detail.path("deliveryMode").asText());
-        body.put("maxCapacity", detail.path("maxCapacity").asInt(20));
+        body.put("capacity", detail.path("capacity").asInt(20));
         body.put("primaryTeacherId", detail.path("primaryTeacherId").asLong());
         body.put("shortDescription", "IT_CLASS_03 persisted update");
         copyIfPresent(detail, body, "classroomStatus", "classroomStatus");
         copyIfPresent(detail, body, "packageStatus", "packageStatus");
-        copyIfPresent(detail, body, "trainingProgramId", "trainingProgramId");
-        copyIfPresent(detail, body, "curriculumProgramId", "curriculumProgramId");
+        copyIfPresent(detail, body, "instructorLedCourseId", "instructorLedCourseId");
         copyIfPresent(detail, body, "startDate", "startDate");
         copyIfPresent(detail, body, "endDate", "endDate");
-        copyIfPresent(detail, body, "roomId", "defaultRoomId");
+        copyIfPresent(detail, body, "roomId", "roomId");
         copyIfPresent(detail, body, "offlineAddress", "offlineAddress");
         copyIfPresent(detail, body, "price", "price");
         copyIfPresent(detail, body, "salePrice", "salePrice");
@@ -118,6 +117,80 @@ public class StaffClassroomIT {
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value(updatedTitle));
+    }
+
+    @Test
+    @DisplayName("IT_CLASS_04")
+    void itClass04RejectsIncompletePrelaunchPlan() throws Exception {
+        String token = login(mockMvc, STAFF, PASSWORD);
+        JsonNode items = mapper().readTree(mockMvc.perform(get("/api/staff/classrooms")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+
+        JsonNode detail = null;
+        for (JsonNode item : items) {
+            String classroomStatus = item.path("classroomStatus").asText();
+            if (!"DRAFT".equals(classroomStatus) && !"UPCOMING".equals(classroomStatus)) continue;
+            JsonNode candidate = mapper().readTree(mockMvc.perform(get("/api/staff/classrooms/" + item.path("id").asLong())
+                            .header("Authorization", bearer(token)))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+            if (candidate.path("primaryTeacherId").canConvertToLong()
+                    && candidate.path("instructorLedCourseId").canConvertToLong()
+                    && candidate.path("sessions").isArray()
+                    && !candidate.path("sessions").isEmpty()) {
+                detail = candidate;
+                break;
+            }
+        }
+        Assumptions.assumeTrue(detail != null, "A planned classroom fixture is required");
+
+        var classroom = mapper().createObjectNode();
+        copyIfPresent(detail, classroom, "title", "title");
+        copyIfPresent(detail, classroom, "deliveryMode", "deliveryMode");
+        copyIfPresent(detail, classroom, "classroomStatus", "classroomStatus");
+        copyIfPresent(detail, classroom, "instructorLedCourseId", "instructorLedCourseId");
+        copyIfPresent(detail, classroom, "capacity", "capacity");
+        copyIfPresent(detail, classroom, "startDate", "startDate");
+        copyIfPresent(detail, classroom, "endDate", "endDate");
+        copyIfPresent(detail, classroom, "primaryTeacherId", "primaryTeacherId");
+        copyIfPresent(detail, classroom, "regularRoomId", "roomId");
+        copyIfPresent(detail, classroom, "tuitionFeeVnd", "price");
+        copyIfPresent(detail, classroom, "offlineAddress", "offlineAddress");
+        copyIfPresent(detail, classroom, "locationNote", "locationNote");
+
+        var schedules = mapper().createArrayNode();
+        long omittedLessonId = detail.path("sessions").valueStream()
+                .map(session -> session.path("courseLessonId"))
+                .filter(JsonNode::canConvertToLong)
+                .mapToLong(JsonNode::asLong)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("A scheduled course lesson is required"));
+        for (JsonNode session : detail.path("sessions")) {
+            var schedule = mapper().createObjectNode();
+            for (String field : new String[]{
+                    "id", "sessionDate", "startTime", "endTime", "teacherId", "status",
+                    "deliveryModeOverride", "roomId", "sessionContent", "note"
+            }) {
+                copyIfPresent(session, schedule, field, field);
+            }
+            if (session.path("courseLessonId").asLong(-1) == omittedLessonId) {
+                schedule.put("sessionContent", "Buổi đặc biệt kiểm thử");
+            } else {
+                copyIfPresent(session, schedule, "courseLessonId", "courseLessonId");
+            }
+            schedule.put("status", "SCHEDULED");
+            schedules.add(schedule);
+        }
+        var body = mapper().createObjectNode();
+        body.set("classroom", classroom);
+        body.set("schedules", schedules);
+
+        mockMvc.perform(put("/api/staff/classrooms/" + detail.path("id").asLong() + "/prelaunch-plan")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Lịch học chưa phân bổ đủ số buổi cho toàn bộ bài học của khóa học."));
     }
 
     private void copyIfPresent(JsonNode source, com.fasterxml.jackson.databind.node.ObjectNode target,

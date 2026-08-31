@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.dto.request.teacher.VerifyTeacherCredentialRequest;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherEvaluationResponse;
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherEvaluationRequest;
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCredentialRequest;
-import fu.sep490.g23.backend.repository.teacher.TeacherProfessionalProfileRepository;
 import fu.sep490.g23.backend.dto.request.teacher.UpdateTeacherProfileRequest;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherProfessionalResponse;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherCredentialResponse;
@@ -14,12 +13,11 @@ import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepo
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.teacher.TeacherCredential;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
-import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
 import fu.sep490.g23.backend.service.teacher.TeacherProfessionalService;
@@ -39,11 +37,10 @@ import java.util.*;
 public class TeacherProfessionalServiceImpl implements TeacherProfessionalService {
 
     private final UserRepository userRepository;
-    private final TeacherProfessionalProfileRepository profileRepository;
     private final TeacherCredentialRepository credentialRepository;
     private final TeacherPerformanceEvaluationRepository evaluationRepository;
     private final ClassroomTeacherAssignmentRepository assignmentRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final AuditLogService auditLogService;
 
     @Override
@@ -51,7 +48,7 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     public List<TeacherProfessionalResponse> listTeachers(String actorEmail) {
         User actor = requireActor(actorEmail);
         requireOperationsViewer(actor);
-        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleEnum.TEACHER)).stream()
+        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleCodes.TEACHER)).stream()
                 .sorted(Comparator.comparing(User::getFullName, String.CASE_INSENSITIVE_ORDER))
                 .map(teacher -> buildResponse(teacher, canManagePerformance(actor), false))
                 .toList();
@@ -82,16 +79,14 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
         User actor = requireActor(actorEmail);
         requireStaff(actor);
         User teacher = requireTeacher(teacherId);
-        TeacherProfessionalProfile profile = profileRepository.findByTeacherId(teacherId)
-                .orElseGet(() -> TeacherProfessionalProfile.builder().teacher(teacher).build());
-        profile.setHeadline(clean(request.getHeadline()));
-        profile.setBiography(clean(request.getBiography()));
-        profile.setSpecializations(clean(request.getSpecializations()));
-        profile.setTeachingLanguages(clean(request.getTeachingLanguages()));
-        profile.setYearsOfExperience(request.getYearsOfExperience());
-        profile.setHighestQualification(clean(request.getHighestQualification()));
-        profile.setPublicProfile(request.isPublicProfile());
-        profileRepository.save(profile);
+        teacher.setTeacherHeadline(clean(request.getHeadline()));
+        teacher.setTeacherBiography(clean(request.getBiography()));
+        teacher.setTeacherSpecializations(clean(request.getSpecializations()));
+        teacher.setTeacherTeachingLanguages(clean(request.getTeachingLanguages()));
+        teacher.setTeacherYearsOfExperience(request.getYearsOfExperience());
+        teacher.setTeacherHighestQualification(clean(request.getHighestQualification()));
+        teacher.setTeacherPublicProfile(request.isPublicProfile());
+        userRepository.save(teacher);
         auditLogService.record(actorEmail, "TEACHER_PROFILE_UPDATED", "TEACHER", teacherId.toString(),
                 "Cập nhật hồ sơ chuyên môn của " + teacher.getEmail());
         return buildResponse(teacher, canManagePerformance(actor), true);
@@ -250,7 +245,6 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     }
 
     private TeacherProfessionalResponse buildResponse(User teacher, boolean includeDrafts, boolean includeDetails) {
-        TeacherProfessionalProfile profile = profileRepository.findByTeacherId(teacher.getId()).orElse(null);
         List<TeacherCredentialResponse> credentials = includeDetails
                 ? credentialRepository.findByTeacherIdOrderByIssuedDateDescIdDesc(teacher.getId()).stream()
                         .map(this::normalizeExpiry)
@@ -279,13 +273,13 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
                 .email(teacher.getEmail())
                 .phoneNumber(teacher.getPhoneNumber())
                 .avatarUrl(teacher.getAvatarUrl())
-                .headline(profile == null ? null : profile.getHeadline())
-                .biography(profile == null ? null : profile.getBiography())
-                .specializations(profile == null ? null : profile.getSpecializations())
-                .teachingLanguages(profile == null ? null : profile.getTeachingLanguages())
-                .yearsOfExperience(profile == null ? null : profile.getYearsOfExperience())
-                .highestQualification(profile == null ? null : profile.getHighestQualification())
-                .publicProfile(profile != null && profile.isPublicProfile())
+                .headline(teacher.getTeacherHeadline())
+                .biography(teacher.getTeacherBiography())
+                .specializations(teacher.getTeacherSpecializations())
+                .teachingLanguages(teacher.getTeacherTeachingLanguages())
+                .yearsOfExperience(teacher.getTeacherYearsOfExperience())
+                .highestQualification(teacher.getTeacherHighestQualification())
+                .publicProfile(teacher.isTeacherPublicProfile())
                 .assignedClassrooms(assignmentRepository.findByTeacherId(teacher.getId()).size())
                 .totalSessions(sessionRepository.countByTeacherId(teacher.getId()))
                 .completedSessions(sessionRepository.countByTeacherIdAndStatus(teacher.getId(), ClassroomSessionStatus.COMPLETED))
@@ -390,19 +384,19 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     }
 
     private void requireTeacherRole(User user) {
-        if (!user.hasRole(RoleEnum.TEACHER)) {
+        if (!user.hasRole(RoleCodes.TEACHER)) {
             throw new IllegalArgumentException("Người dùng đã chọn không có vai trò giáo viên.");
         }
     }
 
     private void requireOperationsViewer(User user) {
-        if (!user.hasAnyRole(Set.of(RoleEnum.STAFF, RoleEnum.MANAGER, RoleEnum.ADMIN))) {
+        if (!user.hasAnyRoleCodes(Set.of(RoleCodes.STAFF, RoleCodes.MANAGER, RoleCodes.ADMIN))) {
             throw new RuntimeException("Bạn không có quyền xem hồ sơ đội ngũ giáo viên.");
         }
     }
 
     private void requireStaff(User user) {
-        if (!user.hasAnyRole(Set.of(RoleEnum.STAFF, RoleEnum.ADMIN))) {
+        if (!user.hasAnyRoleCodes(Set.of(RoleCodes.STAFF, RoleCodes.ADMIN))) {
             throw new RuntimeException("Chỉ Staff được quản lý hồ sơ và minh chứng giáo viên.");
         }
     }
@@ -414,7 +408,7 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     }
 
     private boolean canManagePerformance(User user) {
-        return user.hasAnyRole(Set.of(RoleEnum.MANAGER, RoleEnum.ADMIN));
+        return user.hasAnyRoleCodes(Set.of(RoleCodes.MANAGER, RoleCodes.ADMIN));
     }
 
     private String clean(String value) {

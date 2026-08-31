@@ -1,8 +1,8 @@
 package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sep490.g23.backend.dto.response.classroom.InstructorLedCourseResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.service.classroom.InstructorLedCourseCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,23 +17,23 @@ import java.util.List;
 @RequestMapping("/api/course-offerings")
 @RequiredArgsConstructor
 public class PublicCourseOfferingController {
-    private final TrainingProgramService trainingProgramService;
+    private final InstructorLedCourseCatalogService instructorLedCourseCatalogService;
 
     @GetMapping
-    public ResponseEntity<List<TrainingProgramResponse>> list(
+    public ResponseEntity<List<InstructorLedCourseResponse>> list(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryType,
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
         if (deliveryType != null && deliveryMode != null && deliveryType != deliveryMode) {
             throw new IllegalArgumentException("deliveryType và deliveryMode không được mâu thuẫn.");
         }
-        return ResponseEntity.ok(trainingProgramService.listPublishedPrograms(
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms(
                 deliveryType != null ? deliveryType : deliveryMode
         ));
     }
 
     @GetMapping("/{slugOrId}")
-    public ResponseEntity<TrainingProgramResponse> get(@PathVariable String slugOrId) {
-        return ResponseEntity.ok(trainingProgramService.getPublishedProgram(slugOrId));
+    public ResponseEntity<InstructorLedCourseResponse> get(@PathVariable String slugOrId) {
+        return ResponseEntity.ok(instructorLedCourseCatalogService.getPublishedProgram(slugOrId));
     }
 }

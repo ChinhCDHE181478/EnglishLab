@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.service.notification.impl;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.service.notification.AppNotificationService;
@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,11 +17,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ClassroomNotificationServiceImpl implements ClassroomNotificationService {
 
-    private static final Set<RoleEnum> TRAINING_STAFF_ROLES = EnumSet.of(
-            RoleEnum.STAFF,
-            RoleEnum.MANAGER,
-            RoleEnum.ADMIN
-    );
+    private static final Set<String> TRAINING_STAFF_ROLES = Set.of(
+            RoleCodes.STAFF, RoleCodes.MANAGER, RoleCodes.ADMIN);
 
     private final UserRepository userRepository;
     private final AppNotificationService appNotificationService;

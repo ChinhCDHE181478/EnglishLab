@@ -7,12 +7,12 @@ import fu.sep490.g23.backend.dto.response.teacher.ClassroomFeedbackAggregateResp
 
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCourseFeedbackRequest;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.teacher.TeacherCourseFeedback;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherCourseFeedbackRepository;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
     private final UserRepository userRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final TeacherCourseFeedbackRepository feedbackRepository;
     private final AuditLogService auditLogService;
@@ -53,8 +53,8 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
     @Transactional(readOnly = true)
     public List<LearnerTeacherFeedbackResponse> getLearnerForms(Long classroomId, String learnerEmail) {
         User learner = requireUser(learnerEmail);
-        ClassroomEnrollment enrollment = requireAssignedEnrollment(learner.getId(), classroomId);
-        ClassroomOffering classroom = enrollment.getClassroomOffering();
+        ClassEnrollment enrollment = requireAssignedEnrollment(learner.getId(), classroomId);
+        ClassSection classroom = enrollment.getClassSection();
         return assignedTeachers(classroom).stream()
                 .map(teacher -> toLearnerResponse(classroom, teacher,
                         feedbackRepository.findByEnrollmentIdAndTeacherId(enrollment.getId(), teacher.getId()).orElse(null)))
@@ -69,8 +69,8 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
             UpsertTeacherCourseFeedbackRequest request
     ) {
         User learner = requireUser(learnerEmail);
-        ClassroomEnrollment enrollment = requireAssignedEnrollment(learner.getId(), classroomId);
-        ClassroomOffering classroom = enrollment.getClassroomOffering();
+        ClassEnrollment enrollment = requireAssignedEnrollment(learner.getId(), classroomId);
+        ClassSection classroom = enrollment.getClassSection();
         requireWindowOpen(classroom);
         User teacher = assignedTeachers(classroom).stream()
                 .filter(candidate -> Objects.equals(candidate.getId(), teacherId))
@@ -87,7 +87,7 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
                 .findByEnrollmentIdAndTeacherId(enrollment.getId(), teacherId)
                 .orElseGet(() -> TeacherCourseFeedback.builder()
                         .enrollment(enrollment)
-                        .classroomOffering(classroom)
+                        .classSection(classroom)
                         .teacher(teacher)
                         .submittedAt(LocalDateTime.now())
                         .build());
@@ -156,9 +156,9 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản."));
     }
 
-    private ClassroomEnrollment requireAssignedEnrollment(Long learnerId, Long classroomId) {
-        ClassroomEnrollment enrollment = enrollmentRepository
-                .findByStudentIdAndClassroomOfferingId(learnerId, classroomId)
+    private ClassEnrollment requireAssignedEnrollment(Long learnerId, Long classroomId) {
+        ClassEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndClassSectionId(learnerId, classroomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bạn chưa được xếp vào lớp học này."));
         if (enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.ASSIGNED) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ học viên đang học chính thức mới được đánh giá.");
@@ -166,17 +166,17 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
         return enrollment;
     }
 
-    private List<User> assignedTeachers(ClassroomOffering classroom) {
+    private List<User> assignedTeachers(ClassSection classroom) {
         Map<Long, User> teachers = new LinkedHashMap<>();
         if (classroom.getPrimaryTeacher() != null) {
             teachers.put(classroom.getPrimaryTeacher().getId(), classroom.getPrimaryTeacher());
         }
-        teacherAssignmentRepository.findByClassroomOfferingId(classroom.getId()).forEach(assignment -> {
+        teacherAssignmentRepository.findByClassSectionId(classroom.getId()).forEach(assignment -> {
             User teacher = assignment.getTeacher();
             boolean intersects = (assignment.getEffectiveTo() == null || classroom.getStartDate() == null
                     || !assignment.getEffectiveTo().isBefore(classroom.getStartDate()))
-                    && (assignment.getEffectiveFrom() == null || classroom.getEndDate() == null
-                    || !assignment.getEffectiveFrom().isAfter(classroom.getEndDate()));
+                    && (assignment.getEffectiveFrom() == null || classroom.getPlannedEndDate() == null
+                    || !assignment.getEffectiveFrom().isAfter(classroom.getPlannedEndDate()));
             if (teacher != null && intersects) {
                 teachers.put(teacher.getId(), teacher);
             }
@@ -187,7 +187,7 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
         return new ArrayList<>(teachers.values());
     }
 
-    private void requireWindowOpen(ClassroomOffering classroom) {
+    private void requireWindowOpen(ClassSection classroom) {
         LocalDate today = LocalDate.now();
         if (today.isBefore(opensOn(classroom))) {
             throw badRequest("Phiếu đánh giá mở từ ngày " + formatDate(opensOn(classroom)) + ".");
@@ -197,19 +197,19 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
         }
     }
 
-    private LocalDate opensOn(ClassroomOffering classroom) {
-        if (classroom.getEndDate() == null) {
+    private LocalDate opensOn(ClassSection classroom) {
+        if (classroom.getPlannedEndDate() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Lớp học chưa có ngày kết thúc.");
         }
-        return classroom.getEndDate().minusDays(Math.max(0, opensDaysBeforeEnd));
+        return classroom.getPlannedEndDate().minusDays(Math.max(0, opensDaysBeforeEnd));
     }
 
-    private LocalDate closesOn(ClassroomOffering classroom) {
-        return classroom.getEndDate().plusDays(Math.max(0, closesDaysAfterEnd));
+    private LocalDate closesOn(ClassSection classroom) {
+        return classroom.getPlannedEndDate().plusDays(Math.max(0, closesDaysAfterEnd));
     }
 
     private LearnerTeacherFeedbackResponse toLearnerResponse(
-            ClassroomOffering classroom, User teacher, TeacherCourseFeedback feedback
+            ClassSection classroom, User teacher, TeacherCourseFeedback feedback
     ) {
         LocalDate open = opensOn(classroom);
         LocalDate close = closesOn(classroom);
@@ -246,7 +246,7 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
                 this::roundedOverall, TreeMap::new, Collectors.counting()));
         List<ClassroomFeedbackAggregateResponse> classrooms = items.stream()
                 .collect(Collectors.groupingBy(
-                        item -> item.getClassroomOffering().getId(), LinkedHashMap::new, Collectors.toList()))
+                        item -> item.getClassSection().getId(), LinkedHashMap::new, Collectors.toList()))
                 .values().stream()
                 .filter(classroomItems -> !protectTeacher || classroomItems.size() >= anonymityThreshold)
                 .map(this::classroomAggregate)
@@ -278,10 +278,10 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
     }
 
     private ClassroomFeedbackAggregateResponse classroomAggregate(List<TeacherCourseFeedback> items) {
-        ClassroomOffering classroom = items.getFirst().getClassroomOffering();
+        ClassSection classroom = items.getFirst().getClassSection();
         return ClassroomFeedbackAggregateResponse.builder()
                 .classroomId(classroom.getId()).classroomTitle(classroomTitle(classroom))
-                .endDate(classroom.getEndDate()).responseCount(items.size())
+                .endDate(classroom.getPlannedEndDate()).responseCount(items.size())
                 .overallScore(averageOverall(items))
                 .recommendationPercent(percent(items.stream().filter(TeacherCourseFeedback::isWouldRecommend).count(), items.size()))
                 .build();
@@ -289,8 +289,8 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
 
     private AnonymizedTeacherFeedbackResponse toAnonymousResponse(TeacherCourseFeedback item) {
         return AnonymizedTeacherFeedbackResponse.builder()
-                .feedbackId(item.getId()).classroomId(item.getClassroomOffering().getId())
-                .classroomTitle(classroomTitle(item.getClassroomOffering())).overallScore(overall(item))
+                .feedbackId(item.getId()).classroomId(item.getClassSection().getId())
+                .classroomTitle(classroomTitle(item.getClassSection())).overallScore(overall(item))
                 .clarityScore(item.getClarityScore()).engagementScore(item.getEngagementScore())
                 .learnerSupportScore(item.getLearnerSupportScore())
                 .feedbackTimelinessScore(item.getFeedbackTimelinessScore())
@@ -326,10 +326,10 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private String classroomTitle(ClassroomOffering classroom) {
-        return classroom.getLearningPackage() == null
+    private String classroomTitle(ClassSection classroom) {
+        return classroom.getInstructorLedCourse() == null
                 ? "Lớp #" + classroom.getId()
-                : classroom.getLearningPackage().getTitle();
+                : classroom.getTitle();
     }
 
     private void validateNarrative(String text, String label) {

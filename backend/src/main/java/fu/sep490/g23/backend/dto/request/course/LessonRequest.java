@@ -19,7 +19,7 @@ public class LessonRequest {
 
     private Long id;
 
-    @NotBlank(message = "Lesson title is required")
+    @NotBlank(message = "OnlineLesson title is required")
     @Size(max = 180)
     private String title;
 

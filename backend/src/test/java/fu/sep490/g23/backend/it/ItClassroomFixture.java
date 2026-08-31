@@ -93,7 +93,7 @@ public final class ItClassroomFixture {
                     continue;
                 }
                 JsonNode detail = staffClassroom(mockMvc, staffToken, offering.path("id").asLong());
-                if (isPublished(detail, "curriculumProgramStatus") && isPublished(detail, "trainingProgramStatus")) {
+                if (isPublished(detail, "instructorLedCourseStatus")) {
                     return detail;
                 }
             }
@@ -129,7 +129,7 @@ public final class ItClassroomFixture {
             payload.put("primaryTeacherId", firstTeacherId(mockMvc, staffToken));
         }
         if ("OFFLINE".equals(payload.path("deliveryMode").asText())
-                && payload.path("defaultRoomId").isNull()
+                && payload.path("roomId").isNull()
                 && payload.path("offlineAddress").isNull()) {
             payload.put("offlineAddress", "EnglishLab Hà Nội");
         }
@@ -157,11 +157,10 @@ public final class ItClassroomFixture {
         copyText(detail, payload, "targetScore");
         copyText(detail, payload, "startDate");
         copyText(detail, payload, "endDate");
-        copyNumber(detail, payload, "trainingProgramId", "trainingProgramId");
-        copyNumber(detail, payload, "curriculumProgramId", "curriculumProgramId");
+        copyNumber(detail, payload, "instructorLedCourseId", "instructorLedCourseId");
         copyNumber(detail, payload, "primaryTeacherId", "primaryTeacherId");
-        copyNumber(detail, payload, "roomId", "defaultRoomId");
-        copyNumber(detail, payload, "maxCapacity", "maxCapacity");
+        copyNumber(detail, payload, "roomId", "roomId");
+        copyNumber(detail, payload, "capacity", "capacity");
         copyNumber(detail, payload, "displayOrder", "displayOrder");
         copyNumber(detail, payload, "price", "price");
         copyNumber(detail, payload, "salePrice", "salePrice");
@@ -181,7 +180,7 @@ public final class ItClassroomFixture {
     private static boolean isAssignable(JsonNode offering) {
         String startDate = offering.path("startDate").asText("");
         boolean startsLater = !startDate.isBlank() && LocalDate.parse(startDate).isAfter(LocalDate.now());
-        boolean hasSeat = offering.path("enrolledCount").asInt() < offering.path("maxCapacity").asInt(0);
+        boolean hasSeat = offering.path("enrolledCount").asInt() < offering.path("capacity").asInt(0);
         return "UPCOMING".equals(offering.path("classroomStatus").asText())
                 && "PUBLISHED".equals(offering.path("packageStatus").asText())
                 && startsLater

@@ -2,7 +2,7 @@ package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
@@ -39,7 +39,7 @@ public class DemoLearnerOnboardingSupport {
     }
 
     public User ensureReady(User user) {
-        if (user == null || !user.hasRole(RoleEnum.LEARNER)) {
+        if (user == null || !user.hasRole(RoleCodes.LEARNER)) {
             return user;
         }
         applyDemoProfile(user);

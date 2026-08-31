@@ -406,7 +406,7 @@ export default function ContentManagerRubricsPage() {
 
       {loading ? (
         <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải rubrics...</div>
-      ) : !filteredRubrics.length ? (
+      ) : totalItems === 0 ? (
         <ManagerEmptyState>Chưa có rubric phù hợp.</ManagerEmptyState>
       ) : (
         <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">

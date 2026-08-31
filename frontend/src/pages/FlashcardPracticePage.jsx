@@ -15,23 +15,22 @@ const classroomTypeLabel = (deliveryMode) => {
 };
 
 const toClassroomFlashcardCourse = (classroom) => ({
-  title: classroom?.title || classroom?.learningPackageTitle || `Lớp học #${classroom?.id}`,
-  modules: (classroom?.curriculumProgram?.units || [])
-    .filter((unit) => (unit.flashcards || []).length > 0)
-    .map((unit) => ({
-      id: `classroom-unit-${unit.id}`,
-      title: unit.title,
-      lessons: [{
-        id: `classroom-unit-${unit.id}-flashcards`,
-        title: `Flashcards · ${unit.title}`,
-        flashcardSets: (unit.flashcards || []).map((reference) => ({
-          id: reference.resourceId,
-          title: reference.title,
-          description: reference.note || reference.subtitle,
-          cardsJson: reference.contentJson || '[]',
-        })),
-      }],
-    })),
+  id: `classroom-${classroom?.id || 'detail'}`,
+  title: classroom?.title || 'Lớp học',
+  modules: (classroom?.instructorLedCourse?.units || []).map((unit) => ({
+    id: `classroom-unit-${unit.id}`,
+    title: unit.title,
+    lessons: [{
+      id: `classroom-unit-${unit.id}-flashcards`,
+      title: `Flashcards · ${unit.title}`,
+      flashcardSets: (unit.flashcards || []).map((reference) => ({
+        id: reference.resourceId,
+        title: reference.title,
+        description: reference.note || reference.subtitle,
+        cardsJson: reference.contentJson || '[]',
+      })),
+    }],
+  })),
 });
 
 export const toPersonalFlashcardTerm = (item) => ({

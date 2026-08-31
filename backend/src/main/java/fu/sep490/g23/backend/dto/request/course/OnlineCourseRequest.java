@@ -81,9 +81,6 @@ public class OnlineCourseRequest {
     @Size(max = 700)
     private String thumbnailUrl;
 
-    @Min(0)
-    private Integer displayOrder;
-
     private Boolean featured;
 
     @Valid

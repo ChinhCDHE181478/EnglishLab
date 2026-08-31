@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.dto.response.admin;
 
 import fu.sep490.g23.backend.entity.admin.enums.BroadcastStatus;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,7 +12,7 @@ public class AdminBroadcastResponse {
     private Long id;
     private String title;
     private String message;
-    private RoleEnum targetRole;
+    private String targetRole;
     private String actionPath;
     private boolean sendInApp;
     private boolean sendEmail;

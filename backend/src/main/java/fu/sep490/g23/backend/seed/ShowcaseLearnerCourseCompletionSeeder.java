@@ -10,21 +10,20 @@ import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.course.CourseProgressService;
@@ -35,7 +34,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -61,15 +62,15 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final UserRepository userRepository;
-    private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final CourseAssessmentRepository assessmentRepository;
     private final AssessmentSubmissionRepository submissionRepository;
     private final OnlineCourseVersionService courseVersionService;
     private final CourseProgressService courseProgressService;
     private final AiEvaluationClient aiEvaluationClient;
+    private final PlatformTransactionManager transactionManager;
 
     @Value("${app.seed.sheet.enabled:false}")
     private boolean seedEnabled;
@@ -78,29 +79,30 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private String assessmentAudioDirectory;
 
     @Override
-    @Transactional
     public void run(String... args) {
-        if (!seedEnabled) {
-            return;
+        log.info("[ShowcaseCompletion] Bat dau seed tien do hoc tap cho cac hoc vien demo...");
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
+        for (String email : targetEmails) {
+            tx.executeWithoutResult(status -> {
+                User learner = userRepository.findByEmail(email).orElse(null);
+                if (learner != null) {
+                    try {
+                        log.info("[ShowcaseCompletion] Hoan thien khoa {} cho {}", COURSE_SLUG, email);
+                        completePublishedCourse(learner, COURSE_SLUG, 0);
+                        log.info("[ShowcaseCompletion] Hoan thien vocabulary cho {}", email);
+                        seedVocabularyCourseLessonProgress(learner);
+                    } catch (Exception ex) {
+                        log.warn("Không thể hoàn thiện tiến độ học tập demo cho {}: {}", email, ex.getMessage(), ex);
+                    }
+                }
+            });
         }
-
-        User learner = userRepository.findByEmail(LEARNER_EMAIL).orElse(null);
-        if (learner == null) {
-            log.warn("Không thể hoàn thiện khóa demo vì thiếu học viên {}.", LEARNER_EMAIL);
-            return;
-        }
-        completePublishedCourse(learner, COURSE_SLUG, 7);
-        seedVocabularyCourseLessonProgress(learner);
     }
 
-    private void completePublishedCourse(User learner, String slug, int minAssessments) {
-        var learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(slug).orElse(null);
-        if (learningPackage == null) {
-            log.warn("Không thể hoàn thiện khóa {} cho tài khoản demo vì thiếu khóa học.", slug);
-            return;
-        }
-
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(learningPackage).orElse(null);
+    @Transactional
+    public void completePublishedCourse(User learner, String slug, int minAssessments) {
+        OnlineCourse course = onlineCourseRepository.findBySlug(slug).orElse(null);
         if (course == null) {
             log.warn("Không thể hoàn thiện khóa {} cho tài khoản demo vì thiếu dữ liệu OnlineCourse.", slug);
             return;
@@ -116,10 +118,10 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
 
         courseVersionService.refreshPublishedSnapshot(course);
         OnlineCourseVersion version = courseVersionService.requirePublishedVersion(course);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
+                .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
-                        .learningPackage(learningPackage)
+                        .onlineCourse(course)
                         .registeredAt(LocalDateTime.now().minusDays(45))
                         .build()));
         enrollment.setCourseVersion(version);
@@ -129,22 +131,18 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         completeLessons(course, learner, enrollment, version);
         seedAssessmentSubmissions(assessments, learner);
         backfillCorrectedExamples(assessments, learner);
-        PackageEnrollment completed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
+        OnlineCourseEnrollment completed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
         if (completed.getProgressPercent() != 100) {
             log.warn("Khóa {} của tài khoản demo chưa đủ điều kiện hoàn thành: {}% - {}.",
                     slug, completed.getProgressPercent(), completed.getStatus());
             return;
         }
-        log.info("Đã hoàn thiện khóa {} cho {}.", learningPackage.getTitle(), LEARNER_EMAIL);
+        log.info("Đã hoàn thiện khóa {} cho {}.", course.getTitle(), learner.getEmail());
     }
 
-    private void seedVocabularyCourseLessonProgress(User learner) {
-        var learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(VOCABULARY_COURSE_SLUG).orElse(null);
-        if (learningPackage == null) {
-            log.warn("Không thể tạo tiến độ vocabulary demo vì thiếu khóa học.");
-            return;
-        }
-        OnlineCourse course = onlineCourseRepository.findByLearningPackage(learningPackage).orElse(null);
+    @Transactional
+    public void seedVocabularyCourseLessonProgress(User learner) {
+        OnlineCourse course = onlineCourseRepository.findBySlug(VOCABULARY_COURSE_SLUG).orElse(null);
         if (course == null) {
             log.warn("Không thể tạo tiến độ vocabulary demo vì thiếu OnlineCourse.");
             return;
@@ -154,10 +152,10 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                 .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         courseVersionService.refreshPublishedSnapshot(course);
         OnlineCourseVersion version = courseVersionService.requirePublishedVersion(course);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage)
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+        OnlineCourseEnrollment enrollment = enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
+                .orElseGet(() -> enrollmentRepository.save(OnlineCourseEnrollment.builder()
                         .student(learner)
-                        .learningPackage(learningPackage)
+                        .onlineCourse(course)
                         .registeredAt(LocalDateTime.now().minusDays(40))
                         .build()));
         enrollment.setCourseVersion(version);
@@ -165,7 +163,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         enrollment = enrollmentRepository.save(enrollment);
 
         completeLessons(course, learner, enrollment, version, VOCABULARY_COMPLETED_MODULE_COUNT);
-        pruneLessonProgressBeyondModules(course, enrollment, VOCABULARY_COMPLETED_MODULE_COUNT);
+        pruneLessonProgressBeyondModules(version, enrollment, VOCABULARY_COMPLETED_MODULE_COUNT);
         if (!assessments.isEmpty()) {
             List<AssessmentSubmission> leftover = submissionRepository.findByAssessmentInAndStudent(assessments, learner);
             if (!leftover.isEmpty()) {
@@ -195,7 +193,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                     .build());
         }
 
-        PackageEnrollment refreshed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
+        OnlineCourseEnrollment refreshed = courseProgressService.refreshEnrollmentProgress(enrollment, course, learner);
         log.info("Khóa vocabulary demo của {}: {}% - {} (2 mô-đun đầu đã xong; module test 3-8 chưa nộp).",
                 LEARNER_EMAIL, refreshed.getProgressPercent(), refreshed.getStatus());
     }
@@ -319,7 +317,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private void completeLessons(
             OnlineCourse course,
             User learner,
-            PackageEnrollment enrollment,
+            OnlineCourseEnrollment enrollment,
             OnlineCourseVersion version
     ) {
         completeLessons(course, learner, enrollment, version, Integer.MAX_VALUE);
@@ -328,18 +326,18 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private void completeLessons(
             OnlineCourse course,
             User learner,
-            PackageEnrollment enrollment,
+            OnlineCourseEnrollment enrollment,
             OnlineCourseVersion version,
             int maxModules
     ) {
-        List<Lesson> lessons = orderedModules(course).stream()
+        List<OnlineLesson> lessons = orderedModules(version).stream()
                 .limit(maxModules)
                 .flatMap(module -> module.getLessons().stream()
-                        .sorted(Comparator.comparing(lesson -> lesson.getDisplayOrder() == null ? Integer.MAX_VALUE : lesson.getDisplayOrder())))
+                        .sorted(Comparator.comparing(lesson -> lesson.getSequenceNumber() == null ? Integer.MAX_VALUE : lesson.getSequenceNumber())))
                 .toList();
         LocalDateTime firstCompletion = LocalDateTime.now().minusDays(30);
         for (int index = 0; index < lessons.size(); index++) {
-            Lesson lesson = lessons.get(index);
+            OnlineLesson lesson = lessons.get(index);
             LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
                     .orElseGet(() -> LessonProgress.builder()
                             .student(learner)
@@ -359,14 +357,14 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     }
 
     private void pruneLessonProgressBeyondModules(
-            OnlineCourse course,
-            PackageEnrollment enrollment,
+            OnlineCourseVersion version,
+            OnlineCourseEnrollment enrollment,
             int keepModuleCount
     ) {
-        Set<Long> allowedLessonIds = orderedModules(course).stream()
+        Set<Long> allowedLessonIds = orderedModules(version).stream()
                 .limit(keepModuleCount)
                 .flatMap(module -> module.getLessons().stream())
-                .map(Lesson::getId)
+                .map(OnlineLesson::getId)
                 .collect(Collectors.toSet());
         List<LessonProgress> extra = lessonProgressRepository.findByEnrollment(enrollment).stream()
                 .filter(progress -> progress.getLesson() == null || !allowedLessonIds.contains(progress.getLesson().getId()))
@@ -377,9 +375,12 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         }
     }
 
-    private List<CourseModule> orderedModules(OnlineCourse course) {
-        return course.getModules().stream()
-                .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
+    private List<OnlineCourseModule> orderedModules(OnlineCourseVersion version) {
+        if (version == null || version.getModules() == null) {
+            return List.of();
+        }
+        return version.getModules().stream()
+                .sorted(Comparator.comparing(module -> module.getSequenceNumber() == null ? Integer.MAX_VALUE : module.getSequenceNumber()))
                 .toList();
     }
 

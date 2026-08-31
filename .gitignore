@@ -26,3 +26,4 @@ backend/*.log
 backend/*.err
 backend/*.pid
 database-backups/
+*.py

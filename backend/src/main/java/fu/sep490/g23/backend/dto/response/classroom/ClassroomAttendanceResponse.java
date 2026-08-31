@@ -28,9 +28,9 @@ public class ClassroomAttendanceResponse {
     private LocalTime startTime;
     private LocalTime endTime;
     private String classroomTitle;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private String deliveryMode;
     private String roomName;
-    private String larkMeetingUrl;
-    private String larkSyncError;
+    private String googleMeetUrl;
+    private String googleMeetSyncError;
 }

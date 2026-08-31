@@ -19,7 +19,7 @@ import java.util.Optional;
 
 public interface ClassroomChangeRequestRepository extends JpaRepository<ClassroomChangeRequest, Long>, JpaSpecificationExecutor<ClassroomChangeRequest> {
     @Override
-    @EntityGraph(attributePaths = {"requester", "classroomOffering", "targetSession", "reviewer"})
+    @EntityGraph(attributePaths = {"requester", "classSection", "targetClassSchedule", "reviewer"})
     Page<ClassroomChangeRequest> findAll(Specification<ClassroomChangeRequest> specification, Pageable pageable);
 
     long countByRequesterId(Long requesterId);
@@ -35,8 +35,8 @@ public interface ClassroomChangeRequestRepository extends JpaRepository<Classroo
 
     List<ClassroomChangeRequest> findByRequesterIdOrderByCreatedAtDesc(Long requesterId);
 
-    Optional<ClassroomChangeRequest> findByTargetSessionIdAndRequestTypeAndStatus(
-            Long targetSessionId,
+    Optional<ClassroomChangeRequest> findByTargetClassScheduleIdAndRequestTypeAndStatus(
+            Long targetClassScheduleId,
             ClassroomChangeRequestType requestType,
             ClassroomChangeRequestStatus status
     );

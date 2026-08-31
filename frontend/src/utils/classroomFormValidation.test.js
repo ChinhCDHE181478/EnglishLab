@@ -13,7 +13,7 @@ const validOffering = {
   classroomStatus: 'UPCOMING',
   primaryTeacherId: '3',
   deliveryMode: 'OFFLINE',
-  defaultRoomId: '2',
+  roomId: '2',
   offlineAddress: '',
 };
 
@@ -42,7 +42,7 @@ describe('classroom form validation', () => {
   it('requires offline operational classes to have a room', () => {
     expect(validateClassroomOfferingForm({
       ...validOffering,
-      defaultRoomId: '',
+      roomId: '',
     })).toBe('Lớp học trực tiếp phải có phòng học.');
   });
 

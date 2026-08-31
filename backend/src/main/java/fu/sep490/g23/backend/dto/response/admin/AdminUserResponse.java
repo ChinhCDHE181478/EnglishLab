@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.response.admin;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -14,7 +13,7 @@ public class AdminUserResponse {
     private String fullName;
     private String email;
     private String phoneNumber;
-    private Set<RoleEnum> roles;
+    private Set<String> roles;
     private boolean profileCompleted;
     private boolean emailVerified;
     private boolean enabled;

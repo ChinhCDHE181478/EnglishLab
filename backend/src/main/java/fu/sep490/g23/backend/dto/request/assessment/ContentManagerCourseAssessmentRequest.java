@@ -23,6 +23,7 @@ public class ContentManagerCourseAssessmentRequest {
 
     private Long id;
     private Long moduleId;
+    private Long lessonId;
     private Long rubricId;
     private Long assessmentBankItemId;
 

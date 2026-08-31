@@ -15,7 +15,6 @@ public class RecommendedTrainingProgramResponse {
     private String slug;
     private String title;
     private ClassroomDeliveryMode deliveryMode;
-    private String thumbnailUrl;
     private String shortDescription;
     private PlacementLevel entryPlacementLevel;
     private String examCategory;

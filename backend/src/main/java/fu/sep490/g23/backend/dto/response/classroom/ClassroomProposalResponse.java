@@ -27,7 +27,7 @@ public class ClassroomProposalResponse {
     private Integer learnerCount;
     private Map<PlacementLevel, Long> levelDistribution;
     private LocalDate plannedStartDate;
-    private LocalDate plannedEndDate;
+    private LocalDate endDate;
     private List<DayOfWeek> weekdays;
     private LocalTime sessionStartTime;
     private LocalTime sessionEndTime;
@@ -49,6 +49,7 @@ public class ClassroomProposalResponse {
     private LocalDateTime reviewedAt;
     private String reviewNote;
     private Long approvedClassroomId;
+    private List<ClassroomProposalScheduleItemResponse> scheduleItems;
     private List<ClassroomProposalMemberResponse> members;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

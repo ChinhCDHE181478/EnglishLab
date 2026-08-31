@@ -50,5 +50,4 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
             """)
     List<PaymentMonthlyRevenueProjection> summarizeMonthlyRevenue(@Param("status") PaymentOrderStatus status);
 
-    boolean existsByEnrollmentIdAndStatusIn(Long enrollmentId, Collection<PaymentOrderStatus> statuses);
 }

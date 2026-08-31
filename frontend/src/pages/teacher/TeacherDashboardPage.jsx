@@ -330,7 +330,7 @@ export default function TeacherDashboardPage() {
                                 <Users className="h-4 w-4" />
                               </div>
                               <span>
-                                Sĩ số: <strong className="text-[#2b2828]">{classroom.enrolledCount ?? 0} / {classroom.maxCapacity ?? '—'} học viên</strong>
+                                Sĩ số: <strong className="text-[#2b2828]">{classroom.enrolledCount ?? 0} học viên</strong>
                               </span>
                             </div>
 
@@ -344,14 +344,14 @@ export default function TeacherDashboardPage() {
                             </div>
                           </div>
 
-                          {isVirtual && classroom.larkMeetingUrl && (
+                          {isVirtual && classroom.googleMeetUrl && (
                             <div className="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50/50 p-4 text-xs text-sky-800">
                               <span className="font-bold flex items-center gap-1">
                                 <Video className="h-4 w-4 text-sky-700" /> Liên kết Google Meet
                               </span>
                               <a
                                 className="font-extrabold text-purple-900 underline flex items-center gap-1"
-                                href={classroom.larkMeetingUrl}
+                                href={classroom.googleMeetUrl}
                                 rel="noreferrer"
                                 target="_blank"
                               >

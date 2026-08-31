@@ -181,7 +181,7 @@ export const formatAttendanceStatus = (status) => {
 };
 
 export const getClassroomSessionTitle = (session, fallback = 'Nội dung buổi học đang cập nhật') =>
-  session?.sessionPlanTitle || session?.sessionContent || fallback;
+  session?.courseLessonTitle || session?.sessionPlanTitle || session?.sessionContent || fallback;
 
 export const getClassroomSessionNumber = (session, legacyNumber = null) =>
   session?.sessionNumber ?? legacyNumber;
@@ -252,7 +252,7 @@ export const isGradebookPassed = (value) => {
   return upper === 'PASSED' || text === 'ĐẠT' || upper.includes('PASS');
 };
 
-export const openLarkMeeting = (url) => {
+export const openGoogleMeet = (url) => {
   if (!url) {
     return { ok: false, message: 'Chưa có liên kết Google Meet cho buổi học này.' };
   }

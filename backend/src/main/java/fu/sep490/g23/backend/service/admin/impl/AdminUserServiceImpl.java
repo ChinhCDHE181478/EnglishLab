@@ -6,7 +6,7 @@ import fu.sep490.g23.backend.dto.response.admin.AdminUserResponse;
 import fu.sep490.g23.backend.dto.response.admin.AdminDashboardResponse;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.service.admin.AdminUserService;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -41,15 +42,16 @@ public class AdminUserServiceImpl implements AdminUserService {
         var users = userRepository.findAll();
         return AdminDashboardResponse.builder()
                 .totalUsers(users.size())
-                .learners(users.stream().filter(user -> user.hasRole(RoleEnum.LEARNER)).count())
-                .teachers(users.stream().filter(user -> user.hasRole(RoleEnum.TEACHER)).count())
-                .staffAndAdmins(users.stream().filter(user -> user.getRoleCodes().stream().anyMatch(role -> role != RoleEnum.LEARNER && role != RoleEnum.TEACHER)).count())
+                .learners(users.stream().filter(user -> user.hasRole(RoleCodes.LEARNER)).count())
+                .teachers(users.stream().filter(user -> user.hasRole(RoleCodes.TEACHER)).count())
+                .staffAndAdmins(users.stream().filter(user -> user.getRoleCodes().stream()
+                        .anyMatch(role -> !RoleCodes.LEARNER.equals(role) && !RoleCodes.TEACHER.equals(role))).count())
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AdminUserResponse> getUsers(String keyword, RoleEnum role, Pageable pageable) {
+    public Page<AdminUserResponse> getUsers(String keyword, String role, Pageable pageable) {
         Specification<User> specification = (root, query, cb) -> cb.conjunction();
         if (keyword != null && !keyword.isBlank()) {
             String pattern = "%" + keyword.trim().toLowerCase() + "%";
@@ -61,7 +63,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (role != null) {
             specification = specification.and((root, query, cb) -> {
                 query.distinct(true);
-                return cb.equal(root.join("roles").get("code"), role);
+                return cb.equal(root.join("roles").get("code"), role.trim().toUpperCase(Locale.ROOT));
             });
         }
         return userRepository.findAll(specification, pageable).map(this::toResponse);
@@ -72,8 +74,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         requireAdmin(requesterEmail);
         String email = request.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) throw new IllegalArgumentException("Email đã được sử dụng.");
-        Set<RoleEnum> roles = rolesOrLearner(request.getRoles());
-        boolean teacher = roles.contains(RoleEnum.TEACHER);
+        Set<String> roles = rolesOrLearner(request.getRoles());
+        boolean teacher = roles.contains(RoleCodes.TEACHER);
         if (!teacher && (request.getPassword() == null || request.getPassword().isBlank())) {
             throw new IllegalArgumentException("Mật khẩu là bắt buộc khi tạo người dùng.");
         }
@@ -102,7 +104,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public AdminUserResponse updateUser(Long id, UpsertAdminUserRequest request, String requesterEmail) {
         requireAdmin(requesterEmail);
         User user = findUser(id);
-        boolean wasTeacher = user.hasRole(RoleEnum.TEACHER);
+        boolean wasTeacher = user.hasRole(RoleCodes.TEACHER);
         String email = request.getEmail().trim().toLowerCase();
         userRepository.findByEmail(email).filter(existing -> !existing.getId().equals(id)).ifPresent(existing -> { throw new IllegalArgumentException("Email đã được sử dụng."); });
         user.setFullName(request.getFullName().trim());
@@ -120,7 +122,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public AdminUserResponse updateRoles(Long id, UpdateUserRolesRequest request, String requesterEmail) {
         requireAdmin(requesterEmail);
         User user = findUser(id);
-        boolean wasTeacher = user.hasRole(RoleEnum.TEACHER);
+        boolean wasTeacher = user.hasRole(RoleCodes.TEACHER);
         userRoleService.replaceRoles(user, request.getRoles());
         User saved = userRepository.save(user);
         notifyWhenTeacherRoleIsAdded(saved, wasTeacher);
@@ -143,7 +145,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public void resendTeacherOnboardingEmail(Long id, String requesterEmail) {
         requireAdmin(requesterEmail);
         User teacher = findUser(id);
-        if (!teacher.hasRole(RoleEnum.TEACHER)) {
+        if (!teacher.hasRole(RoleCodes.TEACHER)) {
             throw new IllegalArgumentException("Người dùng này không có vai trò giáo viên.");
         }
         var setupToken = authTokenService.issuePasswordResetToken(teacher);
@@ -159,15 +161,17 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private User requireAdmin(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy quản trị viên."));
-        if (!user.hasRole(RoleEnum.ADMIN)) throw new SecurityException("Chỉ ADMIN được quản lý người dùng.");
+        if (!user.hasRole(RoleCodes.ADMIN)) throw new SecurityException("Chỉ ADMIN được quản lý người dùng.");
         return user;
     }
 
     private User findUser(Long id) { return userRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng.")); }
-    private Set<RoleEnum> rolesOrLearner(Set<RoleEnum> roles) { return roles == null || roles.isEmpty() ? Set.of(RoleEnum.LEARNER) : roles; }
+    private Set<String> rolesOrLearner(Set<String> roles) {
+        return roles == null || roles.isEmpty() ? Set.of(RoleCodes.LEARNER) : roles;
+    }
     private String trimToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
     private void notifyWhenTeacherRoleIsAdded(User user, boolean wasTeacher) {
-        if (!wasTeacher && user.hasRole(RoleEnum.TEACHER)) {
+        if (!wasTeacher && user.hasRole(RoleCodes.TEACHER)) {
             authMailService.sendTeacherGoogleMeetInvitation(user);
         }
     }

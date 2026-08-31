@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
-import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
@@ -48,6 +47,8 @@ public interface ClassroomOfferingService {
     ClassroomOfferingResponse createOffering(CreateClassroomOfferingRequest request, String creatorEmail);
 
     ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail);
+
+    ClassroomOfferingResponse updatePrelaunchPlan(Long id, UpdateClassroomPlanRequest request, String actorEmail);
 
     ClassroomOfferingResponse closeOffering(Long id, String actorEmail);
 
@@ -105,13 +106,13 @@ public interface ClassroomOfferingService {
 
     List<ClassroomEnrollmentResponse> listRegistrations(
             ClassroomRegistrationStatus status,
-            Long classroomOfferingId,
+            Long classSectionId,
             Boolean needsAction,
             Boolean settlementPending
     );
 
     List<ClassroomEnrollmentResponse> reorderWaitlist(
-            Long classroomOfferingId,
+            Long classSectionId,
             ReorderWaitlistRequest request,
             String actorEmail
     );
@@ -137,8 +138,6 @@ public interface ClassroomOfferingService {
     ClassroomSessionResponse joinVirtualClass(Long offeringId, Long sessionId, String learnerEmail);
 
     ClassroomSessionResponse closeVirtualSession(Long sessionId, String actorEmail);
-
-    ClassroomSessionResponse updateSessionLarkLink(Long sessionId, UpdateLarkLinkRequest request);
 
     ConflictCheckResultResponse checkConflict(ConflictCheckRequest request);
 }

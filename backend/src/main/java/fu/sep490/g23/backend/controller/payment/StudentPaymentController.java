@@ -37,7 +37,7 @@ public class StudentPaymentController {
     ) {
         return ResponseEntity.ok(paymentService.createPaymentLink(
                 request.getCourseIds(),
-                request.getClassroomOfferingIds(),
+                request.getClassSectionIds(),
                 request.getLearningPathId(),
                 request.getCouponCode(),
                 authentication.getName()
@@ -51,7 +51,7 @@ public class StudentPaymentController {
     ) {
         return ResponseEntity.ok(paymentService.quotePayment(
                 request.getCourseIds(),
-                request.getClassroomOfferingIds(),
+                request.getClassSectionIds(),
                 request.getLearningPathId(),
                 request.getCouponCode(),
                 authentication.getName()

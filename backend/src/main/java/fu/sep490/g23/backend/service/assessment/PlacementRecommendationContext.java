@@ -8,6 +8,7 @@ import lombok.Value;
 import java.math.BigDecimal;
 import java.util.Set;
 
+/** Input bag passed to course / program / learning-path recommenders. */
 @Value
 @Builder
 public class PlacementRecommendationContext {

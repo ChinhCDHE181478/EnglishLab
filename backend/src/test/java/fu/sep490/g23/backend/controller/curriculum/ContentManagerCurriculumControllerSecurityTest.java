@@ -1,10 +1,10 @@
 package fu.sep490.g23.backend.controller.curriculum;
 
 import fu.sep490.g23.backend.config.SecurityConfig;
-import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CourseLessonResponse;
 import fu.sep490.g23.backend.security.CustomUserDetailsService;
 import fu.sep490.g23.backend.security.JwtAuthenticationFilter;
-import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import fu.sep490.g23.backend.service.admin.ApiMonitoringService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletRequest;
@@ -28,15 +28,15 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ContentManagerCurriculumController.class)
+@WebMvcTest(ContentManagerInstructorLedCourseController.class)
 @Import(SecurityConfig.class)
-class ContentManagerCurriculumControllerSecurityTest {
+class ContentManagerInstructorLedCourseControllerSecurityTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private CurriculumProgramService curriculumProgramService;
+    private InstructorLedCourseManagementService instructorLedCourseManagementService;
 
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -59,20 +59,20 @@ class ContentManagerCurriculumControllerSecurityTest {
     }
 
     @Test
-    void staffCannotCreateCurriculumSessionPlan() throws Exception {
+    void staffCannotCreateCourseLesson() throws Exception {
         mockMvc.perform(post("/api/content-manager/curriculum-units/10/session-plans")
                         .with(user("staff@englishlab.vn").roles("STAFF"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validPayload()))
                 .andExpect(status().isForbidden());
 
-        verifyNoInteractions(curriculumProgramService);
+        verifyNoInteractions(instructorLedCourseManagementService);
     }
 
     @Test
-    void contentManagerCanCreateCurriculumSessionPlan() throws Exception {
-        when(curriculumProgramService.createSessionPlan(any(), any()))
-                .thenReturn(CurriculumSessionPlanResponse.builder()
+    void contentManagerCanCreateCourseLesson() throws Exception {
+        when(instructorLedCourseManagementService.createSessionPlan(any(), any()))
+                .thenReturn(CourseLessonResponse.builder()
                         .id(101L)
                         .unitId(10L)
                         .programId(1L)
@@ -89,7 +89,7 @@ class ContentManagerCurriculumControllerSecurityTest {
                 .andExpect(jsonPath("$.id").value(101L))
                 .andExpect(jsonPath("$.sessionNumber").value(1));
 
-        verify(curriculumProgramService).createSessionPlan(any(), any());
+        verify(instructorLedCourseManagementService).createSessionPlan(any(), any());
     }
 
     private String validPayload() {

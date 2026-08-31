@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.request.admin;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,5 +10,5 @@ import java.util.Set;
 @Setter
 public class UpdateUserRolesRequest {
     @NotEmpty(message = "Người dùng phải có ít nhất một vai trò.")
-    private Set<RoleEnum> roles;
+    private Set<String> roles;
 }

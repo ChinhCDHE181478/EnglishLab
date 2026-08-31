@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.request.admin;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -20,5 +19,5 @@ public class UpsertAdminUserRequest {
     private String phoneNumber;
     @Size(min = 6, max = 100)
     private String password;
-    private Set<RoleEnum> roles;
+    private Set<String> roles;
 }

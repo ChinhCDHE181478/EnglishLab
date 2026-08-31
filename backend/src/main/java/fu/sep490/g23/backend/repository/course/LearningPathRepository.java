@@ -15,8 +15,8 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, Long
     Optional<LearningPath> findByCodeIgnoreCase(String code);
 
     @Query(
-            value = "select distinct path from LearningPath path join path.courseRefs ref join ref.onlineCourse course join course.learningPackage packageEntity where packageEntity.status = fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED and packageEntity.deleted = false",
-            countQuery = "select count(distinct path.id) from LearningPath path join path.courseRefs ref join ref.onlineCourse course join course.learningPackage packageEntity where packageEntity.status = fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED and packageEntity.deleted = false"
+            value = "select distinct path from LearningPath path join path.courseRefs ref join ref.onlineCourse course where course.status = fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED and course.deleted = false",
+            countQuery = "select count(distinct path.id) from LearningPath path join path.courseRefs ref join ref.onlineCourse course where course.status = fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED and course.deleted = false"
     )
     Page<LearningPath> findPublicPaths(Pageable pageable);
 }

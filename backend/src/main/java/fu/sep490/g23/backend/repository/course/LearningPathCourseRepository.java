@@ -9,10 +9,10 @@ import java.util.List;
 
 @Repository
 public interface LearningPathCourseRepository extends JpaRepository<LearningPathCourse, Long> {
-    @EntityGraph(attributePaths = {"onlineCourse", "onlineCourse.learningPackage"})
+    @EntityGraph(attributePaths = {"onlineCourse"})
     List<LearningPathCourse> findByLearningPathIdOrderByDisplayOrderAscIdAsc(Long learningPathId);
 
-    @EntityGraph(attributePaths = {"learningPath", "onlineCourse", "onlineCourse.learningPackage"})
+    @EntityGraph(attributePaths = {"learningPath", "onlineCourse"})
     List<LearningPathCourse> findAllByOrderByLearningPathCodeAscDisplayOrderAscIdAsc();
 
     boolean existsByLearningPathIdAndOnlineCourseId(Long learningPathId, Long onlineCourseId);

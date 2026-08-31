@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
 import fu.sep490.g23.backend.dto.request.course.CourseReviewRequest;
 import fu.sep490.g23.backend.dto.response.course.CourseRatingResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
@@ -38,13 +38,26 @@ public class StudentOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.registerCourse(courseId, authentication.getName()));
     }
 
+    /**
+     * Retrieves the detailed content of an online course that the current user is enrolled in.
+     *
+     * @param courseId       the ID of the course
+     * @param authentication current user's authentication info
+     * @return Detailed information about the enrolled course
+     */
     @GetMapping("/{courseId}/content")
     public ResponseEntity<OnlineCourseResponse> getEnrolledCourse(@PathVariable Long courseId, Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.getEnrolledCourse(courseId, authentication.getName()));
     }
 
+    /**
+     * Retrieves the current user's enrolled online courses.
+     *
+     * @param authentication current user's authentication info
+     * @return List of enrolled courses with progress
+     */
     @GetMapping({"/my-enrollments", "/my-courses"})
-    public ResponseEntity<List<PackageEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
+    public ResponseEntity<List<OnlineCourseEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));
     }
 
@@ -83,8 +96,18 @@ public class StudentOnlineCourseController {
         return ResponseEntity.ok(courseReviewService.saveRating(courseId, request, authentication.getName()));
     }
 
+    /**
+     * Updates the progress of a specific lesson in a course for the authenticated user.
+     * This endpoint marks the lesson as completed or in progress.
+     *
+     * @param courseId       the ID of the course
+     * @param lessonId       the ID of the lesson to update
+     * @param completed      true to mark as completed, false to mark as in progress (defaults to true)
+     * @param authentication current user's authentication info
+     * @return Updated course enrollment information reflecting the new progress
+     */
     @PatchMapping("/{courseId}/lessons/{lessonId}/progress")
-    public ResponseEntity<PackageEnrollmentResponse> updateLessonProgress(
+    public ResponseEntity<OnlineCourseEnrollmentResponse> updateLessonProgress(
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
             @RequestParam(defaultValue = "true") boolean completed,

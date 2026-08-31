@@ -1,9 +1,9 @@
 package fu.sep490.g23.backend.controller.course;
 
-import fu.sep490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
-import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
+import fu.sep490.g23.backend.dto.request.course.UpdateOnlineCourseEnrollmentRequest;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentAdminResponse;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sep490.g23.backend.service.course.PackageEnrollmentAdminService;
+import fu.sep490.g23.backend.service.course.OnlineCourseEnrollmentAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +20,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ManagerEnrollmentController {
 
-    private final PackageEnrollmentAdminService enrollmentAdminService;
+    private final OnlineCourseEnrollmentAdminService enrollmentAdminService;
 
     @GetMapping
-    public ResponseEntity<List<PackageEnrollmentAdminResponse>> listEnrollments(
+    public ResponseEntity<List<OnlineCourseEnrollmentAdminResponse>> listEnrollments(
             @RequestParam(required = false) EnrollmentStatus status,
             @RequestParam(required = false) String keyword
     ) {
@@ -31,7 +31,7 @@ public class ManagerEnrollmentController {
     }
 
     @GetMapping("/page")
-    public ResponseEntity<Page<PackageEnrollmentAdminResponse>> pageEnrollments(
+    public ResponseEntity<Page<OnlineCourseEnrollmentAdminResponse>> pageEnrollments(
             @RequestParam(required = false) EnrollmentStatus status,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -45,9 +45,9 @@ public class ManagerEnrollmentController {
     }
 
     @PutMapping("/{enrollmentId}")
-    public ResponseEntity<PackageEnrollmentAdminResponse> updateEnrollment(
+    public ResponseEntity<OnlineCourseEnrollmentAdminResponse> updateEnrollment(
             @PathVariable Long enrollmentId,
-            @Valid @RequestBody UpdatePackageEnrollmentRequest request,
+            @Valid @RequestBody UpdateOnlineCourseEnrollmentRequest request,
             Authentication authentication
     ) {
         return ResponseEntity.ok(enrollmentAdminService.updateEnrollment(enrollmentId, request, authentication.getName()));

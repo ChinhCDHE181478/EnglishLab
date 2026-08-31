@@ -10,6 +10,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,6 +24,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentStorageService {
+    private static final String PUBLIC_ATTACHMENT_PATH = "/api/classroom-homework/attachments/";
     private static final long MAX_FILE_SIZE_BYTES = 20L * 1024 * 1024;
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "zip", "rar",
@@ -139,6 +143,36 @@ public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentS
     }
 
     @Override
+    public Optional<StoredHomeworkAttachment> loadStoredAttachmentFromUrl(String attachmentUrl) {
+        String fileName = extractStoredFileName(attachmentUrl);
+        if (fileName == null) {
+            return Optional.empty();
+        }
+
+        Path target;
+        try {
+            target = resolveStoredFile(fileName);
+        } catch (IllegalArgumentException exception) {
+            return Optional.empty();
+        }
+        if (!Files.isRegularFile(target)) {
+            return Optional.empty();
+        }
+
+        try {
+            byte[] bytes = Files.readAllBytes(target);
+            return Optional.of(new StoredHomeworkAttachment(
+                    fileName,
+                    audioContentType(fileName, contentType(fileName)),
+                    bytes.length,
+                    bytes
+            ));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Không thể đọc tệp đính kèm để chấm bài.", exception);
+        }
+    }
+
+    @Override
     public List<String> findStoredFileNamesOlderThan(Duration minimumAge) {
         Instant cutoff = Instant.now().minus(minimumAge == null ? Duration.ofHours(24) : minimumAge);
         List<String> result = new ArrayList<>();
@@ -184,6 +218,35 @@ public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentS
             throw new IllegalArgumentException("Tên tệp đính kèm không hợp lệ.");
         }
         return target;
+    }
+
+    private String extractStoredFileName(String attachmentUrl) {
+        String value = String.valueOf(attachmentUrl == null ? "" : attachmentUrl).trim();
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            String path = new URI(value).getPath();
+            int markerIndex = path == null ? -1 : path.indexOf(PUBLIC_ATTACHMENT_PATH);
+            if (markerIndex < 0) {
+                return null;
+            }
+            String fileName = path.substring(markerIndex + PUBLIC_ATTACHMENT_PATH.length());
+            return fileName.startsWith("homework-") && !fileName.contains("/") ? fileName : null;
+        } catch (URISyntaxException exception) {
+            return null;
+        }
+    }
+
+    private String audioContentType(String fileName, String detectedType) {
+        String extension = StringUtils.getFilenameExtension(fileName);
+        return switch (extension == null ? "" : extension.toLowerCase(Locale.ROOT)) {
+            case "mp3" -> "audio/mpeg";
+            case "m4a", "mp4" -> "audio/mp4";
+            case "wav" -> "audio/wav";
+            case "webm" -> "audio/webm";
+            default -> detectedType;
+        };
     }
 
     private long calculateStoredBytes() throws IOException {

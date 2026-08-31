@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.controller.classroom;
 
 import fu.sep490.g23.backend.dto.request.classroom.UpdateRecordingRequest;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
 import fu.sep490.g23.backend.service.classroom.ClassroomRecordingService;
 import jakarta.validation.Valid;
@@ -23,14 +22,6 @@ public class StaffRecordingController {
         return ResponseEntity.ok(recordingService.listManagerSessions(offeringId));
     }
 
-    @PutMapping("/classrooms/{offeringId}")
-    public ResponseEntity<ClassroomOfferingResponse> updateOfferingRecording(
-            @PathVariable Long offeringId,
-            @Valid @RequestBody UpdateRecordingRequest request
-    ) {
-        return ResponseEntity.ok(recordingService.updateOfferingRecording(offeringId, request));
-    }
-
     @PutMapping("/sessions/{sessionId}")
     public ResponseEntity<ClassroomSessionResponse> updateSessionRecording(
             @PathVariable Long sessionId,
@@ -39,7 +30,7 @@ public class StaffRecordingController {
         return ResponseEntity.ok(recordingService.updateSessionRecording(sessionId, request));
     }
 
-    @PostMapping({"/sessions/{sessionId}/sync", "/sessions/{sessionId}/sync-lark"})
+    @PostMapping("/sessions/{sessionId}/sync")
     public ResponseEntity<ClassroomSessionResponse> syncRecording(@PathVariable Long sessionId) {
         return ResponseEntity.ok(recordingService.syncRecording(sessionId));
     }

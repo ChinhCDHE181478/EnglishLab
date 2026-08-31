@@ -25,7 +25,7 @@ import {
   ClassroomEmptyState,
   ClassroomErrorState,
   ClassroomLoadingState,
-  LarkJoinButton,
+  GoogleMeetJoinButton,
   PageHero,
   StatusBadge,
   ClassroomTypeBadge,
@@ -54,7 +54,7 @@ export default function TeacherSessionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
-  const [larkMessage, setLarkMessage] = useState('');
+  const [meetMessage, setMeetMessage] = useState('');
   const [sessionMeta, setSessionMeta] = useState(null);
   const [records, setRecords] = useState({});
 
@@ -105,14 +105,14 @@ export default function TeacherSessionPage() {
 
   const handleOpenSession = () => {
     setActionMessage('');
-    setLarkMessage('');
-    if (!sessionMeta?.larkMeetingUrl) {
+    setMeetMessage('');
+    if (!sessionMeta?.googleMeetUrl) {
       setActionMessage('Staff chưa tạo liên kết Google Meet cho buổi học này.');
       return;
     }
-    const roomWindow = window.open(sessionMeta.larkMeetingUrl, '_blank', 'noopener,noreferrer');
+    const roomWindow = window.open(sessionMeta.googleMeetUrl, '_blank', 'noopener,noreferrer');
     if (!roomWindow) {
-      setLarkMessage('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup cho EnglishLab rồi thử lại.');
+      setMeetMessage('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup cho EnglishLab rồi thử lại.');
     }
   };
 
@@ -318,7 +318,7 @@ export default function TeacherSessionPage() {
               </div>
             ) : null}
 
-            {/* Virtual Meeting Operations (Lark) */}
+            {/* Google Meet operations */}
             {sessionMeta?.deliveryMode === 'VIRTUAL' && (
               <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 md:p-8 space-y-5">
                 <div className="flex items-start gap-3">
@@ -332,7 +332,7 @@ export default function TeacherSessionPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 pt-2">
-                  {sessionMeta?.larkMeetingUrl ? (
+                  {sessionMeta?.googleMeetUrl ? (
                     <button
                       className="inline-flex items-center gap-1.5 rounded-xl bg-[#8a0018] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#650011] active:scale-95"
                       onClick={handleOpenSession}
@@ -356,25 +356,25 @@ export default function TeacherSessionPage() {
                   </button>
                 </div>
 
-                {sessionMeta?.larkSyncError ? (
+                {sessionMeta?.googleMeetSyncError ? (
                   <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
                     <p className="font-extrabold">Chưa thể mở phòng học tự động</p>
-                    <p className="mt-1 leading-6">{sessionMeta.larkSyncError}</p>
+                    <p className="mt-1 leading-6">{sessionMeta.googleMeetSyncError}</p>
                     <p className="mt-2 text-xs font-semibold">Staff cần xử lý liên kết Google Meet trước khi giáo viên vào phòng.</p>
                   </div>
                 ) : null}
 
-                {sessionMeta?.larkMeetingUrl && (
+                {sessionMeta?.googleMeetUrl && (
                   <div className="rounded-2xl border border-[#ead0d2] bg-[#fffafb] p-4">
-                    <LarkJoinButton
+                    <GoogleMeetJoinButton
                       label="Vào phòng học"
-                      onBlocked={setLarkMessage}
+                      onBlocked={setMeetMessage}
                       onClick={handleOpenSession}
-                      url={sessionMeta.larkMeetingUrl}
+                      url={sessionMeta.googleMeetUrl}
                     />
                   </div>
                 )}
-                {larkMessage ? <p className="text-sm font-semibold text-[#93000a]">{larkMessage}</p> : null}
+                {meetMessage ? <p className="text-sm font-semibold text-[#93000a]">{meetMessage}</p> : null}
 
               </section>
             )}

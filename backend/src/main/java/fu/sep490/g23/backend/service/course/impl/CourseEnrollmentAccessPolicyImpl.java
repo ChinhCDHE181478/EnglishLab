@@ -2,11 +2,11 @@ package fu.sep490.g23.backend.service.course.impl;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.exception.EnrollmentAccessException;
 import fu.sep490.g23.backend.exception.EnrollmentErrorCode;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,21 +20,21 @@ public class CourseEnrollmentAccessPolicyImpl implements CourseEnrollmentAccessP
     static final String CANCELLED_MESSAGE = "Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục.";
     static final String INVALID_STATUS_MESSAGE = "Không thể xác định trạng thái đăng ký. Vui lòng đăng ký lại khóa học.";
 
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
 
     @Override
-    public boolean hasLearningAccess(PackageEnrollment enrollment) {
+    public boolean hasLearningAccess(OnlineCourseEnrollment enrollment) {
         return hasActiveEnrollmentStatus(enrollment);
     }
 
     @Override
-    public boolean hasAssessmentAccess(PackageEnrollment enrollment) {
+    public boolean hasAssessmentAccess(OnlineCourseEnrollment enrollment) {
         return hasActiveEnrollmentStatus(enrollment);
     }
 
     @Override
-    public PackageEnrollment requireLearningAccess(User student, OnlineCourse course) {
-        PackageEnrollment enrollment = findEnrollment(
+    public OnlineCourseEnrollment requireLearningAccess(User student, OnlineCourse course) {
+        OnlineCourseEnrollment enrollment = findEnrollment(
                 student,
                 course,
                 "Bạn cần đăng ký khóa học trước khi xem nội dung."
@@ -44,8 +44,8 @@ public class CourseEnrollmentAccessPolicyImpl implements CourseEnrollmentAccessP
     }
 
     @Override
-    public PackageEnrollment requireAssessmentAccess(User student, OnlineCourse course) {
-        PackageEnrollment enrollment = findEnrollment(
+    public OnlineCourseEnrollment requireAssessmentAccess(User student, OnlineCourse course) {
+        OnlineCourseEnrollment enrollment = findEnrollment(
                 student,
                 course,
                 "Bạn cần đăng ký khóa học trước khi làm bài đánh giá."
@@ -55,7 +55,7 @@ public class CourseEnrollmentAccessPolicyImpl implements CourseEnrollmentAccessP
     }
 
     @Override
-    public PackageEnrollment reactivateCancelledEnrollment(PackageEnrollment enrollment) {
+    public OnlineCourseEnrollment reactivateCancelledEnrollment(OnlineCourseEnrollment enrollment) {
         if (enrollment == null || enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
             return enrollment;
         }
@@ -64,7 +64,7 @@ public class CourseEnrollmentAccessPolicyImpl implements CourseEnrollmentAccessP
         return enrollmentRepository.save(enrollment);
     }
 
-    private boolean hasActiveEnrollmentStatus(PackageEnrollment enrollment) {
+    private boolean hasActiveEnrollmentStatus(OnlineCourseEnrollment enrollment) {
         if (enrollment == null || enrollment.getStatus() == null) {
             return false;
         }
@@ -72,24 +72,24 @@ public class CourseEnrollmentAccessPolicyImpl implements CourseEnrollmentAccessP
         return status == EnrollmentStatus.ACTIVE || status == EnrollmentStatus.COMPLETED;
     }
 
-    private PackageEnrollment findEnrollment(User student, OnlineCourse course, String missingMessage) {
-        return enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
+    private OnlineCourseEnrollment findEnrollment(User student, OnlineCourse course, String missingMessage) {
+        return enrollmentRepository.findByStudentAndOnlineCourse(student, course)
                 .orElseThrow(() -> new EnrollmentAccessException(EnrollmentErrorCode.NOT_ENROLLED, missingMessage));
     }
 
-    private void ensureLearningAccess(PackageEnrollment enrollment) {
+    private void ensureLearningAccess(OnlineCourseEnrollment enrollment) {
         if (!hasLearningAccess(enrollment)) {
             throw accessDeniedException(enrollment);
         }
     }
 
-    private void ensureAssessmentAccess(PackageEnrollment enrollment) {
+    private void ensureAssessmentAccess(OnlineCourseEnrollment enrollment) {
         if (!hasAssessmentAccess(enrollment)) {
             throw accessDeniedException(enrollment);
         }
     }
 
-    private EnrollmentAccessException accessDeniedException(PackageEnrollment enrollment) {
+    private EnrollmentAccessException accessDeniedException(OnlineCourseEnrollment enrollment) {
         if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
             return new EnrollmentAccessException(EnrollmentErrorCode.ENROLLMENT_CANCELLED, CANCELLED_MESSAGE);
         }

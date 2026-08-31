@@ -5,8 +5,9 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 
 import fu.sep490.g23.backend.entity.assessment.enums.*;
 
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
@@ -32,14 +33,18 @@ public class CourseAssessment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id")
-    private CourseModule module;
+    private OnlineCourseModule module;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rubric_id")
+    @JoinColumn(name = "online_lesson_id")
+    private OnlineLesson onlineLesson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rubric_content_bank_item_id")
     private AssessmentRubric rubric;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assessment_bank_item_id")
+    @JoinColumn(name = "assessment_content_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
 
     /**

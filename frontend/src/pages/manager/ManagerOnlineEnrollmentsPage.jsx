@@ -174,7 +174,7 @@ export default function ManagerOnlineEnrollmentsPage() {
         </div>
       )}
 
-      {!loading && filtered.length > 0 && (
+      {!loading && totalItems > 0 && (
         <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={10} />
       )}
     </div>

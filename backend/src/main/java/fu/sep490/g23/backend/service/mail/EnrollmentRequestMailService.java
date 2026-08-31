@@ -1,10 +1,10 @@
 package fu.sep490.g23.backend.service.mail;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 
 public interface EnrollmentRequestMailService {
-    void sendTestAppointment(EnrollmentRequest request);
+    void sendTestAppointment(CourseRegistrationRequest request);
 
-    void sendClassAssignment(EnrollmentRequest request, ClassroomOffering classroom);
+    void sendClassAssignment(CourseRegistrationRequest request, ClassSection classroom);
 }

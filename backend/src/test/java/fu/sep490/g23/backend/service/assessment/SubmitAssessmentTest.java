@@ -10,15 +10,14 @@ import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.course.CourseProgressService;
@@ -48,7 +47,7 @@ class SubmitAssessmentTest {
     private CourseAssessmentRepository courseAssessmentRepository;
 
     @Mock
-    private PackageEnrollmentRepository enrollmentRepository;
+    private OnlineCourseEnrollmentRepository enrollmentRepository;
 
     @Mock
     private OnlineCourseVersionService onlineCourseVersionService;
@@ -73,8 +72,7 @@ class SubmitAssessmentTest {
 
     private User student;
     private OnlineCourse course;
-    private LearningPackage learningPackage;
-    private PackageEnrollment enrollment;
+    private OnlineCourseEnrollment enrollment;
     private CourseAssessment assessment;
     private AssessmentSubmissionRequest request;
 
@@ -83,16 +81,12 @@ class SubmitAssessmentTest {
         student = new User();
         student.setEmail("student@test.com");
 
-        learningPackage = new LearningPackage();
-        learningPackage.setId(1L);
-
         course = new OnlineCourse();
         course.setId(10L);
-        course.setLearningPackage(learningPackage);
 
-        enrollment = new PackageEnrollment();
+        enrollment = new OnlineCourseEnrollment();
         enrollment.setStudent(student);
-        enrollment.setLearningPackage(learningPackage);
+        enrollment.setOnlineCourse(course);
         enrollment.setStatus(EnrollmentStatus.ACTIVE);
 
         assessment = new CourseAssessment();
@@ -118,7 +112,7 @@ class SubmitAssessmentTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.of(enrollment));
         
         AiEvaluationResult mockAiResult = AiEvaluationResult.builder()
                 .estimatedScore(BigDecimal.valueOf(8.0))
@@ -194,7 +188,7 @@ class SubmitAssessmentTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.empty());
         when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
             AssessmentSubmission saved = invocation.getArgument(0);
             saved.setId(1001L);
@@ -251,7 +245,7 @@ class SubmitAssessmentTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.empty());
         when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
             AssessmentSubmission saved = invocation.getArgument(0);
             saved.setId(1000L);
@@ -268,6 +262,38 @@ class SubmitAssessmentTest {
         assertEquals(AssessmentSkill.LISTENING, assessment.getSkill());
         assertEquals("Snapshot đề Listening đã xuất bản", assessment.getTitle());
         assertNull(assessment.getRubric());
+        verify(aiEvaluationClient, never()).evaluate(anyString());
+    }
+
+    @Test
+    void submitAssessment_VocabularyQuiz_UsesDeterministicAnswerKey() {
+        assessment.setType(AssessmentType.QUIZ);
+        assessment.setSkill(AssessmentSkill.VOCABULARY);
+        assessment.setRubric(null);
+        assessment.setObjectiveAnswerKey("{\"1\":\"A\"}");
+        assessment.setMaxScore(BigDecimal.ONE);
+        request.setSubmittedText(null);
+        request.setObjectiveAnswersJson("{\"responses\":[{\"questionNumber\":\"1\",\"part\":\"part_1\",\"answerType\":\"single_choice\",\"answer\":\"A\"}]}");
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.empty());
+        when(passingThresholdResolver.resolve(assessment)).thenReturn(BigDecimal.ONE);
+        when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
+            AssessmentSubmission saved = invocation.getArgument(0);
+            saved.setId(1002L);
+            return saved;
+        });
+
+        AiAssessmentSubmissionResponse result = aiAssessmentService.submitAssessment(
+                assessment.getId(),
+                request,
+                student.getEmail()
+        );
+
+        assertEquals(0, BigDecimal.ONE.compareTo(result.getAiScore()));
+        assertTrue(result.getAiFeedbackJson().contains("\"correctCount\":1"));
         verify(aiEvaluationClient, never()).evaluate(anyString());
     }
 }

@@ -1,11 +1,9 @@
 package fu.sep490.g23.backend.entity.teacher;
 
-import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -21,24 +19,19 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "user_auxiliary_records")
-@SQLRestriction("record_type = 'teacher_performance_evaluations'")
-public class TeacherPerformanceEvaluation extends DomainRecord {
-    @Override
-    protected String domainRecordType() {
-        return "teacher_performance_evaluations";
-    }
+@Table(name = "teacher_performance_evaluations")
+public class TeacherPerformanceEvaluation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "evaluator_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "evaluator_id", nullable = false)
     private User evaluator;
 
     @Column(name = "period_start", nullable = false)

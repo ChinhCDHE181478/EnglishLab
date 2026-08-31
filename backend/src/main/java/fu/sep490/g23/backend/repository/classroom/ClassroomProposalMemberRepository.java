@@ -1,14 +1,19 @@
 package fu.sep490.g23.backend.repository.classroom;
 
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposalMember;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
+/** Compatibility facade; proposal membership is stored on course_registration_requests. */
+@Repository
+@RequiredArgsConstructor
+public class ClassroomProposalMemberRepository {
+    private final CourseRegistrationRequestRepository requestRepository;
 
-public interface ClassroomProposalMemberRepository extends JpaRepository<ClassroomProposalMember, Long> {
-    boolean existsByEnrollmentRequestIdAndProposalApprovalStatusIn(
-            Long enrollmentRequestId,
-            Collection<ClassroomApprovalStatus> statuses
-    );
+    public ClassroomProposalMember save(ClassroomProposalMember member) {
+        var request = member.getCourseRegistrationRequest();
+        request.setClassroomProposal(member.getProposal());
+        member.setId(requestRepository.save(request).getId());
+        return member;
+    }
 }

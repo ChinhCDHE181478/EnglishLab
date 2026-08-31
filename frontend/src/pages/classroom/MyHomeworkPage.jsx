@@ -195,7 +195,7 @@ export default function MyHomeworkPage() {
       const classroom = await classroomApi.getMyClassroom(item.classroomOfferingId);
       setFlashcardWorkspace({
         homework: item,
-        curriculum: classroom?.curriculumProgram,
+        curriculum: classroom?.instructorLedCourse,
       });
     } catch (err) {
       setActionMessage(getClassroomErrorMessage(err, 'Không thể tải bộ flashcard của lớp học.'));
@@ -376,7 +376,9 @@ export default function MyHomeworkPage() {
         ]));
         await classroomApi.submitStudentQuiz(examHomework.legacyQuizId, JSON.stringify(legacyAnswers));
       } else {
-        const textAnswer = payload?.submittedText || JSON.stringify(objective, null, 2);
+        const textAnswer = examHomework.skill === 'SPEAKING'
+          ? ''
+          : payload?.submittedText || JSON.stringify(objective, null, 2);
         await classroomApi.submitHomework(examHomework.id, {
           textAnswer,
           attachmentUrl: payload?.submittedAudioUrl || '',

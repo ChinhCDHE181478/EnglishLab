@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.request.classroom;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -38,8 +39,7 @@ public class CreateClassroomOfferingRequest {
     private ClassroomOfferingStatus classroomStatus;
     private PackageStatus packageStatus;
 
-    private Long trainingProgramId;
-    private Long curriculumProgramId;
+    private Long instructorLedCourseId;
 
     @Size(max = 120)
     private String entryLevel;
@@ -48,13 +48,13 @@ public class CreateClassroomOfferingRequest {
     private String targetOutcome;
 
     @Min(1)
-    private Integer maxCapacity;
+    private Integer capacity;
 
     private LocalDate startDate;
     private LocalDate endDate;
 
     private Long primaryTeacherId;
-    private Long defaultRoomId;
+    private Long roomId;
 
     @Size(max = 500)
     private String offlineAddress;
@@ -77,9 +77,6 @@ public class CreateClassroomOfferingRequest {
     @DecimalMin(value = "0.0", inclusive = true, message = "Giá ưu đãi không được âm")
     private BigDecimal salePrice;
 
-    @Size(max = 700)
-    private String thumbnailUrl;
-
     @Size(max = 80)
     private String duration;
 
@@ -88,11 +85,6 @@ public class CreateClassroomOfferingRequest {
 
     @Size(max = 80)
     private String targetScore;
-
-    @Min(0)
-    private Integer displayOrder;
-
-    private Boolean featured;
 
     @AssertTrue(message = "Ngày kết thúc phải từ ngày bắt đầu trở đi")
     public boolean isDateRangeValid() {

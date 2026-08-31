@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +31,10 @@ public class LearnerAccountRoleRepairSeeder implements CommandLineRunner {
     }
 
     private void ensureLearnerRoleOnly(User user) {
-        if (user.getRoles().size() == 1 && user.hasRole(RoleEnum.LEARNER)) {
+        if (user.getRoles().size() == 1 && user.hasRole(RoleCodes.LEARNER)) {
             return;
         }
-        userRoleService.replaceRoles(user, RoleEnum.LEARNER);
+        userRoleService.replaceRoles(user, RoleCodes.LEARNER);
         userRepository.save(user);
     }
 

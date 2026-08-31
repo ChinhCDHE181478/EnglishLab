@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.request.admin;
 
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -16,7 +15,7 @@ public class UpsertAdminBroadcastRequest {
     @Size(max = 4000, message = "Nội dung không được vượt quá 4.000 ký tự.")
     private String message;
 
-    private RoleEnum targetRole;
+    private String targetRole;
 
     @Size(max = 500, message = "Đường dẫn hành động không được vượt quá 500 ký tự.")
     private String actionPath;

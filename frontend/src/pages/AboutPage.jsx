@@ -27,7 +27,7 @@ export default function AboutPage() {
     },
     {
       title: 'Lớp học Virtual & Tại cơ sở',
-      description: 'Hỗ trợ hai hình thức học linh hoạt: Lớp học trực tuyến Virtual (tham gia dễ dàng qua Lark / Google Meet) và lớp học trực tiếp tại cơ sở với lịch học đồng bộ.',
+      description: 'Hỗ trợ hai hình thức học linh hoạt: lớp học trực tuyến qua Google Meet và lớp học trực tiếp tại cơ sở với lịch học đồng bộ.',
       icon: Video,
       badge: 'Linh hoạt thời gian',
     },

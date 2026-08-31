@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.service.course;
 
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.VocabularyProgress;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
@@ -50,7 +49,6 @@ class OnlineCourseVocabularyProgressTest {
         User learner = User.builder().id(9L).email(EMAIL).build();
         OnlineCourse course = OnlineCourse.builder()
                 .id(6L)
-                .learningPackage(LearningPackage.builder().deleted(false).build())
                 .build();
         VocabularyTermResponse term = VocabularyTermResponse.builder()
                 .courseId(6L)

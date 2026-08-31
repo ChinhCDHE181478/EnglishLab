@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ClassroomAnnouncementRepository extends JpaRepository<ClassroomAnnouncement, Long> {
-    List<ClassroomAnnouncement> findByClassroomOfferingIdOrderByCreatedAtDesc(Long classroomOfferingId);
+    List<ClassroomAnnouncement> findByClassSectionIdOrderByCreatedAtDesc(Long classSectionId);
 }

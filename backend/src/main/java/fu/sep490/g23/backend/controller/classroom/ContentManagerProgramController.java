@@ -1,14 +1,14 @@
 package fu.sep490.g23.backend.controller.classroom;
 
 import fu.sep490.g23.backend.dto.request.classroom.CenterMaterialLibraryUpsertRequest;
-import fu.sep490.g23.backend.dto.request.classroom.TrainingProgramRequest;
+import fu.sep490.g23.backend.dto.request.classroom.InstructorLedCourseRequest;
 import fu.sep490.g23.backend.dto.response.classroom.CenterMaterialLibraryItemResponse;
 import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
-import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sep490.g23.backend.dto.response.classroom.InstructorLedCourseResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.service.classroom.CenterMaterialLibraryService;
 import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
-import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.service.classroom.InstructorLedCourseCatalogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -38,51 +38,51 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ContentManagerProgramController {
 
-    private final TrainingProgramService trainingProgramService;
+    private final InstructorLedCourseCatalogService instructorLedCourseCatalogService;
     private final CenterMaterialLibraryService centerMaterialLibraryService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
 
     @GetMapping("/training-programs")
-    public ResponseEntity<List<TrainingProgramResponse>> listTrainingPrograms(
+    public ResponseEntity<List<InstructorLedCourseResponse>> listInstructorLedCourses(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryType,
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
         if (deliveryType != null && deliveryMode != null && deliveryType != deliveryMode) {
             throw new IllegalArgumentException("deliveryType và deliveryMode không được mâu thuẫn.");
         }
-        return ResponseEntity.ok(trainingProgramService.listPrograms(
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPrograms(
                 deliveryType != null ? deliveryType : deliveryMode
         ));
     }
 
     @GetMapping("/training-programs/{id}")
-    public ResponseEntity<TrainingProgramResponse> getTrainingProgram(@PathVariable Long id) {
-        return ResponseEntity.ok(trainingProgramService.getProgram(id));
+    public ResponseEntity<InstructorLedCourseResponse> getInstructorLedCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(instructorLedCourseCatalogService.getProgram(id));
     }
 
     @PostMapping("/training-programs")
-    public ResponseEntity<TrainingProgramResponse> createTrainingProgram(
-            @Valid @RequestBody TrainingProgramRequest request
+    public ResponseEntity<InstructorLedCourseResponse> createInstructorLedCourse(
+            @Valid @RequestBody InstructorLedCourseRequest request
     ) {
-        return ResponseEntity.ok(trainingProgramService.createProgram(request));
+        return ResponseEntity.ok(instructorLedCourseCatalogService.createProgram(request));
     }
 
     @PutMapping("/training-programs/{id}")
-    public ResponseEntity<TrainingProgramResponse> updateTrainingProgram(
+    public ResponseEntity<InstructorLedCourseResponse> updateInstructorLedCourse(
             @PathVariable Long id,
-            @Valid @RequestBody TrainingProgramRequest request
+            @Valid @RequestBody InstructorLedCourseRequest request
     ) {
-        return ResponseEntity.ok(trainingProgramService.updateProgram(id, request));
+        return ResponseEntity.ok(instructorLedCourseCatalogService.updateProgram(id, request));
     }
 
     @PostMapping("/training-programs/{id}/clone")
-    public ResponseEntity<TrainingProgramResponse> cloneTrainingProgram(@PathVariable Long id) {
-        return ResponseEntity.ok(trainingProgramService.cloneProgram(id));
+    public ResponseEntity<InstructorLedCourseResponse> cloneInstructorLedCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(instructorLedCourseCatalogService.cloneProgram(id));
     }
 
     @DeleteMapping("/training-programs/{id}")
-    public ResponseEntity<Void> archiveTrainingProgram(@PathVariable Long id) {
-        trainingProgramService.archiveProgram(id);
+    public ResponseEntity<Void> archiveInstructorLedCourse(@PathVariable Long id) {
+        instructorLedCourseCatalogService.archiveProgram(id);
         return ResponseEntity.noContent().build();
     }
 

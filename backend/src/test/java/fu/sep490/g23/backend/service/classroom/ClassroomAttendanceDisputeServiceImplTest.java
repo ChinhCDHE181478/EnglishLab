@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceDisputeRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomAttendanceDisputeServiceImpl;
@@ -31,7 +31,7 @@ class ClassroomAttendanceDisputeServiceImplTest {
     private ClassroomAttendanceRepository attendanceRepository;
 
     @Mock
-    private ClassroomOfferingRepository offeringRepository;
+    private ClassSectionRepository offeringRepository;
 
     @Mock
     private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
@@ -48,7 +48,7 @@ class ClassroomAttendanceDisputeServiceImplTest {
         when(teacher.getId()).thenReturn(17L);
         when(accessHelper.requireUser("teacher@englishlab.vn")).thenReturn(teacher);
         when(offeringRepository.findById(7L)).thenReturn(Optional.empty());
-        when(teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(7L, 17L))
+        when(teacherAssignmentRepository.findAllByClassSectionIdAndTeacherId(7L, 17L))
                 .thenReturn(List.of());
 
         assertThatThrownBy(() -> service.listForClass(7L, "teacher@englishlab.vn"))

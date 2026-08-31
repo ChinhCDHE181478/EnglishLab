@@ -22,7 +22,7 @@ public class MockTestAttempt {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assessment_bank_item_id", nullable = false)
+    @JoinColumn(name = "assessment_content_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
 
     @ManyToOne(fetch = FetchType.LAZY)

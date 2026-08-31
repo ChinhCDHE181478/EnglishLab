@@ -9,11 +9,12 @@ import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
-import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.CourseProgressService;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
@@ -33,26 +34,43 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     private final LessonProgressRepository lessonProgressRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
-    public PackageEnrollment refreshEnrollmentProgress(PackageEnrollment enrollment, OnlineCourse course, User student) {
+    /**
+     * Refreshes the progress percent and status of an enrollment.
+     * 
+     * @param enrollment The current enrollment
+     * @param course     The associated course
+     * @param student    The student
+     * @return The updated enrollment (or unchanged if no updates needed)
+     */
+    public OnlineCourseEnrollment refreshEnrollmentProgress(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
+        // Build a snapshot of required vs completed lessons/assessments
         CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
 
+        // Calculate progress percentage based on snapshot
         int progressPercent = calculateProgressPercent(snapshot);
+        
+        // Determine new status: keep CANCELLED if already cancelled. 
+        // If eligible for certificate, mark as COMPLETED, otherwise ACTIVE.
         EnrollmentStatus nextStatus = enrollment.getStatus() == EnrollmentStatus.CANCELLED
                 ? EnrollmentStatus.CANCELLED
                 : snapshot.eligibleForCertificate() ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
+                
+        // If nothing changed, return early to avoid unnecessary DB updates
         if (java.util.Objects.equals(enrollment.getProgressPercent(), progressPercent)
                 && enrollment.getStatus() == nextStatus) {
             return enrollment;
         }
+        
+        // Update progress and save to DB
         enrollment.setProgressPercent(progressPercent);
         enrollment.setStatus(nextStatus);
         return enrollmentRepository.save(enrollment);
     }
 
-    public CourseCompletionResponse buildCompletionResponse(PackageEnrollment enrollment, OnlineCourse course, User student) {
+    public CourseCompletionResponse buildCompletionResponse(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
         CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
 
         CourseCompletionStatus status = resolveStatus(snapshot, enrollment);
@@ -63,8 +81,8 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         return CourseCompletionResponse.builder()
                 .courseId(course.getId())
                 .enrollmentId(enrollment.getId())
-                .courseTitle(course.getLearningPackage().getTitle())
-                .courseSlug(course.getLearningPackage().getSlug())
+                .courseTitle(course.getTitle())
+                .courseSlug(course.getSlug())
                 .progressPercent(progressPercent)
                 .totalLessons(snapshot.totalLessons())
                 .completedLessons(snapshot.completedLessons())
@@ -88,8 +106,11 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         return totalItems == 0 ? 0 : (int) Math.round((completedItems * 100.0) / totalItems);
     }
 
-    private CompletionSnapshot buildSnapshot(PackageEnrollment enrollment, OnlineCourse course, User student) {
-        int liveLessonCount = course.getModules().stream()
+    private CompletionSnapshot buildSnapshot(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
+        List<OnlineCourseModule> liveModules = enrollment.getCourseVersion() == null
+                ? course.getPublishedModules()
+                : enrollment.getCourseVersion().getModules();
+        int liveLessonCount = liveModules.stream()
                 .mapToInt(module -> module.getLessons().size())
                 .sum();
         int liveAssessmentCount = Math.toIntExact(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course));
@@ -154,7 +175,7 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         );
     }
 
-    private CourseCompletionStatus resolveStatus(CompletionSnapshot snapshot, PackageEnrollment enrollment) {
+    private CourseCompletionStatus resolveStatus(CompletionSnapshot snapshot, OnlineCourseEnrollment enrollment) {
         if (snapshot.completedLessons() == 0 && snapshot.completedAssessments() == 0) {
             return CourseCompletionStatus.CHUA_BAT_DAU;
         }

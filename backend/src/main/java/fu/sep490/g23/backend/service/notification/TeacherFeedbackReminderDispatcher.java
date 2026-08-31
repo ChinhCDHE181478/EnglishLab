@@ -1,11 +1,11 @@
 package fu.sep490.g23.backend.service.notification;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.mail.LearningReminderMailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +21,8 @@ import java.util.Set;
 @Slf4j
 public class TeacherFeedbackReminderDispatcher {
 
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final AppNotificationService notificationService;
     private final NotificationPreferenceService preferenceService;
     private final LearningReminderMailService mailService;
@@ -35,22 +35,22 @@ public class TeacherFeedbackReminderDispatcher {
             int closesDaysAfterEnd,
             int closingReminderDays
     ) {
-        ClassroomOffering classroom = offeringRepository.findById(classroomId).orElse(null);
-        if (classroom == null || classroom.getEndDate() == null) {
+        ClassSection classroom = offeringRepository.findById(classroomId).orElse(null);
+        if (classroom == null || classroom.getPlannedEndDate() == null) {
             return;
         }
 
-        LocalDate opensOn = classroom.getEndDate().minusDays(Math.max(0, opensDaysBeforeEnd));
-        LocalDate closesOn = classroom.getEndDate().plusDays(Math.max(0, closesDaysAfterEnd));
+        LocalDate opensOn = classroom.getPlannedEndDate().minusDays(Math.max(0, opensDaysBeforeEnd));
+        LocalDate closesOn = classroom.getPlannedEndDate().plusDays(Math.max(0, closesDaysAfterEnd));
         if (today.isBefore(opensOn) || today.isAfter(closesOn)) {
             return;
         }
 
         boolean closingSoon = !today.isBefore(closesOn.minusDays(Math.max(0, closingReminderDays)));
         String title = closingSoon ? "Sắp hết hạn đánh giá giáo viên" : "Đã mở phiếu đánh giá giáo viên";
-        String classTitle = classroom.getLearningPackage() == null
+        String classTitle = classroom.getInstructorLedCourse() == null
                 ? "lớp #" + classroom.getId()
-                : classroom.getLearningPackage().getTitle();
+                : classroom.getInstructorLedCourse().getTitle();
         String body = closingSoon
                 ? "Phiếu đánh giá giáo viên của " + classTitle + " sẽ đóng ngày " + formatDate(closesOn)
                         + ". Bạn có thể gửi mới hoặc chỉnh sửa phản hồi đã gửi."
@@ -59,8 +59,8 @@ public class TeacherFeedbackReminderDispatcher {
         String actionPath = "/my-classrooms/" + classroom.getId() + "/teacher-feedback";
         String window = closingSoon ? "CLOSING" : "OPEN";
 
-        for (ClassroomEnrollment enrollment : enrollmentRepository
-                .findByClassroomOfferingIdAndRegistrationStatusIn(
+        for (ClassEnrollment enrollment : enrollmentRepository
+                .findByClassSectionIdAndRegistrationStatusIn(
                         classroom.getId(),
                         Set.of(ClassroomRegistrationStatus.ASSIGNED)
                 )) {
@@ -70,7 +70,7 @@ public class TeacherFeedbackReminderDispatcher {
 
     private void notifyLearner(
             User learner,
-            ClassroomOffering classroom,
+            ClassSection classroom,
             String title,
             String body,
             String actionPath,

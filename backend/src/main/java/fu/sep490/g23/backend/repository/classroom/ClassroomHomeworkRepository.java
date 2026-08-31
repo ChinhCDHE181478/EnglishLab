@@ -14,9 +14,9 @@ public interface ClassroomHomeworkRepository extends JpaRepository<ClassroomHome
             LocalDateTime from,
             LocalDateTime to
     );
-    List<ClassroomHomework> findByClassroomOfferingIdOrderByCreatedAtDesc(Long classroomOfferingId);
+    List<ClassroomHomework> findByClassSectionIdOrderByCreatedAtDesc(Long classSectionId);
 
-    List<ClassroomHomework> findByClassroomOfferingIdAndStatusOrderByDeadlineAsc(Long classroomOfferingId, HomeworkStatus status);
+    List<ClassroomHomework> findByClassSectionIdAndStatusOrderByDeadlineAsc(Long classSectionId, HomeworkStatus status);
 
     Optional<ClassroomHomework> findFirstByAttachmentUrlEndingWith(String suffix);
 

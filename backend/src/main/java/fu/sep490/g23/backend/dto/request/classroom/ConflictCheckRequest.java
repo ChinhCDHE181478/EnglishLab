@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @Builder
 public class ConflictCheckRequest {
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private Long sessionId;
     private Long teacherId;
     private Long roomId;
@@ -21,12 +21,11 @@ public class ConflictCheckRequest {
     private LocalTime endTime;
     private List<Long> learnerIds;
     private Long excludeSessionId;
-    private Long targetClassroomOfferingId;
+    private Long targetClassSectionId;
     private ClassroomChangeRequestType requestType;
     private Boolean checkSessionLocked;
     @Builder.Default
     private Boolean checkCapacity = true;
-    private String larkMeetingUrl;
 
     @AssertTrue(message = "Cần cung cấp đầy đủ ngày, giờ bắt đầu và giờ kết thúc khi kiểm tra lịch")
     public boolean isScheduleWindowComplete() {

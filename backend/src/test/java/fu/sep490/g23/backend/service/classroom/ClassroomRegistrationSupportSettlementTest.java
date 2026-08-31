@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.service.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
@@ -39,7 +39,7 @@ class ClassroomRegistrationSupportSettlementTest {
 
     @Test
     void applyComputedSettlement_SetsPendingNeedRefund() {
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .tuitionAmountDue(bd("1000000"))
                 .tuitionAmountPaid(bd("1500000"))
                 .tuitionSettlementStatus(TuitionSettlementStatus.NONE)
@@ -54,7 +54,7 @@ class ClassroomRegistrationSupportSettlementTest {
 
     @Test
     void markNeedRefundForExit_IgnoresZeroPaid() {
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .tuitionAmountPaid(BigDecimal.ZERO)
                 .tuitionSettlementType(TuitionSettlementType.NONE)
                 .build();
@@ -67,7 +67,7 @@ class ClassroomRegistrationSupportSettlementTest {
 
     @Test
     void markNeedRefundForExit_FlagsPendingRefund() {
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+        ClassEnrollment enrollment = ClassEnrollment.builder()
                 .registrationStatus(ClassroomRegistrationStatus.CANCELLED)
                 .tuitionAmountPaid(bd("500000"))
                 .build();

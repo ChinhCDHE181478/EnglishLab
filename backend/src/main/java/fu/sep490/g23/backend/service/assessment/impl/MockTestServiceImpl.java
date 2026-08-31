@@ -10,6 +10,7 @@ import fu.sep490.g23.backend.entity.assessment.MockTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.MockTestAttemptRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;

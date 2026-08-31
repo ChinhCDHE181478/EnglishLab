@@ -55,7 +55,7 @@ public class AssignTeacherIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.teacherId").value(tid))
                 .andExpect(jsonPath("$.role").value("SUBSTITUTE"));
-        assertFalse(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(oid, tid).isEmpty());
+        assertFalse(assignmentRepository.findAllByClassSectionIdAndTeacherId(oid, tid).isEmpty());
     }
 
     @Test

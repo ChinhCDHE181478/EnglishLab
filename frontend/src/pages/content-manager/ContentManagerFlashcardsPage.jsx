@@ -771,7 +771,7 @@ function FlashcardBankPage({ editorRoute }) {
           <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
         {loading ? (
           <div className="p-6 text-sm font-semibold text-slate-500">Đang tải flashcard...</div>
-        ) : sortedSets.length === 0 ? (
+        ) : totalItems === 0 ? (
           <div className={EMPTY_STATE_CLASS}>Chưa có bộ flashcard trong ngân hàng.</div>
         ) : (
           <div>

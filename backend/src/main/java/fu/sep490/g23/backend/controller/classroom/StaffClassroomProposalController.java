@@ -46,7 +46,7 @@ public class StaffClassroomProposalController {
 
     @PostMapping("/validate-schedule")
     public ResponseEntity<ConflictCheckResultResponse> validateSchedule(
-            @Valid @RequestBody CreateClassroomProposalRequest request,
+            @RequestBody CreateClassroomProposalRequest request,
             @RequestParam(required = false) Long excludeProposalId,
             Authentication authentication
     ) {
@@ -59,7 +59,7 @@ public class StaffClassroomProposalController {
 
     @PostMapping("/availability")
     public ResponseEntity<ClassroomProposalAvailabilityResponse> getAvailability(
-            @Valid @RequestBody CreateClassroomProposalRequest request,
+            @RequestBody CreateClassroomProposalRequest request,
             @RequestParam(required = false) Long excludeProposalId,
             Authentication authentication
     ) {

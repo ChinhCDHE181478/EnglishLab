@@ -47,6 +47,7 @@ public class OnlineCoursePreviewValidator {
             ));
         }
 
+        List<CourseAssessmentResponse> safeAssessments = assessments == null ? List.of() : assessments;
         List<ModuleResponse> modules = course.getModules() == null ? List.of() : course.getModules();
         if (modules.isEmpty()) {
             warnings.add(warning(
@@ -70,11 +71,10 @@ public class OnlineCoursePreviewValidator {
                 continue;
             }
             for (int lessonIndex = 0; lessonIndex < lessons.size(); lessonIndex++) {
-                validateLesson(warnings, lessons.get(lessonIndex), module, moduleIndex, lessonIndex);
+                validateLesson(warnings, lessons.get(lessonIndex), module, moduleIndex, lessonIndex, safeAssessments);
             }
         }
 
-        List<CourseAssessmentResponse> safeAssessments = assessments == null ? List.of() : assessments;
         if (safeAssessments.isEmpty()) {
             warnings.add(warning(
                     "NO_ASSESSMENTS",
@@ -108,7 +108,8 @@ public class OnlineCoursePreviewValidator {
             LessonResponse lesson,
             ModuleResponse module,
             int moduleIndex,
-            int lessonIndex
+            int lessonIndex,
+            List<CourseAssessmentResponse> assessments
     ) {
         String location = "modules[" + moduleIndex + "].lessons[" + lessonIndex + "]";
         String lessonTitle = isBlank(lesson.getTitle()) ? "Bài học " + (lessonIndex + 1) : lesson.getTitle();
@@ -117,8 +118,12 @@ public class OnlineCoursePreviewValidator {
         boolean hasMaterial = !isBlank(lesson.getMaterialUrl());
         boolean hasTranscript = lesson.getTranscriptSegments() != null && !lesson.getTranscriptSegments().isEmpty();
         boolean hasFlashcards = lesson.getFlashcardSets() != null && !lesson.getFlashcardSets().isEmpty();
+        String contentType = String.valueOf(lesson.getContentType()).toUpperCase(Locale.ROOT);
+        boolean assessmentLesson = contentType.equals("QUIZ") || contentType.equals("ASSIGNMENT");
+        boolean hasLinkedAssessment = lesson.getId() != null && assessments.stream()
+                .anyMatch(assessment -> lesson.getId().equals(assessment.getLessonId()));
 
-        if (!hasText && !hasVideo && !hasMaterial && !hasTranscript && !hasFlashcards) {
+        if (!hasText && !hasVideo && !hasMaterial && !hasTranscript && !hasFlashcards && !hasLinkedAssessment) {
             warnings.add(warning(
                     "LESSON_WITHOUT_CONTENT",
                     "ERROR",
@@ -128,7 +133,14 @@ public class OnlineCoursePreviewValidator {
             ));
         }
 
-        String contentType = String.valueOf(lesson.getContentType()).toUpperCase(Locale.ROOT);
+        if (assessmentLesson && !hasLinkedAssessment) {
+            warnings.add(warning(
+                    "LESSON_WITHOUT_ASSESSMENT",
+                    "ERROR",
+                    location + ".assessment",
+                    "Bài học \"" + lessonTitle + "\" chưa có bài đánh giá để học viên thực hiện."
+            ));
+        }
         if (contentType.contains("VIDEO")) {
             String videoSource = !isBlank(lesson.getBunnyCdnUrl()) ? lesson.getBunnyCdnUrl() : lesson.getVideoUrl();
             if (isBlank(videoSource) || !isHttpUrl(videoSource)) {

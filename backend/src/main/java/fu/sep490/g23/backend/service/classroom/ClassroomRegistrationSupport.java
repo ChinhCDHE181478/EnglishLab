@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.service.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
@@ -72,25 +71,6 @@ public final class ClassroomRegistrationSupport {
         return filterStatuses(status);
     }
 
-    @SuppressWarnings("deprecation")
-    public static void syncLegacyStatus(ClassroomEnrollment enrollment) {
-        ClassroomRegistrationStatus registrationStatus = enrollment.getRegistrationStatus();
-        if (registrationStatus == null) {
-            return;
-        }
-        ClassroomEnrollmentStatus legacy = switch (registrationStatus) {
-            case ASSIGNED -> ClassroomEnrollmentStatus.ENROLLED;
-            case WAITLIST,
-                 PENDING_CONFIRMATION,
-                 PENDING_TUITION_PAYMENT,
-                 DEPOSIT_PAID,
-                 PARTIALLY_PAID,
-                 FULLY_PAID -> ClassroomEnrollmentStatus.WAITING;
-            case REJECTED, CANCELLED -> ClassroomEnrollmentStatus.CANCELLED;
-        };
-        enrollment.setStatus(legacy);
-    }
-
     public static ClassroomRegistrationStatus resolveRegistrationStatusAfterPayment(
             java.math.BigDecimal amountDue,
             java.math.BigDecimal amountPaid,
@@ -142,7 +122,7 @@ public final class ClassroomRegistrationSupport {
     }
 
     /** Gán type/note/status PENDING khi còn lệch học phí; xóa settlement khi cân bằng. */
-    public static void applyComputedSettlement(ClassroomEnrollment enrollment) {
+    public static void applyComputedSettlement(ClassEnrollment enrollment) {
         if (enrollment == null) {
             return;
         }
@@ -163,7 +143,7 @@ public final class ClassroomRegistrationSupport {
         }
     }
 
-    public static void markNeedRefundForExit(ClassroomEnrollment enrollment, String reasonPrefix) {
+    public static void markNeedRefundForExit(ClassEnrollment enrollment, String reasonPrefix) {
         if (enrollment == null) {
             return;
         }
@@ -182,7 +162,7 @@ public final class ClassroomRegistrationSupport {
         enrollment.setTuitionSettlementResolutionNote(null);
     }
 
-    public static void clearOpenSettlement(ClassroomEnrollment enrollment) {
+    public static void clearOpenSettlement(ClassEnrollment enrollment) {
         if (enrollment == null) {
             return;
         }
@@ -194,7 +174,7 @@ public final class ClassroomRegistrationSupport {
         enrollment.setTuitionSettlementResolutionNote(null);
     }
 
-    public static void clearOpenSettlementAsResolved(ClassroomEnrollment enrollment, String note) {
+    public static void clearOpenSettlementAsResolved(ClassEnrollment enrollment, String note) {
         if (enrollment == null) {
             return;
         }
