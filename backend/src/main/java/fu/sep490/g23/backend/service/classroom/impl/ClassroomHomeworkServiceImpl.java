@@ -253,23 +253,39 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         homeworkRepository.delete(findHomework(homeworkId));
     }
 
+    /**
+     * Submits a homework assignment for a classroom.
+     * This method handles saving the student's submission, validating constraints (deadline, homework status),
+     * and triggering automatic grading if the homework supports it (Objective/Quiz or AI grading).
+     *
+     * @param homeworkId The ID of the homework being submitted
+     * @param request    The submission data (text content or attachment URL)
+     * @param learnerEmail The email of the submitting student
+     * @return The submission response containing the updated submission details
+     */
     @Override
     public ClassroomHomeworkSubmissionResponse submit(Long homeworkId, SubmitHomeworkRequest request, String learnerEmail) {
+        // Validate input: Submission must have either text answer or an attachment
         if (request == null || (!hasText(request.getTextAnswer()) && !hasText(request.getAttachmentUrl()))) {
             throw new IllegalArgumentException("Bài nộp cần có nội dung trả lời hoặc tệp đính kèm.");
         }
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomHomework homework = findHomework(homeworkId);
 
+        // Authorization check: Ensure the student is enrolled in this class section
         if (!isLearnerInClass(learner, homework.getClassSection().getId())) {
             throw new RuntimeException("Bạn không thuộc lớp học này.");
         }
+        // Status check: Ensure the homework is open for submission
         if (homework.getStatus() != HomeworkStatus.OPEN) {
             throw new RuntimeException("Bài tập chưa mở để nộp.");
         }
+        // Deadline check: Prevent late submissions if a deadline is configured
         if (homework.getDeadline() != null && LocalDateTime.now().isAfter(homework.getDeadline())) {
             throw new IllegalArgumentException("Bài tập đã quá hạn nộp.");
         }
+
+        // Retrieve existing submission for resubmission, or create a brand new one
         ClassroomHomeworkSubmission submission = submissionRepository
                 .findByHomeworkIdAndStudentId(homeworkId, learner.getId())
                 .orElseGet(() -> ClassroomHomeworkSubmission.builder()
@@ -277,14 +293,18 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                         .student(learner)
                         .build());
 
+        // Block resubmission if the homework is already graded and teacher disabled resubmission
         if (submission.getStatus() == HomeworkSubmissionStatus.GRADED && !homework.isAllowResubmission()) {
             throw new RuntimeException("Bài tập đã chấm điểm và không cho phép nộp lại.");
         }
 
+        // Update submission content with the latest data
         submission.setTextAnswer(request.getTextAnswer());
         submission.setAttachmentUrl(request.getAttachmentUrl());
         submission.setSubmittedAt(LocalDateTime.now());
         submission.setStatus(HomeworkSubmissionStatus.SUBMITTED);
+        
+        // Reset all previous grading data (scores, teacher feedback, AI feedback) for the new attempt
         submission.setScore(null);
         submission.setTeacherFeedback(null);
         submission.setAiFeedbackJson(null);
@@ -293,20 +313,35 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         submission.setGradedBy(null);
 
         ClassroomHomeworkSubmission saved = submissionRepository.save(submission);
+
+        /* 
+         * AUTO-GRADING PIPELINE
+         * Depending on the homework type, the system automatically grades the submission immediately.
+         */
         if (homeworkObjectiveGrader.supports(homework)) {
+            // Case 1: Objective/Quiz Homework - Absolute correctness grading (True/False)
+            // Evaluates the text answer against predefined correct answers
             ClassroomHomeworkObjectiveGrader.ObjectiveScore result = homeworkObjectiveGrader.score(
                     homework, saved.getTextAnswer()
             );
             saved.setScore(result.score());
             saved.setTeacherFeedback("Hệ thống tự chấm: " + result.correctCount() + "/" + result.totalCount() + " câu đúng.");
             saved.setGradedAt(LocalDateTime.now());
+            // Mark the submission as fully graded
             saved.setStatus(HomeworkSubmissionStatus.GRADED);
             saved = submissionRepository.save(saved);
+            // Automatically sync the auto-calculated score to the Classroom Gradebook
             syncHomeworkScoreToGradebook(homework, learner.getId(), null);
+            
         } else if (homework.isAiReviewEnabled() && homeworkAiGradingService.tryAutoGrade(saved)) {
+            // Case 2: Subjective Homework (Speaking/Writing) - AI Assisted Grading
+            // tryAutoGrade delegates the text/audio analysis to an AI model.
+            // If grading is successful (returns true), the submission status is updated to GRADED internally.
             saved = submissionRepository.save(saved);
+            // Sync the AI-generated score to the Classroom Gradebook
             syncHomeworkScoreToGradebook(homework, learner.getId(), null);
         }
+        // Case 3: Manual Grading - Falls through, keeping status as SUBMITTED, awaiting teacher review.
 
         return mapper.toHomeworkSubmissionResponse(saved);
     }

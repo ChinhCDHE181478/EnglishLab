@@ -138,9 +138,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         if (published != null) {
             published.setAssessmentIdsJson(writeAssessmentIds(publishedAssessments));
         }
-        List<CourseAssessment> draftAssessments = published == null
-                ? publishedAssessments
-                : cloneAssessmentsForDraft(publishedAssessments);
+        List<CourseAssessment> draftAssessments = published == null ? publishedAssessments : List.of();
         String snapshot;
         if (published == null) {
             snapshot = writeSnapshot(course);
@@ -172,9 +170,12 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         OnlineCourseVersion savedDraft = versionRepository.save(draft);
         if (published != null) {
             cloneModulesOntoDraft(published, savedDraft);
+            versionRepository.saveAndFlush(savedDraft);
+            draftAssessments = cloneAssessmentsForDraft(publishedAssessments, savedDraft);
+            savedDraft.setAssessmentIdsJson(writeAssessmentIds(draftAssessments));
+            savedDraft.setTotalRequiredAssessments(draftAssessments.size());
             if (!savedDraft.getModules().isEmpty()) {
                 savedDraft.setTotalRequiredLessons(countLessons(savedDraft.getModules()));
-                savedDraft = versionRepository.save(savedDraft);
             }
         }
         return toResponse(savedDraft, true);
@@ -450,10 +451,12 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .id(assessment.getId())
                 .courseId(assessment.getOnlineCourse().getId())
                 .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .lessonId(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getId())
                 .assessmentBankItemId(assessment.getAssessmentBankItem() == null
                         ? null
                         : assessment.getAssessmentBankItem().getId())
                 .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
+                .lessonTitle(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getTitle())
                 .title(assessment.getTitle())
                 .description(assessment.getDescription())
                 .type(assessment.getType())
@@ -993,7 +996,10 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         }
     }
 
-    private List<CourseAssessment> cloneAssessmentsForDraft(List<CourseAssessment> source) {
+    private List<CourseAssessment> cloneAssessmentsForDraft(
+            List<CourseAssessment> source,
+            OnlineCourseVersion draft
+    ) {
         if (source.isEmpty()) {
             return List.of();
         }
@@ -1006,9 +1012,12 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                         assessment.setProgressKey(progressKey);
                     }
                     assessment.setActive(false);
+                    OnlineCourseModule draftModule = findDraftModule(draft, assessment.getModule());
+                    OnlineLesson draftLesson = findDraftLesson(draftModule, assessment.getOnlineLesson());
                     return CourseAssessment.builder()
                             .onlineCourse(assessment.getOnlineCourse())
-                            .module(assessment.getModule())
+                            .module(draftModule)
+                            .onlineLesson(draftLesson)
                             .rubric(assessment.getRubric())
                             .assessmentBankItem(assessment.getAssessmentBankItem())
                             .progressKey(progressKey)
@@ -1030,6 +1039,35 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .toList();
         courseAssessmentRepository.saveAll(source);
         return courseAssessmentRepository.saveAll(clones);
+    }
+
+    private OnlineCourseModule findDraftModule(
+            OnlineCourseVersion draft,
+            OnlineCourseModule sourceModule
+    ) {
+        if (sourceModule == null) {
+            return null;
+        }
+        return draft.getModules().stream()
+                .filter(module -> Objects.equals(module.getSequenceNumber(), sourceModule.getSequenceNumber()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy mô-đun tương ứng trong phiên bản nháp."));
+    }
+
+    private OnlineLesson findDraftLesson(
+            OnlineCourseModule draftModule,
+            OnlineLesson sourceLesson
+    ) {
+        if (sourceLesson == null) {
+            return null;
+        }
+        if (draftModule == null) {
+            throw new IllegalStateException("Bài đánh giá theo bài học không có mô-đun tương ứng.");
+        }
+        return draftModule.getLessons().stream()
+                .filter(lesson -> Objects.equals(lesson.getStableLessonKey(), sourceLesson.getStableLessonKey()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy bài học tương ứng trong phiên bản nháp."));
     }
 
     private OnlineCourseVersionResponse toResponse(OnlineCourseVersion version, boolean includeContent) {

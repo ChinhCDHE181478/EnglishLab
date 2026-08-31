@@ -48,4 +48,40 @@ describe('validateBuilderState', () => {
 
     expect(issue).toBeNull();
   });
+
+  it('chặn bài học quiz chưa có assessment thật', () => {
+    const quizModules = [{
+      id: 11,
+      title: 'Vocabulary',
+      lessons: [{ id: 55, title: 'Ôn từ vựng', contentType: 'QUIZ', durationMinutes: 10 }],
+    }];
+
+    expect(validateBuilderState(quizModules, [])).toEqual(expect.objectContaining({
+      moduleKey: '11',
+      lessonKey: '55',
+      message: 'Bài học "Ôn từ vựng" chưa có nội dung trắc nghiệm.',
+    }));
+  });
+
+  it('cho phép quiz có câu hỏi và đáp án liên kết đúng lesson', () => {
+    const quizModules = [{
+      id: 11,
+      title: 'Vocabulary',
+      lessons: [{ id: 55, title: 'Ôn từ vựng', contentType: 'QUIZ', durationMinutes: 10 }],
+    }];
+    const quiz = createAssessment({
+      lessonKey: '55',
+      lessonTitle: 'Ôn từ vựng',
+      moduleKey: '11',
+      type: 'QUIZ',
+      skill: 'VOCABULARY',
+      aiEvaluationMode: 'RUBRIC_FEEDBACK',
+      maxScore: '1',
+      passingScore: '1',
+      uiConfigJson: JSON.stringify({ parts: [{ key: 'part_1', questionGroups: [{ questions: [{ number: 1 }] }] }] }),
+      objectiveAnswerKey: JSON.stringify({ 1: 'A' }),
+    });
+
+    expect(validateBuilderState(quizModules, [quiz])).toBeNull();
+  });
 });

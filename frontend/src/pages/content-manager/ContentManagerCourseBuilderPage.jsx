@@ -28,23 +28,27 @@ const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
 const ASSESSMENT_TYPE_OPTIONS = ['MODULE_TEST', 'LESSON_PRACTICE', 'MOCK_TEST', 'WRITING_TASK', 'SPEAKING_TASK', 'QUIZ'];
 const ASSESSMENT_SKILL_OPTIONS = ['LISTENING', 'READING', 'WRITING', 'SPEAKING', 'VOCABULARY', 'GRAMMAR', 'MIXED'];
 const AI_MODE_OPTIONS = ['NONE', 'EXPLAIN_ONLY', 'RUBRIC_FEEDBACK', 'ESTIMATED_BAND'];
+const LESSON_ASSESSMENT_TYPES = new Set(['QUIZ', 'ASSIGNMENT']);
 
 const createTempId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const resolveModuleKey = (module) => String(module?.id ?? module?.tempId ?? COURSE_LEVEL_KEY);
+const resolveLessonKey = (lesson) => String(lesson?.id ?? lesson?.tempId ?? '');
 
-const createAssessmentDraft = ({ moduleKey, moduleTitle = null, displayOrder = 1 }) => ({
+const createAssessmentDraft = ({ moduleKey, moduleTitle = null, lessonKey = '', lessonTitle = null, displayOrder = 1, contentType = '' }) => ({
   id: null,
   localKey: createTempId('assessment'),
   moduleKey,
   moduleTitle,
+  lessonKey,
+  lessonTitle,
   assessmentBankItemId: '',
   rubricId: '',
-  title: '',
+  title: lessonTitle ? `${contentType === 'QUIZ' ? 'Trắc nghiệm' : 'Bài tập'}: ${lessonTitle}` : '',
   description: '',
-  type: 'MODULE_TEST',
-  skill: 'MIXED',
-  aiEvaluationMode: 'EXPLAIN_ONLY',
+  type: contentType === 'QUIZ' ? 'QUIZ' : contentType === 'ASSIGNMENT' ? 'WRITING_TASK' : 'MODULE_TEST',
+  skill: contentType === 'QUIZ' ? 'MIXED' : contentType === 'ASSIGNMENT' ? 'WRITING' : 'MIXED',
+  aiEvaluationMode: contentType === 'QUIZ' || contentType === 'ASSIGNMENT' ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY',
   instructions: '',
   objectiveAnswerKey: '',
   uiConfigJson: '',
@@ -55,11 +59,13 @@ const createAssessmentDraft = ({ moduleKey, moduleTitle = null, displayOrder = 1
   active: true,
 });
 
-const createAssessmentDraftFromBank = ({ bankItem, moduleKey, moduleTitle = null, displayOrder = 1 }) => ({
+const createAssessmentDraftFromBank = ({ bankItem, moduleKey, moduleTitle = null, lessonKey = '', lessonTitle = null, displayOrder = 1 }) => ({
   id: null,
   localKey: createTempId('assessment'),
   moduleKey,
   moduleTitle,
+  lessonKey,
+  lessonTitle,
   assessmentBankItemId: String(bankItem.id),
   rubricId: bankItem.rubric?.id ? String(bankItem.rubric.id) : '',
   title: bankItem.title || '',
@@ -97,13 +103,19 @@ function extractEmbeddedUiConfig(instructions) {
 
 const normalizeAssessmentStructure = (items, modules) => {
   const moduleById = new Map((modules || []).map((module) => [String(module.id), module]));
+  const lessonById = new Map((modules || []).flatMap((module) => (
+    (module.lessons || []).map((lesson) => [String(lesson.id), lesson])
+  )));
   return (items || []).map((assessment, index) => {
     const matchedModule = assessment.moduleId == null ? null : moduleById.get(String(assessment.moduleId));
+    const matchedLesson = assessment.lessonId == null ? null : lessonById.get(String(assessment.lessonId));
     return {
       id: assessment.id ?? null,
       localKey: assessment.id ? `assessment-${assessment.id}` : createTempId('assessment'),
       moduleKey: matchedModule ? resolveModuleKey(matchedModule) : COURSE_LEVEL_KEY,
       moduleTitle: matchedModule?.title || assessment.moduleTitle || null,
+      lessonKey: matchedLesson ? resolveLessonKey(matchedLesson) : '',
+      lessonTitle: matchedLesson?.title || assessment.lessonTitle || null,
       assessmentBankItemId: assessment.assessmentBankItemId ? String(assessment.assessmentBankItemId) : '',
       rubricId: assessment.rubric?.id ? String(assessment.rubric.id) : '',
       title: assessment.title || '',
@@ -127,10 +139,19 @@ const buildAssessmentPayload = (items, localModules, persistedModules) => {
   const moduleIdByKey = new Map(
     (localModules || []).map((module, index) => [resolveModuleKey(module), persistedModules?.[index]?.id ?? module.id ?? null]),
   );
+  const lessonIdByKey = new Map(
+    (localModules || []).flatMap((module, moduleIndex) => (
+      (module.lessons || []).map((lesson, lessonIndex) => [
+        resolveLessonKey(lesson),
+        persistedModules?.[moduleIndex]?.lessons?.[lessonIndex]?.id ?? lesson.id ?? null,
+      ])
+    )),
+  );
 
   return (items || []).map((assessment, index) => ({
     id: assessment.id || null,
     moduleId: assessment.moduleKey === COURSE_LEVEL_KEY ? null : moduleIdByKey.get(assessment.moduleKey) ?? null,
+    lessonId: assessment.lessonKey ? lessonIdByKey.get(assessment.lessonKey) ?? null : null,
     assessmentBankItemId: assessment.assessmentBankItemId ? Number(assessment.assessmentBankItemId) : null,
     rubricId: assessment.rubricId ? Number(assessment.rubricId) : null,
     title: assessment.title?.trim() || `Bài đánh giá ${index + 1}`,
@@ -297,8 +318,11 @@ export default function ContentManagerCourseBuilderPage() {
   const lessons = activeModule?.lessons || [];
   const activeLesson = lessons[activeLessonIndex] || null;
   const activeModuleKey = resolveModuleKey(activeModule);
-  const moduleAssessments = assessments.filter((assessment) => assessment.moduleKey === activeModuleKey);
-  const courseLevelAssessments = assessments.filter((assessment) => assessment.moduleKey === COURSE_LEVEL_KEY);
+  const moduleAssessments = assessments.filter((assessment) => assessment.moduleKey === activeModuleKey && !assessment.lessonKey);
+  const courseLevelAssessments = assessments.filter((assessment) => assessment.moduleKey === COURSE_LEVEL_KEY && !assessment.lessonKey);
+  const activeLessonAssessment = activeLesson
+    ? assessments.find((assessment) => assessment.lessonKey === resolveLessonKey(activeLesson)) || null
+    : null;
 
   const showValidationIssue = async (issue) => {
     if (!issue) return;
@@ -313,14 +337,21 @@ export default function ContentManagerCourseBuilderPage() {
       tone: 'danger',
     });
 
-    if (!issue.assessmentKey) return;
+    if (!issue.assessmentKey && !issue.lessonKey) return;
 
     if (issue.moduleKey && issue.moduleKey !== COURSE_LEVEL_KEY) {
       const targetModuleIndex = modules.findIndex((module) => resolveModuleKey(module) === issue.moduleKey);
       if (targetModuleIndex >= 0) {
         setActiveModuleIndex(targetModuleIndex);
-        setActiveLessonIndex(0);
+        const targetLessonIndex = issue.lessonKey
+          ? (modules[targetModuleIndex]?.lessons || []).findIndex((lesson) => resolveLessonKey(lesson) === issue.lessonKey)
+          : 0;
+        setActiveLessonIndex(Math.max(0, targetLessonIndex));
       }
+    }
+    if (issue.lessonKey) {
+      setLessonModalOpen(true);
+      return;
     }
     setLessonModalOpen(false);
     window.setTimeout(() => {
@@ -361,6 +392,40 @@ export default function ContentManagerCourseBuilderPage() {
 
   const updateLesson = (field) => (event) => {
     const value = field === 'preview' ? event.target.checked : event.target.value;
+    if (field === 'contentType' && activeLesson) {
+      const lessonKey = resolveLessonKey(activeLesson);
+      setAssessments((current) => {
+        const existing = current.find((assessment) => assessment.lessonKey === lessonKey);
+        if (!LESSON_ASSESSMENT_TYPES.has(value)) {
+          return current.filter((assessment) => assessment.lessonKey !== lessonKey);
+        }
+        if (!existing) {
+          const lessonAssessmentCount = current.filter((assessment) => assessment.lessonKey).length;
+          return [
+            ...current,
+            createAssessmentDraft({
+              moduleKey: activeModuleKey,
+              moduleTitle: activeModule?.title || null,
+              lessonKey,
+              lessonTitle: activeLesson.title || 'Bài học',
+              displayOrder: lessonAssessmentCount + 1,
+              contentType: value,
+            }),
+          ];
+        }
+        if (existing.assessmentBankItemId) return current;
+        return current.map((assessment) => assessment.localKey === existing.localKey ? {
+          ...assessment,
+          type: value === 'QUIZ' ? 'QUIZ' : 'WRITING_TASK',
+          skill: value === 'QUIZ' ? 'MIXED' : 'WRITING',
+          aiEvaluationMode: 'RUBRIC_FEEDBACK',
+          title: `${value === 'QUIZ' ? 'Trắc nghiệm' : 'Bài tập'}: ${activeLesson.title || 'Bài học'}`,
+          rubricId: '',
+          objectiveAnswerKey: '',
+          uiConfigJson: '',
+        } : assessment);
+      });
+    }
     setCourse((current) => {
       if (!current) return current;
       return {
@@ -525,6 +590,52 @@ export default function ContentManagerCourseBuilderPage() {
     pushToast(scope === 'module' ? 'Đã gắn đề từ kho vào mô-đun.' : 'Đã gắn đề từ kho vào cuối khóa.');
   };
 
+  const attachBankAssessmentToActiveLesson = (bankItemId) => {
+    if (!activeLesson || !LESSON_ASSESSMENT_TYPES.has(formatContentType(activeLesson.contentType))) return;
+    const bankItem = assessmentBankItems.find((item) => String(item.id) === String(bankItemId));
+    if (!bankItem) return;
+    const lessonKey = resolveLessonKey(activeLesson);
+    const contentType = formatContentType(activeLesson.contentType);
+    if (contentType === 'QUIZ' && bankItem.type !== 'QUIZ') {
+      pushToast('Hãy chọn một đề trắc nghiệm.', 'warning');
+      return;
+    }
+
+    setAssessments((current) => {
+      const existing = current.find((assessment) => assessment.lessonKey === lessonKey);
+      const replacement = createAssessmentDraftFromBank({
+        bankItem,
+        moduleKey: activeModuleKey,
+        moduleTitle: activeModule?.title || null,
+        lessonKey,
+        lessonTitle: activeLesson.title || 'Bài học',
+        displayOrder: existing?.displayOrder || current.filter((assessment) => assessment.lessonKey).length + 1,
+      });
+      if (!existing) return [...current, replacement];
+      return current.map((assessment) => assessment.localKey === existing.localKey
+        ? { ...replacement, id: existing.id, localKey: existing.localKey }
+        : assessment);
+    });
+    pushToast('Đã gắn đề từ ngân hàng vào bài học.');
+  };
+
+  const createActiveLessonAssessment = () => {
+    if (!activeLesson) return;
+    const contentType = formatContentType(activeLesson.contentType);
+    if (!LESSON_ASSESSMENT_TYPES.has(contentType)) return;
+    const lessonKey = resolveLessonKey(activeLesson);
+    setAssessments((current) => current.some((assessment) => assessment.lessonKey === lessonKey)
+      ? current
+      : [...current, createAssessmentDraft({
+        moduleKey: activeModuleKey,
+        moduleTitle: activeModule?.title || null,
+        lessonKey,
+        lessonTitle: activeLesson.title || 'Bài học',
+        displayOrder: current.filter((assessment) => assessment.lessonKey).length + 1,
+        contentType,
+      })]);
+  };
+
   const addFlashcardSetToActiveLesson = () => {
     if (!activeLesson) {
       pushToast('Hãy chọn bài học trước khi gắn flashcard.', 'warning');
@@ -556,7 +667,13 @@ export default function ContentManagerCourseBuilderPage() {
   const updateAssessment = (assessmentKey, field, value) => {
     setAssessments((current) => current.map((assessment) => (
       assessment.localKey === assessmentKey
-        ? { ...assessment, [field]: value }
+        ? {
+          ...assessment,
+          [field]: value,
+          ...(assessment.lessonKey && field === 'skill' && assessment.type !== 'QUIZ'
+            ? { type: value === 'WRITING' ? 'WRITING_TASK' : value === 'SPEAKING' ? 'SPEAKING_TASK' : 'LESSON_PRACTICE' }
+            : {}),
+        }
         : assessment
     )));
   };
@@ -719,6 +836,8 @@ export default function ContentManagerCourseBuilderPage() {
         }),
       };
     });
+    const removedLessonKey = resolveLessonKey(lesson);
+    setAssessments((current) => current.filter((assessment) => assessment.lessonKey !== removedLessonKey));
 
     if (lessonIndex === activeLessonIndex) {
       setUploadFile(null);
@@ -1381,13 +1500,19 @@ export default function ContentManagerCourseBuilderPage() {
 
       <LessonEditorModal
         activeLesson={activeLesson}
+        assessment={activeLessonAssessment}
+        assessmentBankItems={assessmentBankItems}
+        onAssessmentFieldChange={(field, value) => activeLessonAssessment && updateAssessment(activeLessonAssessment.localKey, field, value)}
+        onAttachAssessmentFromBank={attachBankAssessmentToActiveLesson}
         onBunnyUpload={handleBunnyUpload}
         onChangeLesson={updateLesson}
         onPatchLesson={patchActiveLesson}
+        onCreateAssessment={createActiveLessonAssessment}
         onClose={() => setLessonModalOpen(false)}
         onRefreshTranscript={handleRefreshTranscript}
         open={lessonModalOpen}
         refreshingTranscript={refreshingTranscript}
+        rubricOptions={buildRubricOptions(rubrics, activeLessonAssessment?.skill)}
         uploadFile={uploadFile}
         uploadingVideo={uploadingVideo}
         uploadProgress={uploadProgress}
@@ -1459,6 +1584,18 @@ export function validateBuilderState(modules, assessments, { allowTranscriptOver
       if (!Number.isFinite(duration) || duration < 0) {
         return { message: `Thời lượng của bài học "${lesson.title}" không hợp lệ.`, moduleKey };
       }
+      const contentType = formatContentType(lesson.contentType);
+      if (LESSON_ASSESSMENT_TYPES.has(contentType)) {
+        const lessonKey = resolveLessonKey(lesson);
+        const linkedAssessment = assessments.find((assessment) => assessment.lessonKey === lessonKey);
+        if (!linkedAssessment) {
+          return {
+            message: `Bài học "${lesson.title}" chưa có ${contentType === 'QUIZ' ? 'nội dung trắc nghiệm' : 'nội dung bài tập'}.`,
+            moduleKey,
+            lessonKey,
+          };
+        }
+      }
       const transcriptSegments = Array.isArray(lesson.transcriptSegments) ? lesson.transcriptSegments : [];
       for (let segmentIndex = 0; segmentIndex < transcriptSegments.length; segmentIndex += 1) {
         const segment = transcriptSegments[segmentIndex];
@@ -1495,11 +1632,18 @@ export function validateBuilderState(modules, assessments, { allowTranscriptOver
     if (passingScore != null && (!Number.isFinite(passingScore) || passingScore < 0 || passingScore > maxScore)) {
       return createAssessmentValidationIssue(assessment, modules, index, 'điểm đạt phải nằm trong khoảng từ 0 đến điểm tối đa.');
     }
-    if (assessment.aiEvaluationMode !== 'NONE' && !assessment.rubricId) {
+    const skill = String(assessment.skill || '').toUpperCase();
+    if (assessment.aiEvaluationMode !== 'NONE' && ['WRITING', 'SPEAKING'].includes(skill) && !assessment.rubricId) {
       return createAssessmentValidationIssue(assessment, modules, index, 'chưa chọn tiêu chí chấm.');
+    }
+    if (assessment.type === 'QUIZ' && assessment.aiEvaluationMode === 'NONE') {
+      return createAssessmentValidationIssue(assessment, modules, index, 'chưa bật chấm đáp án tự động.');
     }
 
     const uiConfigJson = String(assessment.uiConfigJson || '').trim();
+    if (assessment.type === 'QUIZ' && !uiConfigJson) {
+      return createAssessmentValidationIssue(assessment, modules, index, 'chưa biên soạn câu hỏi và đáp án.');
+    }
     if (uiConfigJson) {
       try {
         const uiConfig = JSON.parse(uiConfigJson);
@@ -1507,8 +1651,7 @@ export function validateBuilderState(modules, assessments, { allowTranscriptOver
           return createAssessmentValidationIssue(assessment, modules, index, 'cấu hình đề thi phải là một JSON object.');
         }
 
-        const skill = String(assessment.skill || '').toUpperCase();
-        if (['LISTENING', 'READING'].includes(skill)) {
+        if (assessment.type === 'QUIZ' || ['LISTENING', 'READING'].includes(skill)) {
           const answerKey = JSON.parse(String(assessment.objectiveAnswerKey || ''));
           if (!Array.isArray(uiConfig.parts) || !uiConfig.parts.length) {
             return createAssessmentValidationIssue(assessment, modules, index, 'cấu hình đề thi phải có ít nhất một phần.');
@@ -1534,7 +1677,9 @@ export function validateBuilderState(modules, assessments, { allowTranscriptOver
 function createAssessmentValidationIssue(assessment, modules, assessmentIndex, detail) {
   const assessmentName = String(assessment.title || '').trim() || `Bài kiểm tra ${assessmentIndex + 1}`;
   const moduleIndex = modules.findIndex((module) => resolveModuleKey(module) === assessment.moduleKey);
-  const location = moduleIndex >= 0
+  const location = assessment.lessonTitle
+    ? `trong bài học "${assessment.lessonTitle}"`
+    : moduleIndex >= 0
     ? `trong ${formatModuleTitle(modules[moduleIndex].title, moduleIndex)}`
     : 'ở phần bài kiểm tra cuối khóa';
 
@@ -1543,6 +1688,7 @@ function createAssessmentValidationIssue(assessment, modules, assessmentIndex, d
     assessmentId: assessment.id ?? null,
     assessmentKey: assessment.localKey,
     moduleKey: assessment.moduleKey,
+    lessonKey: assessment.lessonKey || '',
   };
 }
 
@@ -1575,7 +1721,7 @@ function AssessmentBankAttachBar({ disabled = false, onAdd, onChange, options, v
   );
 }
 
-function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChange, title, validationMessage = '' }) {
+function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChange, title, validationMessage = '', lessonMode = false }) {
   const isBankLinked = Boolean(assessment.assessmentBankItemId);
   const scoreLabel = usesBandScale(assessment)
     ? `Điểm tối đa (band IELTS, tối đa ${IELTS_MAX_BAND})`
@@ -1600,13 +1746,13 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{title}</p>
           <p className="mt-1 text-sm text-[#584140]">{assessment.moduleTitle || 'Điểm kiểm tra cuối khóa'}</p>
         </div>
-        <button
+        {onDelete ? <button
           className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#f0c7c7] bg-white text-[#93000a] transition hover:bg-[#ffdad6]"
           onClick={onDelete}
           type="button"
         >
           <Trash2 className="h-4 w-4" />
-        </button>
+        </button> : null}
       </div>
 
       {isBankLinked ? (
@@ -1622,12 +1768,18 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
         {!isBankLinked ? (
           <>
             <TextField label="Tên bài kiểm tra" onChange={(event) => onFieldChange('title', event.target.value)} value={assessment.title} />
-            <SelectField label="Loại bài kiểm tra" onChange={(event) => onFieldChange('type', event.target.value)} options={toSelectOptions(ASSESSMENT_TYPE_OPTIONS, getAssessmentTypeLabel)} value={assessment.type} />
+            {lessonMode
+              ? <StaticField label="Loại" value={getAssessmentTypeLabel(assessment.type)} />
+              : <SelectField label="Loại bài kiểm tra" onChange={(event) => onFieldChange('type', event.target.value)} options={toSelectOptions(ASSESSMENT_TYPE_OPTIONS, getAssessmentTypeLabel)} value={assessment.type} />}
             <SelectField label="Kỹ năng" onChange={(event) => onFieldChange('skill', event.target.value)} options={toSelectOptions(ASSESSMENT_SKILL_OPTIONS, getSkillLabel)} value={assessment.skill} />
-            <SelectField label="Chế độ chấm" onChange={(event) => onFieldChange('aiEvaluationMode', event.target.value)} options={toSelectOptions(AI_MODE_OPTIONS, getAiModeLabel)} value={assessment.aiEvaluationMode} />
+            {assessment.type === 'QUIZ'
+              ? <StaticField label="Chế độ chấm" value="Chấm đáp án tự động" />
+              : <SelectField label="Chế độ chấm" onChange={(event) => onFieldChange('aiEvaluationMode', event.target.value)} options={toSelectOptions(AI_MODE_OPTIONS, getAiModeLabel)} value={assessment.aiEvaluationMode} />}
           </>
         ) : null}
-        <SelectField label="Tiêu chí chấm" onChange={(event) => onFieldChange('rubricId', event.target.value)} options={rubricOptions} value={assessment.rubricId || ''} />
+        {['WRITING', 'SPEAKING'].includes(String(assessment.skill || '').toUpperCase())
+          ? <SelectField label="Tiêu chí chấm" onChange={(event) => onFieldChange('rubricId', event.target.value)} options={rubricOptions} value={assessment.rubricId || ''} />
+          : null}
         {!isBankLinked ? (
           <>
             <TextField label="Điểm đạt" onChange={(event) => onFieldChange('passingScore', event.target.value)} value={assessment.passingScore} />
@@ -1635,7 +1787,7 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
             <TextField label="Giới hạn thời gian (phút)" onChange={(event) => onFieldChange('timeLimitMinutes', event.target.value)} value={assessment.timeLimitMinutes} />
           </>
         ) : null}
-        <TextField label="Thứ tự hiển thị" onChange={(event) => onFieldChange('displayOrder', event.target.value)} value={String(assessment.displayOrder || '')} />
+        {!lessonMode ? <TextField label="Thứ tự hiển thị" onChange={(event) => onFieldChange('displayOrder', event.target.value)} value={String(assessment.displayOrder || '')} /> : null}
       </div>
       {!isBankLinked ? (
         <div className="mt-4">
@@ -1652,7 +1804,7 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
       {!isBankLinked ? (
         <>
           <div className="mt-4 grid gap-4">
-            {!['LISTENING', 'READING'].includes(String(assessment.skill || '').toUpperCase()) ? (
+            {assessment.type !== 'QUIZ' && !['LISTENING', 'READING'].includes(String(assessment.skill || '').toUpperCase()) ? (
               <TextField label="Đáp án tham chiếu" onChange={(event) => onFieldChange('objectiveAnswerKey', event.target.value)} rows={4} textarea value={assessment.objectiveAnswerKey} />
             ) : null}
           </div>
@@ -1671,14 +1823,20 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
 
 function LessonEditorModal({
   activeLesson,
+  assessment,
+  assessmentBankItems,
+  onAssessmentFieldChange,
+  onAttachAssessmentFromBank,
   onBunnyUpload,
   onChangeLesson,
   onPatchLesson,
+  onCreateAssessment,
   onClose,
   onRefreshTranscript,
   onSelectUploadFile,
   open,
   refreshingTranscript,
+  rubricOptions,
   uploadFile,
   uploadingVideo,
   uploadProgress,
@@ -1703,6 +1861,7 @@ function LessonEditorModal({
   const contentType = formatContentType(activeLesson.contentType);
   const isVideo = contentType === 'VIDEO';
   const isArticle = contentType === 'ARTICLE';
+  const isAssessmentContent = LESSON_ASSESSMENT_TYPES.has(contentType);
   const contentLabel = getContentLabel(contentType);
 
   return (
@@ -1862,14 +2021,26 @@ function LessonEditorModal({
                 </>
               ) : null}
 
-              <RichTextEditor
-                helperText="Nội dung được lưu kèm định dạng phong phú (tiêu đề, in đậm, in nghiêng, danh sách, trích dẫn, liên kết...) và hiển thị tương ứng trong khu vực học bài."
-                label={contentLabel}
-                onChange={(contentText) => onPatchLesson({ contentText })}
-                placeholder={isArticle ? 'Soạn nội dung bài học tại đây...' : `Soạn ${contentLabel.toLowerCase()} tại đây...`}
-                size="lesson"
-                value={activeLesson.contentText || ''}
-              />
+              {isAssessmentContent ? (
+                <LessonAssessmentEditor
+                  assessment={assessment}
+                  bankItems={assessmentBankItems}
+                  contentType={contentType}
+                  onAttach={onAttachAssessmentFromBank}
+                  onCreate={onCreateAssessment}
+                  onFieldChange={onAssessmentFieldChange}
+                  rubricOptions={rubricOptions}
+                />
+              ) : (
+                <RichTextEditor
+                  helperText="Nội dung được lưu kèm định dạng phong phú và hiển thị tương ứng trong khu vực học bài."
+                  label={contentLabel}
+                  onChange={(contentText) => onPatchLesson({ contentText })}
+                  placeholder={isArticle ? 'Soạn nội dung bài học tại đây...' : `Soạn ${contentLabel.toLowerCase()} tại đây...`}
+                  size="lesson"
+                  value={activeLesson.contentText || ''}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -1885,6 +2056,61 @@ function LessonEditorModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LessonAssessmentEditor({ assessment, bankItems, contentType, onAttach, onCreate, onFieldChange, rubricOptions }) {
+  const [selectedBankItemId, setSelectedBankItemId] = useState('');
+  const compatibleItems = (bankItems || []).filter((item) => (
+    contentType === 'QUIZ'
+      ? item.type === 'QUIZ'
+      : ['LESSON_PRACTICE', 'WRITING_TASK', 'SPEAKING_TASK'].includes(item.type)
+  ));
+  const bankOptions = buildAssessmentBankOptions(compatibleItems);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl border border-[#dfbfbd] bg-[#fffafb] p-4">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Nguồn nội dung</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <BrandedSelect
+            onChange={(event) => setSelectedBankItemId(event.target.value)}
+            options={bankOptions}
+            placeholder="Chọn đề từ ngân hàng"
+            searchable={true}
+            value={selectedBankItemId}
+          />
+          <button
+            className="rounded-2xl border border-[#730014] bg-white px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff0f1] disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!selectedBankItemId}
+            onClick={() => {
+              onAttach(selectedBankItemId);
+              setSelectedBankItemId('');
+            }}
+            type="button"
+          >
+            Dùng đề đã chọn
+          </button>
+        </div>
+      </div>
+
+      {assessment ? (
+        <AssessmentEditorCard
+          assessment={assessment}
+          lessonMode={true}
+          onFieldChange={onFieldChange}
+          rubricOptions={rubricOptions}
+          title={contentType === 'QUIZ' ? 'Nội dung trắc nghiệm' : 'Nội dung bài tập'}
+        />
+      ) : (
+        <div className="rounded-3xl border border-dashed border-[#d8b6b4] bg-white p-8 text-center">
+          <p className="text-sm font-semibold text-[#584140]">Chưa có nội dung để học viên thực hiện.</p>
+          <button className="mt-4 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white" onClick={onCreate} type="button">
+            Tự biên soạn
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1994,6 +2220,15 @@ function SelectField({ label, value, onChange, options }) {
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
       <BrandedSelect onChange={onChange} options={options || []} value={value} />
     </label>
+  );
+}
+
+function StaticField({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-[#eadcdc] bg-white px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8b706e]">{label}</p>
+      <p className="mt-1 text-sm font-bold text-[#4b0009]">{value}</p>
+    </div>
   );
 }
 

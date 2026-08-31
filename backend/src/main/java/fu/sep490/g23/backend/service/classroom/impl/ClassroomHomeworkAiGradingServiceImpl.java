@@ -12,6 +12,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkAiGradingService;
+import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,16 +29,31 @@ import java.util.stream.Collectors;
 public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkAiGradingService {
 
     private final AiEvaluationClient aiEvaluationClient;
+    private final HomeworkAttachmentStorageService attachmentStorageService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Attempts to automatically grade a homework submission using an AI evaluation model.
+     * This method acts as a safeguard, ensuring the homework meets all prerequisites 
+     * for AI grading before constructing a prompt and calling the external AI service.
+     *
+     * @param submission The student's homework submission to be graded
+     * @return true if the AI successfully graded the submission; false if it failed or was skipped
+     */
     public boolean tryAutoGrade(ClassroomHomeworkSubmission submission) {
         ClassroomHomework homework = submission.getHomework();
+        
+        // Ensure the homework is explicitly configured to use AI grading
         if (homework.getGradingMode() != HomeworkGradingMode.AI) {
             return false;
         }
+        // AI grading requires a scoring rubric to evaluate the student's work accurately
         if (homework.getRubric() == null) {
             return false;
         }
+        
+        // Ensure there is actual content to grade. 
+        // If the text answer is empty, check if an attachment URL is provided.
         if (submission.getTextAnswer() == null || submission.getTextAnswer().isBlank()) {
             if (submission.getAttachmentUrl() == null || submission.getAttachmentUrl().isBlank()) {
                 return false;
@@ -45,14 +61,39 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
         }
 
         try {
-            String prompt = buildPrompt(homework, submission);
-            AiEvaluationResult result = aiEvaluationClient.evaluate(prompt);
+            AiEvaluationResult result = evaluateSubmission(homework, submission);
             applyAiResult(submission, homework, result);
+            
             return true;
         } catch (Exception ex) {
-            log.warn("Không thể chấm AI bài tập homeworkId={}: {}", homework.getId(), ex.getMessage());
+            // Log the error but do not throw an exception, allowing the system to gracefully 
+            // fall back to manual grading (keeping the submission in SUBMITTED state).
+            log.warn("Cannot AI grade homeworkId={}: {}", homework.getId(), ex.getMessage());
             return false;
         }
+    }
+
+    private AiEvaluationResult evaluateSubmission(
+            ClassroomHomework homework,
+            ClassroomHomeworkSubmission submission
+    ) {
+        if (homework.getSkill() != AssessmentSkill.SPEAKING) {
+            return aiEvaluationClient.evaluate(buildPrompt(homework, submission, submission.getTextAnswer()));
+        }
+
+        HomeworkAttachmentStorageService.StoredHomeworkAttachment audio = attachmentStorageService
+                .loadStoredAttachmentFromUrl(submission.getAttachmentUrl())
+                .filter(stored -> stored.contentType() != null && stored.contentType().startsWith("audio/"))
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Bài Speaking không có tệp ghi âm hợp lệ trong kho bài tập."
+                ));
+        String prompt = buildPrompt(
+                homework,
+                submission,
+                "The learner's actual spoken response is provided in the attached audio. "
+                        + "Listen to that audio and grade only what the learner says."
+        );
+        return aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType());
     }
 
     private void applyAiResult(
@@ -119,7 +160,11 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
         return feedbackJson.length() > 1200 ? feedbackJson.substring(0, 1200) + "..." : feedbackJson;
     }
 
-    private String buildPrompt(ClassroomHomework homework, ClassroomHomeworkSubmission submission) {
+    private String buildPrompt(
+            ClassroomHomework homework,
+            ClassroomHomeworkSubmission submission,
+            String studentSubmission
+    ) {
         AssessmentRubric rubric = homework.getRubric();
         String criteriaBlock = rubric.getCriteria().stream()
                 .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder).thenComparing(RubricCriterion::getId))
@@ -172,7 +217,7 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
                 homework.getMaxScore() == null ? "10" : homework.getMaxScore().toPlainString(),
                 safe(homework.getInstruction()),
                 criteriaBlock,
-                safe(firstNonBlank(submission.getTextAnswer(), submission.getAttachmentUrl()))
+                safe(studentSubmission)
         );
     }
 
@@ -180,12 +225,4 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
         return value == null ? "" : value;
     }
 
-    private String firstNonBlank(String... values) {
-        for (String value : values) {
-            if (value != null && !value.isBlank()) {
-                return value;
-            }
-        }
-        return "";
-    }
 }

@@ -102,4 +102,32 @@ class OnlineCoursePreviewValidatorTest {
 
         assertThat(codes).containsExactlyInAnyOrder("NO_MODULES", "NO_ASSESSMENTS");
     }
+
+    @Test
+    void quizLessonRequiresAssessmentLinkedToThatLesson() {
+        LessonResponse lesson = LessonResponse.builder()
+                .id(77L)
+                .title("Vocabulary quiz")
+                .contentType("QUIZ")
+                .build();
+        OnlineCourseResponse course = OnlineCourseResponse.builder()
+                .thumbnailUrl("https://cdn.example.com/course.jpg")
+                .description("Draft")
+                .price(BigDecimal.ZERO)
+                .modules(List.of(ModuleResponse.builder().title("Vocabulary").lessons(List.of(lesson)).build()))
+                .build();
+        CourseAssessmentResponse unrelated = CourseAssessmentResponse.builder()
+                .title("Module test")
+                .type(AssessmentType.MODULE_TEST)
+                .skill(AssessmentSkill.VOCABULARY)
+                .maxScore(BigDecimal.TEN)
+                .build();
+
+        assertThat(validator.validate(course, List.of(unrelated))).extracting(OnlineCoursePreviewWarningResponse::getCode)
+                .contains("LESSON_WITHOUT_ASSESSMENT");
+
+        unrelated.setLessonId(77L);
+        assertThat(validator.validate(course, List.of(unrelated))).extracting(OnlineCoursePreviewWarningResponse::getCode)
+                .doesNotContain("LESSON_WITHOUT_ASSESSMENT", "LESSON_WITHOUT_CONTENT");
+    }
 }

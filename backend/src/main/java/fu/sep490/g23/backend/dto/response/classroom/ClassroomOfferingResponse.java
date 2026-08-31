@@ -34,6 +34,7 @@ public class ClassroomOfferingResponse {
     private String instructorLedCourseSlug;
     private String instructorLedCourseExamType;
     private String instructorLedCourseStatus;
+    // Materials of class
     private InstructorLedCourseResponse instructorLedCourse;
     private String entryLevel;
     private String targetOutcome;

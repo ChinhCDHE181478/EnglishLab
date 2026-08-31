@@ -16,6 +16,10 @@ import java.util.List;
 public class StudentFlashcardPracticeController {
     private final FlashcardPracticeService flashcardPracticeService;
 
+    /**
+     * Retrieve vocabulary flashcards for practice based on the chosen source (Hub, Classroom, Enrolled).
+     * UC-59 & UC-60: Practice Flashcards in Classroom / Flashcard Hub
+     */
     @GetMapping("/practice")
     public ResponseEntity<List<VocabularyTermResponse>> getPracticeTerms(
             @RequestParam(defaultValue = "ENROLLED") FlashcardPracticeSource source,

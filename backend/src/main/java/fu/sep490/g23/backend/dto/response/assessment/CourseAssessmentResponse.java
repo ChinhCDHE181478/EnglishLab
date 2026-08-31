@@ -20,8 +20,10 @@ public class CourseAssessmentResponse {
     private Long id;
     private Long courseId;
     private Long moduleId;
+    private Long lessonId;
     private Long assessmentBankItemId;
     private String moduleTitle;
+    private String lessonTitle;
     private String title;
     private String description;
     private AssessmentType type;
