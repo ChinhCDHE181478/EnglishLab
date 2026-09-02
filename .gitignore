@@ -12,6 +12,7 @@ docs/
 rtk/
 backend/scripts/
 scripts/
+scratch/
 .cursor/
 .agents/
 

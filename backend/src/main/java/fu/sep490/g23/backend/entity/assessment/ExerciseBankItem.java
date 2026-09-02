@@ -35,7 +35,7 @@ import java.util.Map;
 /**
  * Exercise bank view of {@code content_bank_items} ({@code bank_type = EXERCISE}).
  *
- * <p>status vs active: both kept; historically only {@code active} existed — V4 derived status.
+ * <p>{@code status} is the single lifecycle and availability source of truth.
  */
 @Getter
 @Setter
@@ -68,18 +68,10 @@ public class ExerciseBankItem {
     @Builder.Default
     private String status = "PUBLISHED";
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean active = true;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload_jsonb", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "content_data", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
-    private Map<String, Object> payloadJsonb = new HashMap<>();
+    private Map<String, Object> contentData = new HashMap<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
@@ -111,7 +103,7 @@ public class ExerciseBankItem {
 
     @PostLoad
     private void hydrateFromPayload() {
-        Map<String, Object> payload = ContentBankPayloadSupport.ensure(payloadJsonb);
+        Map<String, Object> payload = ContentBankPayloadSupport.ensure(contentData);
         level = ContentBankPayloadSupport.getString(payload, "level");
         String loadedType = ContentBankPayloadSupport.getString(payload, "exerciseType");
         exerciseType = loadedType == null || loadedType.isBlank() ? "HOMEWORK" : loadedType;
@@ -127,22 +119,20 @@ public class ExerciseBankItem {
     @PreUpdate
     private void flushToPayload() {
         bankType = "EXERCISE";
-        if (payloadJsonb == null) {
-            payloadJsonb = new HashMap<>();
+        if (contentData == null) {
+            contentData = new HashMap<>();
         }
-        if (status == null || status.isBlank()) {
-            status = active ? "PUBLISHED" : "ARCHIVED";
-        }
+        if (status == null || status.isBlank()) status = "PUBLISHED";
         if (prompt == null) {
             prompt = "";
         }
         if (exerciseType == null || exerciseType.isBlank()) {
             exerciseType = "HOMEWORK";
         }
-        ContentBankPayloadSupport.put(payloadJsonb, "level", level);
-        ContentBankPayloadSupport.put(payloadJsonb, "exerciseType", exerciseType);
-        ContentBankPayloadSupport.put(payloadJsonb, "prompt", prompt);
-        ContentBankPayloadSupport.put(payloadJsonb, "answerKey", answerKey);
-        ContentBankPayloadSupport.put(payloadJsonb, "explanation", explanation);
+        ContentBankPayloadSupport.put(contentData, "level", level);
+        ContentBankPayloadSupport.put(contentData, "exerciseType", exerciseType);
+        ContentBankPayloadSupport.put(contentData, "prompt", prompt);
+        ContentBankPayloadSupport.put(contentData, "answerKey", answerKey);
+        ContentBankPayloadSupport.put(contentData, "explanation", explanation);
     }
 }

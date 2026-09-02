@@ -247,8 +247,6 @@ class ClassroomProposalServiceImplTest {
         ClassroomProposal proposal = pendingProposal();
         proposal.setDeliveryType(ClassroomDeliveryMode.VIRTUAL);
         proposal.setRoom(null);
-        proposal.setOfflineAddress(null);
-        proposal.setVirtualMeetingUrl(null);
         ClassSection classroom = ClassSection.builder().id(101L).build();
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
@@ -360,7 +358,6 @@ class ClassroomProposalServiceImplTest {
                 .sessionEndTime(LocalTime.of(20, 30))
                 .primaryTeacher(teacher)
                 .room(room)
-                .offlineAddress("Cơ sở Cầu Giấy")
                 .approvalStatus(ClassroomApprovalStatus.PENDING_APPROVAL)
                 .createdBy(staff)
                 .submittedBy(staff)

@@ -32,12 +32,7 @@ import java.util.Map;
 /**
  * Unified content bank row ({@code content_bank_items}).
  *
- * <p><b>status vs active:</b> both columns are kept as distinct concepts, matching
- * {@link AssessmentBankItem} which already used a lifecycle {@code status} plus an
- * {@code active} flag. Types that historically had only one field had the other derived
- * during Flyway V4 backfill (e.g. exercise/rubric/placement {@code active} → status;
- * flashcard status → active). Runtime code should continue to treat them separately:
- * {@code status} for draft/published/archived lifecycle, {@code active} for availability.
+ * <p>{@code status} is the single lifecycle and availability source of truth.
  */
 @Getter
 @Setter
@@ -75,25 +70,13 @@ public class ContentBankItem {
     @Builder.Default
     private String status = "DRAFT";
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean active = true;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
     @Column(length = 500)
     private String tags;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload_jsonb", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "content_data", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
-    private Map<String, Object> payloadJsonb = new HashMap<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rubric_bank_item_id")
-    private ContentBankItem rubricBankItem;
+    private Map<String, Object> contentData = new HashMap<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")

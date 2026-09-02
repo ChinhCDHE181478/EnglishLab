@@ -92,7 +92,6 @@ const buildProposalPayload = (form) => {
     endDate: form.plannedEndDate || lastSessionDate || form.plannedStartDate,
     primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
     roomId: form.deliveryType === 'VIRTUAL' ? null : (form.roomId ? Number(form.roomId) : null),
-    offlineAddress: null,
     scheduleItems: scheduleItems.map((item, index) => ({
       sequenceNumber: index + 1,
       sessionDate: item.sessionDate,

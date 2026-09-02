@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.controller.course;
 
 import fu.sep490.g23.backend.dto.request.course.LearnerLessonNoteRequest;
 import fu.sep490.g23.backend.dto.response.course.LearnerLessonNoteResponse;
-import fu.sep490.g23.backend.dto.response.course.LearnerLessonReviewFlagResponse;
 import fu.sep490.g23.backend.service.course.LearnerLearningExperienceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,27 +47,4 @@ public class StudentLearningExperienceController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/review-flags")
-    public ResponseEntity<List<LearnerLessonReviewFlagResponse>> getReviewFlags(Authentication authentication) {
-        return ResponseEntity.ok(learningExperienceService.getReviewFlags(authentication.getName()));
-    }
-
-    @PostMapping("/courses/{courseId}/lessons/{lessonId}/review-flag")
-    public ResponseEntity<LearnerLessonReviewFlagResponse> addReviewFlag(
-            @PathVariable Long courseId,
-            @PathVariable Long lessonId,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(learningExperienceService.addReviewFlag(courseId, lessonId, authentication.getName()));
-    }
-
-    @DeleteMapping("/courses/{courseId}/lessons/{lessonId}/review-flag")
-    public ResponseEntity<Void> removeReviewFlag(
-            @PathVariable Long courseId,
-            @PathVariable Long lessonId,
-            Authentication authentication
-    ) {
-        learningExperienceService.removeReviewFlag(courseId, lessonId, authentication.getName());
-        return ResponseEntity.noContent().build();
-    }
 }

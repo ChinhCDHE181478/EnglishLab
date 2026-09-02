@@ -141,7 +141,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     private OnlineCourse requireVisibleCourse(Long courseId) {
         OnlineCourse course = onlineCourseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        if (course.isDeleted()) {
+        if (course.getStatus() == PackageStatus.ARCHIVED) {
             throw new RuntimeException("Khóa học không còn khả dụng.");
         }
         if (course.getStatus() != PackageStatus.PUBLISHED) {

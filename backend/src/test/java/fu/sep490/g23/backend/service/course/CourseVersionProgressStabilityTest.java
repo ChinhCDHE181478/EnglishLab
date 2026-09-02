@@ -160,7 +160,7 @@ class CourseVersionProgressStabilityTest {
                 .build();
         CourseAssessment baselineAssessment = CourseAssessment.builder()
                 .id(100L)
-                .onlineCourse(course)
+                .onlineCourseVersion(baselineVersion)
                 .progressKey("module-1-writing")
                 .build();
 

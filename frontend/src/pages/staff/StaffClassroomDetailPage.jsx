@@ -594,7 +594,7 @@ export default function StaffClassroomDetailPage() {
         <div className="flex flex-wrap gap-2">
           <Badge>{formatDeliveryMode(classroom.deliveryMode, classroom.deliveryModeLabel)}</Badge>
           <Badge>{formatOfferingStatus(classroom.classroomStatus)}</Badge>
-          <Badge>{classroom.entryLevel || 'Chưa gắn level'}</Badge>
+          <Badge>{classroom.instructorLedCourse?.entryLevel || 'Chưa gắn level'}</Badge>
           <Badge>{classroom.instructorLedCourseTitle || 'Chưa gắn khóa học'}</Badge>
         </div>
         <h2 className="mt-3 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{classroom.title}</h2>

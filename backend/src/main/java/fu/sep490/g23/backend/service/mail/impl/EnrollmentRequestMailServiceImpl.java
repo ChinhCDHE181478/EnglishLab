@@ -86,7 +86,8 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
                 ? "Đang cập nhật"
                 : classroom.getDeliveryMode().name().equals("VIRTUAL")
                     ? "Học trực tuyến (Virtual)"
-                    : valueOrDefault(classroom.getOfflineAddress(), "Học tại trung tâm EnglishLab");
+                    : valueOrDefault(classroom.getRoom() == null ? null : classroom.getRoom().getLocationAddress(),
+                    "Học tại trung tâm EnglishLab");
         String classTitle = classroom.getInstructorLedCourse() != null
                 ? classroom.getInstructorLedCourse().getTitle()
                 : (classroom.getInstructorLedCourse() != null ? classroom.getInstructorLedCourse().getTitle() : "Lớp EnglishLab");

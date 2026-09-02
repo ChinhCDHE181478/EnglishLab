@@ -17,7 +17,7 @@ public interface OnlineLessonRepository extends JpaRepository<OnlineLesson, Long
             join l.module m
             join m.onlineCourseVersion v
             join v.onlineCourse c
-            where c.deleted = false
+            where c.status <> fu.sep490.g23.backend.entity.course.enums.PackageStatus.ARCHIVED
             """)
     long countActiveLessons();
 }

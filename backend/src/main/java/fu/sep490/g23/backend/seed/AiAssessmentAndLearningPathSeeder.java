@@ -64,19 +64,17 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         AssessmentRubric speakingRubric = upsertIeltsSpeakingRubric();
         AssessmentRubric vocabularyRubric = upsertVocabularyRubric();
 
-        onlineCourseRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus")
+        onlineCourseRepository.findBySlug("ielts-master-vocabulary-band-7-plus")
                 .ifPresent(course -> {
-                    configurePath(course, 1, "IELTS 5.5 to 7.0 Self-Paced Path", 5.5, 7.0,
-                            "Learner can use band-7 topic vocabulary, collocations, and examples in IELTS Speaking/Writing responses.",
-                            "e2-ielts-practice-tests");
+                    configureCourseProfile(course, 5.5, 7.0,
+                            "Learner can use band-7 topic vocabulary, collocations, and examples in IELTS Speaking/Writing responses.");
                     seedVocabularyAssessments(course, vocabularyRubric);
                 });
 
-        onlineCourseRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
+        onlineCourseRepository.findBySlug("e2-ielts-practice-tests")
                 .ifPresent(course -> {
-                    configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 6.0, 7.0,
-                            "Learner can complete IELTS-style practice tests, analyze mistakes, and follow AI recommendations for final review.",
-                            null);
+                    configureCourseProfile(course, 6.0, 7.0,
+                            "Learner can complete IELTS-style practice tests, analyze mistakes, and follow AI recommendations for final review.");
                     seedPracticeTestAssessments(course, writingRubric, speakingRubric);
                 });
 
@@ -84,8 +82,8 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private void upsertLearningPathEntity() {
-        OnlineCourse vocabCourse = onlineCourseRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus").orElse(null);
-        OnlineCourse e2Course = onlineCourseRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests").orElse(null);
+        OnlineCourse vocabCourse = onlineCourseRepository.findBySlug("ielts-master-vocabulary-band-7-plus").orElse(null);
+        OnlineCourse e2Course = onlineCourseRepository.findBySlug("e2-ielts-practice-tests").orElse(null);
         if (vocabCourse == null && e2Course == null) return;
 
         LearningPath path = learningPathRepository.findByCodeIgnoreCase("IELTS_BAND_55_TO_70")
@@ -118,19 +116,15 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         }
     }
 
-    private void configurePath(OnlineCourse course, int order, String name, double minBand, double targetBand, String outcome, String nextSlug) {
-        course.setLearningPathCode("IELTS_BAND_55_TO_70");
-        course.setLearningPathName(name);
-        course.setLearningPathOrder(order);
+    private void configureCourseProfile(OnlineCourse course, double minBand, double targetBand, String outcome) {
         course.setRecommendedCurrentBandMin(minBand);
         course.setTargetBand(targetBand);
         course.setTargetOutcome(outcome);
-        course.setRecommendedNextCourseSlug(nextSlug);
         onlineCourseRepository.save(course);
     }
 
     private AssessmentRubric upsertIeltsWritingRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Writing Task 2 AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Writing Task 2 AI Rubric", "PUBLISHED")
                 .orElseGet(() -> {
                     AssessmentRubric rubric = AssessmentRubric.builder()
                             .name("IELTS Writing Task 2 AI Rubric")
@@ -139,7 +133,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                             .taskType("Writing Task 2")
                             .scoringScale("Estimated IELTS band 0-9")
                             .description("Rubric used by EnglishLab AI for formative Writing Task 2 feedback. It is not an official IELTS score.")
-                            .active(true)
+                            .status("PUBLISHED")
                             .build();
                     rubric.addCriterion(criterion("Task Response", 25, 1, "Addresses the prompt, presents a clear position, and develops relevant ideas.", "Band 5: limited development; Band 6: relevant but sometimes underdeveloped; Band 7: clear position and well-developed support."));
                     rubric.addCriterion(criterion("Coherence and Cohesion", 25, 2, "Organizes ideas logically with paragraphing and cohesive devices.", "Band 5: weak progression; Band 6: overall progression but mechanical linking; Band 7: clear progression and effective paragraphing."));
@@ -150,7 +144,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private AssessmentRubric upsertIeltsSpeakingRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Speaking AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Speaking AI Rubric", "PUBLISHED")
                 .orElseGet(() -> {
                     AssessmentRubric rubric = AssessmentRubric.builder()
                             .name("IELTS Speaking AI Rubric")
@@ -159,7 +153,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                             .taskType("Speaking practice")
                             .scoringScale("Estimated IELTS band 0-9")
                             .description("Rubric used by EnglishLab AI to evaluate speaking transcript and fluency indicators. Audio pronunciation scoring can be integrated later.")
-                            .active(true)
+                            .status("PUBLISHED")
                             .build();
                     rubric.addCriterion(criterion("Fluency and Coherence", 25, 1, "Responds at length, connects ideas, and avoids long pauses.", "Band 5: pauses and repetition; Band 6: willing to speak at length; Band 7: flexible and coherent."));
                     rubric.addCriterion(criterion("Lexical Resource", 25, 2, "Uses topic vocabulary, paraphrase, and natural collocations.", "Band 5: limited vocabulary; Band 6: adequate but sometimes inaccurate; Band 7: flexible and precise."));
@@ -170,7 +164,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private AssessmentRubric upsertVocabularyRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Vocabulary Usage AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Vocabulary Usage AI Rubric", "PUBLISHED")
                 .orElseGet(() -> {
                     AssessmentRubric rubric = AssessmentRubric.builder()
                             .name("IELTS Vocabulary Usage AI Rubric")
@@ -179,7 +173,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                             .taskType("Vocabulary output practice")
                             .scoringScale("EnglishLab 0-10 formative score")
                             .description("Rubric for checking whether learners can use target vocabulary naturally in sentences and short answers.")
-                            .active(true)
+                            .status("PUBLISHED")
                             .build();
                     rubric.addCriterion(criterion("Meaning Accuracy", 35, 1, "Uses the target word with the correct meaning in context.", "Low: wrong meaning; Medium: partly correct; High: accurate and natural."));
                     rubric.addCriterion(criterion("Collocation", 30, 2, "Combines target vocabulary with natural collocations.", "Low: awkward combinations; Medium: acceptable; High: natural academic collocations."));
@@ -205,7 +199,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         for (OnlineCourseModule module : modules) {
             CourseAssessment assessment = findSeededModuleAssessment(existingAssessments, module, "AI Vocabulary Output Check - ")
                     .orElseGet(() -> CourseAssessment.builder()
-                            .onlineCourse(course)
+                            .onlineCourseVersion(module.getOnlineCourseVersion())
                             .module(module)
                             .type(AssessmentType.MODULE_TEST)
                             .active(true)
@@ -237,7 +231,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             AiEvaluationMode evaluationMode = resolvePracticeEvaluationMode(skill);
             CourseAssessment assessment = findSeededModuleAssessment(existingAssessments, module, "Module AI Check - ")
                     .orElseGet(() -> CourseAssessment.builder()
-                            .onlineCourse(course)
+                            .onlineCourseVersion(module.getOnlineCourseVersion())
                             .module(module)
                             .type(AssessmentType.MODULE_TEST)
                             .active(true)
@@ -267,7 +261,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         }
         CourseAssessment finalMock = findSeededMockAssessment(existingAssessments)
                 .orElseGet(() -> CourseAssessment.builder()
-                        .onlineCourse(course)
+                        .onlineCourseVersion(modules.getFirst().getOnlineCourseVersion())
                         .type(AssessmentType.MOCK_TEST)
                         .active(true)
                         .build());

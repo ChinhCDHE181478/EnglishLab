@@ -28,7 +28,7 @@ import java.util.Map;
  * Placement test definition view of {@code content_bank_items} ({@code bank_type = PLACEMENT_TEST}).
  * {@code testCode} maps to shared {@code code}; skill configs live in payload.
  *
- * <p>status vs active: both kept; historically only {@code active} existed — V4 derived status.
+ * <p>{@code status} is the single lifecycle and availability source of truth.
  */
 @Getter
 @Setter
@@ -64,17 +64,10 @@ public class PlacementTestDefinition {
     @Builder.Default
     private String status = "PUBLISHED";
 
-    @Column(nullable = false)
-    private boolean active;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload_jsonb", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "content_data", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
-    private Map<String, Object> payloadJsonb = new HashMap<>();
+    private Map<String, Object> contentData = new HashMap<>();
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
@@ -102,7 +95,7 @@ public class PlacementTestDefinition {
 
     @PostLoad
     private void hydrateFromPayload() {
-        Map<String, Object> payload = ContentBankPayloadSupport.ensure(payloadJsonb);
+        Map<String, Object> payload = ContentBankPayloadSupport.ensure(contentData);
         maxAttempts = ContentBankPayloadSupport.getInteger(payload, "maxAttempts");
         listeningConfigJson = stringifyConfig(payload.get("listeningConfig"));
         readingConfigJson = stringifyConfig(payload.get("readingConfig"));
@@ -115,12 +108,10 @@ public class PlacementTestDefinition {
     @PreUpdate
     private void flushToPayload() {
         bankType = "PLACEMENT_TEST";
-        if (payloadJsonb == null) {
-            payloadJsonb = new HashMap<>();
+        if (contentData == null) {
+            contentData = new HashMap<>();
         }
-        if (status == null || status.isBlank()) {
-            status = active ? "PUBLISHED" : "ARCHIVED";
-        }
+        if (status == null || status.isBlank()) status = "PUBLISHED";
         if (updatedAt == null) {
             updatedAt = LocalDateTime.now();
         }
@@ -130,12 +121,12 @@ public class PlacementTestDefinition {
         if (maxAttempts == null) {
             maxAttempts = 3;
         }
-        ContentBankPayloadSupport.put(payloadJsonb, "maxAttempts", maxAttempts);
-        ContentBankPayloadSupport.put(payloadJsonb, "listeningConfig", ContentBankPayloadSupport.readJsonNode(listeningConfigJson));
-        ContentBankPayloadSupport.put(payloadJsonb, "readingConfig", ContentBankPayloadSupport.readJsonNode(readingConfigJson));
-        ContentBankPayloadSupport.put(payloadJsonb, "writingConfig", ContentBankPayloadSupport.readJsonNode(writingConfigJson));
-        ContentBankPayloadSupport.put(payloadJsonb, "speakingConfig", ContentBankPayloadSupport.readJsonNode(speakingConfigJson));
-        ContentBankPayloadSupport.put(payloadJsonb, "toeicConfig", ContentBankPayloadSupport.readJsonNode(toeicConfigJson));
+        ContentBankPayloadSupport.put(contentData, "maxAttempts", maxAttempts);
+        ContentBankPayloadSupport.put(contentData, "listeningConfig", ContentBankPayloadSupport.readJsonNode(listeningConfigJson));
+        ContentBankPayloadSupport.put(contentData, "readingConfig", ContentBankPayloadSupport.readJsonNode(readingConfigJson));
+        ContentBankPayloadSupport.put(contentData, "writingConfig", ContentBankPayloadSupport.readJsonNode(writingConfigJson));
+        ContentBankPayloadSupport.put(contentData, "speakingConfig", ContentBankPayloadSupport.readJsonNode(speakingConfigJson));
+        ContentBankPayloadSupport.put(contentData, "toeicConfig", ContentBankPayloadSupport.readJsonNode(toeicConfigJson));
     }
 
     private static String stringifyConfig(Object value) {

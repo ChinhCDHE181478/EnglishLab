@@ -11,7 +11,7 @@ public interface BunnyStreamService {
 
     BunnyVideoUploadResponse uploadVideo(MultipartFile file, String title);
 
-    Optional<BunnyVideoRef> resolveVideoRef(String videoUrl, String bunnyVideoId, String bunnyLibraryId);
+    Optional<BunnyVideoRef> resolveVideoRef(String videoUrl);
 
     List<TranscriptSegmentResponse> fetchTranscriptSegments(String libraryId, String videoId);
 

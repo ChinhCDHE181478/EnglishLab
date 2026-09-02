@@ -272,14 +272,13 @@ class ClassroomHomeworkServiceImplTest {
                 .title("Reading practice")
                 .type(AssessmentType.MODULE_TEST)
                 .status("PUBLISHED")
-                .active(true)
                 .skill(AssessmentSkill.READING)
                 .uiConfigJson("{}")
                 .build();
 
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(assessmentBankItemRepository
-                .findByTypeAndStatusAndActiveTrueAndSkillInOrderByDisplayOrderAscUpdatedAtDescIdDesc(
+                .findByTypeAndStatusAndSkillInOrderByUpdatedAtDescIdDesc(
                         AssessmentType.MODULE_TEST,
                         "PUBLISHED",
                         List.of(
@@ -319,7 +318,6 @@ class ClassroomHomeworkServiceImplTest {
                 .title("IELTS Writing Task 2")
                 .type(AssessmentType.MODULE_TEST)
                 .status("PUBLISHED")
-                .active(true)
                 .skill(AssessmentSkill.WRITING)
                 .rubric(defaultRubric)
                 .uiConfigJson("{}")
@@ -335,7 +333,7 @@ class ClassroomHomeworkServiceImplTest {
 
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assessmentBankItemRepository.findByIdAndTypeAndStatusAndActiveTrue(
+        when(assessmentBankItemRepository.findByIdAndTypeAndStatus(
                 assessment.getId(), AssessmentType.MODULE_TEST, "PUBLISHED"
         )).thenReturn(Optional.of(assessment));
         when(homeworkGradingCatalogService.requireActiveRubric(selectedRubric.getId()))
@@ -354,6 +352,43 @@ class ClassroomHomeworkServiceImplTest {
         assertThat(savedHomework.getGradingMode()).isEqualTo(HomeworkGradingMode.AI);
         assertThat(savedHomework.isAiReviewEnabled()).isTrue();
         verify(homeworkGradingCatalogService).requireActiveRubric(selectedRubric.getId());
+    }
+
+    @Test
+    void create_AllowsFileResponseToUsePublishedAssessmentBankItem() {
+        User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
+        ClassSection offering = ClassSection.builder().id(10L).build();
+        AssessmentBankItem assessment = AssessmentBankItem.builder()
+                .id(11L)
+                .title("IELTS Writing Task 2")
+                .type(AssessmentType.MODULE_TEST)
+                .status("PUBLISHED")
+                .skill(AssessmentSkill.WRITING)
+                .uiConfigJson("{}")
+                .build();
+        CreateHomeworkRequest request = CreateHomeworkRequest.builder()
+                .title("File writing homework")
+                .activityType(HomeworkActivityType.FILE_RESPONSE)
+                .status(HomeworkStatus.DRAFT)
+                .aiReviewEnabled(false)
+                .assessmentBankItemId(assessment.getId())
+                .build();
+
+        when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
+        when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
+        when(assessmentBankItemRepository.findByIdAndTypeAndStatus(
+                assessment.getId(), AssessmentType.MODULE_TEST, "PUBLISHED"
+        )).thenReturn(Optional.of(assessment));
+        when(homeworkRepository.save(any(ClassroomHomework.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(offering.getId(), request, teacher.getEmail());
+
+        ArgumentCaptor<ClassroomHomework> homeworkCaptor = ArgumentCaptor.forClass(ClassroomHomework.class);
+        verify(homeworkRepository).save(homeworkCaptor.capture());
+        assertThat(homeworkCaptor.getValue().getAssessmentBankItem()).isEqualTo(assessment);
+        assertThat(homeworkCaptor.getValue().getActivityType()).isEqualTo(HomeworkActivityType.FILE_RESPONSE);
+        assertThat(homeworkCaptor.getValue().getSkill()).isEqualTo(AssessmentSkill.WRITING);
     }
 
     @Test

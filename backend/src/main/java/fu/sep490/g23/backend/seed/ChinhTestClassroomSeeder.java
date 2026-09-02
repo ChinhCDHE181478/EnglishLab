@@ -428,7 +428,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .answerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
                         .explanation("Đối chiếu đáp án, xác định nguyên nhân câu chưa đúng và ôn lại lý thuyết trọng tâm.")
                         .tags(seed.tags())
-                        .active(true)
+                        .status("PUBLISHED")
                         .createdBy(teacher)
                         .build());
         exercise.setExerciseType("PRACTICE");
@@ -487,7 +487,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         set.setTags(seed.tags());
         set.setCardsJson(flashcardsJson(unitNumber));
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(unitNumber);
         return flashcardSetRepository.save(set);
     }
 
@@ -647,16 +646,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
                 .status(ClassroomOfferingStatus.ACTIVE)
-                .entryLevel("IELTS 5.0+ hoặc CEFR B1")
-                .targetOutcome("Đạt IELTS 6.5+; thành thạo cả 4 kỹ năng; có chiến lược thi thực tế.")
                 .capacity(20)
                 .startDate(LocalDate.now().minusWeeks(5))
                 .plannedEndDate(LocalDate.now().plusWeeks(3))
                 .primaryTeacher(teacher)
-                .syllabusSummary("8 buổi bám sát 4 kỹ năng IELTS: Listening, Reading, Writing, Speaking. Mỗi buổi gồm lý thuyết + luyện tập + flashcards + feedback cá nhân.")
-                .programOutcomes("Đạt band 6.5 IELTS tổng. Viết task 1 và task 2 đạt band 6.0+. Nói liên tục 2 phút không dừng.")
-                .teacherGuide("Mỗi buổi: review 10 phút + dạy chiến lược 30 phút + luyện tập có hướng dẫn 40 phút + Q&A 10 phút.")
-                .interactionActivities("Mock test, pair speaking, error log review, timed writing, peer feedback.")
                 .build();
         return offeringRepository.save(offering);
     }

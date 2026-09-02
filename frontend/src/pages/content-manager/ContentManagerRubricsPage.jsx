@@ -27,10 +27,10 @@ const skillOptions = [
   { label: 'Mixed', value: 'MIXED' },
 ];
 
-const activeOptions = [
-  { label: 'Đang dùng', value: 'ACTIVE' },
+const statusOptions = [
+  { label: 'Đang dùng', value: 'PUBLISHED' },
   { label: 'Tất cả', value: 'ALL' },
-  { label: 'Đã tạm ngưng', value: 'INACTIVE' },
+  { label: 'Đã tạm ngưng', value: 'ARCHIVED' },
 ];
 
 const emptyCriterion = {
@@ -48,7 +48,7 @@ const emptyForm = {
   taskType: '',
   scoringScale: 'Estimated IELTS band 0-9',
   description: '',
-  active: true,
+  status: 'PUBLISHED',
   criteria: [
     { ...emptyCriterion, name: 'Task Achievement', displayOrder: 1 },
     { ...emptyCriterion, name: 'Coherence and Cohesion', displayOrder: 2 },
@@ -64,16 +64,16 @@ export default function ContentManagerRubricsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [skillFilter, setSkillFilter] = useState('ALL');
-  const [activeFilter, setActiveFilter] = useState('ACTIVE');
+  const [statusFilter, setStatusFilter] = useState('PUBLISHED');
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [pageResult, setPageResult] = useState(EMPTY_PAGE);
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, criteria: 0 });
+  const [stats, setStats] = useState({ total: 0, published: 0, archived: 0, criteria: 0 });
   const editorRef = useRef(null);
   const deferredKeyword = useDeferredValue(keyword);
-  const resetKey = `${deferredKeyword}|${skillFilter}|${activeFilter}`;
+  const resetKey = `${deferredKeyword}|${skillFilter}|${statusFilter}`;
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
     pageResult.content,
     8,
@@ -87,8 +87,7 @@ export default function ContentManagerRubricsPage() {
     try {
       const params = {
         keyword: deferredKeyword.trim() || undefined,
-        includeInactive: true,
-        active: activeFilter === 'ALL' ? undefined : activeFilter === 'ACTIVE',
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
         skill: skillFilter === 'ALL' ? undefined : skillFilter,
       };
       const [data, summary] = await Promise.all([
@@ -107,12 +106,12 @@ export default function ContentManagerRubricsPage() {
 
   useEffect(() => {
     loadRubrics();
-  }, [activeFilter, deferredKeyword, page, skillFilter]);
+  }, [statusFilter, deferredKeyword, page, skillFilter]);
 
   const statItems = useMemo(() => [
     { label: 'Tổng rubric', value: stats.total, icon: SlidersHorizontal, tone: 'text-[#4b0009]' },
-    { label: 'Đang dùng', value: stats.active, icon: CheckCircle2, tone: 'text-emerald-700' },
-    { label: 'Tạm ngưng', value: stats.inactive, icon: Archive, tone: 'text-slate-700' },
+    { label: 'Đang dùng', value: stats.published, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Tạm ngưng', value: stats.archived, icon: Archive, tone: 'text-slate-700' },
     { label: 'Rule', value: stats.criteria, icon: Layers3, tone: 'text-[#005236]' },
   ], [stats]);
 
@@ -131,7 +130,7 @@ export default function ContentManagerRubricsPage() {
       taskType: rubric.taskType || '',
       scoringScale: rubric.scoringScale || '',
       description: rubric.description || '',
-      active: rubric.active !== false,
+      status: rubric.status || 'DRAFT',
       criteria: (rubric.criteria || []).length
         ? rubric.criteria.map((criterion, index) => ({
             id: criterion.id,
@@ -218,7 +217,7 @@ export default function ContentManagerRubricsPage() {
         taskType: form.taskType,
         scoringScale: form.scoringScale,
         description: form.description,
-        active: form.active,
+        status: form.status,
         criteria: form.criteria.map((criterion, index) => ({
           id: criterion.id || null,
           name: criterion.name.trim(),
@@ -249,7 +248,7 @@ export default function ContentManagerRubricsPage() {
     setError('');
     setSuccess('');
     try {
-      if (rubric.active === false) {
+      if (rubric.status !== 'PUBLISHED') {
         await courseApi.reactivateContentManagerRubric(rubric.id);
         setSuccess('Đã kích hoạt lại rubric.');
       } else {
@@ -318,15 +317,7 @@ export default function ContentManagerRubricsPage() {
               />
               <TextField label="Loại task" onChange={(value) => setForm((current) => ({ ...current, taskType: value }))} value={form.taskType} />
               <TextField label="Thang điểm" onChange={(value) => setForm((current) => ({ ...current, scoringScale: value }))} value={form.scoringScale} />
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <input
-                  checked={form.active}
-                  className="h-4 w-4 accent-[#4b0009]"
-                  onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
-                  type="checkbox"
-                />
-                <span className="text-sm font-bold text-slate-700">Cho phép sử dụng rubric này</span>
-              </label>
+              <FilterSelect label="Trạng thái" onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))} options={statusOptions.filter((item) => item.value !== 'ALL')} value={form.status} />
             </div>
             <RichTextEditor
               label="Mô tả"
@@ -388,7 +379,7 @@ export default function ContentManagerRubricsPage() {
         </div>
         <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
           <FilterSelect label="Kỹ năng" onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} value={skillFilter} />
-          <FilterSelect label="Trạng thái" onChange={(event) => setActiveFilter(event.target.value)} options={activeOptions} value={activeFilter} />
+          <FilterSelect label="Trạng thái" onChange={(event) => setStatusFilter(event.target.value)} options={statusOptions} value={statusFilter} />
         </div>
         <button
           aria-label="Làm mới rubrics"
@@ -430,7 +421,7 @@ export default function ContentManagerRubricsPage() {
                 <td className="px-6 py-5"><ManagerStatusBadge tone="info">{rubric.skill || '-'}</ManagerStatusBadge></td>
                 <td className="px-6 py-5 text-sm text-[#0b1c30]">{rubric.taskType || '-'}</td>
                 <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{rubric.criteria?.length || 0}</td>
-                <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.active === false ? 'neutral' : 'success'}>{rubric.active === false ? 'Tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
+                <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.status === 'PUBLISHED' ? 'success' : 'neutral'}>{rubric.status === 'PUBLISHED' ? 'Đang dùng' : 'Tạm ngưng'}</ManagerStatusBadge></td>
                 <td className="px-6 py-5 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]" onClick={() => editRubric(rubric)} type="button">
@@ -443,8 +434,8 @@ export default function ContentManagerRubricsPage() {
                       onClick={() => toggleRubricActive(rubric)}
                       type="button"
                     >
-                      {rubric.active === false ? <RefreshCw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
-                      {rubric.active === false ? 'Khôi phục' : 'Tạm ngưng'}
+                      {rubric.status !== 'PUBLISHED' ? <RefreshCw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                      {rubric.status !== 'PUBLISHED' ? 'Khôi phục' : 'Tạm ngưng'}
                     </button>
                   </div>
                 </td>
@@ -532,7 +523,7 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
           <div className="flex flex-wrap gap-2">
             <Badge>{rubric.skill}</Badge>
             {rubric.examType ? <Badge>{rubric.examType}</Badge> : null}
-            {rubric.active === false ? <Badge tone="muted">Tạm ngưng</Badge> : <Badge tone="success">Đang dùng</Badge>}
+            {rubric.status !== 'PUBLISHED' ? <Badge tone="muted">Tạm ngưng</Badge> : <Badge tone="success">Đang dùng</Badge>}
           </div>
           <h3 className="mt-3 font-['Manrope'] text-xl font-extrabold text-slate-900">{rubric.name}</h3>
           <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -550,7 +541,7 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
           </button>
           <button
             className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              rubric.active === false
+              rubric.status !== 'PUBLISHED'
                 ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                 : 'border-rose-200 text-rose-700 hover:bg-rose-50'
             }`}
@@ -558,8 +549,8 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
             onClick={onToggleActive}
             type="button"
           >
-            {rubric.active === false ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-            {rubric.active === false ? 'Kích hoạt' : 'Tạm ngưng'}
+            {rubric.status !== 'PUBLISHED' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+            {rubric.status !== 'PUBLISHED' ? 'Kích hoạt' : 'Tạm ngưng'}
           </button>
         </div>
       </div>

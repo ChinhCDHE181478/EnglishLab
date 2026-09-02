@@ -41,7 +41,7 @@ import java.util.Map;
 /**
  * Assessment bank view of {@code content_bank_items} ({@code bank_type = ASSESSMENT}).
  *
- * <p>status vs active: both kept as distinct concepts (lifecycle vs availability).
+ * <p>{@code status} is the single lifecycle and availability source of truth.
  */
 @Getter
 @Setter
@@ -75,18 +75,10 @@ public class AssessmentBankItem {
     @Builder.Default
     private String status = "DRAFT";
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean active = true;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload_jsonb", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "content_data", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
-    private Map<String, Object> payloadJsonb = new HashMap<>();
+    private Map<String, Object> contentData = new HashMap<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rubric_bank_item_id")
@@ -105,7 +97,7 @@ public class AssessmentBankItem {
 
     @Transient
     @Builder.Default
-    private AiEvaluationMode aiEvaluationMode = AiEvaluationMode.NONE;
+    private AiEvaluationMode aiEvaluationMode = AiEvaluationMode.RUBRIC_FEEDBACK;
 
     @Transient
     private String instructions;
@@ -128,7 +120,7 @@ public class AssessmentBankItem {
 
     @PostLoad
     private void hydrateFromPayload() {
-        Map<String, Object> payload = ContentBankPayloadSupport.ensure(payloadJsonb);
+        Map<String, Object> payload = ContentBankPayloadSupport.ensure(contentData);
         type = parseType(ContentBankPayloadSupport.getString(payload, "type"));
         aiEvaluationMode = parseAiMode(ContentBankPayloadSupport.getString(payload, "aiEvaluationMode"));
         instructions = ContentBankPayloadSupport.getString(payload, "instructions");
@@ -144,20 +136,20 @@ public class AssessmentBankItem {
     @PreUpdate
     private void flushToPayload() {
         bankType = "ASSESSMENT";
-        if (payloadJsonb == null) {
-            payloadJsonb = new HashMap<>();
+        if (contentData == null) {
+            contentData = new HashMap<>();
         }
         AssessmentType effectiveType = type == null ? AssessmentType.MODULE_TEST : type;
         type = effectiveType;
-        ContentBankPayloadSupport.put(payloadJsonb, "type", effectiveType.name());
-        ContentBankPayloadSupport.put(payloadJsonb, "aiEvaluationMode",
+        ContentBankPayloadSupport.put(contentData, "type", effectiveType.name());
+        ContentBankPayloadSupport.put(contentData, "aiEvaluationMode",
                 aiEvaluationMode == null ? AiEvaluationMode.NONE.name() : aiEvaluationMode.name());
-        ContentBankPayloadSupport.put(payloadJsonb, "instructions", instructions);
-        ContentBankPayloadSupport.put(payloadJsonb, "objectiveAnswerKey", objectiveAnswerKey);
-        ContentBankPayloadSupport.put(payloadJsonb, "uiConfigJson", uiConfigJson);
-        ContentBankPayloadSupport.put(payloadJsonb, "passingScore", passingScore);
-        ContentBankPayloadSupport.put(payloadJsonb, "maxScore", maxScore == null ? BigDecimal.TEN : maxScore);
-        ContentBankPayloadSupport.put(payloadJsonb, "timeLimitMinutes", timeLimitMinutes);
+        ContentBankPayloadSupport.put(contentData, "instructions", instructions);
+        ContentBankPayloadSupport.put(contentData, "objectiveAnswerKey", objectiveAnswerKey);
+        ContentBankPayloadSupport.put(contentData, "uiConfigJson", uiConfigJson);
+        ContentBankPayloadSupport.put(contentData, "passingScore", passingScore);
+        ContentBankPayloadSupport.put(contentData, "maxScore", maxScore == null ? BigDecimal.TEN : maxScore);
+        ContentBankPayloadSupport.put(contentData, "timeLimitMinutes", timeLimitMinutes);
     }
 
     private static AssessmentType parseType(String value) {
@@ -173,12 +165,12 @@ public class AssessmentBankItem {
 
     private static AiEvaluationMode parseAiMode(String value) {
         if (value == null || value.isBlank()) {
-            return AiEvaluationMode.NONE;
+            return AiEvaluationMode.RUBRIC_FEEDBACK;
         }
         try {
             return AiEvaluationMode.valueOf(value.trim());
         } catch (IllegalArgumentException ignored) {
-            return AiEvaluationMode.NONE;
+            return AiEvaluationMode.RUBRIC_FEEDBACK;
         }
     }
 }

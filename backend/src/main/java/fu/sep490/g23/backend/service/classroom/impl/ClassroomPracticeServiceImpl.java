@@ -170,7 +170,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                         ref,
                         exerciseRepository.findById(ref.getContentBankItem().getId()).orElse(null)
                 ))
-                .filter(ref -> ref.exercise() != null && ref.exercise().isActive())
+                .filter(ref -> ref.exercise() != null && "PUBLISHED".equalsIgnoreCase(ref.exercise().getStatus()))
                 .toList();
     }
 

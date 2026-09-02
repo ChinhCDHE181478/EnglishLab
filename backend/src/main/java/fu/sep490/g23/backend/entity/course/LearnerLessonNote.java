@@ -28,10 +28,6 @@ public class LearnerLessonNote {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private OnlineCourse course;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id", nullable = false)
     private OnlineLesson lesson;
 

@@ -33,19 +33,12 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ExerciseBankItemResponse> list(String skill, boolean includeInactive) {
-        List<ExerciseBankItem> items;
-        if (StringUtils.hasText(skill)) {
-            items = includeInactive
-                    ? repository.findAllByOrderByUpdatedAtDesc().stream()
-                    .filter(item -> skill.equalsIgnoreCase(item.getSkill()))
-                    .toList()
-                    : repository.findBySkillAndActiveTrueOrderByUpdatedAtDesc(skill.toUpperCase());
-        } else {
-            items = includeInactive
-                    ? repository.findAllByOrderByUpdatedAtDesc()
-                    : repository.findByActiveTrueOrderByUpdatedAtDesc();
-        }
+    public List<ExerciseBankItemResponse> list(String skill, String status) {
+        String normalizedStatus = normalizeOptionalStatus(status);
+        List<ExerciseBankItem> items = repository.findAllByOrderByUpdatedAtDesc().stream()
+                .filter(item -> !StringUtils.hasText(skill) || skill.equalsIgnoreCase(item.getSkill()))
+                .filter(item -> normalizedStatus == null || normalizedStatus.equalsIgnoreCase(item.getStatus()))
+                .toList();
         return items.stream().map(this::toResponse).toList();
     }
 
@@ -54,7 +47,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
     public Page<ExerciseBankItemResponse> page(
             String skill,
             String exerciseType,
-            Boolean active,
+            String status,
             String keyword,
             Pageable pageable
     ) {
@@ -68,9 +61,10 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
             specification = specification.and((root, query, criteriaBuilder) ->
                     criteriaBuilder.equal(root.get("exerciseType"), exerciseType.trim().toUpperCase(Locale.ROOT)));
         }
-        if (active != null) {
+        String normalizedStatus = normalizeOptionalStatus(status);
+        if (normalizedStatus != null) {
             specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("active"), active));
+                    criteriaBuilder.equal(root.get("status"), normalizedStatus));
         }
         if (StringUtils.hasText(keyword)) {
             String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
@@ -91,8 +85,8 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
                 .toList();
         return Map.of(
                 "total", (long) items.size(),
-                "active", items.stream().filter(ExerciseBankItem::isActive).count(),
-                "inactive", items.stream().filter(item -> !item.isActive()).count(),
+                "published", items.stream().filter(item -> "PUBLISHED".equalsIgnoreCase(item.getStatus())).count(),
+                "archived", items.stream().filter(item -> "ARCHIVED".equalsIgnoreCase(item.getStatus())).count(),
                 "skills", items.stream().map(ExerciseBankItem::getSkill).filter(StringUtils::hasText).distinct().count()
         );
     }
@@ -119,7 +113,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
                 .answerKey(trimOrNull(request.getAnswerKey()))
                 .explanation(trimOrNull(request.getExplanation()))
                 .tags(trimOrNull(request.getTags()))
-                .active(request.getActive() == null || request.getActive())
+                .status(normalizeStatus(request.getStatus(), "PUBLISHED"))
                 .createdBy(creator)
                 .build();
         return toResponse(repository.save(item));
@@ -139,8 +133,8 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
         item.setAnswerKey(trimOrNull(request.getAnswerKey()));
         item.setExplanation(trimOrNull(request.getExplanation()));
         item.setTags(trimOrNull(request.getTags()));
-        if (request.getActive() != null) {
-            item.setActive(request.getActive());
+        if (request.getStatus() != null) {
+            item.setStatus(normalizeStatus(request.getStatus(), item.getStatus()));
         }
         return toResponse(repository.save(item));
     }
@@ -148,7 +142,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
     @Override
     public void deactivate(Long id) {
         ExerciseBankItem item = findItem(id);
-        item.setActive(false);
+        item.setStatus("ARCHIVED");
         repository.save(item);
     }
 
@@ -204,7 +198,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
                 .answerKey(item.getAnswerKey())
                 .explanation(item.getExplanation())
                 .tags(item.getTags())
-                .active(item.isActive())
+                .status(item.getStatus())
                 .createdByName(item.getCreatedBy() == null ? null : item.getCreatedBy().getFullName())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
@@ -213,5 +207,20 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
 
     private String trimOrNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String normalizeStatus(String value, String fallback) {
+        if (!StringUtils.hasText(value)) return fallback;
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (!List.of("DRAFT", "PUBLISHED", "ARCHIVED").contains(normalized)) {
+            throw new IllegalArgumentException("Trạng thái nội dung không hợp lệ.");
+        }
+        return normalized;
+    }
+
+    private String normalizeOptionalStatus(String value) {
+        return !StringUtils.hasText(value) || "ALL".equalsIgnoreCase(value)
+                ? null
+                : normalizeStatus(value, null);
     }
 }

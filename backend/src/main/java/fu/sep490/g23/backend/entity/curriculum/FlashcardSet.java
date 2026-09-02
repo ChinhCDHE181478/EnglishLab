@@ -30,9 +30,9 @@ import java.util.Map;
 
 /**
  * Flashcard set view of {@code content_bank_items} ({@code bank_type = FLASHCARD}).
- * {@code cardsJson} is backed by {@code payload_jsonb.cards}.
+ * {@code cardsJson} is backed by {@code content_data.cards}.
  *
- * <p>status vs active: both kept; historically only {@code status} existed — V4 derived active.
+ * <p>{@code status} is the single lifecycle and availability source of truth.
  */
 @Getter
 @Setter
@@ -71,18 +71,10 @@ public class FlashcardSet {
     @Builder.Default
     private String status = "DRAFT";
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean active = true;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload_jsonb", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "content_data", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
-    private Map<String, Object> payloadJsonb = new HashMap<>();
+    private Map<String, Object> contentData = new HashMap<>();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -97,23 +89,19 @@ public class FlashcardSet {
 
     @PostLoad
     private void hydrateFromPayload() {
-        cardsJson = ContentBankPayloadSupport.cardsJsonFromPayload(payloadJsonb);
-        if (status != null && (status.equalsIgnoreCase("ARCHIVED") || status.equalsIgnoreCase("INACTIVE"))) {
-            active = false;
-        }
+        cardsJson = ContentBankPayloadSupport.cardsJsonFromPayload(contentData);
     }
 
     @PrePersist
     @PreUpdate
     private void flushToPayload() {
         bankType = "FLASHCARD";
-        if (payloadJsonb == null) {
-            payloadJsonb = new HashMap<>();
+        if (contentData == null) {
+            contentData = new HashMap<>();
         }
         if (status == null || status.isBlank()) {
             status = "DRAFT";
         }
-        active = !(status.equalsIgnoreCase("ARCHIVED") || status.equalsIgnoreCase("INACTIVE"));
-        ContentBankPayloadSupport.put(payloadJsonb, "cards", ContentBankPayloadSupport.cardsFromJson(cardsJson));
+        ContentBankPayloadSupport.put(contentData, "cards", ContentBankPayloadSupport.cardsFromJson(cardsJson));
     }
 }

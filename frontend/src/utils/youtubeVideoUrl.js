@@ -11,6 +11,6 @@ export function isBunnyVideoUrl(value) {
     || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text);
 }
 
-export function canAutoFetchTranscript({ videoUrl, bunnyVideoId } = {}) {
-  return Boolean(bunnyVideoId) || isYouTubeVideoUrl(videoUrl) || isBunnyVideoUrl(videoUrl);
+export function canAutoFetchTranscript({ videoUrl } = {}) {
+  return isYouTubeVideoUrl(videoUrl) || isBunnyVideoUrl(videoUrl);
 }

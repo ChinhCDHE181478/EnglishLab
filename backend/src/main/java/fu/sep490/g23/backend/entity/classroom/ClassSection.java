@@ -45,12 +45,6 @@ public class ClassSection {
     @Builder.Default
     private ClassroomOfferingStatus status = ClassroomOfferingStatus.DRAFT;
 
-    @Column(name = "entry_level", length = 120)
-    private String entryLevel;
-
-    @Column(name = "target_outcome", length = 700)
-    private String targetOutcome;
-
     @Column(nullable = false, length = 120)
     private String code;
 
@@ -86,9 +80,6 @@ public class ClassSection {
     @JoinColumn(name = "room_id")
     private Room room;
 
-    @Column(name = "offline_address", length = 500)
-    private String offlineAddress;
-
     @Column(name = "location_note", length = 500)
     private String locationNote;
 
@@ -105,18 +96,6 @@ public class ClassSection {
 
     @Column(name = "google_meet_sync_error", length = 1000)
     private String googleMeetSyncError;
-
-    @Column(name = "syllabus_summary", columnDefinition = "text")
-    private String syllabusSummary;
-
-    @Column(name = "program_outcomes", columnDefinition = "text")
-    private String programOutcomes;
-
-    @Column(name = "teacher_guide", columnDefinition = "text")
-    private String teacherGuide;
-
-    @Column(name = "interaction_activities", columnDefinition = "text")
-    private String interactionActivities;
 
     @OneToMany(mappedBy = "classSection", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -157,10 +136,6 @@ public class ClassSection {
 
     public String getDescription() {
         return instructorLedCourse == null ? null : instructorLedCourse.getDescription();
-    }
-
-    public String getStudyMode() {
-        return deliveryMode == null ? null : deliveryMode.name();
     }
 
     public boolean isDeleted() {

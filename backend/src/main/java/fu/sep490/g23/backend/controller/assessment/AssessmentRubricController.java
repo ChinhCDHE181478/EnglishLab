@@ -35,21 +35,20 @@ public class AssessmentRubricController {
 
     @GetMapping
     public ResponseEntity<List<AssessmentRubricResponse>> list(
-            @RequestParam(required = false, defaultValue = "false") Boolean includeInactive,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) AssessmentSkill skill
     ) {
-        return ResponseEntity.ok(rubricService.list(includeInactive, skill));
+        return ResponseEntity.ok(rubricService.list(status, skill));
     }
 
     @GetMapping("/page")
     public ResponseEntity<Page<AssessmentRubricResponse>> page(
-            @RequestParam(required = false, defaultValue = "false") Boolean includeInactive,
-            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) AssessmentSkill skill,
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 8, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        return ResponseEntity.ok(rubricService.page(includeInactive, active, skill, keyword, pageable));
+        return ResponseEntity.ok(rubricService.page(status, skill, keyword, pageable));
     }
 
     @GetMapping("/stats")

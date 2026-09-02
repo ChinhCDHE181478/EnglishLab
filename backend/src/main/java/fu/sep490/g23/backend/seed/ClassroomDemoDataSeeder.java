@@ -661,16 +661,12 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .code(slug)
                 .tuitionFeeVnd(salePrice != null ? salePrice : price)
                 .status(status)
-                .entryLevel("4.0 - 6.0")
-                .targetOutcome("Đạt band 5.5-6.5")
                 .capacity(20)
                 .startDate(startDate)
                 .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
                 .room(room)
-                .offlineAddress(DEFAULT_OFFLINE_ADDRESS)
                 .locationNote(room.getName() + ", tầng 2")
-                .syllabusSummary("Listening, Reading, Writing & Speaking theo lộ trình 8 tuần")
                 .build());
 
         teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
@@ -698,13 +694,10 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .code(slug)
                 .tuitionFeeVnd(salePrice != null ? salePrice : price)
                 .status(status)
-                .entryLevel("5.0+")
-                .targetOutcome("Tự tin giao tiếp và luyện thi")
                 .capacity(12)
                 .startDate(startDate)
                 .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
-                .syllabusSummary("Buổi live + bài tập + feedback cá nhân")
                 .build());
 
         teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
@@ -923,8 +916,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         sessionTemplateRepository.findByNameIgnoreCase(name).ifPresentOrElse(existing -> {
             existing.setSlotsJson(slotsJson);
             existing.setDescription(description);
-            existing.setTeacherGuide(teacherGuide);
-            existing.setInteractionActivities(interactionActivities);
             existing.setPostSessionHomework(postSessionHomework);
         User staff = userRepository.findByEmail("staff@englishlab.vn").orElse(null);
 
@@ -996,8 +987,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         sessionTemplateRepository.findByNameIgnoreCase(name).ifPresentOrElse(existing -> {
             existing.setSlotsJson(slotsJson);
             existing.setDescription(description);
-            existing.setTeacherGuide(teacherGuide);
-            existing.setInteractionActivities(interactionActivities);
             existing.setPostSessionHomework(postSessionHomework);
             existing.setDefaultDurationMinutes(defaultDurationMinutes);
             existing.setActive(true);
@@ -1009,8 +998,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .name(name)
                 .slotsJson(slotsJson)
                 .description(description)
-                .teacherGuide(teacherGuide)
-                .interactionActivities(interactionActivities)
                 .postSessionHomework(postSessionHomework)
                 .defaultDurationMinutes(defaultDurationMinutes)
                 .active(true)

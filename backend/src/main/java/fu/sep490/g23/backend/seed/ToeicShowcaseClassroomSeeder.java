@@ -311,7 +311,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .answerKey("Đáp án và giải thích được review trong buổi học kế tiếp.")
                         .explanation("Phân loại lỗi theo từ vựng, ngữ pháp, chi tiết, suy luận hoặc quản lý thời gian.")
                         .tags(seed.tags())
-                        .active(true)
+                        .status("PUBLISHED")
                         .createdBy(teacher)
                         .build());
         exercise.setExerciseType("PRACTICE");
@@ -364,7 +364,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         set.setTags(seed.tags());
         set.setCardsJson(flashcardsJson(unitNumber));
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(unitNumber);
         return flashcardSetRepository.save(set);
     }
 
@@ -458,8 +457,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         item.setMaxScore(BigDecimal.TEN);
         item.setTimeLimitMinutes(15);
         item.setStatus("PUBLISHED");
-        item.setDisplayOrder(1);
-        item.setActive(true);
+        item.setStatus("PUBLISHED");
         return assessmentBankItemRepository.save(item);
     }
 
@@ -485,16 +483,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             
                             
                             .status(ClassroomOfferingStatus.ACTIVE)
-                            .entryLevel("TOEIC 350+")
-                            .targetOutcome("TOEIC 650+")
                             .capacity(16)
                             .startDate(LocalDate.now().minusWeeks(3))
                             .plannedEndDate(LocalDate.now().plusWeeks(5))
                             .primaryTeacher(teacher)
-                            .syllabusSummary(curriculum.getLearningOutcomes())
-                            .programOutcomes(curriculum.getLearningOutcomes())
-                            .teacherGuide(curriculum.getTeacherGuide())
-                            .interactionActivities(null)
                             .build();
                 });
         offering.setInstructorLedCourse(curriculum);

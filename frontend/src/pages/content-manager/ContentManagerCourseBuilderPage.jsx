@@ -896,7 +896,6 @@ export default function ContentManagerCourseBuilderPage() {
     }
     if (!canAutoFetchTranscript({
       videoUrl: activeLesson.videoUrl,
-      bunnyVideoId: activeLesson.bunnyVideoId,
     })) {
       pushToast('Dán link YouTube/Bunny hoặc tải video lên hệ thống trước khi lấy bản chép lời.', 'warning');
       return;
@@ -920,7 +919,7 @@ export default function ContentManagerCourseBuilderPage() {
       }
       const sourceLabel = isYouTubeVideoUrl(activeLesson.videoUrl)
         ? 'YouTube'
-        : (activeLesson.bunnyVideoId || isBunnyVideoUrl(activeLesson.videoUrl) ? 'Bunny' : 'video');
+        : (isBunnyVideoUrl(activeLesson.videoUrl) ? 'Bunny' : 'video');
       pushToast(segmentCount
         ? `Đã lấy ${segmentCount} đoạn bản chép lời từ ${sourceLabel}.`
         : 'Video chưa có caption. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
@@ -976,11 +975,7 @@ export default function ContentManagerCourseBuilderPage() {
         targetScore: course.targetScore,
         recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? null,
         targetBand: course.targetBand ?? null,
-        learningPathCode: course.learningPathCode ?? null,
-        learningPathName: course.learningPathName ?? null,
-        learningPathOrder: Number(course.learningPathOrder || 0),
         targetOutcome: course.targetOutcome ?? null,
-        recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? null,
         duration: course.duration,
         price: Number(course.price || 0),
         thumbnailUrl: course.thumbnailUrl,
@@ -1844,19 +1839,19 @@ function LessonEditorModal({
   if (!open || !activeLesson) return null;
 
   const [videoSource, setVideoSource] = useState(() => {
-    if (activeLesson.bunnyVideoId) return 'UPLOAD';
+    if (isBunnyVideoUrl(activeLesson.videoUrl)) return 'UPLOAD';
     return 'LINK';
   });
 
   useEffect(() => {
     if (activeLesson) {
-      if (activeLesson.bunnyVideoId) {
+      if (isBunnyVideoUrl(activeLesson.videoUrl)) {
         setVideoSource('UPLOAD');
       } else {
         setVideoSource('LINK');
       }
     }
-  }, [activeLesson.id, activeLesson.bunnyVideoId]);
+  }, [activeLesson.id, activeLesson.videoUrl]);
 
   const contentType = formatContentType(activeLesson.contentType);
   const isVideo = contentType === 'VIDEO';
@@ -1976,9 +1971,9 @@ function LessonEditorModal({
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Tải video lên hệ thống</p>
-                          {activeLesson.bunnyVideoId ? (
+                          {isBunnyVideoUrl(activeLesson.videoUrl) ? (
                             <p className="mt-1.5 text-xs font-semibold text-emerald-700">
-                              ✓ Video đã tải lên hệ thống (ID: {activeLesson.bunnyVideoId})
+                              Video đã tải lên hệ thống
                             </p>
                           ) : null}
                         </div>
@@ -2010,7 +2005,6 @@ function LessonEditorModal({
                   )}
 
                   <TranscriptEditor
-                    bunnyVideoId={activeLesson.bunnyVideoId}
                     lessonSaved={Boolean(activeLesson.id)}
                     onChange={(transcriptSegments) => onPatchLesson({ transcriptSegments })}
                     onRefresh={onRefreshTranscript}
@@ -2121,11 +2115,10 @@ function TranscriptEditor({
   onRefresh,
   refreshing,
   videoUrl,
-  bunnyVideoId = '',
   lessonSaved = false,
 }) {
   const normalizedSegments = normalizeTranscriptSegments(segments, true);
-  const canRefresh = canAutoFetchTranscript({ videoUrl, bunnyVideoId });
+  const canRefresh = canAutoFetchTranscript({ videoUrl });
   const updateSegment = (index, field, value) => {
     const next = normalizedSegments.map((segment, segmentIndex) => (
       segmentIndex === index

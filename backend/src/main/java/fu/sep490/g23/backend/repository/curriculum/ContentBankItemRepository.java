@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface ContentBankItemRepository extends JpaRepository<ContentBankItem, Long>, JpaSpecificationExecutor<ContentBankItem> {
     List<ContentBankItem> findByBankTypeOrderByUpdatedAtDescIdDesc(ContentBankType bankType);
 
-    List<ContentBankItem> findByBankTypeAndActiveTrueOrderByUpdatedAtDescIdDesc(ContentBankType bankType);
+    List<ContentBankItem> findByBankTypeAndStatusOrderByUpdatedAtDescIdDesc(ContentBankType bankType, String status);
 
     Optional<ContentBankItem> findByIdAndBankType(Long id, ContentBankType bankType);
 
@@ -19,5 +19,5 @@ public interface ContentBankItemRepository extends JpaRepository<ContentBankItem
 
     Optional<ContentBankItem> findByCodeIgnoreCaseAndBankType(String code, ContentBankType bankType);
 
-    List<ContentBankItem> findByBankTypeAndStatusAndActiveTrue(ContentBankType bankType, String status);
+    List<ContentBankItem> findByBankTypeAndStatus(ContentBankType bankType, String status);
 }

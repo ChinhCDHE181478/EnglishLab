@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.request.curriculum;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -30,6 +29,4 @@ public class FlashcardSetRequest {
     @Size(max = 30)
     private String status;
 
-    @Min(0)
-    private Integer displayOrder;
 }

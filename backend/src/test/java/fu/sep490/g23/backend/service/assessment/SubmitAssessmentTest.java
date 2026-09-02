@@ -12,6 +12,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -91,7 +92,8 @@ class SubmitAssessmentTest {
 
         assessment = new CourseAssessment();
         assessment.setId(100L);
-        assessment.setOnlineCourse(course);
+        assessment.setOnlineCourseVersion(OnlineCourseVersion.builder().id(20L).onlineCourse(course).build());
+        assessment.setType(AssessmentType.MODULE_TEST);
         assessment.setAiEvaluationMode(AiEvaluationMode.RUBRIC_FEEDBACK);
         AssessmentRubric rubric = new AssessmentRubric();
         rubric.setSkill(AssessmentSkill.WRITING);
@@ -137,6 +139,7 @@ class SubmitAssessmentTest {
         verify(onlineCourseVersionService, times(1))
                 .assertAssessmentBelongsToEnrollment(enrollment, assessment.getId());
         verify(submissionRepository, times(1)).save(any(AssessmentSubmission.class));
+        verify(aiEvaluationClient).evaluate(anyString());
         verify(courseProgressService, times(1)).refreshEnrollmentProgress(enrollment, course, student);
     }
 

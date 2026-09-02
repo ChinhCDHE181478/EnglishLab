@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * In-memory rubric criterion shape (hydrated from {@code content_bank_items.payload_jsonb.criteria}).
+ * In-memory rubric criterion shape (hydrated from {@code content_bank_items.content_data.criteria}).
  * No longer a JPA entity / DomainRecord STI row.
  */
 @Getter

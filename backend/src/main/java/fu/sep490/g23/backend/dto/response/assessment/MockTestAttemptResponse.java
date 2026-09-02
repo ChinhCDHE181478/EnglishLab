@@ -22,6 +22,7 @@ public class MockTestAttemptResponse {
     private Integer totalQuestions;
     private BigDecimal score;
     private BigDecimal percent;
+    private String aiFeedbackJson;
     private String status;
     private String submittedText;
     private String submittedAudioUrl;

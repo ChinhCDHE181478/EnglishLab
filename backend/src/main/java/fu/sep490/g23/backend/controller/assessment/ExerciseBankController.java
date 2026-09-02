@@ -26,20 +26,20 @@ public class ExerciseBankController {
     @GetMapping
     public ResponseEntity<List<ExerciseBankItemResponse>> list(
             @RequestParam(required = false) String skill,
-            @RequestParam(defaultValue = "false") boolean includeInactive
+            @RequestParam(required = false) String status
     ) {
-        return ResponseEntity.ok(exerciseBankService.list(skill, includeInactive));
+        return ResponseEntity.ok(exerciseBankService.list(skill, status));
     }
 
     @GetMapping("/page")
     public ResponseEntity<Page<ExerciseBankItemResponse>> page(
             @RequestParam(required = false) String skill,
             @RequestParam(required = false) String exerciseType,
-            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(exerciseBankService.page(skill, exerciseType, active, keyword, pageable));
+        return ResponseEntity.ok(exerciseBankService.page(skill, exerciseType, status, keyword, pageable));
     }
 
     @GetMapping("/stats")

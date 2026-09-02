@@ -392,8 +392,6 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         proposal.setPrimaryTeacher(resolveTeacher(payload.getPrimaryTeacherId()));
         boolean offline = proposal.getDeliveryType() == ClassroomDeliveryMode.OFFLINE;
         proposal.setRoom(offline ? resolveRoom(payload.getRoomId()) : null);
-        proposal.setOfflineAddress(null);
-        proposal.setVirtualMeetingUrl(null);
         proposal.setStaffNote(trimOrNull(payload.getNote()));
         if (payload.getScheduleItems() != null && !payload.getScheduleItems().isEmpty()) {
             List<ClassroomProposalScheduleItem> items = new ArrayList<>();
@@ -663,22 +661,15 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         InstructorLedCourse source = proposal.getCourseOffering();
         return CreateClassroomOfferingRequest.builder()
                 .title(proposal.getTitle())
-                .shortDescription(source.getShortDescription())
-                .description(source.getDescription())
                 .deliveryMode(proposal.getDeliveryType())
                 .classroomStatus(ClassroomOfferingStatus.UPCOMING)
-                .packageStatus(PackageStatus.PUBLISHED)
                 .instructorLedCourseId(source.getId())
-                .entryLevel(null)
                 .capacity(proposal.getCapacity())
                 .startDate(proposal.getPlannedStartDate())
                 .endDate(proposal.getPlannedEndDate())
                 .primaryTeacherId(proposal.getPrimaryTeacher().getId())
                 .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
-                .offlineAddress(proposal.getOfflineAddress())
                 .locationNote(scheduleLabel(proposal))
-                .defaultLarkMeetingUrl(null)
-                .studyMode(scheduleLabel(proposal))
                 .build();
     }
 
@@ -714,8 +705,6 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .primaryTeacherName(proposal.getPrimaryTeacher() == null ? null : proposal.getPrimaryTeacher().getFullName())
                 .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
                 .roomName(proposal.getRoom() == null ? null : proposal.getRoom().getName())
-                .offlineAddress(proposal.getOfflineAddress())
-                .virtualMeetingUrl(proposal.getVirtualMeetingUrl())
                 .staffNote(proposal.getStaffNote())
                 .approvalStatus(proposal.getApprovalStatus())
                 .approvalStatusLabel(statusLabel(proposal.getApprovalStatus()))

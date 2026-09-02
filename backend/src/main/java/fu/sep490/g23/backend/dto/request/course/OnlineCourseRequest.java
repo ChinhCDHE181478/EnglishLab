@@ -6,7 +6,6 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -54,20 +53,8 @@ public class OnlineCourseRequest {
     @DecimalMax(value = "9.0")
     private Double targetBand;
 
-    @Size(max = 80)
-    private String learningPathCode;
-
-    @Size(max = 180)
-    private String learningPathName;
-
-    @Min(0)
-    private Integer learningPathOrder;
-
     @Size(max = 700)
     private String targetOutcome;
-
-    @Size(max = 220)
-    private String recommendedNextCourseSlug;
 
     @Size(max = 80)
     private String duration;

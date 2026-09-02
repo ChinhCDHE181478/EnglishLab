@@ -59,20 +59,8 @@ public class OnlineCourse {
     @Column(name = "target_band")
     private Double targetBand;
 
-    @Column(name = "learning_path_code", length = 80)
-    private String learningPathCode;
-
-    @Column(name = "learning_path_name", length = 180)
-    private String learningPathName;
-
-    @Column(name = "learning_path_order")
-    private Integer learningPathOrder;
-
     @Column(name = "target_outcome", length = 700)
     private String targetOutcome;
-
-    @Column(name = "recommended_next_course_slug", length = 220)
-    private String recommendedNextCourseSlug;
 
     @Column(name = "total_lessons", nullable = false)
     @Builder.Default
@@ -100,9 +88,6 @@ public class OnlineCourse {
     @Column(name = "duration_label", length = 80)
     private String duration;
 
-    @Column(name = "study_mode", length = 120)
-    private String studyMode;
-
     @Column(precision = 12, scale = 2, nullable = false)
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
@@ -122,26 +107,9 @@ public class OnlineCourse {
     @Builder.Default
     private boolean featured = false;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean deleted = false;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;
-
-    @Column(name = "review_note", columnDefinition = "text")
-    private String reviewNote;
-
-    @Column(name = "submitted_for_review_at")
-    private LocalDateTime submittedForReviewAt;
-
-    @Column(name = "reviewed_at")
-    private LocalDateTime reviewedAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewed_by_id")
-    private User reviewedBy;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -172,7 +140,7 @@ public class OnlineCourse {
     }
 
     public boolean isPublished() {
-        return PackageStatus.PUBLISHED.equals(status) && !deleted;
+        return PackageStatus.PUBLISHED.equals(status);
     }
 
 }

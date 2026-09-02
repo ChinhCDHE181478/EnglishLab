@@ -133,8 +133,8 @@ public class ClassroomMapper {
                 .instructorLedCourseExamType(course.getExamType())
                 .instructorLedCourseStatus(course.getPublicationStatus() == null ? null : course.getPublicationStatus().name())
                 .instructorLedCourse(toInstructorLedCourseResponse(course, includeDetails))
-                .entryLevel(offering.getEntryLevel())
-                .targetOutcome(offering.getTargetOutcome())
+                .entryLevel(course.getEntryLevel())
+                .targetOutcome(course.getLearningOutcomes())
                 .capacity(offering.getCapacity())
                 .enrolledCount((int) enrolledCount)
                 .startDate(offering.getStartDate())
@@ -143,24 +143,18 @@ public class ClassroomMapper {
                 .primaryTeacherName(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getFullName())
                 .roomId(offering.getRoom() == null ? null : offering.getRoom().getId())
                 .roomName(offering.getRoom() == null ? null : offering.getRoom().getName())
-                .regularRoomId(offering.getRoom() == null ? null : offering.getRoom().getId())
-                .regularRoomName(offering.getRoom() == null ? null : offering.getRoom().getName())
-                .offlineAddress(offering.getOfflineAddress())
+                .offlineAddress(offering.getRoom() == null ? null : offering.getRoom().getLocationAddress())
                 .locationNote(offering.getLocationNote())
                 .googleMeetOwnerId(offering.getGoogleMeetOwner() == null ? null : offering.getGoogleMeetOwner().getId())
                 .googleMeetUrl(offering.getGoogleMeetUrl())
                 .googleMeetStatus(offering.getGoogleMeetStatus())
                 .googleMeetSyncError(offering.getGoogleMeetSyncError())
-                .syllabusSummary(offering.getSyllabusSummary())
-                .programOutcomes(offering.getProgramOutcomes())
-                .teacherGuide(offering.getTeacherGuide())
-                .interactionActivities(offering.getInteractionActivities())
+                .teacherGuide(course.getTeacherGuide())
                 .price(offering.getTuitionFeeVnd())
                 .tuitionFeeVnd(offering.getTuitionFeeVnd())
                 .salePrice(course.getSaleTuitionFeeVnd())
                 .targetScore(course.getTargetScore() == null ? null : String.valueOf(course.getTargetScore()))
                 .duration(course.getDurationLabel())
-                .studyMode(offering.getStudyMode())
                 .nextSession(nextSession)
                 .progressPercent(progressPercent)
                 .enrollmentId(enrollment == null ? null : enrollment.getId())
@@ -270,7 +264,7 @@ public class ClassroomMapper {
                 .deliveryModeLabel(deliveryModeLabel(effectiveDeliveryMode))
                 .roomId(effectiveRoom == null ? null : effectiveRoom.getId())
                 .roomName(effectiveRoom == null ? null : effectiveRoom.getName())
-                .offlineAddress(section.getOfflineAddress())
+                .offlineAddress(effectiveRoom == null ? null : effectiveRoom.getLocationAddress())
                 .googleMeetUrl(section.getGoogleMeetUrl())
                 .googleMeetStatus(section.getGoogleMeetStatus())
                 .googleMeetJoinable(googleMeetJoinable)
@@ -792,11 +786,11 @@ public class ClassroomMapper {
     }
 
     private String payloadText(fu.sep490.g23.backend.entity.curriculum.ContentBankItem item, String... keys) {
-        if (item.getPayloadJsonb() == null) {
+        if (item.getContentData() == null) {
             return null;
         }
         for (String key : keys) {
-            Object value = item.getPayloadJsonb().get(key);
+            Object value = item.getContentData().get(key);
             if (value != null) {
                 return String.valueOf(value);
             }
@@ -806,7 +800,7 @@ public class ClassroomMapper {
 
     private String serializePayload(fu.sep490.g23.backend.entity.curriculum.ContentBankItem item) {
         try {
-            return CONTENT_JSON_MAPPER.writeValueAsString(item.getPayloadJsonb());
+            return CONTENT_JSON_MAPPER.writeValueAsString(item.getContentData());
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Không thể chuyển nội dung kho học liệu sang JSON.", exception);
         }

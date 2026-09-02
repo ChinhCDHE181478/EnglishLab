@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LearnerLessonNoteRepository extends JpaRepository<LearnerLessonNote, Long> {
-    @EntityGraph(attributePaths = {"course", "lesson"})
+    @EntityGraph(attributePaths = {"lesson", "lesson.module", "lesson.module.onlineCourseVersion"})
     List<LearnerLessonNote> findByUserOrderByUpdatedAtDesc(User user);
 
-    @EntityGraph(attributePaths = {"course", "lesson"})
+    @EntityGraph(attributePaths = {"lesson", "lesson.module", "lesson.module.onlineCourseVersion"})
     Optional<LearnerLessonNote> findByIdAndUser(Long id, User user);
 }

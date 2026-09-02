@@ -127,7 +127,6 @@ public class DevMailTestController {
                     .code("DEMO-IELTS-65-A")
                     .instructorLedCourse(instructorLedCourse)
                     .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                    .offlineAddress("Phòng A201 - EnglishLab Cơ sở 1")
                     .startDate(LocalDate.now().plusDays(7))
                     .primaryTeacher(teacherUser)
                     //.learningPackage(pkg)

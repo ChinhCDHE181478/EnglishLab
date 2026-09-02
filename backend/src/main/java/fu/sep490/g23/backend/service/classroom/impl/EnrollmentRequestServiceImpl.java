@@ -491,13 +491,17 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .requestedClassroomTitle(preferredClassSection == null ? null : preferredClassSection.getTitle())
                 .requestedClassroomCode(preferredClassSection == null ? null : preferredClassSection.getSlug())
                 .requestedClassroomStartDate(preferredClassSection == null ? null : preferredClassSection.getStartDate())
-                .requestedClassroomSchedule(preferredClassSection == null ? null : preferredClassSection.getStudyMode())
+                .requestedClassroomSchedule(preferredClassSection == null || preferredClassSection.getDeliveryMode() == null
+                        ? null
+                        : preferredClassSection.getDeliveryMode().name())
                 .requestedClassroomTeacherName(preferredClassSection == null || preferredClassSection.getPrimaryTeacher() == null
                         ? null
                         : preferredClassSection.getPrimaryTeacher().getFullName())
                 .requestedClassroomLocation(preferredClassSection == null
                         ? null
-                        : preferredClassSection.getOfflineAddress())
+                        : preferredClassSection.getRoom() == null
+                        ? null
+                        : preferredClassSection.getRoom().getLocationAddress())
                 .deliveryType(preferredClassSection == null ? null : preferredClassSection.getDeliveryMode())
                 .status(request.getStatus())
                 .statusLabel(statusLabel(request.getStatus()))

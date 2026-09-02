@@ -242,16 +242,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .name(request.getTitle().trim())
                 .code(ilc.getCode() + "-" + System.currentTimeMillis())
                 .tuitionFeeVnd(request.getPrice() != null ? request.getPrice() : java.math.BigDecimal.ZERO)
-                .entryLevel(request.getEntryLevel())
-                .targetOutcome(request.getTargetOutcome())
                 .capacity(request.getCapacity() == null ? 30 : request.getCapacity())
                 .startDate(request.getStartDate())
                 .plannedEndDate(request.getEndDate())
                 .primaryTeacher(primaryTeacher)
                 .room(room)
-                .offlineAddress(request.getOfflineAddress())
                 .locationNote(request.getLocationNote())
-                .syllabusSummary(request.getSyllabusSummary())
                 .build();
 
         if (offering.getPrimaryTeacher() != null) {
@@ -317,8 +313,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getClassroomStatus() != null) {
             offering.setStatus(request.getClassroomStatus());
         }
-        if (request.getEntryLevel() != null) offering.setEntryLevel(request.getEntryLevel());
-        if (request.getTargetOutcome() != null) offering.setTargetOutcome(request.getTargetOutcome());
         if (request.getCapacity() != null) {
             offering.setCapacity(request.getCapacity());
         }
@@ -328,9 +322,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             offering.setPrimaryTeacher(primaryTeacher);
         }
         offering.setRoom(room);
-        offering.setOfflineAddress(request.getOfflineAddress());
         offering.setLocationNote(request.getLocationNote());
-        if (request.getSyllabusSummary() != null) offering.setSyllabusSummary(request.getSyllabusSummary());
 
         ClassSection saved = offeringRepository.save(offering);
         if (primaryTeacherChanged) {

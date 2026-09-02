@@ -175,7 +175,7 @@ function CourseHero({ course, moduleCount, status }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${status.badge}`}>{status.label}</span>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">{course.level || 'Chưa có level'}</span>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">{course.studyMode || 'Online'}</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">Tự học online</span>
           </div>
           <h1 className="mt-4 font-['Manrope'] text-3xl font-black leading-tight text-[#0b1c30] md:text-4xl">{course.title}</h1>
           <RichTextHtml className="mt-3 text-sm leading-7 text-slate-600" value={course.description || course.shortDescription || 'Khóa học chưa có mô tả.'} />
@@ -259,8 +259,8 @@ function CourseOutline({ activeLessonId, modules, onSelectLesson }) {
 }
 
 function LessonPreview({ lesson, module }) {
-  const embedUrl = getVideoEmbedUrl(lesson.bunnyCdnUrl || lesson.videoUrl);
-  const directVideoUrl = (lesson.bunnyCdnUrl || lesson.videoUrl) && !embedUrl ? lesson.bunnyCdnUrl || lesson.videoUrl : '';
+  const embedUrl = getVideoEmbedUrl(lesson.videoUrl);
+  const directVideoUrl = lesson.videoUrl && !embedUrl ? lesson.videoUrl : '';
   return (
     <article className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
       {embedUrl ? <div className="aspect-video bg-black"><iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="h-full w-full" src={embedUrl} title={lesson.title} /></div> : null}

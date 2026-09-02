@@ -30,9 +30,9 @@ import java.util.Map;
 
 /**
  * Rubric bank view of {@code content_bank_items} ({@code bank_type = RUBRIC}).
- * Criteria live in {@code payload_jsonb.criteria} (no longer STI {@code RubricCriterion} rows).
+ * Criteria live in {@code content_data.criteria} (no longer STI {@code RubricCriterion} rows).
  *
- * <p>status vs active: both kept; historically only {@code active} existed — V4 derived status.
+ * <p>{@code status} is the single lifecycle and availability source of truth.
  * {@code name} maps to the shared {@code title} column.
  */
 @Getter
@@ -69,18 +69,10 @@ public class AssessmentRubric {
     @Builder.Default
     private String status = "PUBLISHED";
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean active = true;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payload_jsonb", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "content_data", nullable = false, columnDefinition = "jsonb")
     @Builder.Default
-    private Map<String, Object> payloadJsonb = new HashMap<>();
+    private Map<String, Object> contentData = new HashMap<>();
 
     @Transient
     private String taskType;
@@ -102,7 +94,7 @@ public class AssessmentRubric {
 
     @PostLoad
     private void hydrateFromPayload() {
-        Map<String, Object> payload = ContentBankPayloadSupport.ensure(payloadJsonb);
+        Map<String, Object> payload = ContentBankPayloadSupport.ensure(contentData);
         taskType = ContentBankPayloadSupport.getString(payload, "taskType");
         scoringScale = ContentBankPayloadSupport.getString(payload, "scoringScale");
         List<Map<String, Object>> rawCriteria = ContentBankPayloadSupport.getObjectList(payload, "criteria");
@@ -128,14 +120,12 @@ public class AssessmentRubric {
     @PreUpdate
     private void flushToPayload() {
         bankType = "RUBRIC";
-        if (payloadJsonb == null) {
-            payloadJsonb = new HashMap<>();
+        if (contentData == null) {
+            contentData = new HashMap<>();
         }
-        if (status == null || status.isBlank()) {
-            status = active ? "PUBLISHED" : "ARCHIVED";
-        }
-        ContentBankPayloadSupport.put(payloadJsonb, "taskType", taskType);
-        ContentBankPayloadSupport.put(payloadJsonb, "scoringScale", scoringScale);
+        if (status == null || status.isBlank()) status = "PUBLISHED";
+        ContentBankPayloadSupport.put(contentData, "taskType", taskType);
+        ContentBankPayloadSupport.put(contentData, "scoringScale", scoringScale);
         List<Map<String, Object>> serialized = new ArrayList<>();
         if (criteria != null) {
             for (RubricCriterion criterion : criteria) {
@@ -151,7 +141,7 @@ public class AssessmentRubric {
                 serialized.add(row);
             }
         }
-        ContentBankPayloadSupport.put(payloadJsonb, "criteria", serialized);
+        ContentBankPayloadSupport.put(contentData, "criteria", serialized);
     }
 
     private static String stringOrEmpty(Object value) {

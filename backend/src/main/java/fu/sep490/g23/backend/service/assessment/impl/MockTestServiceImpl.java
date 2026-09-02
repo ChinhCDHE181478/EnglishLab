@@ -14,6 +14,9 @@ import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.MockTestAttemptRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
+import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
+import fu.sep490.g23.backend.service.assessment.AssessmentAudioStorageService;
 import fu.sep490.g23.backend.service.assessment.MockTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -34,6 +38,8 @@ public class MockTestServiceImpl implements MockTestService {
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final MockTestAttemptRepository attemptRepository;
     private final UserRepository userRepository;
+    private final AiEvaluationClient aiEvaluationClient;
+    private final AssessmentAudioStorageService audioStorageService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -41,33 +47,132 @@ public class MockTestServiceImpl implements MockTestService {
     public MockTestAttemptResponse submitMockTest(Long mockTestId, MockTestSubmissionRequest request, String studentEmail) {
         validateSubmission(request);
         AssessmentBankItem mockTest = assessmentBankRepository
-                .findByIdAndTypeAndStatusAndActiveTrue(mockTestId, AssessmentType.MOCK_TEST, "PUBLISHED")
+                .findByIdAndTypeAndStatus(mockTestId, AssessmentType.MOCK_TEST, "PUBLISHED")
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi thử đã xuất bản."));
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
 
-        ObjectiveScore objectiveScore = scoreObjective(request == null ? null : request.getObjectiveAnswersJson(), mockTest.getObjectiveAnswerKey());
+        AssessmentSkill skill = mockTest.getSkill() == null ? AssessmentSkill.MIXED : mockTest.getSkill();
+        ObjectiveScore objectiveScore = scoreObjective(request.getObjectiveAnswersJson(), mockTest.getObjectiveAnswerKey());
         boolean objective = objectiveScore.total() > 0;
         BigDecimal percent = objective
                 ? BigDecimal.valueOf(objectiveScore.correct() * 100.0 / objectiveScore.total()).setScale(2, RoundingMode.HALF_UP)
                 : null;
         BigDecimal score = objective ? resolveScore(mockTest, objectiveScore) : null;
+        String aiFeedback = null;
+        String status = objective ? "COMPLETED" : "SUBMITTED";
+
+        if (isProductiveSkill(skill)) {
+            Optional<AssessmentAudioStorageService.StoredAssessmentAudio> speakingAudio = resolveSpeakingAudio(skill, request);
+            try {
+                AiEvaluationResult result = evaluateProductiveMockTest(mockTest, request, speakingAudio);
+                if (result == null || result.getEstimatedScore() == null) {
+                    throw new IllegalStateException("AI không trả về điểm cho bài thi thử.");
+                }
+                score = normalizeAiScore(result.getEstimatedScore(), mockTest.getMaxScore());
+                aiFeedback = normalizeFeedback(result.getFeedbackJson(), score);
+                status = "COMPLETED";
+            } catch (RuntimeException exception) {
+                aiFeedback = failedFeedback();
+                status = "FAILED";
+            }
+        }
 
         MockTestAttempt attempt = MockTestAttempt.builder()
                 .assessmentBankItem(mockTest)
                 .student(student)
-                .skill(mockTest.getSkill() == null ? AssessmentSkill.MIXED : mockTest.getSkill())
-                .objectiveAnswersJson(safe(request == null ? null : request.getObjectiveAnswersJson()))
-                .submittedText(safe(request == null ? null : request.getSubmittedText()))
-                .submittedAudioUrl(safe(request == null ? null : request.getSubmittedAudioUrl()))
+                .skill(skill)
+                .objectiveAnswers(safe(request.getObjectiveAnswersJson()))
+                .submittedText(safe(request.getSubmittedText()))
+                .submittedAudioUrl(safe(request.getSubmittedAudioUrl()))
                 .correctCount(objective ? objectiveScore.correct() : null)
                 .totalQuestions(objective ? objectiveScore.total() : null)
                 .score(score)
-                .percent(percent)
-                .status(objective ? "COMPLETED" : "SUBMITTED")
+                .aiFeedback(aiFeedback)
+                .status(status)
                 .submittedAt(LocalDateTime.now())
                 .build();
         return toResponse(attemptRepository.save(attempt));
+    }
+
+    private boolean isProductiveSkill(AssessmentSkill skill) {
+        return skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING;
+    }
+
+    private Optional<AssessmentAudioStorageService.StoredAssessmentAudio> resolveSpeakingAudio(
+            AssessmentSkill skill,
+            MockTestSubmissionRequest request
+    ) {
+        if (skill != AssessmentSkill.SPEAKING) {
+            return Optional.empty();
+        }
+        if (!StringUtils.hasText(request.getSubmittedAudioUrl())) {
+            throw new IllegalArgumentException("Bài Speaking cần có bản ghi âm để chấm điểm.");
+        }
+        return Optional.of(audioStorageService.loadStoredAudioFromUrl(request.getSubmittedAudioUrl())
+                .orElseThrow(() -> new IllegalArgumentException("Không đọc được bản ghi âm Speaking đã nộp.")));
+    }
+
+    private AiEvaluationResult evaluateProductiveMockTest(
+            AssessmentBankItem mockTest,
+            MockTestSubmissionRequest request,
+            Optional<AssessmentAudioStorageService.StoredAssessmentAudio> speakingAudio
+    ) {
+        String prompt = buildAiPrompt(mockTest, request.getSubmittedText(), speakingAudio.isPresent());
+        return speakingAudio
+                .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
+                .orElseGet(() -> aiEvaluationClient.evaluate(prompt));
+    }
+
+    private String buildAiPrompt(AssessmentBankItem mockTest, String submittedText, boolean audioAttached) {
+        String rubric = mockTest.getRubric() == null
+                ? "Use standard IELTS criteria for the selected skill."
+                : mockTest.getRubric().getCriteria().stream()
+                        .map(criterion -> "%s (%s%%): %s".formatted(
+                                safe(criterion.getName()),
+                                criterion.getWeight() == null ? 0 : criterion.getWeight(),
+                                safe(criterion.getDescription())))
+                        .reduce((left, right) -> left + "\n" + right)
+                        .orElse(safe(mockTest.getRubric().getDescription()));
+        return """
+                Grade this English mock-test submission using only the learner evidence provided.
+                Return structured JSON feedback and one numeric estimatedScore.
+                Test: %s
+                Skill: %s
+                Maximum score: %s
+                Instructions: %s
+                Rubric:
+                %s
+                Audio attached: %s
+                Learner text:
+                %s
+                """.formatted(
+                safe(mockTest.getTitle()),
+                mockTest.getSkill() == null ? AssessmentSkill.MIXED : mockTest.getSkill(),
+                mockTest.getMaxScore() == null ? BigDecimal.TEN : mockTest.getMaxScore(),
+                safe(mockTest.getInstructions()),
+                rubric,
+                audioAttached ? "yes" : "no",
+                safe(submittedText));
+    }
+
+    private BigDecimal normalizeAiScore(BigDecimal value, BigDecimal configuredMax) {
+        BigDecimal maximum = configuredMax == null ? BigDecimal.TEN : configuredMax;
+        return value.max(BigDecimal.ZERO).min(maximum).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String normalizeFeedback(String feedbackJson, BigDecimal score) {
+        if (StringUtils.hasText(feedbackJson)) {
+            JsonNode parsed = readJson(feedbackJson);
+            if (parsed != null && parsed.isObject()) {
+                return parsed.toString();
+            }
+        }
+        return "{\"summary\":\"Đã chấm bài bằng AI.\",\"score\":" + score.toPlainString() + "}";
+    }
+
+    private String failedFeedback() {
+        return "{\"summary\":\"Chưa thể chấm bài tự động. Vui lòng thử lại sau.\"}";
     }
 
     private void validateSubmission(MockTestSubmissionRequest request) {
@@ -233,13 +338,23 @@ public class MockTestServiceImpl implements MockTestService {
                 .correctCount(attempt.getCorrectCount())
                 .totalQuestions(attempt.getTotalQuestions())
                 .score(attempt.getScore())
-                .percent(attempt.getPercent())
+                .percent(calculatePercent(attempt))
+                .aiFeedbackJson(attempt.getAiFeedback())
                 .status(attempt.getStatus())
                 .submittedText(attempt.getSubmittedText())
                 .submittedAudioUrl(attempt.getSubmittedAudioUrl())
-                .objectiveAnswersJson(attempt.getObjectiveAnswersJson())
+                .objectiveAnswersJson(attempt.getObjectiveAnswers())
                 .submittedAt(attempt.getSubmittedAt())
                 .build();
+    }
+
+    private BigDecimal calculatePercent(MockTestAttempt attempt) {
+        if (attempt.getCorrectCount() == null || attempt.getTotalQuestions() == null
+                || attempt.getTotalQuestions() <= 0) {
+            return null;
+        }
+        return BigDecimal.valueOf(attempt.getCorrectCount() * 100.0 / attempt.getTotalQuestions())
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private String normalize(String value) {

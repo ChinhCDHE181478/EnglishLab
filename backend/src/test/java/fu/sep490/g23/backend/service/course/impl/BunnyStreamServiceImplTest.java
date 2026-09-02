@@ -27,9 +27,7 @@ class BunnyStreamServiceImplTest {
     @Test
     void resolveVideoRef_parsesMediadeliveryEmbedUrl() {
         Optional<BunnyStreamService.BunnyVideoRef> ref = service.resolveVideoRef(
-                "https://iframe.mediadelivery.net/embed/729032/bc1feea2-7cc5-46b5-9073-aaaaaaaaaaaa",
-                null,
-                null
+                "https://iframe.mediadelivery.net/embed/729032/bc1feea2-7cc5-46b5-9073-aaaaaaaaaaaa"
         );
         assertTrue(ref.isPresent());
         assertEquals("729032", ref.get().libraryId());
@@ -37,15 +35,11 @@ class BunnyStreamServiceImplTest {
     }
 
     @Test
-    void resolveVideoRef_prefersExplicitBunnyIds() {
-        Optional<BunnyStreamService.BunnyVideoRef> ref = service.resolveVideoRef(
-                "https://www.youtube.com/watch?v=abc",
-                "video-guid",
-                "111"
-        );
+    void resolveVideoRef_usesConfiguredLibraryForGuidUrl() {
+        Optional<BunnyStreamService.BunnyVideoRef> ref = service.resolveVideoRef("bc1feea2-7cc5-46b5-9073-bbbbbbbbbbbb");
         assertTrue(ref.isPresent());
-        assertEquals("111", ref.get().libraryId());
-        assertEquals("video-guid", ref.get().videoId());
+        assertEquals("729032", ref.get().libraryId());
+        assertEquals("bc1feea2-7cc5-46b5-9073-bbbbbbbbbbbb", ref.get().videoId());
     }
 
     @Test

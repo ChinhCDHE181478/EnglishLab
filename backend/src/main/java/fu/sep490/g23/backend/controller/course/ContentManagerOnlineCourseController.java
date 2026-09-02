@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.controller.course;
 
 import fu.sep490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sep490.g23.backend.dto.request.course.OnlineCourseRequest;
-import fu.sep490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sep490.g23.backend.dto.request.course.ReorderLessonsRequest;
 import fu.sep490.g23.backend.dto.request.course.ReorderModulesRequest;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
@@ -184,13 +183,6 @@ public class ContentManagerOnlineCourseController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(onlineCourseService.updateCourse(id, request, authentication.getName()));
-    }
-
-    @PatchMapping("/learning-path-order")
-    public ResponseEntity<List<OnlineCourseResponse>> updateLearningPathOrder(
-            @Valid @RequestBody LearningPathOrderRequest request
-    ) {
-        return ResponseEntity.ok(onlineCourseService.updateLearningPathOrder(request));
     }
 
     @PatchMapping("/{id}/publish")

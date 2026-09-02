@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.service.course.impl;
 import fu.sep490.g23.backend.dto.request.course.CourseCategoryRequest;
 import fu.sep490.g23.backend.dto.response.course.CourseCategoryResponse;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.service.course.CourseCategoryManagementService;
@@ -79,7 +80,7 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
 
     public void deleteCategory(Long id) {
         CourseCategory category = findCategory(id);
-        long courseCount = onlineCourseRepository.countByCategoryAndDeletedFalse(category);
+        long courseCount = onlineCourseRepository.countByCategoryAndStatusNot(category, PackageStatus.ARCHIVED);
         if (courseCount > 0) {
             throw new IllegalStateException(
                     "Không thể xóa danh mục đang được " + courseCount + " khóa học sử dụng. Hãy chuyển các khóa học sang danh mục khác trước."
@@ -101,7 +102,7 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
                 .description(category.getDescription())
                 .displayOrder(category.getDisplayOrder())
                 .active(category.isActive())
-                .courseCount(onlineCourseRepository.countByCategoryAndDeletedFalse(category))
+                .courseCount(onlineCourseRepository.countByCategoryAndStatusNot(category, PackageStatus.ARCHIVED))
                 .build();
     }
 

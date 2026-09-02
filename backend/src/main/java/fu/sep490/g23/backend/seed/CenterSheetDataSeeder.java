@@ -349,18 +349,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
                     .deliveryMode(online ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.ACTIVE)
-                    .entryLevel("IELTS 5.0")
-                    .targetOutcome("Đạt band 6.0-6.5 sau 36 buổi.")
                     .capacity(10)
                     .startDate(start)
                     .plannedEndDate(end)
                     .primaryTeacher(teacher)
                     .room(room)
-                    .offlineAddress(online ? null : ADDRESS)
                     .googleMeetOwner(online ? teacher : null)
                     .googleMeetUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
                     .googleMeetStatus(online ? GoogleMeetStatus.READY : GoogleMeetStatus.NOT_CREATED)
-                    .syllabusSummary("36 buổi Listening-Reading-Writing-Speaking xoay vòng.")
                     .build();
             return offeringRepository.save(offering);
         });
@@ -394,12 +390,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
 
     private void attachCourse(ClassSection offering, InstructorLedCourse curriculum) {
         offering.setInstructorLedCourse(curriculum);
-        offering.setEntryLevel(curriculum.getEntryLevel());
-        offering.setTargetOutcome(curriculum.getLearningOutcomes());
-        offering.setSyllabusSummary(curriculum.getLearningOutcomes());
-        offering.setProgramOutcomes(curriculum.getLearningOutcomes());
-        offering.setTeacherGuide(curriculum.getTeacherGuide());
-        offering.setInteractionActivities(null);
         offeringRepository.save(offering);
         User actor = offering.getPrimaryTeacher();
         if (actor == null) {
@@ -553,12 +543,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 for (var module : version.getModules()) {
                     for (OnlineLesson lesson : module.getLessons()) {
                         LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
-                                .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
+                                .orElseGet(() -> LessonProgress.builder().lesson(lesson).enrollment(enrollment).build());
                         progress.setEnrollment(enrollment);
-                        progress.setCourseVersion(version);
-                        progress.setLessonKey(lesson.getLessonKey());
                         progress.setStatus(LessonProgressStatus.COMPLETED);
-                        progress.setProgressPercent(100);
                         progress.setCompletedAt(LocalDateTime.now().minusDays(5));
                         progress.setLastAccessedAt(LocalDateTime.now().minusDays(2));
                         lessonProgressRepository.save(progress);
@@ -739,7 +726,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private void publishMock(String title, AssessmentSkill skill, int minutes, String resource, boolean needsKey) throws Exception {
         String json = new String(new ClassPathResource(resource).getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         var existing = assessmentBankItemRepository
-                .findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(AssessmentType.MOCK_TEST, "PUBLISHED")
+                .findByTypeAndStatusOrderByUpdatedAtDescIdDesc(AssessmentType.MOCK_TEST, "PUBLISHED")
                 .stream()
                 .filter(item -> title.equalsIgnoreCase(item.getTitle()))
                 .findFirst();
@@ -774,7 +761,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         request.setMaxScore(BigDecimal.valueOf(9.0));
         request.setTimeLimitMinutes(minutes);
         request.setStatus("PUBLISHED");
-        request.setDisplayOrder(10);
         instructorLedCourseManagementService.createAssessmentBankItem(request);
     }
 
@@ -1165,7 +1151,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .answerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
                         .explanation("Đối chiếu đáp án và ghi lại lỗi sai trước khi làm lại.")
                         .tags("sheet," + exam.toLowerCase() + ",unit-" + unitNumber)
-                        .active(true)
+                        .status("PUBLISHED")
                         .createdBy(creator)
                         .build());
         exercise.setExerciseType("PRACTICE");
@@ -1222,7 +1208,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         set.setTags("sheet," + exam.toLowerCase() + ",unit-" + unitNumber);
         set.setCardsJson("IELTS".equals(exam) ? ieltsFlashcardsJson(unitNumber) : toeicFlashcardsJson(unitNumber));
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(unitNumber);
         return flashcardSetRepository.save(set);
     }
 

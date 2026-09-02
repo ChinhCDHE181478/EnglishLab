@@ -31,5 +31,6 @@ public class UpsertExerciseBankItemRequest {
     @Size(max = 500)
     private String tags;
 
-    private Boolean active;
+    @Size(max = 30)
+    private String status;
 }

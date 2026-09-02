@@ -551,7 +551,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     @Transactional(readOnly = true)
     public List<AssessmentBankItemResponse> listPublishedMockTests() {
         return assessmentBankRepository
-                .findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(
+                .findByTypeAndStatusOrderByUpdatedAtDescIdDesc(
                         AssessmentType.MOCK_TEST,
                         "PUBLISHED"
                 )
@@ -564,7 +564,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     @Transactional(readOnly = true)
     public AssessmentBankItemResponse getPublishedMockTest(Long id) {
         AssessmentBankItem item = assessmentBankRepository
-                .findByIdAndTypeAndStatusAndActiveTrue(id, AssessmentType.MOCK_TEST, "PUBLISHED")
+                .findByIdAndTypeAndStatus(id, AssessmentType.MOCK_TEST, "PUBLISHED")
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi thử đã xuất bản."));
         return toAssessmentResponse(item);
     }
@@ -578,7 +578,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .description(trimOrNull(request.getDescription()))
                 .type(request.getType())
                 .skill(request.getSkill())
-                .aiEvaluationMode(request.getAiEvaluationMode() == null ? AiEvaluationMode.NONE : request.getAiEvaluationMode())
+                .aiEvaluationMode(resolveAiEvaluationMode(request))
                 .rubric(rubric)
                 .instructions(trimOrNull(request.getInstructions()))
                 .objectiveAnswerKey(trimOrNull(request.getObjectiveAnswerKey()))
@@ -587,8 +587,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .maxScore(request.getMaxScore() == null ? BigDecimal.TEN : request.getMaxScore())
                 .timeLimitMinutes(request.getTimeLimitMinutes())
                 .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
-                .displayOrder(defaultInt(request.getDisplayOrder()))
-                .active(true)
                 .build();
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
@@ -602,7 +600,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         item.setDescription(trimOrNull(request.getDescription()));
         item.setType(request.getType());
         item.setSkill(request.getSkill());
-        item.setAiEvaluationMode(request.getAiEvaluationMode() == null ? AiEvaluationMode.NONE : request.getAiEvaluationMode());
+        item.setAiEvaluationMode(resolveAiEvaluationMode(request));
         item.setRubric(rubric);
         item.setInstructions(trimOrNull(request.getInstructions()));
         item.setObjectiveAnswerKey(trimOrNull(request.getObjectiveAnswerKey()));
@@ -611,8 +609,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         item.setMaxScore(request.getMaxScore() == null ? BigDecimal.TEN : request.getMaxScore());
         item.setTimeLimitMinutes(request.getTimeLimitMinutes());
         item.setStatus(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT));
-        item.setDisplayOrder(defaultInt(request.getDisplayOrder()));
-        item.setActive(!"ARCHIVED".equalsIgnoreCase(item.getStatus()));
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
 
@@ -620,7 +616,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     public void archiveAssessmentBankItem(Long id) {
         AssessmentBankItem item = findAssessment(id);
         item.setStatus("ARCHIVED");
-        item.setActive(false);
         assessmentBankRepository.save(item);
     }
 
@@ -711,7 +706,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .tags(trimOrNull(request.getTags()))
                 .cardsJson(trimOrNull(request.getCardsJson()))
                 .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
-                .displayOrder(defaultInt(request.getDisplayOrder()))
                 .build();
         return toFlashcardSetResponse(flashcardSetRepository.save(set));
     }
@@ -726,7 +720,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         set.setTags(trimOrNull(request.getTags()));
         set.setCardsJson(trimOrNull(request.getCardsJson()));
         set.setStatus(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT));
-        set.setDisplayOrder(defaultInt(request.getDisplayOrder()));
         return toFlashcardSetResponse(flashcardSetRepository.save(set));
     }
 
@@ -1273,7 +1266,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .fileUrl(material == null ? null : material.getFileUrl())
                 .displayOrder(ref.getSequenceNumber())
                 .note(ref.getNote())
-                .contentJson(item == null ? null : toJson(item.getPayloadJsonb()))
+                .contentJson(item == null ? null : toJson(item.getContentData()))
                 .build();
     }
 
@@ -1293,7 +1286,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .maxScore(item.getMaxScore())
                 .timeLimitMinutes(item.getTimeLimitMinutes())
                 .status(item.getStatus())
-                .displayOrder(item.getDisplayOrder())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
                 .build();
@@ -1311,7 +1303,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .taskType(rubric.getTaskType())
                 .scoringScale(rubric.getScoringScale())
                 .description(rubric.getDescription())
-                .active(rubric.isActive())
+                .status(rubric.getStatus())
                 .criteria(rubric.getCriteria().stream()
                         .map(criterion -> RubricCriterionResponse.builder()
                                 .id(criterion.getId())
@@ -1335,7 +1327,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .tags(set.getTags())
                 .cardsJson(set.getCardsJson())
                 .status(set.getStatus())
-                .displayOrder(set.getDisplayOrder())
                 .createdAt(set.getCreatedAt())
                 .updatedAt(set.getUpdatedAt())
                 .build();
@@ -1350,6 +1341,22 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 && !StringUtils.hasText(request.getUiConfigJson())) {
             throw new RuntimeException("Đề Writing/Speaking cần có nội dung đề trong cấu hình.");
         }
+        if (request.getType() == AssessmentType.MODULE_TEST
+                && (request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING)) {
+            if (resolveAiEvaluationMode(request) == AiEvaluationMode.NONE) {
+                throw new RuntimeException("Module Test Writing/Speaking phải bật chấm bằng AI.");
+            }
+            if (request.getRubricId() == null) {
+                throw new RuntimeException("Module Test Writing/Speaking phải có bộ tiêu chí chấm.");
+            }
+        }
+    }
+
+    private AiEvaluationMode resolveAiEvaluationMode(AssessmentBankItemRequest request) {
+        if (request.getAiEvaluationMode() != null) return request.getAiEvaluationMode();
+        return request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING
+                ? AiEvaluationMode.RUBRIC_FEEDBACK
+                : AiEvaluationMode.EXPLAIN_ONLY;
     }
 
     private AssessmentRubric resolveAssessmentRubric(Long rubricId, AssessmentSkill skill) {
@@ -1358,7 +1365,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
         AssessmentRubric rubric = assessmentRubricRepository.findById(rubricId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy rubric."));
-        if (!rubric.isActive()) {
+        if (!"PUBLISHED".equalsIgnoreCase(rubric.getStatus())) {
             throw new RuntimeException("Rubric đã tạm ngưng.");
         }
         if (rubric.getSkill() != null && rubric.getSkill() != skill && rubric.getSkill() != AssessmentSkill.MIXED) {
