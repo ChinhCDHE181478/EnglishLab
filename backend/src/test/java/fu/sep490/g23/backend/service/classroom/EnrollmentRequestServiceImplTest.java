@@ -103,7 +103,6 @@ class EnrollmentRequestServiceImplTest {
         program = InstructorLedCourse.builder()
                 .id(20L)
                 .code("IELTS-FOUNDATION")
-                .slug("ielts-foundation")
                 .title("IELTS Foundation")
                 .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
@@ -224,7 +223,6 @@ class EnrollmentRequestServiceImplTest {
         InstructorLedCourse placementProgram = InstructorLedCourse.builder()
                 .id(99L)
                 .code("IELTS-INTERMEDIATE")
-                .slug("ielts-intermediate")
                 .title("IELTS Intermediate")
                 .publicationStatus(PackageStatus.PUBLISHED)
                 .build();

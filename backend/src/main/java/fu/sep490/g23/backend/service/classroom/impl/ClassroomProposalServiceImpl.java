@@ -669,7 +669,6 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .endDate(proposal.getPlannedEndDate())
                 .primaryTeacherId(proposal.getPrimaryTeacher().getId())
                 .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
-                .locationNote(scheduleLabel(proposal))
                 .build();
     }
 

@@ -144,10 +144,9 @@ public class ReviewDataSeeder implements CommandLineRunner {
             long price
     ) {
         return offeringRepository.findByCode(slug).orElseGet(() -> {
-            InstructorLedCourse course = instructorLedCourseRepository.findBySlug(slug + "-course")
+            InstructorLedCourse course = instructorLedCourseRepository.findByCodeIgnoreCase(("REVIEW-" + slug).toUpperCase())
                     .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                     .code(("REVIEW-" + slug).toUpperCase())
-                    .slug(slug + "-course")
                     .title(title)
                     .shortDescription("Dữ liệu review cho lớp học tại EnglishLab.")
                     .description("Lớp học dùng để review các luồng vận hành, giáo viên và học viên.")

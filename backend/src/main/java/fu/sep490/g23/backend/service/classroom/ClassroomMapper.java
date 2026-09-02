@@ -120,7 +120,7 @@ public class ClassroomMapper {
                 .id(offering.getId())
                 .code(offering.getCode())
                 .title(offering.getName())
-                .slug(course.getSlug())
+                .slug(offering.getCode())
                 .shortDescription(course.getShortDescription())
                 .description(course.getDescription())
                 .deliveryMode(offering.getDeliveryMode())
@@ -129,7 +129,6 @@ public class ClassroomMapper {
                 .instructorLedCourseId(course.getId())
                 .instructorLedCourseTitle(course.getTitle())
                 .instructorLedCourseCode(course.getCode())
-                .instructorLedCourseSlug(course.getSlug())
                 .instructorLedCourseExamType(course.getExamType())
                 .instructorLedCourseStatus(course.getPublicationStatus() == null ? null : course.getPublicationStatus().name())
                 .instructorLedCourse(toInstructorLedCourseResponse(course, includeDetails))
@@ -144,7 +143,6 @@ public class ClassroomMapper {
                 .roomId(offering.getRoom() == null ? null : offering.getRoom().getId())
                 .roomName(offering.getRoom() == null ? null : offering.getRoom().getName())
                 .offlineAddress(offering.getRoom() == null ? null : offering.getRoom().getLocationAddress())
-                .locationNote(offering.getLocationNote())
                 .googleMeetOwnerId(offering.getGoogleMeetOwner() == null ? null : offering.getGoogleMeetOwner().getId())
                 .googleMeetUrl(offering.getGoogleMeetUrl())
                 .googleMeetStatus(offering.getGoogleMeetStatus())
@@ -661,9 +659,7 @@ public class ClassroomMapper {
                 .id(course.getId())
                 .title(course.getTitle())
                 .code(course.getCode())
-                .slug(course.getSlug())
                 .examCategory(course.getExamType())
-                .programTrack(course.getProgramTrack())
                 .focusSkills(course.getFocusSkills())
                 .targetBand(course.getTargetBand())
                 .targetScore(course.getTargetScore())
@@ -756,7 +752,6 @@ public class ClassroomMapper {
                     .status(resource.getStatus())
                     .fileUrl(resource.getFileUrl())
                     .displayOrder(ref.getSequenceNumber())
-                    .note(ref.getNote())
                     .build();
         }
         var item = ref.getContentBankItem();
@@ -780,7 +775,6 @@ public class ClassroomMapper {
                 .skill(item == null ? null : item.getSkill())
                 .status(item == null ? null : item.getStatus())
                 .displayOrder(ref.getSequenceNumber())
-                .note(ref.getNote())
                 .contentJson(contentJson)
                 .build();
     }

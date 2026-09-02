@@ -129,7 +129,7 @@ export default function StaffClassroomProposalsPage() {
     try {
       const [proposalData, offeringData] = await Promise.all([
         enrollmentRequestApi.listStaffClassroomProposals(requestedStatus),
-        classroomApi.getStaffPrograms(),
+        classroomApi.getStaffInstructorLedCourses(),
       ]);
       if (requestId !== loadRequestId.current) return;
       setProposals(proposalData);
@@ -395,22 +395,22 @@ function ProposalModal({
     }
     let active = true;
     setLoadingStructure(true);
-    classroomApi.getStaffProgram(form.courseOfferingId)
-      .then((detail) => {
-        if (!active) return;
-        setCourseStructure(detail);
-      })
-      .catch(async () => {
+    const loadCourseStructure = async () => {
+      try {
+        const detail = await classroomApi.getStaffInstructorLedCourse(form.courseOfferingId);
+        if (active) setCourseStructure(detail);
+      } catch {
         try {
           const fallback = await curriculumApi.getInstructorLedCourse(form.courseOfferingId);
           if (active) setCourseStructure(fallback);
         } catch {
           if (active) setCourseStructure(null);
         }
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoadingStructure(false);
-      });
+      }
+    };
+    loadCourseStructure();
     return () => { active = false; };
   }, [form.courseOfferingId]);
 

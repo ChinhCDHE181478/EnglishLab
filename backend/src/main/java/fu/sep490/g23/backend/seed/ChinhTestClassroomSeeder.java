@@ -313,11 +313,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     // ── Curriculum Program, Units, Flashcards, Practice, Materials ───────────
 
     private InstructorLedCourse ensureCurriculum(User teacher) {
-        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(CURRICULUM_SLUG)
+        InstructorLedCourse program = instructorLedCourseRepository.findByCodeIgnoreCase("EL-IELTS-650-V1")
                 .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title("IELTS Intensive 6.5+ - Virtual Curriculum")
                         .code("EL-IELTS-650-V1")
-                        .slug(CURRICULUM_SLUG)
                         .examType("IELTS")
                         .targetBand(BigDecimal.valueOf(6.5))
                         .entryLevel("IELTS 5.0+ hoặc CEFR B1")
@@ -388,7 +387,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
         request.setResourceId(resourceId);
         request.setDisplayOrder(1);
-        request.setNote(note);
         return request;
     }
 

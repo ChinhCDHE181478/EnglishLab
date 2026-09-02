@@ -22,7 +22,6 @@ import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
@@ -68,7 +67,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -76,23 +74,7 @@ import java.util.regex.Pattern;
 public class InstructorLedCourseManagementServiceImpl implements InstructorLedCourseManagementService {
 
     private static final int PROGRAM_CODE_MAX_LENGTH = 120;
-    private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
-    private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
     private static final Set<String> EXAM_CATEGORIES = Set.of("IELTS", "TOEIC", "GENERAL_ENGLISH");
-    private static final Set<String> IELTS_TRACKS = Set.of(
-            "IELTS_FOUNDATION",
-            "IELTS_ACADEMIC",
-            "IELTS_SPEAKING_WRITING"
-    );
-    private static final Set<String> TOEIC_TRACKS = Set.of(
-            "TOEIC_LISTENING_READING",
-            "TOEIC_SPEAKING_WRITING",
-            "TOEIC_COMMUNICATION"
-    );
-    private static final Set<String> GENERAL_ENGLISH_TRACKS = Set.of(
-            "GENERAL_ENGLISH_FOUNDATION",
-            "GENERAL_ENGLISH_COMMUNICATION"
-    );
     private static final Set<String> CEFR_LEVELS = Set.of("A1", "A2", "B1", "B2", "C1", "C2");
     private static final List<String> SKILL_ORDER = List.of(
             "LISTENING",
@@ -120,7 +102,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     @Override
     @Transactional(readOnly = true)
-    public List<InstructorLedCourseResponse> listPrograms(ClassroomDeliveryMode deliveryMode) {
+    public List<InstructorLedCourseResponse> listPrograms() {
         List<InstructorLedCourse> programs = programRepository.findAllByOrderByUpdatedAtDescIdDesc();
         return programs.stream().map(program -> toProgramResponse(program, false)).toList();
     }
@@ -128,7 +110,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     @Override
     @Transactional(readOnly = true)
     public Page<InstructorLedCourseResponse> pagePrograms(
-            ClassroomDeliveryMode deliveryMode,
             String keyword,
             String examCategory,
             String entryLevel,
@@ -141,8 +122,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
             String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
             specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("code")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), pattern)
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("code")), pattern)
             ));
         }
         if (StringUtils.hasText(examCategory)) {
@@ -171,11 +151,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     @Override
     public InstructorLedCourseResponse createProgram(InstructorLedCourseRequest request) {
         String code = resolveNewProgramCode(request);
-        String slug = uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), null);
         InstructorLedCourse program = InstructorLedCourse.builder()
                 .title(requireText(request.getTitle(), "Tên giáo trình không được để trống."))
                 .code(code)
-                .slug(slug)
                 .shortDescription(trimOrNull(request.getShortDescription()))
                 .description(trimOrNull(request.getDescription()))
                 .durationLabel(trimOrNull(request.getDurationLabel()))
@@ -204,7 +182,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
         program.setTitle(requireText(request.getTitle(), "Tên giáo trình không được để trống."));
         program.setCode(code);
-        program.setSlug(uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), id));
         program.setShortDescription(trimOrNull(request.getShortDescription()));
         program.setDescription(trimOrNull(request.getDescription()));
         program.setDurationLabel(trimOrNull(request.getDurationLabel()));
@@ -244,7 +221,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         InstructorLedCourse clone = InstructorLedCourse.builder()
                 .title(source.getTitle() + " (Bản sao)")
                 .code(uniqueProgramCode(source.getCode()))
-                .slug(uniqueProgramSlug(source.getSlug() + "-copy", null))
                 .shortDescription(source.getShortDescription())
                 .description(source.getDescription())
                 .durationLabel(source.getDurationLabel())
@@ -252,7 +228,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .baseTuitionFeeVnd(source.getBaseTuitionFeeVnd())
                 .saleTuitionFeeVnd(source.getSaleTuitionFeeVnd())
                 .examType(source.getExamType())
-                .programTrack(source.getProgramTrack())
                 .focusSkills(source.getFocusSkills())
                 .targetBand(source.getTargetBand())
                 .targetScore(source.getTargetScore())
@@ -276,7 +251,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                     .learningResource(ref.getLearningResource())
                     .contentBankItem(ref.getContentBankItem())
                     .sequenceNumber(ref.getSequenceNumber())
-                    .note(ref.getNote())
                     .build()));
             unit.getLessons().forEach(sessionPlan -> unitClone.addLesson(CourseLesson.builder()
                     .sequenceNumber(sessionPlan.getSequenceNumber())
@@ -407,7 +381,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .contentType(CourseUnitContentType.MATERIAL)
                 .learningResource(material)
                 .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                .note(trimOrNull(request.getNote()))
                 .build());
         return toUnitResponse(findUnit(unitId));
     }
@@ -427,7 +400,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .contentType(CourseUnitContentType.EXERCISE)
                 .contentBankItem(exercise)
                 .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                .note(trimOrNull(request.getNote()))
                 .build());
         return toUnitResponse(findUnit(unitId));
     }
@@ -447,7 +419,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .contentType(CourseUnitContentType.ASSESSMENT)
                 .contentBankItem(assessment)
                 .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                .note(trimOrNull(request.getNote()))
                 .build());
         return toUnitResponse(findUnit(unitId));
     }
@@ -467,7 +438,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .contentType(CourseUnitContentType.FLASHCARD)
                 .contentBankItem(flashcardSet)
                 .sequenceNumber(defaultInt(request.getDisplayOrder()))
-                .note(trimOrNull(request.getNote()))
                 .build());
         return toUnitResponse(findUnit(unitId));
     }
@@ -765,7 +735,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .id(program.getId())
                 .title(program.getTitle())
                 .code(program.getCode())
-                .slug(program.getSlug())
                 .shortDescription(program.getShortDescription())
                 .description(program.getDescription())
                 .durationLabel(program.getDurationLabel())
@@ -773,7 +742,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .baseTuitionFeeVnd(program.getBaseTuitionFeeVnd())
                 .saleTuitionFeeVnd(program.getSaleTuitionFeeVnd())
                 .examCategory(program.getExamType())
-                .programTrack(program.getProgramTrack())
                 .focusSkills(program.getFocusSkills())
                 .targetBand(program.getTargetBand())
                 .targetScore(program.getTargetScore())
@@ -811,7 +779,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
         validateEnglishProfile(
                 program.getExamType(),
-                program.getProgramTrack(),
                 program.getFocusSkills(),
                 program.getTargetBand(),
                 program.getTargetScore(),
@@ -930,18 +897,15 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     private void applyEnglishProfile(InstructorLedCourse program, InstructorLedCourseRequest request) {
         String examCategory = normalizeExamCategory(request.getExamCategory());
-        String programTrack = trimUpperOrNull(request.getProgramTrack());
         String focusSkills = normalizeFocusSkills(request.getFocusSkills());
         validateEnglishProfile(
                 examCategory,
-                programTrack,
                 focusSkills,
                 request.getTargetBand(),
                 request.getTargetScore(),
                 request.getEntryLevel()
         );
         program.setExamType(examCategory);
-        program.setProgramTrack(programTrack);
         program.setFocusSkills(focusSkills);
         program.setTargetBand(request.getTargetBand());
         program.setTargetScore(request.getTargetScore());
@@ -979,7 +943,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     private void validateEnglishProfile(
             String examCategory,
-            String programTrack,
             String focusSkills,
             BigDecimal targetBand,
             Integer targetScore,
@@ -987,9 +950,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     ) {
         if (!StringUtils.hasText(entryLevel)) {
             throw new IllegalArgumentException("Hãy khai báo trình độ đầu vào của chương trình.");
-        }
-        if (!StringUtils.hasText(programTrack) || !tracksFor(examCategory).contains(programTrack)) {
-            throw new IllegalArgumentException("Loại chương trình không phù hợp với nhóm " + examCategoryLabel(examCategory) + ".");
         }
         if (!StringUtils.hasText(focusSkills)) {
             throw new IllegalArgumentException("Hãy chọn ít nhất một kỹ năng tiếng Anh trọng tâm.");
@@ -1057,15 +1017,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException(label + " phải là một số nguyên hợp lệ.");
         }
-    }
-
-    private Set<String> tracksFor(String examCategory) {
-        return switch (examCategory) {
-            case "IELTS" -> IELTS_TRACKS;
-            case "TOEIC" -> TOEIC_TRACKS;
-            case "GENERAL_ENGLISH" -> GENERAL_ENGLISH_TRACKS;
-            default -> Set.of();
-        };
     }
 
     private String examCategoryLabel(String examCategory) {
@@ -1163,11 +1114,10 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
             }
             return requestedCode;
         }
-        return uniqueCode(makeProgramCode(request.getTitle(), request.getDeliveryMode()));
+        return uniqueCode(makeProgramCode(request.getTitle()));
     }
 
-    private String makeProgramCode(String title, ClassroomDeliveryMode deliveryMode) {
-        String prefix = deliveryMode == ClassroomDeliveryMode.VIRTUAL ? "VIRTUAL" : "OFFLINE";
+    private String makeProgramCode(String title) {
         String normalizedTitle = Normalizer.normalize(defaultText(title, "CURRICULUM"), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .replace('đ', 'd')
@@ -1175,7 +1125,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .replaceAll("[^A-Za-z0-9]+", "-")
                 .replaceAll("^-+|-+$", "")
                 .toUpperCase(Locale.ROOT);
-        return normalizeProgramCode(prefix + "-" + defaultText(normalizedTitle, "CURRICULUM"));
+        return normalizeProgramCode("ILC-" + defaultText(normalizedTitle, "COURSE"));
     }
 
     private String normalizeProgramCode(String sourceCode) {
@@ -1265,7 +1215,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .status(material != null ? material.getStatus() : item == null ? null : item.getStatus())
                 .fileUrl(material == null ? null : material.getFileUrl())
                 .displayOrder(ref.getSequenceNumber())
-                .note(ref.getNote())
                 .contentJson(item == null ? null : toJson(item.getContentData()))
                 .build();
     }
@@ -1374,39 +1323,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return rubric;
     }
 
-    private String uniqueProgramSlug(String source, Long currentId) {
-        String baseSlug = toSlug(source);
-        String slug = baseSlug;
-        int index = 2;
-        while (programRepository.findBySlug(slug)
-                .filter(existing -> currentId == null || !existing.getId().equals(currentId))
-                .isPresent()) {
-            slug = baseSlug + "-" + index++;
-        }
-        return slug;
-    }
-
-    private String toSlug(String input) {
-        String source = StringUtils.hasText(input) ? input.trim() : "curriculum";
-        String nowhitespace = WHITESPACE.matcher(source).replaceAll("-");
-        String normalized = Normalizer.normalize(nowhitespace, Normalizer.Form.NFD);
-        String slug = NONLATIN.matcher(normalized).replaceAll("");
-        slug = slug.replaceAll("-+", "-").toLowerCase(Locale.ENGLISH);
-        return slug.isBlank() ? "curriculum" : slug;
-    }
-
     private String normalizeRefType(String type) {
         return StringUtils.hasText(type) ? type.trim().toUpperCase(Locale.ROOT) : "";
-    }
-
-    private String deliveryModeLabel(ClassroomDeliveryMode mode) {
-        if (mode == null) {
-            return null;
-        }
-        return switch (mode) {
-            case OFFLINE -> "Tại trung tâm";
-            case VIRTUAL -> "Trực tuyến với giảng viên";
-        };
     }
 
     private String requireText(String value, String message) {

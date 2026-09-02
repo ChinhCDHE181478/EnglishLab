@@ -80,9 +80,6 @@ public class ClassSection {
     @JoinColumn(name = "room_id")
     private Room room;
 
-    @Column(name = "location_note", length = 500)
-    private String locationNote;
-
     @Column(name = "google_meet_space_name", length = 255)
     private String googleMeetSpaceName;
 
@@ -119,7 +116,7 @@ public class ClassSection {
     }
 
     public String getSlug() {
-        return instructorLedCourse == null ? code : instructorLedCourse.getSlug();
+        return code;
     }
 
     public BigDecimal getPrice() {

@@ -31,7 +31,7 @@ const initialForm = {
   title: '', deliveryMode: 'OFFLINE', classroomStatus: 'DRAFT', originalStatus: 'DRAFT',
   instructorLedCourseId: '', instructorLedCourseTitle: '', instructorLedCourseCode: '',
   maxCapacity: '18', startDate: '', endDate: '', tuitionFeeVnd: '',
-  primaryTeacherId: '', roomId: '', locationNote: '',
+  primaryTeacherId: '', roomId: '',
   scheduleItems: [],
 };
 
@@ -60,7 +60,7 @@ export default function StaffClassroomsPage() {
     try {
       const [classroomData, roomData, teacherData, courseData] = await Promise.all([
         classroomApi.getStaffClassrooms(), classroomApi.getStaffRooms(), classroomApi.getStaffTeachers(),
-        classroomApi.getStaffPrograms(),
+        classroomApi.getStaffInstructorLedCourses(),
       ]);
       setClassrooms(classroomData);
       setRooms(roomData);
@@ -150,7 +150,7 @@ export default function StaffClassroomsPage() {
       const detail = await classroomApi.getStaffClassroom(item.id);
       const structure = detail.instructorLedCourse
         || (detail.instructorLedCourseId
-          ? await classroomApi.getStaffProgram(detail.instructorLedCourseId)
+          ? await classroomApi.getStaffInstructorLedCourse(detail.instructorLedCourseId)
           : null);
       setEditingId(item.id);
       setForm(mapToForm(detail));
@@ -172,7 +172,7 @@ export default function StaffClassroomsPage() {
     setWorking(true);
     setFormError('');
     try {
-      const detail = await classroomApi.getStaffProgram(value);
+      const detail = await classroomApi.getStaffInstructorLedCourse(value);
       setCourseStructure(detail);
     } catch (err) {
       setCourseStructure(null);
@@ -216,7 +216,6 @@ export default function StaffClassroomsPage() {
         primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
         roomId: form.deliveryMode === 'OFFLINE' && form.roomId ? Number(form.roomId) : null,
         price: form.tuitionFeeVnd ? Number(form.tuitionFeeVnd) : 0,
-        locationNote: form.locationNote.trim() || null,
       };
       if (limitedEdit) {
         await classroomApi.updateStaffClassroom(editingId, classroomPayload);
@@ -386,7 +385,6 @@ function Editor({ courseOptions, courseStructure, form, formError, onChange, onC
               <Field label="Học phí lớp"><input className={inputClass} min="0" onChange={(e) => onChange('tuitionFeeVnd', e.target.value)} type="number" value={form.tuitionFeeVnd} /></Field>
               <Field label="Ngày bắt đầu"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('startDate', value)} required value={form.startDate} /></Field>
               <Field label="Ngày kết thúc"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('endDate', value)} value={form.endDate} /></Field>
-              <Field label="Ghi chú địa điểm" wide><textarea className={inputClass} onChange={(e) => onChange('locationNote', e.target.value)} rows={2} value={form.locationNote} /></Field>
             </> : null}
           </div>
         </section>
@@ -453,7 +451,6 @@ function mapToForm(item) {
     tuitionFeeVnd: String(item.tuitionFeeVnd ?? item.price ?? ''),
     primaryTeacherId: String(item.primaryTeacherId || ''),
     roomId: String(item.roomId || ''),
-    locationNote: item.locationNote || '',
     scheduleItems: sessions.map((session) => ({
       id: session.id,
       sessionDate: session.sessionDate || '',

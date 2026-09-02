@@ -203,7 +203,6 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 .skill(ref.exercise().getSkill())
                 .exerciseType(ref.exercise().getExerciseType())
                 .instruction(ref.exercise().getPrompt())
-                .note(ref.link().getNote())
                 .completed(attempt != null)
                 .responseText(attempt == null ? null : attempt.getResponseText())
                 .completedAt(attempt == null ? null : attempt.getCompletedAt())

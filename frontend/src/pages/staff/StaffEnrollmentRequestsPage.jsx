@@ -611,7 +611,7 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
                 options={classrooms.filter((item) => assignmentAvailability.ids?.has(String(item.id))).map((item) => ({
                   value: String(item.id),
                   label: item.title,
-                  description: `${item.trainingProgramTitle || 'Chưa gắn khóa học'} · Đầu vào ${item.entryLevel || 'chưa xác định'} · Mục tiêu ${item.targetScore || 'chưa xác định'} · ${formatClassroomDate(item.startDate)} · ${item.enrolledCount || 0} học viên`,
+                  description: `${item.instructorLedCourseTitle || 'Chưa gắn khóa học'} · Đầu vào ${item.entryLevel || 'chưa xác định'} · Mục tiêu ${item.targetScore || 'chưa xác định'} · ${formatClassroomDate(item.startDate)} · ${item.enrolledCount || 0} học viên`,
                 }))}
                 placeholder={assignmentAvailability.loading ? 'Đang loại lớp trùng lịch...' : assignmentAvailability.ids?.size ? 'Chọn lớp không trùng lịch' : 'Chưa có lớp phù hợp'}
                 searchable

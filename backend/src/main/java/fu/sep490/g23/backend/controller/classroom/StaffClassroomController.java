@@ -167,15 +167,13 @@ public class StaffClassroomController {
         return ResponseEntity.ok(scheduleAvailabilityService.listAvailableReplacementTeachers(id));
     }
 
-    @GetMapping("/training-programs")
-    public ResponseEntity<List<InstructorLedCourseResponse>> listPublishedTrainingPrograms(
-            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
-    ) {
-        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms(deliveryMode));
+    @GetMapping("/instructor-led-courses")
+    public ResponseEntity<List<InstructorLedCourseResponse>> listPublishedInstructorLedCourses() {
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms());
     }
 
-    @GetMapping("/training-programs/{id}")
-    public ResponseEntity<fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse> getPublishedTrainingProgram(
+    @GetMapping("/instructor-led-courses/{id}")
+    public ResponseEntity<fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse> getPublishedInstructorLedCourse(
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));

@@ -94,6 +94,7 @@ import fu.sep490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -338,6 +339,11 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return saveManagerCourseAssessments(courseId, requests, null);
     }
 
+    /**
+     * Batch updates course assessment configurations in draft mode.
+     * Validates editability, resolves linked bank items/rubrics across modules/lessons,
+     * updates assessment records, and captures a new snapshot in the draft course version.
+     */
     @Override
     public List<CourseAssessmentResponse> saveManagerCourseAssessments(
             Long courseId,
@@ -1151,7 +1157,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return applyVocabularyProgress(term, List.of(savedProgress));
     }
 
-    private OnlineCourse findCourse(Long id) {
+    private @NonNull OnlineCourse findCourse(Long id) {
         OnlineCourse course = onlineCourseRepository.findWithModulesById(id)
                 .filter(foundCourse -> foundCourse.getStatus() != PackageStatus.ARCHIVED)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
@@ -1446,6 +1452,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setTotalHours(totalMinutes == 0 ? 0 : (int) Math.ceil(totalMinutes / 60.0));
     }
 
+    /**
+     * Synchronizes course assessments for the draft version, updating records and safely archiving deleted items.
+     */
     private void synchronizeAssessments(OnlineCourse course, List<ContentManagerCourseAssessmentRequest> requests) {
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         Set<Long> incomingAssessmentIds = new HashSet<>();
@@ -1574,6 +1583,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("Assessment not found in this course"));
     }
 
+    /**
+     * Validates JSON configuration payload, question structure, and AI evaluation mode based on skill.
+     */
     private void validateAssessmentConfiguration(ContentManagerCourseAssessmentRequest request, AssessmentBankItem bankItem) {
         AssessmentSkill skill = bankItem == null ? request.getSkill() : bankItem.getSkill();
         AssessmentType type = bankItem == null ? request.getType() : bankItem.getType();
@@ -1618,6 +1630,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
     }
 
+    /**
+     * Ensures semantic compatibility between assessment skill and grading rubric.
+     */
     private void validateAssessmentRubric(AssessmentSkill skill, AssessmentRubric rubric) {
         if ((skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING) && rubric != null) {
             throw new RuntimeException("Bài Listening hoặc Reading không được dùng rubric chấm Writing/Speaking.");

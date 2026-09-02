@@ -23,7 +23,7 @@ public class PlacementRecommendationResponse {
     private PlacementSkillScoresResponse skillScores;
     private List<String> weakSkills;
     private List<OnlineCourseResponse> recommendedOnlineCourses;
-    private List<RecommendedTrainingProgramResponse> recommendedTrainingPrograms;
+    private List<RecommendedInstructorLedCourseResponse> recommendedInstructorLedCourses;
     private LearnerLearningPathResponse.PathOverview recommendedLearningPath;
     private boolean targetMissing;
 }

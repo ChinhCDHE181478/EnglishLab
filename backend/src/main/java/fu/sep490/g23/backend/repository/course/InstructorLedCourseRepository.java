@@ -10,11 +10,7 @@ import java.util.List;
 public interface InstructorLedCourseRepository extends JpaRepository<InstructorLedCourse, Long>, JpaSpecificationExecutor<InstructorLedCourse> {
     Optional<InstructorLedCourse> findByCodeIgnoreCase(String code);
 
-    Optional<InstructorLedCourse> findBySlug(String slug);
-
     boolean existsByCodeIgnoreCase(String code);
-
-    boolean existsBySlug(String slug);
 
     List<InstructorLedCourse> findAllByOrderByUpdatedAtDescIdDesc();
 }

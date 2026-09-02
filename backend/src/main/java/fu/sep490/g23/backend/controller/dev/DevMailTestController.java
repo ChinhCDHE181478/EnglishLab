@@ -117,7 +117,6 @@ public class DevMailTestController {
             InstructorLedCourse instructorLedCourse = InstructorLedCourse.builder()
                     .id(301L)
                     .code("DEMO-IELTS-65")
-                    .slug("demo-ielts-65")
                     .title("IELTS Intensive Master 6.5+")
                     .build();
 

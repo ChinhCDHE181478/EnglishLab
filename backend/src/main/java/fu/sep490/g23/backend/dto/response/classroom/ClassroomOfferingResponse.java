@@ -31,7 +31,6 @@ public class ClassroomOfferingResponse {
     private Long instructorLedCourseId;
     private String instructorLedCourseTitle;
     private String instructorLedCourseCode;
-    private String instructorLedCourseSlug;
     private String instructorLedCourseExamType;
     private String instructorLedCourseStatus;
     // Materials of class
@@ -47,7 +46,6 @@ public class ClassroomOfferingResponse {
     private Long roomId;
     private String roomName;
     private String offlineAddress;
-    private String locationNote;
     private Long googleMeetOwnerId;
     private String googleMeetUrl;
     private GoogleMeetStatus googleMeetStatus;

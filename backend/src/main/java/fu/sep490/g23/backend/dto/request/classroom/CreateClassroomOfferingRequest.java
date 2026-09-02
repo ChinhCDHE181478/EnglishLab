@@ -41,9 +41,6 @@ public class CreateClassroomOfferingRequest {
     private Long primaryTeacherId;
     private Long roomId;
 
-    @Size(max = 500)
-    private String locationNote;
-
     @DecimalMin(value = "0.0", inclusive = true, message = "Học phí không được âm")
     private BigDecimal price;
 

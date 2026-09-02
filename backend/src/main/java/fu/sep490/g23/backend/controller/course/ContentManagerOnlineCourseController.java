@@ -99,6 +99,9 @@ public class ContentManagerOnlineCourseController {
         };
     }
 
+    /**
+     * Retrieves full online course structure including version history, modules, lessons, and linked assessments.
+     */
     @GetMapping("/{slugOrId}")
     public ResponseEntity<OnlineCourseResponse> getCourse(@PathVariable String slugOrId) {
         return ResponseEntity.ok(onlineCourseService.getManagerCourse(slugOrId));
@@ -109,6 +112,9 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.getManagerCoursePreview(slugOrId));
     }
 
+    /**
+     * Reorders modules sequentially within the editable draft course version.
+     */
     @PatchMapping("/{courseId}/modules/reorder")
     public ResponseEntity<List<ModuleResponse>> reorderModules(
             @PathVariable Long courseId,
@@ -118,6 +124,9 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.reorderModules(courseId, request, authentication.getName()));
     }
 
+    /**
+     * Reorders lessons sequentially within a specific course module.
+     */
     @PatchMapping("/{courseId}/modules/{moduleId}/lessons/reorder")
     public ResponseEntity<List<LessonResponse>> reorderLessons(
             @PathVariable Long courseId,
@@ -138,6 +147,11 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.getManagerCourseAssessments(courseId));
     }
 
+    /**
+     * Batch synchronizes course assessment items across modules and lessons.
+     * Iterates through the incoming list, resolves bank items and rubrics, validates configuration,
+     * updates active CourseAssessment records, and captures a new draft snapshot.
+     */
     @PutMapping("/{courseId}/assessments")
     public ResponseEntity<List<CourseAssessmentResponse>> saveCourseAssessments(
             @PathVariable Long courseId,
@@ -171,11 +185,18 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(new CourseThumbnailUploadResponse(url));
     }
 
+    /**
+     * Creates a new online course and initializes its first draft version (V1 DRAFT).
+     * Validates slug uniqueness, active category existence, and default pricing.
+     */
     @PostMapping
     public ResponseEntity<OnlineCourseResponse> createCourse(@Valid @RequestBody OnlineCourseRequest request, Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED).body(onlineCourseService.createCourse(request, authentication.getName()));
     }
 
+    /**
+     * Updates course metadata and pricing, ensuring modifications only apply to editable draft versions.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<OnlineCourseResponse> updateCourse(
             @PathVariable Long id,
@@ -195,6 +216,9 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.archiveCourse(id));
     }
 
+    /**
+     * Soft-deletes / archives an online course to safely preserve enrollment history.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteCourse(@PathVariable Long id) {
         onlineCourseService.deleteCourse(id);

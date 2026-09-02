@@ -267,7 +267,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void repairRegistrationPipelineOffering() {
-        offeringRepository.findByInstructorLedCourseSlugOrCode(SLUG_REGISTRATION_PIPELINE)
+        offeringRepository.findByInstructorLedCourseCodeOrClassCode(SLUG_REGISTRATION_PIPELINE)
                 .or(() -> offeringRepository.findByNameIgnoreCase(REGISTRATION_PIPELINE_TITLE))
                 .ifPresent(offering -> {
                     if (offering.getStatus() == ClassroomOfferingStatus.CANCELLED) {
@@ -298,7 +298,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void renameVirtualPackage(String slug, String title) {
-        offeringRepository.findByInstructorLedCourseSlugOrCode(slug).ifPresent(offering -> {
+        offeringRepository.findByInstructorLedCourseCodeOrClassCode(slug).ifPresent(offering -> {
             if (!title.equals(offering.getName())) {
                 offering.setName(title);
                 offeringRepository.save(offering);
@@ -317,7 +317,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedIfMissing(String title, String slug, Runnable seeder) {
-        if (offeringRepository.findByInstructorLedCourseSlugOrCode(slug).isPresent()) {
+        if (offeringRepository.findByInstructorLedCourseCodeOrClassCode(slug).isPresent()) {
             return;
         }
         if (offeringRepository.findByNameIgnoreCase(title).isPresent()) {
@@ -666,7 +666,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
                 .room(room)
-                .locationNote(room.getName() + ", tầng 2")
                 .build());
 
         teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
@@ -1039,7 +1038,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleCodes.LEARNER);
             User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleCodes.LEARNER);
 
-            Optional<ClassSection> offeringOpt = offeringRepository.findByInstructorLedCourseSlugOrCode(SLUG_OFFLINE_IN_PROGRESS);
+            Optional<ClassSection> offeringOpt = offeringRepository.findByInstructorLedCourseCodeOrClassCode(SLUG_OFFLINE_IN_PROGRESS);
             if (offeringOpt.isEmpty()) return;
 
             ClassSection offering = offeringOpt.get();
@@ -1079,7 +1078,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             }
 
             seedRichSubmissionsForAllHomeworks(offering, learner1, learner2, learner3);
-            offeringRepository.findByInstructorLedCourseSlugOrCode("ielts-intensive-chinh-test-v1")
+            offeringRepository.findByInstructorLedCourseCodeOrClassCode("ielts-intensive-chinh-test-v1")
                     .ifPresent(chinhOffering -> seedRichSubmissionsForAllHomeworks(chinhOffering, learner1, learner2, learner3));
         } catch (Exception ex) {
             log.warn("syncTodayTeacher1Data warning: {}", ex.getMessage());

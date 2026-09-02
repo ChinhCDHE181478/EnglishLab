@@ -196,11 +196,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     }
 
     private InstructorLedCourse ensureCurriculum(User teacher) {
-        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(CURRICULUM_SLUG)
+        InstructorLedCourse program = instructorLedCourseRepository.findByCodeIgnoreCase("EL-TOEIC-650-V1")
                 .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title("TOEIC 650 Complete - Virtual Curriculum")
                         .code("EL-TOEIC-650-V1")
-                        .slug(CURRICULUM_SLUG)
                         .examType("TOEIC")
                         .targetScore(650)
                         .entryLevel("TOEIC 350+ hoặc CEFR A2")
@@ -271,7 +270,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
         request.setResourceId(resourceId);
         request.setDisplayOrder(1);
-        request.setNote(note);
         return request;
     }
 

@@ -47,9 +47,6 @@ public class CourseUnit {
     @JoinColumn(name = "instructor_led_course_id", nullable = false)
     private InstructorLedCourse instructorLedCourse;
 
-    @Column(length = 120)
-    private String code;
-
     @Column(nullable = false, length = 180)
     private String title;
 

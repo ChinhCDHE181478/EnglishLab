@@ -147,13 +147,11 @@ public final class ItClassroomFixture {
         copyText(detail, payload, "entryLevel");
         copyText(detail, payload, "targetOutcome");
         copyText(detail, payload, "offlineAddress");
-        copyText(detail, payload, "locationNote");
         copyText(detail, payload, "defaultLarkMeetingUrl");
         copyText(detail, payload, "recordingUrl");
         copyText(detail, payload, "syllabusSummary");
         copyText(detail, payload, "thumbnailUrl");
         copyText(detail, payload, "duration");
-        copyText(detail, payload, "studyMode");
         copyText(detail, payload, "targetScore");
         copyText(detail, payload, "startDate");
         copyText(detail, payload, "endDate");

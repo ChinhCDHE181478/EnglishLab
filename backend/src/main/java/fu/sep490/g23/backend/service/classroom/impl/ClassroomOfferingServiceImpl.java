@@ -247,7 +247,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .plannedEndDate(request.getEndDate())
                 .primaryTeacher(primaryTeacher)
                 .room(room)
-                .locationNote(request.getLocationNote())
                 .build();
 
         if (offering.getPrimaryTeacher() != null) {
@@ -322,7 +321,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             offering.setPrimaryTeacher(primaryTeacher);
         }
         offering.setRoom(room);
-        offering.setLocationNote(request.getLocationNote());
 
         ClassSection saved = offeringRepository.save(offering);
         if (primaryTeacherChanged) {
@@ -1974,7 +1972,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     .filter(found -> found.getStatus() == fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus.ACTIVE)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
         } catch (NumberFormatException ex) {
-            return offeringRepository.findByInstructorLedCourseSlugOrCode(slugOrId)
+            return offeringRepository.findByInstructorLedCourseCodeOrClassCode(slugOrId)
                     .filter(found -> found.getStatus() == fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus.ACTIVE)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
         }

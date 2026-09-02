@@ -258,36 +258,34 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             User showcaseLearner,
             User alien
     ) {
-        InstructorLedCourse ieltsOffline = ensureSheetTrainingProgram(
-                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
-        InstructorLedCourse ieltsLive = ensureSheetTrainingProgram(
-                "center-sheet-ielts-live", "IELTS 4 kỹ năng Google Meet", ClassroomDeliveryMode.VIRTUAL);
-        InstructorLedCourse toeicOffline = ensureSheetTrainingProgram(
-                "center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse ieltsProgram = ensureSheetInstructorLedCourse(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng");
+        InstructorLedCourse toeicProgram = ensureSheetInstructorLedCourse(
+                "center-sheet-toeic-lr", "TOEIC Listening & Reading");
         List<ClassSection> offerings = new ArrayList<>();
         int learnerCursor = 1;
         int[] classOrder = demoFirstClassIndexes(30);
         for (int classIndex : classOrder) {
-            boolean online = classIndex >= 24;
+            boolean virtualClass = classIndex >= 24;
             int intake = classIndex % 3;
             LocalDate start = LocalDate.now().minusWeeks(10 - intake * 4L);
             LocalDate end = start.plusWeeks(12);
             boolean mwf = classScheduleMwf(classIndex);
             boolean eveningTwo = classScheduleEveningTwo(classIndex);
-            Room room = online ? null : rooms.get(classIndex % 10);
+            Room room = virtualClass ? null : rooms.get(classIndex % 10);
             User teacher = (classIndex == 0 || classIndex == 24) ? alien : teachers.get(1 + (classIndex % 19));
             String slug = "center-sheet-class-%02d".formatted(classIndex + 1);
-            boolean toeic = !online && intake == 2;
-            String title = (online ? "IELTS Live Meet " : (toeic ? "TOEIC Center " : "IELTS Center "))
+            boolean toeic = !virtualClass && intake == 2;
+            String title = (virtualClass ? "IELTS Live Meet " : (toeic ? "TOEIC Center " : "IELTS Center "))
                     + (intake == 0 ? "K1 " : intake == 1 ? "K2 " : "K3 ")
                     + (mwf ? "T2-4-6 " : "T3-5-7 ")
                     + (eveningTwo ? "Ca 2" : "Ca 1");
-            InstructorLedCourse program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
+            InstructorLedCourse program = toeic ? toeicProgram : ieltsProgram;
             ClassSection offering = upsertOffering(
-                    slug, title, online, start, end, teacher, room, eveningTwo, program);
+                    slug, title, virtualClass, start, end, teacher, room, eveningTwo, program);
             attachCourse(offering, program);
             ensureTeacherAssignment(offering, teacher);
-            seedSessions(offering, teacher, room, mwf, eveningTwo, online);
+            seedSessions(offering, teacher, room, mwf, eveningTwo);
             List<User> classLearners = new ArrayList<>();
             if (classIndex == 0 || classIndex == 24) {
                 classLearners.add(showcaseLearner);
@@ -326,7 +324,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private ClassSection upsertOffering(
             String slug,
             String title,
-            boolean online,
+            boolean virtualClass,
             LocalDate start,
             LocalDate end,
             User teacher,
@@ -334,12 +332,17 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             boolean eveningTwo,
             InstructorLedCourse instructorLedCourse
     ) {
-        String cover = online ? "/course-covers/classroom-online.png" : "/course-covers/classroom-offline.png";
-        return offeringRepository.findByInstructorLedCourseSlugOrCode(slug).map(existing -> {
+        return offeringRepository.findByInstructorLedCourseCodeOrClassCode(slug).map(existing -> {
             existing.setName(title);
             existing.setInstructorLedCourse(instructorLedCourse);
+            existing.setDeliveryMode(virtualClass ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE);
             existing.setPrimaryTeacher(teacher);
             existing.setRoom(room);
+            existing.setGoogleMeetOwner(virtualClass ? teacher : null);
+            if (!virtualClass) {
+                existing.setGoogleMeetUrl(null);
+                existing.setGoogleMeetStatus(GoogleMeetStatus.NOT_CREATED);
+            }
             return offeringRepository.save(existing);
         }).orElseGet(() -> {
             ClassSection offering = ClassSection.builder()
@@ -347,16 +350,16 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .name(title)
                     .code(slug)
                     .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
-                    .deliveryMode(online ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
+                    .deliveryMode(virtualClass ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.ACTIVE)
                     .capacity(10)
                     .startDate(start)
                     .plannedEndDate(end)
                     .primaryTeacher(teacher)
                     .room(room)
-                    .googleMeetOwner(online ? teacher : null)
-                    .googleMeetUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
-                    .googleMeetStatus(online ? GoogleMeetStatus.READY : GoogleMeetStatus.NOT_CREATED)
+                    .googleMeetOwner(virtualClass ? teacher : null)
+                    .googleMeetUrl(virtualClass ? "https://meet.google.com/englishlab-sheet-" + slug : null)
+                    .googleMeetStatus(virtualClass ? GoogleMeetStatus.READY : GoogleMeetStatus.NOT_CREATED)
                     .build();
             return offeringRepository.save(offering);
         });
@@ -403,8 +406,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             User teacher,
             Room room,
             boolean mwf,
-            boolean eveningTwo,
-            boolean online
+            boolean eveningTwo
     ) {
         Set<DayOfWeek> days = mwf ? MWF : TTS;
         LocalTime start = eveningTwo ? SLOT_2_START : SLOT_1_START;
@@ -878,8 +880,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             List<ClassSection> offerings,
             User showcaseLearner
     ) {
-        InstructorLedCourse ieltsProgram = ensureSheetTrainingProgram("center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
-        InstructorLedCourse toeicProgram = ensureSheetTrainingProgram("center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse ieltsProgram = ensureSheetInstructorLedCourse("center-sheet-ielts-4skills", "IELTS 4 kỹ năng");
+        InstructorLedCourse toeicProgram = ensureSheetInstructorLedCourse("center-sheet-toeic-lr", "TOEIC Listening & Reading");
         if (enrollmentRequestRepository.count() > 0) {
             for (CourseRegistrationRequest existing : enrollmentRequestRepository.findAll()) {
                 if (existing.getCourseOffering() == null) {
@@ -1005,25 +1007,22 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
-    private InstructorLedCourse ensureSheetTrainingProgram(String slug, String title, ClassroomDeliveryMode mode) {
+    private InstructorLedCourse ensureSheetInstructorLedCourse(String slug, String title) {
         boolean toeic = slug.contains("toeic");
-        return ensureSheetCurriculum(slug, title, mode, toeic);
+        return ensureSheetCourseStructure(slug, title, toeic);
     }
 
-    private InstructorLedCourse ensureSheetCurriculum(
+    private InstructorLedCourse ensureSheetCourseStructure(
             String slug,
             String title,
-            ClassroomDeliveryMode mode,
             boolean toeic
     ) {
         String codeBase = slug.replace("center-sheet-", "").replace("-", "_").replace("_curriculum", "").toUpperCase();
-        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(slug)
+        InstructorLedCourse program = instructorLedCourseRepository.findByCodeIgnoreCase("CS_" + codeBase)
                 .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title(title)
                         .code("CS_" + codeBase)
-                        .slug(slug)
                         .examType(toeic ? "TOEIC" : "IELTS")
-                        .programTrack(toeic ? "TOEIC_2_SKILLS" : "IELTS_4_SKILLS")
                         .focusSkills(toeic ? "Listening, Reading" : "Listening, Reading, Writing, Speaking")
                         .entryLevel(toeic ? "TOEIC 350+" : "IELTS 5.0")
                         .learningOutcomes(toeic
@@ -1091,7 +1090,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
         request.setResourceId(resourceId);
         request.setDisplayOrder(1);
-        request.setNote(note);
         return request;
     }
 
@@ -1431,15 +1429,15 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private void seedUpcomingAlertClass(List<User> teachers, List<User> learners) {
-        if (offeringRepository.findByInstructorLedCourseSlugOrCode("center-sheet-class-31").isPresent()) {
+        if (offeringRepository.findByInstructorLedCourseCodeOrClassCode("center-sheet-class-31").isPresent()) {
             return;
         }
         if (teachers.size() < 2 || learners.size() < 4) {
             return;
         }
         User teacher = teachers.get(1);
-        InstructorLedCourse program = ensureSheetTrainingProgram(
-                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse program = ensureSheetInstructorLedCourse(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng");
         ClassSection offering = upsertOffering(
                 "center-sheet-class-31",
                 "IELTS Center K4 T2-4-6 Ca 1",

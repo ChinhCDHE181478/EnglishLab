@@ -104,7 +104,6 @@ class ClassroomProposalServiceImplTest {
         courseOffering = InstructorLedCourse.builder()
                 .id(10L)
                 .code("IELTS-FOUNDATION")
-                .slug("ielts-foundation")
                 .title("IELTS Foundation Offline")
                 .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
