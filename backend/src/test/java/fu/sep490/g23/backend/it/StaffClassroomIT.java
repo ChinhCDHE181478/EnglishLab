@@ -35,6 +35,9 @@ public class StaffClassroomIT {
         String token = login(mockMvc, STAFF, PASSWORD);
         mockMvc.perform(get("/api/staff/classrooms").header("Authorization", bearer(token)))
                 .andExpect(status().isOk());
+        mockMvc.perform(get("/api/staff/classrooms/training-programs")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
     }
 
     @Test
