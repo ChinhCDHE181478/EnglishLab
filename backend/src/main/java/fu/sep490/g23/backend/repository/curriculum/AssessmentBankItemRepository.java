@@ -93,47 +93,78 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND content_data->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
             ORDER BY updated_at DESC NULLS LAST, id DESC
             """, nativeQuery = true)
-    List<AssessmentBankItem> findByTypeOrderByUpdatedAtDescIdDesc(@Param("type") AssessmentType type);
+    List<AssessmentBankItem> findByTypeCodeOrderByUpdatedAtDescIdDesc(@Param("type") String type);
+
+    default List<AssessmentBankItem> findByTypeOrderByUpdatedAtDescIdDesc(AssessmentType type) {
+        return findByTypeCodeOrderByUpdatedAtDescIdDesc(type.name());
+    }
 
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND content_data->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
               AND status = :status
             ORDER BY updated_at DESC NULLS LAST, id DESC
             """, nativeQuery = true)
-    List<AssessmentBankItem> findByTypeAndStatusOrderByUpdatedAtDescIdDesc(
-            @Param("type") AssessmentType type,
+    List<AssessmentBankItem> findByTypeCodeAndStatusOrderByUpdatedAtDescIdDesc(
+            @Param("type") String type,
             @Param("status") String status
     );
+
+    default List<AssessmentBankItem> findByTypeAndStatusOrderByUpdatedAtDescIdDesc(
+            AssessmentType type,
+            String status
+    ) {
+        return findByTypeCodeAndStatusOrderByUpdatedAtDescIdDesc(type.name(), status);
+    }
 
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
               AND id = :id
-              AND content_data->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
               AND status = :status
             """, nativeQuery = true)
-    Optional<AssessmentBankItem> findByIdAndTypeAndStatus(
+    Optional<AssessmentBankItem> findByIdAndTypeCodeAndStatus(
             @Param("id") Long id,
-            @Param("type") AssessmentType type,
+            @Param("type") String type,
             @Param("status") String status
     );
+
+    default Optional<AssessmentBankItem> findByIdAndTypeAndStatus(
+            Long id,
+            AssessmentType type,
+            String status
+    ) {
+        return findByIdAndTypeCodeAndStatus(id, type.name(), status);
+    }
 
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND content_data->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
               AND status = :status
               AND skill IN (:skills)
             ORDER BY updated_at DESC NULLS LAST, id DESC
             """, nativeQuery = true)
-    List<AssessmentBankItem> findByTypeAndStatusAndSkillInOrderByUpdatedAtDescIdDesc(
-            @Param("type") AssessmentType type,
+    List<AssessmentBankItem> findByTypeCodeAndStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
+            @Param("type") String type,
             @Param("status") String status,
-            @Param("skills") List<AssessmentSkill> skills
+            @Param("skills") List<String> skills
     );
+
+    default List<AssessmentBankItem> findByTypeAndStatusAndSkillInOrderByUpdatedAtDescIdDesc(
+            AssessmentType type,
+            String status,
+            List<AssessmentSkill> skills
+    ) {
+        return findByTypeCodeAndStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
+                type.name(),
+                status,
+                skills.stream().map(Enum::name).toList()
+        );
+    }
 }
