@@ -615,6 +615,19 @@ export default function MyClassroomDetailPage() {
             {meetMessage && <p className="w-full text-xs text-rose-700 font-semibold">{meetMessage}</p>}
           </div>
 
+          {/* ── Course Description ── */}
+          {classroom.description && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
+                <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Giới thiệu chung</h3>
+              </div>
+              <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.015)] text-[#584140] overflow-hidden">
+                <RichTextHtml value={classroom.description} />
+              </div>
+            </div>
+          )}
+
           {/* ── KPI Row ── */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <KpiCard
