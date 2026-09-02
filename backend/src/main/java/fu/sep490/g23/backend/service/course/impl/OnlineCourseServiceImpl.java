@@ -2015,8 +2015,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             List<Predicate> predicates = new ArrayList<>();
             Join<OnlineCourse, CourseCategory> categoryJoin = root.join("category");
             query.distinct(true);
-            predicates.add(criteriaBuilder.isFalse(root.get("deleted")));
-
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
             }
