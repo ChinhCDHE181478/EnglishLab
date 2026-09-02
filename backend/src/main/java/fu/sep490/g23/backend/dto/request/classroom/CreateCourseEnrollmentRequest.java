@@ -33,8 +33,6 @@ public class CreateCourseEnrollmentRequest {
     @Size(max = 500)
     private String facebookUrl;
 
-    @Size(max = 120)
-    private String desiredClassCode;
 
     @NotBlank
     @Size(max = 80)
@@ -46,8 +44,6 @@ public class CreateCourseEnrollmentRequest {
     @Size(max = 500)
     private String preferredSchedule;
 
-    @Size(max = 255)
-    private String campusPreference;
 
     @Size(max = 700)
     private String note;

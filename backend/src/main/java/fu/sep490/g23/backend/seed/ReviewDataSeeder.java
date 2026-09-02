@@ -202,8 +202,6 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .enrolledAt(LocalDateTime.now())
                     .assignedAt(LocalDateTime.now())
                     .assignedBy(manager)
-                    .confirmedAt(LocalDateTime.now())
-                    .confirmedBy(manager)
                     .build());
         });
     }

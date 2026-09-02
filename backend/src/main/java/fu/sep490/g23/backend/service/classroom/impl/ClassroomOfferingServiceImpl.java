@@ -3,8 +3,6 @@ import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.Room;
@@ -611,15 +609,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                         .classSection(offering)
                         .tuitionAmountDue(tuitionDue)
                         .tuitionAmountPaid(BigDecimal.ZERO)
-                        .tuitionDepositPaid(BigDecimal.ZERO)
                         .note(request.getNote())
                         .build());
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
 
         enrollment.setTuitionAmountDue(tuitionDue);
         enrollment.setTuitionAmountPaid(tuitionDue);
-        enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
-        ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
         enrollment.setNote(request.getNote());
 
         if (isClassFull(offering) && !enrollment.hasClassAccess()) {
@@ -646,7 +641,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Học viên không thuộc lớp này."));
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
-        ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do xóa khỏi lớp");
         saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         notifyWaitlistIfSlotAvailable(enrollment.getClassSection());
     }
@@ -674,8 +668,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 ? BigDecimal.ZERO
                 : sourceEnrollment.getTuitionAmountPaid();
         BigDecimal targetDue = resolveTuitionDue(target);
-        TuitionSettlementType settlementType = ClassroomRegistrationSupport.computeSettlement(targetDue, carriedPaid);
-        String settlementNote = ClassroomRegistrationSupport.buildSettlementNote(settlementType, targetDue, carriedPaid);
 
         ClassroomRegistrationStatus sourcePreviousStatus = sourceEnrollment.getRegistrationStatus();
         sourceEnrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
@@ -690,23 +682,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassEnrollment targetEnrollment = ClassEnrollment.builder()
                 .student(student)
                 .classSection(target)
-                .holdSpot(sourceEnrollment.isHoldSpot())
                 .tuitionAmountDue(targetDue)
                 .tuitionAmountPaid(carriedPaid)
-                .tuitionDepositPaid(sourceEnrollment.getTuitionDepositPaid())
-                .tuitionSettlementType(settlementType)
-                .tuitionSettlementNote(settlementNote)
-                .tuitionSettlementStatus(settlementType == TuitionSettlementType.NONE
-                        ? TuitionSettlementStatus.NONE
-                        : TuitionSettlementStatus.PENDING)
                 .transferredFromEnrollmentId(sourceEnrollment.getId())
-                .note(appendNote(request.getNote(), settlementNote))
+                .note(request.getNote())
                 .build();
 
         ClassroomRegistrationStatus paymentStatus = ClassroomRegistrationSupport.resolveRegistrationStatusAfterPayment(
                 targetDue,
                 carriedPaid,
-                targetEnrollment.getTuitionDepositPaid(),
+                BigDecimal.ZERO,
                 null
         );
         targetEnrollment.setRegistrationStatus(paymentStatus);
@@ -768,8 +753,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 : ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(nextStatus);
-        enrollment.setConfirmedAt(LocalDateTime.now());
-        enrollment.setConfirmedBy(actor);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         String classTitle = offering.getName();
@@ -848,101 +831,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         accessHelper.assertStaffOperator(actor);
         ClassEnrollment enrollment = findEnrollment(enrollmentId);
 
-        if (enrollment.getTuitionSettlementType() != TuitionSettlementType.NEED_REFUND) {
-            throw new RuntimeException("Đăng ký này không có yêu cầu hoàn tiền học phí đang chờ xử lý.");
-        }
-        if (enrollment.getTuitionSettlementStatus() != TuitionSettlementStatus.PENDING) {
-            throw new RuntimeException("Settlement học phí này đã được xử lý trước đó.");
-        }
-
-        String action = request == null || request.getAction() == null ? "" : request.getAction().trim().toUpperCase(Locale.ROOT);
-        String note = request == null || request.getNote() == null ? "" : request.getNote().trim();
-
-        if ("APPROVE_REFUND".equals(action)) {
-            return approveTuitionRefund(enrollment, actor, note);
-        }
-        if ("REJECT_REFUND".equals(action)) {
-            if (note.isBlank()) {
-                throw new RuntimeException("Vui lòng nhập lý do từ chối hoàn tiền.");
-            }
-            return rejectTuitionRefund(enrollment, actor, note);
-        }
-        throw new RuntimeException("Thao tác settlement không hợp lệ. Dùng APPROVE_REFUND hoặc REJECT_REFUND.");
-    }
-
-    private ClassroomEnrollmentResponse approveTuitionRefund(
-            ClassEnrollment enrollment,
-            User actor,
-            String note
-    ) {
-        BigDecimal due = enrollment.getTuitionAmountDue() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountDue();
-        BigDecimal paid = enrollment.getTuitionAmountPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
-        // Exit (cancel/reject/remove): hoàn toàn bộ đã thu. Còn trong lớp (vd. chuyển lớp overpay): chỉ hoàn phần thừa.
-        boolean exitedClass = enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.CANCELLED
-                || enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.REJECTED;
-        BigDecimal refundAmount = exitedClass && paid.compareTo(BigDecimal.ZERO) > 0
-                ? paid
-                : paid.subtract(due);
-        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Không có số tiền cần hoàn cho đăng ký này.");
-        }
-
-        enrollment.setTuitionAmountPaid(paid.subtract(refundAmount));
-        String resolutionNote = note.isBlank()
-                ? "Đã duyệt hoàn tiền " + refundAmount.toPlainString() + " VND."
-                : note;
-
-        tuitionPaymentRepository.save(ClassroomTuitionPayment.builder()
-                .enrollment(enrollment)
-                .amount(refundAmount)
-                .paymentKind(TuitionPaymentKind.REFUND)
-                .note(resolutionNote)
-                .recordedBy(actor)
-                .build());
-
-        ClassroomRegistrationSupport.clearOpenSettlementAsResolved(enrollment, resolutionNote);
-        enrollment.setTuitionSettlementResolvedAt(LocalDateTime.now());
-        enrollment.setTuitionSettlementResolvedBy(actor);
-
-        enrollment = enrollmentRepository.save(enrollment);
-
-        notificationService.notifyUser(
-                enrollment.getStudent(),
-                "CLASSROOM_TUITION_REFUND_APPROVED",
-                "Đã duyệt hoàn học phí lớp",
-                "Yêu cầu hoàn học phí lớp " + enrollment.getClassSection().getName()
-                        + " đã được duyệt: " + refundAmount.toPlainString() + " VND.",
-                Map.of(
-                        "enrollmentId", enrollment.getId(),
-                        "classroomId", enrollment.getClassSection().getId(),
-                        "refundAmount", refundAmount
-                )
-        );
-        return mapper.toEnrollmentResponse(enrollment);
-    }
-
-    private ClassroomEnrollmentResponse rejectTuitionRefund(
-            ClassEnrollment enrollment,
-            User actor,
-            String note
-    ) {
-        enrollment.setTuitionSettlementStatus(TuitionSettlementStatus.REJECTED);
-        enrollment.setTuitionSettlementResolvedAt(LocalDateTime.now());
-        enrollment.setTuitionSettlementResolvedBy(actor);
-        enrollment.setTuitionSettlementResolutionNote(note);
-        enrollment = enrollmentRepository.save(enrollment);
-
-        notificationService.notifyUser(
-                enrollment.getStudent(),
-                "CLASSROOM_TUITION_REFUND_REJECTED",
-                "Từ chối hoàn học phí lớp",
-                "Yêu cầu hoàn học phí lớp " + enrollment.getClassSection().getName()
-                        + " đã bị từ chối. Lý do: " + note,
-                Map.of(
-                        "enrollmentId", enrollment.getId(),
-                        "classroomId", enrollment.getClassSection().getId()
-                )
-        );
         return mapper.toEnrollmentResponse(enrollment);
     }
 
@@ -1012,17 +900,11 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         BigDecimal paymentAmount = amount == null ? BigDecimal.ZERO : amount;
         BigDecimal paid = enrollment.getTuitionAmountPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
         enrollment.setTuitionAmountPaid(paid.add(paymentAmount));
-
-        if (paymentKind == TuitionPaymentKind.DEPOSIT) {
-            BigDecimal deposit = enrollment.getTuitionDepositPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionDepositPaid();
-            enrollment.setTuitionDepositPaid(deposit.add(paymentAmount));
-        }
-
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationSupport.resolveRegistrationStatusAfterPayment(
                 enrollment.getTuitionAmountDue(),
                 enrollment.getTuitionAmountPaid(),
-                enrollment.getTuitionDepositPaid(),
+                BigDecimal.ZERO,
                 paymentKind
         ));
         enrollment.setTuitionRecordedAt(LocalDateTime.now());
@@ -1106,18 +988,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             Boolean needsAction,
             Boolean settlementPending
     ) {
-        if (Boolean.TRUE.equals(settlementPending)) {
-            List<ClassEnrollment> pendingSettlements = classSectionId == null
-                    ? enrollmentRepository.findByTuitionSettlementStatus(TuitionSettlementStatus.PENDING)
-                    : enrollmentRepository.findByClassSectionIdAndTuitionSettlementStatus(
-                            classSectionId,
-                            TuitionSettlementStatus.PENDING
-                    );
-            return pendingSettlements.stream()
-                    .sorted(registrationQueueComparator())
-                    .map(mapper::toEnrollmentResponse)
-                    .toList();
-        }
 
         Set<ClassroomRegistrationStatus> statuses = ClassroomRegistrationSupport.resolveRegistrationFilter(status, needsAction);
         List<ClassEnrollment> enrollments = classSectionId == null

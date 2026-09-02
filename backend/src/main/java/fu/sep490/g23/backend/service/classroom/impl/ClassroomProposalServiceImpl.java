@@ -758,7 +758,6 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .learnerEmail(request.getLearner().getEmail())
                 .placementLevel(request.getConfirmedLevel())
                 .preferredSchedule(request.getPreferredSchedule())
-                .campusPreference(request.getCampusPreference())
                 .classEnrollmentId(member.getClassEnrollmentId())
                 .build();
     }

@@ -168,6 +168,7 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
             String[][] criteria
     ) {
         AssessmentRubric rubric = AssessmentRubric.builder()
+                .code("RUBRIC-" + name.replaceAll("[^A-Za-z0-9]", "-").toUpperCase())
                 .name(name)
                 .examType("IELTS")
                 .skill(skill)

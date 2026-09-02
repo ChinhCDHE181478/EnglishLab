@@ -102,8 +102,6 @@ public class DevMailTestController {
                     .id(202L)
                     .contactName("Phạm Minh Đức")
                     .contactEmail(email)
-                    .testAppointmentAt(LocalDateTime.now().plusDays(2).withHour(14).withMinute(30))
-                    .testLocation("EnglishLab Cơ sở 1 - 123 Nguyễn Trãi, Thanh Xuân, Hà Nội")
                     .learner(testUser)
                     .build();
             enrollmentRequestMailService.sendTestAppointment(testRequest);

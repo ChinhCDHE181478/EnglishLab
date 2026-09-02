@@ -13,6 +13,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -51,8 +53,21 @@ public class ContentBankItem {
     @Column(name = "bank_type", nullable = false, length = 30)
     private ContentBankType bankType;
 
-    @Column(length = 120)
+    @Column(length = 120, nullable = false)
     private String code;
+
+    @PrePersist
+    @PreUpdate
+    private void ensureCode() {
+        if (code == null || code.isBlank()) {
+            String prefix = bankType != null ? bankType.name() : "ITEM";
+            String sanitized = (title != null ? title : "BANK").replaceAll("[^A-Za-z0-9]", "-").toUpperCase();
+            code = prefix + "-" + System.nanoTime() + "-" + sanitized;
+            if (code.length() > 120) {
+                code = code.substring(0, 120);
+            }
+        }
+    }
 
     @Column(nullable = false, length = 220)
     private String title;

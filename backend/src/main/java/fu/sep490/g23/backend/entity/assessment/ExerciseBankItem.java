@@ -58,6 +58,9 @@ public class ExerciseBankItem {
     @Column(nullable = false, length = 220)
     private String title;
 
+    @Column(length = 120, nullable = false)
+    private String code;
+
     @Column(length = 60)
     private String skill;
 
@@ -119,6 +122,13 @@ public class ExerciseBankItem {
     @PreUpdate
     private void flushToPayload() {
         bankType = "EXERCISE";
+        if (code == null || code.isBlank()) {
+            String sanitized = (title != null ? title : "EX").replaceAll("[^A-Za-z0-9]", "-").toUpperCase();
+            code = "EX-" + System.nanoTime() + "-" + sanitized;
+            if (code.length() > 120) {
+                code = code.substring(0, 120);
+            }
+        }
         if (contentData == null) {
             contentData = new HashMap<>();
         }

@@ -14,7 +14,6 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
@@ -676,13 +675,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(4_690_000))
-                        .tuitionDepositPaid(BigDecimal.valueOf(1_000_000))
-                        .tuitionSettlementType(TuitionSettlementType.NONE)
-                        .enrolledAt(LocalDateTime.now().minusWeeks(5))
-                        .assignedAt(LocalDateTime.now().minusWeeks(5))
                         .assignedBy(teacher)
-                        .confirmedAt(LocalDateTime.now().minusWeeks(5))
-                        .confirmedBy(teacher)
                         .assignmentNote("Học viên tham gia lớp: " + learner.getEmail())
                         .build()));
     }
@@ -853,9 +846,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .teacherConfirmed(true)
                 .markedBy(teacher)
                 .note(note);
-        if (joinTime != null) builder.joinTime(joinTime);
-        if (leaveTime != null) builder.leaveTime(leaveTime);
-        if (durationMinutes != null) builder.durationMinutes(durationMinutes);
         attendanceRepository.save(builder.build());
     }
 
@@ -1155,9 +1145,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         if (existingOpt.isPresent()) {
             ClassroomGradebookEntry entry = existingOpt.get();
             entry.setHomeworkScore(BigDecimal.valueOf(8.2));
-            entry.setQuizScore(BigDecimal.valueOf(9.0));
             entry.setAttendancePercent(BigDecimal.valueOf(80.0));
-            entry.setParticipationScore(BigDecimal.valueOf(8.5));
             entry.setFinalResult(BigDecimal.valueOf(8.4));
             entry.setTeacherComment("Học viên học nghiêm túc, tham gia tốt. Đã hoàn thành 3 bài tập và đạt điểm số ấn tượng (TB: 8.2). Cần tiếp tục duy trì phong độ cho các bài tập sắp tới!");
             entry.setStatus(GradebookEntryStatus.PUBLISHED);
@@ -1170,9 +1158,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .classSection(offering)
                 .student(learner)
                 .homeworkScore(BigDecimal.valueOf(8.2))
-                .quizScore(BigDecimal.valueOf(9.0))
                 .attendancePercent(BigDecimal.valueOf(80.0))
-                .participationScore(BigDecimal.valueOf(8.5))
                 .finalResult(BigDecimal.valueOf(8.4))
                 .teacherComment("Học viên học nghiêm túc, tham gia tốt. Đã hoàn thành 3 bài tập và đạt điểm số ấn tượng (TB: 8.2). Cần tiếp tục duy trì phong độ cho các bài tập sắp tới!")
                 .status(GradebookEntryStatus.PUBLISHED)

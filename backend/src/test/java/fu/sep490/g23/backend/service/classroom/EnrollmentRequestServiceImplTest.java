@@ -182,14 +182,12 @@ class EnrollmentRequestServiceImplTest {
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.TEST_SCHEDULED);
         assertThat(response.getInvitationSentAt()).isNotNull();
-        assertThat(response.getTestLocation()).isEqualTo("EnglishLab Campus");
         verify(enrollmentRequestMailService).sendTestAppointment(request);
     }
 
     @Test
     void staffCanRecordResultWhenLearnerArrivesBeforeAppointment() {
         CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
-        request.setTestAppointmentAt(LocalDateTime.now().plusHours(2));
         stubStaffRequest(request);
         stubPersistence();
 
@@ -200,13 +198,11 @@ class EnrollmentRequestServiceImplTest {
         );
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
-        assertThat(response.getTestCompletedAt()).isNotNull();
     }
 
     @Test
     void passedTestMovesLearnerToWaitingForClass() {
         CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
-        request.setTestAppointmentAt(LocalDateTime.now().minusHours(1));
         stubStaffRequest(request);
         stubPersistence();
 
@@ -214,7 +210,6 @@ class EnrollmentRequestServiceImplTest {
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         assertThat(response.getConfirmedLevel()).isEqualTo(PlacementLevel.INTERMEDIATE);
-        assertThat(response.getTestCompletedAt()).isNotNull();
     }
 
     @Test

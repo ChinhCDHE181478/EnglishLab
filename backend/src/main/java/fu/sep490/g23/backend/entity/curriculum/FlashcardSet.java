@@ -55,6 +55,9 @@ public class FlashcardSet {
     @Column(nullable = false, length = 220)
     private String title;
 
+    @Column(length = 120, nullable = false)
+    private String code;
+
     @Column(columnDefinition = "text")
     private String description;
 
@@ -96,6 +99,13 @@ public class FlashcardSet {
     @PreUpdate
     private void flushToPayload() {
         bankType = "FLASHCARD";
+        if (code == null || code.isBlank()) {
+            String sanitized = (title != null ? title : "FC").replaceAll("[^A-Za-z0-9]", "-").toUpperCase();
+            code = "FC-" + System.nanoTime() + "-" + sanitized;
+            if (code.length() > 120) {
+                code = code.substring(0, 120);
+            }
+        }
         if (contentData == null) {
             contentData = new HashMap<>();
         }

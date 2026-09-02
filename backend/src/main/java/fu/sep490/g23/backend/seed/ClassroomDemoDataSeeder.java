@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.seed;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSyllabusItem;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
@@ -485,7 +484,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .student(learner1)
                 .homeworkScore(BigDecimal.valueOf(8.0))
                 .attendancePercent(BigDecimal.valueOf(100))
-                .participationScore(BigDecimal.valueOf(8.5))
                 .finalResult(BigDecimal.valueOf(8.2))
                 .status(GradebookEntryStatus.PUBLISHED)
                 .updatedBy(teacher)
@@ -553,9 +551,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .session(completed)
                 .student(learner1)
                 .status(ClassroomAttendanceStatus.PRESENT)
-                .joinTime(completed.getSessionDate().atTime(19, 2))
-                .leaveTime(completed.getSessionDate().atTime(20, 28))
-                .durationMinutes(86)
                 .teacherConfirmed(true)
                 .markedBy(teacher)
                 .build());
@@ -615,9 +610,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .classSection(offering)
                 .student(learner1)
                 .homeworkScore(BigDecimal.valueOf(9.0))
-                .attendancePercent(BigDecimal.valueOf(95))
-                .participationScore(BigDecimal.valueOf(9.5))
-                .finalResult(BigDecimal.valueOf(9.1))
+                .attendancePercent(BigDecimal.valueOf(100))
+                .finalResult(BigDecimal.valueOf(9.5))
                 .status(GradebookEntryStatus.PUBLISHED)
                 .updatedBy(teacher)
                 .build());
@@ -748,15 +742,11 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .registrationStatus(registrationStatus)
                 .tuitionAmountDue(due)
                 .tuitionAmountPaid(paid)
-                .tuitionDepositPaid(registrationStatus == ClassroomRegistrationStatus.DEPOSIT_PAID ? paid : BigDecimal.ZERO)
-                .tuitionSettlementType(TuitionSettlementType.NONE)
                 .enrolledAt(LocalDateTime.now().minusDays(3))
                 .build();
         if (withAssignmentMeta && registrationStatus == ClassroomRegistrationStatus.ASSIGNED) {
             enrollment.setAssignedAt(LocalDateTime.now().minusDays(1));
             enrollment.setAssignedBy(assignedBy);
-            enrollment.setConfirmedAt(LocalDateTime.now().minusDays(2));
-            enrollment.setConfirmedBy(assignedBy);
             enrollment.setTuitionRecordedAt(LocalDateTime.now().minusDays(1));
             enrollment.setTuitionRecordedBy(assignedBy);
         }

@@ -22,7 +22,4 @@ public class AttendanceRecordRequest {
     private ClassroomAttendanceStatus status;
 
     private String note;
-    private LocalDateTime joinTime;
-    private LocalDateTime leaveTime;
-    private Integer durationMinutes;
 }

@@ -48,10 +48,8 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
 
     @Override
     public void sendTestAppointment(CourseRegistrationRequest request) {
-        String appointment = request.getTestAppointmentAt() == null
-                ? "Chưa xác định"
-                : request.getTestAppointmentAt().format(DATE_TIME_FORMAT);
-        String location = valueOrDefault(request.getTestLocation(), "Trung tâm EnglishLab");
+        String appointment = "Theo lịch đã đăng ký";
+        String location = "Hệ thống trực tuyến EnglishLab";
 
         String highlightContent = """
                 <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">THỜI GIAN TƯ VẤN & TEST</p>

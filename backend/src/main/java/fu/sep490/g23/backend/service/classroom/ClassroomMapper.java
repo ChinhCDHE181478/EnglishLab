@@ -162,14 +162,8 @@ public class ClassroomMapper {
                 .registrationStatus(enrollment == null ? null : enrollment.getRegistrationStatus())
                 .registrationStatusLabel(ClassroomRegistrationSupport.registrationStatusLabel(
                         enrollment == null ? null : enrollment.getRegistrationStatus()))
-                .holdSpot(enrollment != null && enrollment.isHoldSpot())
                 .tuitionAmountDue(enrollment == null ? null : enrollment.getTuitionAmountDue())
                 .tuitionAmountPaid(enrollment == null ? null : enrollment.getTuitionAmountPaid())
-                .tuitionRemaining(enrollment == null ? null : enrollment.tuitionBalance())
-                .tuitionSettlementType(enrollment == null ? null : enrollment.getTuitionSettlementType())
-                .tuitionSettlementTypeLabel(ClassroomRegistrationSupport.tuitionSettlementLabel(
-                        enrollment == null ? null : enrollment.getTuitionSettlementType()))
-                .tuitionSettlementNote(enrollment == null ? null : enrollment.getTuitionSettlementNote())
                 .waitlistCount((int) waitlistCount)
                 .waitlistPosition(enrollment != null
                         && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST
@@ -288,7 +282,6 @@ public class ClassroomMapper {
     }
 
     public ClassroomEnrollmentResponse toEnrollmentResponse(ClassEnrollment enrollment) {
-        User confirmedBy = enrollment.getConfirmedBy();
         User assignedBy = enrollment.getAssignedBy();
         User tuitionRecordedBy = enrollment.getTuitionRecordedBy();
         ClassSection offering = enrollment.getClassSection();
@@ -311,33 +304,10 @@ public class ClassroomMapper {
                 .deliveryModeLabel(deliveryModeLabel(offering.getDeliveryMode()))
                 .registrationStatus(enrollment.getRegistrationStatus())
                 .registrationStatusLabel(ClassroomRegistrationSupport.registrationStatusLabel(enrollment.getRegistrationStatus()))
-                .holdSpot(enrollment.isHoldSpot())
                 .waitlistPriority(waitlisted ? enrollment.getWaitlistPriority() : null)
                 .waitlistPosition(waitlisted ? enrollment.getWaitlistPriority() : null)
                 .waitlistSize(waitlistSize)
                 .tuitionAmountDue(enrollment.getTuitionAmountDue())
-                .tuitionAmountPaid(enrollment.getTuitionAmountPaid())
-                .tuitionDepositPaid(enrollment.getTuitionDepositPaid())
-                .tuitionRemaining(remaining)
-                .tuitionSettlementType(enrollment.getTuitionSettlementType())
-                .tuitionSettlementTypeLabel(ClassroomRegistrationSupport.tuitionSettlementLabel(enrollment.getTuitionSettlementType()))
-                .tuitionSettlementNote(enrollment.getTuitionSettlementNote())
-                .tuitionSettlementStatus(enrollment.getTuitionSettlementStatus())
-                .tuitionSettlementStatusLabel(ClassroomRegistrationSupport.tuitionSettlementStatusLabel(
-                        enrollment.getTuitionSettlementStatus()))
-                .tuitionSettlementResolvedAt(enrollment.getTuitionSettlementResolvedAt())
-                .tuitionSettlementResolvedByName(enrollment.getTuitionSettlementResolvedBy() == null
-                        ? null
-                        : enrollment.getTuitionSettlementResolvedBy().getFullName())
-                .tuitionSettlementResolutionNote(enrollment.getTuitionSettlementResolutionNote())
-                .hasClassAccess(enrollment.hasClassAccess())
-                .transferredFromEnrollmentId(enrollment.getTransferredFromEnrollmentId())
-                .enrolledAt(enrollment.getEnrolledAt())
-                .assignedAt(enrollment.getAssignedAt())
-                .assignedByName(assignedBy == null ? null : assignedBy.getFullName())
-                .assignmentNote(enrollment.getAssignmentNote())
-                .confirmedAt(enrollment.getConfirmedAt())
-                .confirmedByName(confirmedBy == null ? null : confirmedBy.getFullName())
                 .tuitionRecordedAt(enrollment.getTuitionRecordedAt())
                 .tuitionRecordedByName(tuitionRecordedBy == null ? null : tuitionRecordedBy.getFullName())
                 .note(enrollment.getNote())
@@ -401,10 +371,6 @@ public class ClassroomMapper {
                 .studentName(attendance.getStudent().getFullName())
                 .studentEmail(attendance.getStudent().getEmail())
                 .status(attendance.getStatus())
-                .note(attendance.getNote())
-                .joinTime(attendance.getJoinTime())
-                .leaveTime(attendance.getLeaveTime())
-                .durationMinutes(attendance.getDurationMinutes())
                 .teacherConfirmed(attendance.isTeacherConfirmed())
                 .sessionDate(session.getSessionDate())
                 .startTime(session.getStartTime())

@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
@@ -64,13 +63,9 @@ public class ClassroomOfferingResponse {
     private boolean hasClassAccess;
     private ClassroomRegistrationStatus registrationStatus;
     private String registrationStatusLabel;
-    private boolean holdSpot;
     private BigDecimal tuitionAmountDue;
     private BigDecimal tuitionAmountPaid;
     private BigDecimal tuitionRemaining;
-    private TuitionSettlementType tuitionSettlementType;
-    private String tuitionSettlementTypeLabel;
-    private String tuitionSettlementNote;
     private Integer waitlistCount;
     private Integer waitlistPosition;
     /** Lịch học tóm tắt, ví dụ "T2, T4 · 18:00–20:00". */

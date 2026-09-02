@@ -6,7 +6,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
@@ -511,13 +510,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .tuitionAmountDue(BigDecimal.valueOf(3_490_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(3_490_000))
-                        .tuitionDepositPaid(BigDecimal.ZERO)
-                        .tuitionSettlementType(TuitionSettlementType.NONE)
-                        .enrolledAt(LocalDateTime.now().minusWeeks(3))
-                        .assignedAt(LocalDateTime.now().minusWeeks(3))
                         .assignedBy(teacher)
-                        .confirmedAt(LocalDateTime.now().minusWeeks(3))
-                        .confirmedBy(teacher)
                         .assignmentNote("Tài khoản học viên showcase theo yêu cầu sản phẩm")
                         .build()));
     }
@@ -965,7 +958,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .classSection(offering)
                         .student(learner)
                         .attendancePercent(BigDecimal.valueOf(100))
-                        .participationScore(BigDecimal.valueOf(8.5))
                         .status(GradebookEntryStatus.PENDING)
                         .updatedBy(teacher)
                         .build()));

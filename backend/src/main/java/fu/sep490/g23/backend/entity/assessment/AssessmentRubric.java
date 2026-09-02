@@ -55,6 +55,9 @@ public class AssessmentRubric {
     @Column(name = "title", nullable = false, length = 220)
     private String name;
 
+    @Column(length = 120, nullable = false)
+    private String code;
+
     @Column(columnDefinition = "text")
     private String description;
 
@@ -120,6 +123,13 @@ public class AssessmentRubric {
     @PreUpdate
     private void flushToPayload() {
         bankType = "RUBRIC";
+        if (code == null || code.isBlank()) {
+            String sanitized = (name != null ? name : "RUBRIC").replaceAll("[^A-Za-z0-9]", "-").toUpperCase();
+            code = "RUB-" + System.nanoTime() + "-" + sanitized;
+            if (code.length() > 120) {
+                code = code.substring(0, 120);
+            }
+        }
         if (contentData == null) {
             contentData = new HashMap<>();
         }

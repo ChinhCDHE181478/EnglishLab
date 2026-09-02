@@ -42,7 +42,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
@@ -484,13 +483,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .agreedTuitionFeeVnd(offering.getTuitionFeeVnd())
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(4_690_000))
-                        .tuitionDepositPaid(BigDecimal.valueOf(1_000_000))
-                        .tuitionSettlementType(TuitionSettlementType.NONE)
-                        .enrolledAt(start.atTime(9, 0))
-                        .assignedAt(start.atTime(9, 0))
                         .assignedBy(teacher)
-                        .confirmedAt(start.atTime(9, 0))
-                        .confirmedBy(teacher)
                         .build()));
     }
 
@@ -947,7 +940,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .consultationTrack(i % 2 == 0 ? "IELTS_4_SKILLS" : "TOEIC_2_SKILLS")
                     .studyWorkGoal("Muốn học ca tối để đi làm ban ngày.")
                     .preferredSchedule("Thứ 2-4-6 · Tối")
-                    .campusPreference(CAMPUS_NAME)
                     .learnerNote("Đăng ký tư vấn từ lịch khai giảng sheet.")
                     .requestSource(EnrollmentRequestSource.ONLINE)
                     .courseOffering(i % 2 == 0 ? ieltsProgram : toeicProgram)
@@ -960,21 +952,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 builder.invitationSentAt(LocalDateTime.now().minusDays(5));
                 builder.staffNote("Đã gọi điện tư vấn ca tối và hướng dẫn bài xếp lớp.");
             }
-            if (status == EnrollmentRequestStatus.TEST_SCHEDULED
-                    || status == EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED
-                    || status == EnrollmentRequestStatus.UNDER_STAFF_REVIEW
-                    || status == EnrollmentRequestStatus.WAITING_FOR_CLASS
-                    || status == EnrollmentRequestStatus.CLASS_ASSIGNED) {
-                builder.testAppointmentAt(LocalDateTime.now().minusDays(2));
-                builder.testLocation(ADDRESS);
-            }
-            if (status == EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED
-                    || status == EnrollmentRequestStatus.UNDER_STAFF_REVIEW
-                    || status == EnrollmentRequestStatus.WAITING_FOR_CLASS
-                    || status == EnrollmentRequestStatus.CLASS_ASSIGNED) {
-                builder.testCompletedAt(LocalDateTime.now().minusDays(1));
                 builder.confirmedLevel(i % 3 == 0 ? PlacementLevel.BEGINNER : PlacementLevel.INTERMEDIATE);
-            }
             if (status == EnrollmentRequestStatus.CLASS_ASSIGNED && assigned != null) {
                 builder.assignedClassSection(assigned);
                 builder.preferredClassSection(assigned);
@@ -1476,9 +1454,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .student(learner)
                         .build());
         entry.setHomeworkScore(homework);
-        entry.setQuizScore(quiz);
         entry.setAttendancePercent(attendance);
-        entry.setParticipationScore(participation);
         entry.setFinalResult(finalResult);
         entry.setTeacherComment("Tiến độ đều, cần giữ phong độ bài tập về nhà.");
         entry.setStatus(GradebookEntryStatus.PUBLISHED);

@@ -127,6 +127,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Writing Task 2 AI Rubric", "PUBLISHED")
                 .orElseGet(() -> {
                     AssessmentRubric rubric = AssessmentRubric.builder()
+                            .code("RUBRIC-IELTS-WRITING-TASK-2-EN")
                             .name("IELTS Writing Task 2 AI Rubric")
                             .examType("IELTS")
                             .skill(AssessmentSkill.WRITING)
@@ -147,6 +148,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Speaking AI Rubric", "PUBLISHED")
                 .orElseGet(() -> {
                     AssessmentRubric rubric = AssessmentRubric.builder()
+                            .code("RUBRIC-IELTS-SPEAKING-EN")
                             .name("IELTS Speaking AI Rubric")
                             .examType("IELTS")
                             .skill(AssessmentSkill.SPEAKING)
@@ -167,6 +169,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Vocabulary Usage AI Rubric", "PUBLISHED")
                 .orElseGet(() -> {
                     AssessmentRubric rubric = AssessmentRubric.builder()
+                            .code("RUBRIC-IELTS-VOCABULARY-EN")
                             .name("IELTS Vocabulary Usage AI Rubric")
                             .examType("IELTS")
                             .skill(AssessmentSkill.VOCABULARY)

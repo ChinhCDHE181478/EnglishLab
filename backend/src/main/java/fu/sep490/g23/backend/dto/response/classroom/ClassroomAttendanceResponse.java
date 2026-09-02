@@ -18,9 +18,6 @@ public class ClassroomAttendanceResponse {
     private String studentEmail;
     private ClassroomAttendanceStatus status;
     private String note;
-    private LocalDateTime joinTime;
-    private LocalDateTime leaveTime;
-    private Integer durationMinutes;
     private boolean teacherConfirmed;
 
     // Session metadata (populated by getBySession so the frontend has context)
