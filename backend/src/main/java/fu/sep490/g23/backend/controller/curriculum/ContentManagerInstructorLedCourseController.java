@@ -252,7 +252,7 @@ public class ContentManagerInstructorLedCourseController {
             @RequestParam(required = false) String examCategory,
             @RequestParam(required = false) String skill,
             @RequestParam(required = false) String status,
-            @PageableDefault(size = 8, sort = "displayOrder", direction = Sort.Direction.ASC) Pageable pageable
+            @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.ok(instructorLedCourseManagementService.pageFlashcardSets(
                 keyword, examCategory, skill, status, pageable));
