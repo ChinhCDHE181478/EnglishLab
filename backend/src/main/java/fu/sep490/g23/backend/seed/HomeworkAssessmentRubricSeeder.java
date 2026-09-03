@@ -71,13 +71,11 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
         item.setUiConfigJson("{\"prompt\":\"" + prompt + "\",\"responseType\":\"TEXT\"}");
         item.setMaxScore(BigDecimal.TEN);
         item.setStatus("PUBLISHED");
-        item.setDisplayOrder(displayOrder);
-        item.setActive(true);
         assessmentBankItemRepository.save(item);
     }
 
     private AssessmentRubric upsertIeltsWritingRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Writing Task 2 AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Writing Task 2 AI Rubric", "PUBLISHED")
                 .orElseGet(() -> rubricRepository.save(buildRubric(
                         "IELTS Writing Task 2 AI Rubric",
                         AssessmentSkill.WRITING,
@@ -94,7 +92,7 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
     }
 
     private AssessmentRubric upsertIeltsSpeakingRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Speaking AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Speaking AI Rubric", "PUBLISHED")
                 .orElseGet(() -> rubricRepository.save(buildRubric(
                         "IELTS Speaking AI Rubric",
                         AssessmentSkill.SPEAKING,
@@ -111,7 +109,7 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
     }
 
     private AssessmentRubric upsertIeltsVocabularyRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Vocabulary Usage AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Vocabulary Usage AI Rubric", "PUBLISHED")
                 .orElseGet(() -> rubricRepository.save(buildRubric(
                         "IELTS Vocabulary Usage AI Rubric",
                         AssessmentSkill.VOCABULARY,
@@ -128,7 +126,7 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
     }
 
     private AssessmentRubric upsertIeltsListeningRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Listening Objective AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Listening Objective AI Rubric", "PUBLISHED")
                 .orElseGet(() -> rubricRepository.save(buildRubric(
                         "IELTS Listening Objective AI Rubric",
                         AssessmentSkill.LISTENING,
@@ -145,7 +143,7 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
     }
 
     private AssessmentRubric upsertIeltsReadingRubric() {
-        return rubricRepository.findByNameIgnoreCaseAndActiveTrue("IELTS Reading Objective AI Rubric")
+        return rubricRepository.findByNameIgnoreCaseAndStatus("IELTS Reading Objective AI Rubric", "PUBLISHED")
                 .orElseGet(() -> rubricRepository.save(buildRubric(
                         "IELTS Reading Objective AI Rubric",
                         AssessmentSkill.READING,
@@ -170,13 +168,14 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
             String[][] criteria
     ) {
         AssessmentRubric rubric = AssessmentRubric.builder()
+                .code("RUBRIC-" + name.replaceAll("[^A-Za-z0-9]", "-").toUpperCase())
                 .name(name)
                 .examType("IELTS")
                 .skill(skill)
                 .taskType(taskType)
                 .scoringScale(scoringScale)
                 .description(description)
-                .active(true)
+                .status("PUBLISHED")
                 .build();
         for (String[] row : criteria) {
             rubric.addCriterion(RubricCriterion.builder()

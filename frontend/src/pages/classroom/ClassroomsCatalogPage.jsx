@@ -9,7 +9,6 @@ import {
   Phone,
   RefreshCw,
   Search,
-  Video,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
@@ -116,7 +115,6 @@ export default function ClassroomsCatalogPage() {
   const [error, setError] = useState('');
   const [formError, setFormError] = useState('');
   const [success, setSuccess] = useState('');
-  const [deliveryFilter, setDeliveryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   const load = useCallback(async () => {
@@ -156,8 +154,6 @@ export default function ClassroomsCatalogPage() {
   const filteredPrograms = useMemo(() => {
     const normalized = searchQuery.trim().toLocaleLowerCase('vi-VN');
     return programs.filter((program) => {
-      const deliveryMode = program.deliveryMode || program.deliveryType;
-      if (deliveryFilter !== 'ALL' && deliveryMode !== deliveryFilter) return false;
       if (!normalized) return true;
       return [
         program.title,
@@ -167,7 +163,7 @@ export default function ClassroomsCatalogPage() {
         program.targetScore,
       ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(normalized);
     });
-  }, [deliveryFilter, programs, searchQuery]);
+  }, [programs, searchQuery]);
 
   const activeProgramIds = useMemo(
     () => new Set(activeRequests.map((item) => String(item.courseOfferingId)).filter(Boolean)),
@@ -192,7 +188,6 @@ export default function ClassroomsCatalogPage() {
     value: String(program.id),
     label: program.title,
     description: [
-      program.deliveryMode === 'VIRTUAL' ? 'Trực tuyến' : 'Tại trung tâm',
       program.entryLevel ? `Đầu vào ${program.entryLevel}` : null,
       program.targetScore ? `Mục tiêu ${program.targetScore}` : null,
     ].filter(Boolean).join(' · '),
@@ -328,17 +323,6 @@ export default function ClassroomsCatalogPage() {
                 <p className="mt-1 text-sm text-slate-500">Danh sách được cập nhật theo kế hoạch tuyển sinh của trung tâm.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <div className="w-full sm:w-48">
-                  <BrandedSelect
-                    onChange={(event) => setDeliveryFilter(event.target.value)}
-                    options={[
-                      { label: 'Tất cả hình thức', value: 'ALL' },
-                      { label: 'Tại trung tâm', value: 'OFFLINE' },
-                      { label: 'Trực tuyến', value: 'VIRTUAL' },
-                    ]}
-                    value={deliveryFilter}
-                  />
-                </div>
                 <label className="relative w-full sm:w-64">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
@@ -466,7 +450,6 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
               <tr>
                 <th className="px-4 py-3">Mã khóa học</th>
                 <th className="px-4 py-3">Khóa học</th>
-                <th className="px-4 py-3">Hình thức</th>
                 <th className="px-4 py-3">Đầu vào</th>
                 <th className="px-4 py-3">Mục tiêu</th>
                 <th className="px-4 py-3">Thời lượng</th>
@@ -507,7 +490,6 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
 }
 
 function ProgramTableRow({ onSelect, program, registered, selected }) {
-  const virtual = (program.deliveryMode || program.deliveryType) === 'VIRTUAL';
   return (
     <tr className={`text-sm transition ${selected ? 'bg-[#fff3f4]' : 'odd:bg-white even:bg-slate-50/70 hover:bg-[#fff8f8]'}`}>
       <td className="px-4 py-3 align-top">
@@ -525,9 +507,6 @@ function ProgramTableRow({ onSelect, program, registered, selected }) {
           value={program.shortDescription || program.description || 'Lộ trình được thiết kế theo chuẩn đầu ra EnglishLab.'}
         />
       </td>
-      <td className="px-4 py-3 align-top">
-        <DeliveryBadge virtual={virtual} />
-      </td>
       <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.entryLevel || 'Test đầu vào'}</td>
       <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.targetScore || 'Theo lộ trình'}</td>
       <td className="px-4 py-3 align-top text-slate-600">{program.duration || 'Đang cập nhật'}</td>
@@ -539,7 +518,6 @@ function ProgramTableRow({ onSelect, program, registered, selected }) {
 }
 
 function ProgramMobileRow({ onSelect, program, registered, selected }) {
-  const virtual = (program.deliveryMode || program.deliveryType) === 'VIRTUAL';
   return (
     <article className={selected ? 'bg-[#fff3f4] p-4' : 'bg-white p-4'}>
       <div className="flex items-start justify-between gap-3">
@@ -551,7 +529,6 @@ function ProgramMobileRow({ onSelect, program, registered, selected }) {
             {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
           </p>
         </div>
-        <DeliveryBadge virtual={virtual} />
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         <ProgramDetail label="Đầu vào" value={program.entryLevel || 'Test đầu vào'} />
@@ -560,15 +537,6 @@ function ProgramMobileRow({ onSelect, program, registered, selected }) {
       </dl>
       <SelectProgramButton className="mt-4 w-full" onSelect={onSelect} registered={registered} selected={selected} />
     </article>
-  );
-}
-
-function DeliveryBadge({ virtual }) {
-  return (
-    <span className={`inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${virtual ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'}`}>
-      {virtual ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-      {virtual ? 'Trực tuyến' : 'Tại trung tâm'}
-    </span>
   );
 }
 

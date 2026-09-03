@@ -20,41 +20,29 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
     Optional<OnlineCourse> findWithModulesById(Long id);
 
     @EntityGraph(attributePaths = {"category", "versions"})
-    Optional<OnlineCourse> findWithModulesByIdAndDeletedFalseAndStatus(Long id, PackageStatus status);
+    Optional<OnlineCourse> findWithModulesByIdAndStatus(Long id, PackageStatus status);
 
     @EntityGraph(attributePaths = {"category", "versions"})
-    Optional<OnlineCourse> findBySlugAndDeletedFalseAndStatus(String slug, PackageStatus status);
+    Optional<OnlineCourse> findBySlugAndStatus(String slug, PackageStatus status);
 
     Optional<OnlineCourse> findBySlug(String slug);
-
-    Optional<OnlineCourse> findBySlugAndDeletedFalse(String slug);
 
     boolean existsBySlug(String slug);
 
     @EntityGraph(attributePaths = {"category"})
     List<OnlineCourse> findAllByCategoryIsNull();
 
-    @Query("""
-            select c from OnlineCourse c
-            where c.deleted = false
-              and c.status = :status
-              and c.learningPathCode is not null
-              and trim(c.learningPathCode) <> ''
-            order by c.learningPathCode asc, c.learningPathName asc, c.learningPathOrder asc, c.id asc
-            """)
-    List<OnlineCourse> findPublishedLearningPathCourses(PackageStatus status);
+    long countByCategoryAndStatusNot(CourseCategory category, PackageStatus status);
 
-    long countByCategoryAndDeletedFalse(CourseCategory category);
+    long countByStatusNot(PackageStatus status);
 
-    long countByDeletedFalse();
-
-    long countByDeletedFalseAndStatus(PackageStatus status);
+    long countByStatus(PackageStatus status);
 
     @Query("""
             select coalesce(category.name, 'Chưa phân loại'), count(course)
             from OnlineCourse course
             left join course.category category
-            where course.deleted = false
+            where course.status <> fu.sep490.g23.backend.entity.course.enums.PackageStatus.ARCHIVED
             group by category.name
             order by count(course) desc
             """)

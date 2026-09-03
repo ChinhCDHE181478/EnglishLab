@@ -27,7 +27,6 @@ public class AssessmentBankItemResponse {
     private BigDecimal maxScore;
     private Integer timeLimitMinutes;
     private String status;
-    private Integer displayOrder;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

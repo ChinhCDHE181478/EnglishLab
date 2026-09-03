@@ -3,8 +3,6 @@ package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -93,107 +91,24 @@ public final class ClassroomRegistrationSupport {
         return ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
     }
 
-    public static TuitionSettlementType computeSettlement(java.math.BigDecimal amountDue, java.math.BigDecimal amountPaid) {
-        java.math.BigDecimal due = amountDue == null ? java.math.BigDecimal.ZERO : amountDue;
-        java.math.BigDecimal paid = amountPaid == null ? java.math.BigDecimal.ZERO : amountPaid;
-        int compare = paid.compareTo(due);
-        if (compare < 0) {
-            return TuitionSettlementType.NEED_ADDITIONAL_PAYMENT;
-        }
-        if (compare > 0) {
-            return TuitionSettlementType.NEED_REFUND;
-        }
-        return TuitionSettlementType.NONE;
-    }
-
-    public static String buildSettlementNote(TuitionSettlementType type, BigDecimal amountDue, BigDecimal amountPaid) {
-        if (type == null || type == TuitionSettlementType.NONE) {
-            return null;
-        }
-        BigDecimal due = amountDue == null ? BigDecimal.ZERO : amountDue;
-        BigDecimal paid = amountPaid == null ? BigDecimal.ZERO : amountPaid;
-        BigDecimal diff = paid.subtract(due).abs();
-        return switch (type) {
-            case NEED_ADDITIONAL_PAYMENT -> "Cần thanh toán thêm " + diff.toPlainString() + " VND.";
-            case HAS_BALANCE -> "Có số dư " + diff.toPlainString() + " VND.";
-            case NEED_REFUND -> "Cần xử lý hoàn tiền " + diff.toPlainString() + " VND.";
-            case NONE -> null;
-        };
-    }
-
-    /** Gán type/note/status PENDING khi còn lệch học phí; xóa settlement khi cân bằng. */
     public static void applyComputedSettlement(ClassEnrollment enrollment) {
-        if (enrollment == null) {
-            return;
-        }
-        TuitionSettlementType type = computeSettlement(enrollment.getTuitionAmountDue(), enrollment.getTuitionAmountPaid());
-        enrollment.setTuitionSettlementType(type);
-        enrollment.setTuitionSettlementNote(buildSettlementNote(
-                type,
-                enrollment.getTuitionAmountDue(),
-                enrollment.getTuitionAmountPaid()
-        ));
-        if (type == TuitionSettlementType.NONE) {
-            clearOpenSettlement(enrollment);
-        } else if (enrollment.getTuitionSettlementStatus() != TuitionSettlementStatus.REJECTED) {
-            enrollment.setTuitionSettlementStatus(TuitionSettlementStatus.PENDING);
-            enrollment.setTuitionSettlementResolvedAt(null);
-            enrollment.setTuitionSettlementResolvedBy(null);
-            enrollment.setTuitionSettlementResolutionNote(null);
-        }
     }
 
     public static void markNeedRefundForExit(ClassEnrollment enrollment, String reasonPrefix) {
-        if (enrollment == null) {
-            return;
-        }
-        BigDecimal paid = enrollment.getTuitionAmountPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
-        if (paid.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
-        }
-        enrollment.setTuitionSettlementType(TuitionSettlementType.NEED_REFUND);
-        enrollment.setTuitionSettlementStatus(TuitionSettlementStatus.PENDING);
-        enrollment.setTuitionSettlementNote(
-                (reasonPrefix == null || reasonPrefix.isBlank() ? "Cần xử lý hoàn tiền" : reasonPrefix)
-                        + " " + paid.toPlainString() + " VND."
-        );
-        enrollment.setTuitionSettlementResolvedAt(null);
-        enrollment.setTuitionSettlementResolvedBy(null);
-        enrollment.setTuitionSettlementResolutionNote(null);
     }
 
     public static void clearOpenSettlement(ClassEnrollment enrollment) {
-        if (enrollment == null) {
-            return;
-        }
-        enrollment.setTuitionSettlementType(TuitionSettlementType.NONE);
-        enrollment.setTuitionSettlementNote(null);
-        enrollment.setTuitionSettlementStatus(TuitionSettlementStatus.NONE);
-        enrollment.setTuitionSettlementResolvedAt(null);
-        enrollment.setTuitionSettlementResolvedBy(null);
-        enrollment.setTuitionSettlementResolutionNote(null);
     }
 
     public static void clearOpenSettlementAsResolved(ClassEnrollment enrollment, String note) {
-        if (enrollment == null) {
-            return;
-        }
-        enrollment.setTuitionSettlementType(TuitionSettlementType.NONE);
-        enrollment.setTuitionSettlementNote(null);
-        enrollment.setTuitionSettlementStatus(TuitionSettlementStatus.RESOLVED);
-        enrollment.setTuitionSettlementResolutionNote(note);
     }
 
-    public static String tuitionSettlementStatusLabel(TuitionSettlementStatus status) {
-        if (status == null || status == TuitionSettlementStatus.NONE) {
-            return null;
-        }
-        return switch (status) {
-            case PENDING -> "Chờ xử lý";
-            case RESOLVED -> "Đã xử lý";
-            case REJECTED -> "Từ chối hoàn";
-            case NONE -> null;
-        };
+    public static String tuitionSettlementStatusLabel(Object status) {
+        return null;
+    }
+
+    public static String tuitionSettlementLabel(Object type) {
+        return null;
     }
 
     public static String registrationStatusLabel(ClassroomRegistrationStatus status) {
@@ -210,18 +125,6 @@ public final class ClassroomRegistrationSupport {
             case WAITLIST -> "Chờ xếp lớp";
             case REJECTED -> "Từ chối";
             case CANCELLED -> "Đã hủy";
-        };
-    }
-
-    public static String tuitionSettlementLabel(TuitionSettlementType type) {
-        if (type == null || type == TuitionSettlementType.NONE) {
-            return null;
-        }
-        return switch (type) {
-            case NEED_ADDITIONAL_PAYMENT -> "Cần thanh toán thêm";
-            case HAS_BALANCE -> "Có số dư";
-            case NEED_REFUND -> "Cần xử lý hoàn tiền";
-            case NONE -> null;
         };
     }
 

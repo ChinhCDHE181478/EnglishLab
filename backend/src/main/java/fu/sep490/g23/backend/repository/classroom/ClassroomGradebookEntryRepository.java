@@ -31,9 +31,7 @@ public class ClassroomGradebookEntryRepository {
     public ClassroomGradebookEntry save(ClassroomGradebookEntry entry) {
         ClassEnrollment enrollment = resolveEnrollment(entry);
         enrollment.setHomeworkScore(entry.getHomeworkScore());
-        enrollment.setQuizScore(entry.getQuizScore());
         enrollment.setAttendancePercent(entry.getAttendancePercent());
-        enrollment.setParticipationScore(entry.getParticipationScore());
         enrollment.setFinalResult(entry.getFinalResult());
         enrollment.setTeacherComment(entry.getTeacherComment());
         enrollment.setGradebookStatus(entry.getStatus());
@@ -65,9 +63,7 @@ public class ClassroomGradebookEntryRepository {
                 .classSection(enrollment.getClassSection())
                 .student(enrollment.getStudent())
                 .homeworkScore(enrollment.getHomeworkScore())
-                .quizScore(enrollment.getQuizScore())
                 .attendancePercent(enrollment.getAttendancePercent())
-                .participationScore(enrollment.getParticipationScore())
                 .finalResult(enrollment.getFinalResult())
                 .teacherComment(enrollment.getTeacherComment())
                 .status(enrollment.getGradebookStatus())

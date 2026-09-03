@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.seed;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSyllabusItem;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
@@ -267,7 +266,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void repairRegistrationPipelineOffering() {
-        offeringRepository.findByInstructorLedCourseSlugOrCode(SLUG_REGISTRATION_PIPELINE)
+        offeringRepository.findByInstructorLedCourseCodeOrClassCode(SLUG_REGISTRATION_PIPELINE)
                 .or(() -> offeringRepository.findByNameIgnoreCase(REGISTRATION_PIPELINE_TITLE))
                 .ifPresent(offering -> {
                     if (offering.getStatus() == ClassroomOfferingStatus.CANCELLED) {
@@ -298,7 +297,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void renameVirtualPackage(String slug, String title) {
-        offeringRepository.findByInstructorLedCourseSlugOrCode(slug).ifPresent(offering -> {
+        offeringRepository.findByInstructorLedCourseCodeOrClassCode(slug).ifPresent(offering -> {
             if (!title.equals(offering.getName())) {
                 offering.setName(title);
                 offeringRepository.save(offering);
@@ -317,7 +316,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedIfMissing(String title, String slug, Runnable seeder) {
-        if (offeringRepository.findByInstructorLedCourseSlugOrCode(slug).isPresent()) {
+        if (offeringRepository.findByInstructorLedCourseCodeOrClassCode(slug).isPresent()) {
             return;
         }
         if (offeringRepository.findByNameIgnoreCase(title).isPresent()) {
@@ -485,7 +484,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .student(learner1)
                 .homeworkScore(BigDecimal.valueOf(8.0))
                 .attendancePercent(BigDecimal.valueOf(100))
-                .participationScore(BigDecimal.valueOf(8.5))
                 .finalResult(BigDecimal.valueOf(8.2))
                 .status(GradebookEntryStatus.PUBLISHED)
                 .updatedBy(teacher)
@@ -553,9 +551,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .session(completed)
                 .student(learner1)
                 .status(ClassroomAttendanceStatus.PRESENT)
-                .joinTime(completed.getSessionDate().atTime(19, 2))
-                .leaveTime(completed.getSessionDate().atTime(20, 28))
-                .durationMinutes(86)
                 .teacherConfirmed(true)
                 .markedBy(teacher)
                 .build());
@@ -615,9 +610,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .classSection(offering)
                 .student(learner1)
                 .homeworkScore(BigDecimal.valueOf(9.0))
-                .attendancePercent(BigDecimal.valueOf(95))
-                .participationScore(BigDecimal.valueOf(9.5))
-                .finalResult(BigDecimal.valueOf(9.1))
+                .attendancePercent(BigDecimal.valueOf(100))
+                .finalResult(BigDecimal.valueOf(9.5))
                 .status(GradebookEntryStatus.PUBLISHED)
                 .updatedBy(teacher)
                 .build());
@@ -661,16 +655,11 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .code(slug)
                 .tuitionFeeVnd(salePrice != null ? salePrice : price)
                 .status(status)
-                .entryLevel("4.0 - 6.0")
-                .targetOutcome("Đạt band 5.5-6.5")
                 .capacity(20)
                 .startDate(startDate)
                 .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
                 .room(room)
-                .offlineAddress(DEFAULT_OFFLINE_ADDRESS)
-                .locationNote(room.getName() + ", tầng 2")
-                .syllabusSummary("Listening, Reading, Writing & Speaking theo lộ trình 8 tuần")
                 .build());
 
         teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
@@ -698,13 +687,10 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .code(slug)
                 .tuitionFeeVnd(salePrice != null ? salePrice : price)
                 .status(status)
-                .entryLevel("5.0+")
-                .targetOutcome("Tự tin giao tiếp và luyện thi")
                 .capacity(12)
                 .startDate(startDate)
                 .plannedEndDate(endDate)
                 .primaryTeacher(teacher)
-                .syllabusSummary("Buổi live + bài tập + feedback cá nhân")
                 .build());
 
         teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
@@ -756,15 +742,11 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .registrationStatus(registrationStatus)
                 .tuitionAmountDue(due)
                 .tuitionAmountPaid(paid)
-                .tuitionDepositPaid(registrationStatus == ClassroomRegistrationStatus.DEPOSIT_PAID ? paid : BigDecimal.ZERO)
-                .tuitionSettlementType(TuitionSettlementType.NONE)
                 .enrolledAt(LocalDateTime.now().minusDays(3))
                 .build();
         if (withAssignmentMeta && registrationStatus == ClassroomRegistrationStatus.ASSIGNED) {
             enrollment.setAssignedAt(LocalDateTime.now().minusDays(1));
             enrollment.setAssignedBy(assignedBy);
-            enrollment.setConfirmedAt(LocalDateTime.now().minusDays(2));
-            enrollment.setConfirmedBy(assignedBy);
             enrollment.setTuitionRecordedAt(LocalDateTime.now().minusDays(1));
             enrollment.setTuitionRecordedBy(assignedBy);
         }
@@ -923,8 +905,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         sessionTemplateRepository.findByNameIgnoreCase(name).ifPresentOrElse(existing -> {
             existing.setSlotsJson(slotsJson);
             existing.setDescription(description);
-            existing.setTeacherGuide(teacherGuide);
-            existing.setInteractionActivities(interactionActivities);
             existing.setPostSessionHomework(postSessionHomework);
         User staff = userRepository.findByEmail("staff@englishlab.vn").orElse(null);
 
@@ -996,8 +976,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         sessionTemplateRepository.findByNameIgnoreCase(name).ifPresentOrElse(existing -> {
             existing.setSlotsJson(slotsJson);
             existing.setDescription(description);
-            existing.setTeacherGuide(teacherGuide);
-            existing.setInteractionActivities(interactionActivities);
             existing.setPostSessionHomework(postSessionHomework);
             existing.setDefaultDurationMinutes(defaultDurationMinutes);
             existing.setActive(true);
@@ -1009,8 +987,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .name(name)
                 .slotsJson(slotsJson)
                 .description(description)
-                .teacherGuide(teacherGuide)
-                .interactionActivities(interactionActivities)
                 .postSessionHomework(postSessionHomework)
                 .defaultDurationMinutes(defaultDurationMinutes)
                 .active(true)
@@ -1052,7 +1028,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleCodes.LEARNER);
             User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleCodes.LEARNER);
 
-            Optional<ClassSection> offeringOpt = offeringRepository.findByInstructorLedCourseSlugOrCode(SLUG_OFFLINE_IN_PROGRESS);
+            Optional<ClassSection> offeringOpt = offeringRepository.findByInstructorLedCourseCodeOrClassCode(SLUG_OFFLINE_IN_PROGRESS);
             if (offeringOpt.isEmpty()) return;
 
             ClassSection offering = offeringOpt.get();
@@ -1092,7 +1068,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             }
 
             seedRichSubmissionsForAllHomeworks(offering, learner1, learner2, learner3);
-            offeringRepository.findByInstructorLedCourseSlugOrCode("ielts-intensive-chinh-test-v1")
+            offeringRepository.findByInstructorLedCourseCodeOrClassCode("ielts-intensive-chinh-test-v1")
                     .ifPresent(chinhOffering -> seedRichSubmissionsForAllHomeworks(chinhOffering, learner1, learner2, learner3));
         } catch (Exception ex) {
             log.warn("syncTodayTeacher1Data warning: {}", ex.getMessage());

@@ -22,27 +22,27 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
             FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
               AND (:skill = '' OR skill = :skill)
-              AND (:type = '' OR payload_jsonb->>'type' = :type)
+              AND (:type = '' OR content_data->>'type' = :type)
               AND (:status = '' OR status = :status)
               AND (
                   :keyword = ''
                   OR LOWER(title) LIKE :keyword
                   OR LOWER(COALESCE(description, '')) LIKE :keyword
-                  OR LOWER(COALESCE(payload_jsonb->>'instructions', '')) LIKE :keyword
+                  OR LOWER(COALESCE(content_data->>'instructions', '')) LIKE :keyword
               )
               AND (
                   :examCategory = ''
                   OR (
                       :examCategory = 'TOEIC'
                       AND (
-                          LOWER(COALESCE(payload_jsonb->>'uiConfigJson', '')) LIKE '%toeic%'
+                          LOWER(COALESCE(content_data->>'uiConfigJson', '')) LIKE '%toeic%'
                           OR LOWER(title) LIKE '%toeic%'
                       )
                   )
                   OR (
                       :examCategory <> 'TOEIC'
                       AND NOT (
-                          LOWER(COALESCE(payload_jsonb->>'uiConfigJson', '')) LIKE '%toeic%'
+                          LOWER(COALESCE(content_data->>'uiConfigJson', '')) LIKE '%toeic%'
                           OR LOWER(title) LIKE '%toeic%'
                       )
                   )
@@ -54,27 +54,27 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
             FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
               AND (:skill = '' OR skill = :skill)
-              AND (:type = '' OR payload_jsonb->>'type' = :type)
+              AND (:type = '' OR content_data->>'type' = :type)
               AND (:status = '' OR status = :status)
               AND (
                   :keyword = ''
                   OR LOWER(title) LIKE :keyword
                   OR LOWER(COALESCE(description, '')) LIKE :keyword
-                  OR LOWER(COALESCE(payload_jsonb->>'instructions', '')) LIKE :keyword
+                  OR LOWER(COALESCE(content_data->>'instructions', '')) LIKE :keyword
               )
               AND (
                   :examCategory = ''
                   OR (
                       :examCategory = 'TOEIC'
                       AND (
-                          LOWER(COALESCE(payload_jsonb->>'uiConfigJson', '')) LIKE '%toeic%'
+                          LOWER(COALESCE(content_data->>'uiConfigJson', '')) LIKE '%toeic%'
                           OR LOWER(title) LIKE '%toeic%'
                       )
                   )
                   OR (
                       :examCategory <> 'TOEIC'
                       AND NOT (
-                          LOWER(COALESCE(payload_jsonb->>'uiConfigJson', '')) LIKE '%toeic%'
+                          LOWER(COALESCE(content_data->>'uiConfigJson', '')) LIKE '%toeic%'
                           OR LOWER(title) LIKE '%toeic%'
                       )
                   )
@@ -93,50 +93,78 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND payload_jsonb->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
             ORDER BY updated_at DESC NULLS LAST, id DESC
             """, nativeQuery = true)
-    List<AssessmentBankItem> findByTypeOrderByUpdatedAtDescIdDesc(@Param("type") AssessmentType type);
+    List<AssessmentBankItem> findByTypeCodeOrderByUpdatedAtDescIdDesc(@Param("type") String type);
+
+    default List<AssessmentBankItem> findByTypeOrderByUpdatedAtDescIdDesc(AssessmentType type) {
+        return findByTypeCodeOrderByUpdatedAtDescIdDesc(type.name());
+    }
 
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND payload_jsonb->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
               AND status = :status
-              AND active = true
-            ORDER BY display_order ASC, updated_at DESC NULLS LAST, id DESC
+            ORDER BY updated_at DESC NULLS LAST, id DESC
             """, nativeQuery = true)
-    List<AssessmentBankItem> findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(
-            @Param("type") AssessmentType type,
+    List<AssessmentBankItem> findByTypeCodeAndStatusOrderByUpdatedAtDescIdDesc(
+            @Param("type") String type,
             @Param("status") String status
     );
+
+    default List<AssessmentBankItem> findByTypeAndStatusOrderByUpdatedAtDescIdDesc(
+            AssessmentType type,
+            String status
+    ) {
+        return findByTypeCodeAndStatusOrderByUpdatedAtDescIdDesc(type.name(), status);
+    }
 
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
               AND id = :id
-              AND payload_jsonb->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
               AND status = :status
-              AND active = true
             """, nativeQuery = true)
-    Optional<AssessmentBankItem> findByIdAndTypeAndStatusAndActiveTrue(
+    Optional<AssessmentBankItem> findByIdAndTypeCodeAndStatus(
             @Param("id") Long id,
-            @Param("type") AssessmentType type,
+            @Param("type") String type,
             @Param("status") String status
     );
+
+    default Optional<AssessmentBankItem> findByIdAndTypeAndStatus(
+            Long id,
+            AssessmentType type,
+            String status
+    ) {
+        return findByIdAndTypeCodeAndStatus(id, type.name(), status);
+    }
 
     @Query(value = """
             SELECT * FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
-              AND payload_jsonb->>'type' = :#{#type.name()}
+              AND content_data->>'type' = :type
               AND status = :status
-              AND active = true
               AND skill IN (:skills)
-            ORDER BY display_order ASC, updated_at DESC NULLS LAST, id DESC
+            ORDER BY updated_at DESC NULLS LAST, id DESC
             """, nativeQuery = true)
-    List<AssessmentBankItem> findByTypeAndStatusAndActiveTrueAndSkillInOrderByDisplayOrderAscUpdatedAtDescIdDesc(
-            @Param("type") AssessmentType type,
+    List<AssessmentBankItem> findByTypeCodeAndStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
+            @Param("type") String type,
             @Param("status") String status,
-            @Param("skills") List<AssessmentSkill> skills
+            @Param("skills") List<String> skills
     );
+
+    default List<AssessmentBankItem> findByTypeAndStatusAndSkillInOrderByUpdatedAtDescIdDesc(
+            AssessmentType type,
+            String status,
+            List<AssessmentSkill> skills
+    ) {
+        return findByTypeCodeAndStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
+                type.name(),
+                status,
+                skills.stream().map(Enum::name).toList()
+        );
+    }
 }

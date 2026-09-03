@@ -315,28 +315,6 @@ function resolveMeta(pathname) {
     return contentManagerPageMeta['/content-manager/flashcards'];
   }
 
-  if (/^\/content-manager\/offline-programs\/[^/]+\/edit$/.test(pathname)) {
-    return {
-      ...contentManagerPageMeta['/content-manager/offline-programs'],
-      title: 'Sửa khóa học Offline',
-    };
-  }
-
-  if (/^\/content-manager\/virtual-programs\/[^/]+\/edit$/.test(pathname)) {
-    return {
-      ...contentManagerPageMeta['/content-manager/virtual-programs'],
-      title: 'Sửa khóa học Virtual',
-    };
-  }
-
-  if (pathname.startsWith('/content-manager/offline-programs/')) {
-    return contentManagerPageMeta['/content-manager/offline-programs'];
-  }
-
-  if (pathname.startsWith('/content-manager/virtual-programs/')) {
-    return contentManagerPageMeta['/content-manager/virtual-programs'];
-  }
-
   return contentManagerPageMeta['/content-manager/dashboard'];
 }
 

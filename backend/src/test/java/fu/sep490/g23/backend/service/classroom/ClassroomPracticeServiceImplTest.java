@@ -47,7 +47,7 @@ class ClassroomPracticeServiceImplTest {
         User learner = User.builder().id(7L).email("learner@example.com").build();
         ExerciseBankItem exercise = ExerciseBankItem.builder()
                 .id(3L).title("Practice").skill("READING").prompt("{}")
-                .answerKey("{\"1\":\"B\",\"2\":\"A\"}").active(true).build();
+                .answerKey("{\"1\":\"B\",\"2\":\"A\"}").status("PUBLISHED").build();
         CourseUnit unit = CourseUnit.builder().id(4L).sequenceNumber(1).title("Unit 1").build();
         CourseUnitContentRef exerciseRef = CourseUnitContentRef.builder()
                 .courseUnit(unit)

@@ -6,7 +6,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
@@ -196,11 +195,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     }
 
     private InstructorLedCourse ensureCurriculum(User teacher) {
-        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(CURRICULUM_SLUG)
+        InstructorLedCourse program = instructorLedCourseRepository.findByCodeIgnoreCase("EL-TOEIC-650-V1")
                 .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title("TOEIC 650 Complete - Virtual Curriculum")
                         .code("EL-TOEIC-650-V1")
-                        .slug(CURRICULUM_SLUG)
                         .examType("TOEIC")
                         .targetScore(650)
                         .entryLevel("TOEIC 350+ hoặc CEFR A2")
@@ -271,7 +269,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
         request.setResourceId(resourceId);
         request.setDisplayOrder(1);
-        request.setNote(note);
         return request;
     }
 
@@ -311,7 +308,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .answerKey("Đáp án và giải thích được review trong buổi học kế tiếp.")
                         .explanation("Phân loại lỗi theo từ vựng, ngữ pháp, chi tiết, suy luận hoặc quản lý thời gian.")
                         .tags(seed.tags())
-                        .active(true)
+                        .status("PUBLISHED")
                         .createdBy(teacher)
                         .build());
         exercise.setExerciseType("PRACTICE");
@@ -364,7 +361,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         set.setTags(seed.tags());
         set.setCardsJson(flashcardsJson(unitNumber));
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(unitNumber);
         return flashcardSetRepository.save(set);
     }
 
@@ -458,8 +454,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         item.setMaxScore(BigDecimal.TEN);
         item.setTimeLimitMinutes(15);
         item.setStatus("PUBLISHED");
-        item.setDisplayOrder(1);
-        item.setActive(true);
+        item.setStatus("PUBLISHED");
         return assessmentBankItemRepository.save(item);
     }
 
@@ -485,16 +480,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             
                             
                             .status(ClassroomOfferingStatus.ACTIVE)
-                            .entryLevel("TOEIC 350+")
-                            .targetOutcome("TOEIC 650+")
                             .capacity(16)
                             .startDate(LocalDate.now().minusWeeks(3))
                             .plannedEndDate(LocalDate.now().plusWeeks(5))
                             .primaryTeacher(teacher)
-                            .syllabusSummary(curriculum.getLearningOutcomes())
-                            .programOutcomes(curriculum.getLearningOutcomes())
-                            .teacherGuide(curriculum.getTeacherGuide())
-                            .interactionActivities(null)
                             .build();
                 });
         offering.setInstructorLedCourse(curriculum);
@@ -521,13 +510,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .tuitionAmountDue(BigDecimal.valueOf(3_490_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(3_490_000))
-                        .tuitionDepositPaid(BigDecimal.ZERO)
-                        .tuitionSettlementType(TuitionSettlementType.NONE)
-                        .enrolledAt(LocalDateTime.now().minusWeeks(3))
-                        .assignedAt(LocalDateTime.now().minusWeeks(3))
                         .assignedBy(teacher)
-                        .confirmedAt(LocalDateTime.now().minusWeeks(3))
-                        .confirmedBy(teacher)
                         .assignmentNote("Tài khoản học viên showcase theo yêu cầu sản phẩm")
                         .build()));
     }
@@ -975,7 +958,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .classSection(offering)
                         .student(learner)
                         .attendancePercent(BigDecimal.valueOf(100))
-                        .participationScore(BigDecimal.valueOf(8.5))
                         .status(GradebookEntryStatus.PENDING)
                         .updatedBy(teacher)
                         .build()));

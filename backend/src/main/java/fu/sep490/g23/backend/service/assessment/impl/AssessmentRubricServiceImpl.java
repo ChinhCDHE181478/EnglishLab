@@ -30,10 +30,10 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AssessmentRubricResponse> list(Boolean includeInactive, AssessmentSkill skill) {
-        boolean showInactive = Boolean.TRUE.equals(includeInactive);
+    public List<AssessmentRubricResponse> list(String status, AssessmentSkill skill) {
+        String normalizedStatus = normalizeOptionalStatus(status);
         return rubricRepository.findAll().stream()
-                .filter(rubric -> showInactive || rubric.isActive())
+                .filter(rubric -> normalizedStatus == null || normalizedStatus.equalsIgnoreCase(rubric.getStatus()))
                 .filter(rubric -> skill == null || rubric.getSkill() == skill)
                 .sorted(Comparator
                         .comparing((AssessmentRubric rubric) -> rubric.getSkill() == null ? "" : rubric.getSkill().name())
@@ -45,20 +45,17 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
     @Override
     @Transactional(readOnly = true)
     public Page<AssessmentRubricResponse> page(
-            Boolean includeInactive,
-            Boolean active,
+            String status,
             AssessmentSkill skill,
             String keyword,
             Pageable pageable
     ) {
         Specification<AssessmentRubric> specification = (root, query, criteriaBuilder) ->
                 criteriaBuilder.conjunction();
-        if (!Boolean.TRUE.equals(includeInactive)) {
+        String normalizedStatus = normalizeOptionalStatus(status);
+        if (normalizedStatus != null) {
             specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.isTrue(root.get("active")));
-        } else if (active != null) {
-            specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("active"), active));
+                    criteriaBuilder.equal(root.get("status"), normalizedStatus));
         }
         if (skill != null) {
             specification = specification.and((root, query, criteriaBuilder) ->
@@ -84,8 +81,8 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
                 .toList();
         return Map.of(
                 "total", (long) rubrics.size(),
-                "active", rubrics.stream().filter(AssessmentRubric::isActive).count(),
-                "inactive", rubrics.stream().filter(rubric -> !rubric.isActive()).count(),
+                "published", rubrics.stream().filter(rubric -> "PUBLISHED".equalsIgnoreCase(rubric.getStatus())).count(),
+                "archived", rubrics.stream().filter(rubric -> "ARCHIVED".equalsIgnoreCase(rubric.getStatus())).count(),
                 "criteria", rubrics.stream().mapToLong(rubric -> rubric.getCriteria().size()).sum()
         );
     }
@@ -115,14 +112,14 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
     @Override
     public AssessmentRubricResponse deactivate(Long id) {
         AssessmentRubric rubric = findRubric(id);
-        rubric.setActive(false);
+        rubric.setStatus("ARCHIVED");
         return toResponse(rubricRepository.save(rubric));
     }
 
     @Override
     public AssessmentRubricResponse reactivate(Long id) {
         AssessmentRubric rubric = findRubric(id);
-        rubric.setActive(true);
+        rubric.setStatus("PUBLISHED");
         return toResponse(rubricRepository.save(rubric));
     }
 
@@ -156,7 +153,7 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
         rubric.setTaskType(trimToNull(request.getTaskType()));
         rubric.setScoringScale(trimToNull(request.getScoringScale()));
         rubric.setDescription(trimToNull(request.getDescription()));
-        rubric.setActive(request.getActive() == null || request.getActive());
+        rubric.setStatus(normalizeStatus(request.getStatus(), "PUBLISHED"));
         rubric.getCriteria().clear();
         List<RubricCriterionRequest> criteria = request.getCriteria();
         for (int index = 0; index < criteria.size(); index++) {
@@ -181,7 +178,7 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
                 .taskType(rubric.getTaskType())
                 .scoringScale(rubric.getScoringScale())
                 .description(rubric.getDescription())
-                .active(rubric.isActive())
+                .status(rubric.getStatus())
                 .criteria(rubric.getCriteria().stream()
                         .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder, Comparator.nullsLast(Integer::compareTo))
                                 .thenComparing(RubricCriterion::getId, Comparator.nullsLast(Long::compareTo)))
@@ -203,5 +200,20 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeStatus(String value, String fallback) {
+        if (value == null || value.isBlank()) return fallback;
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (!List.of("DRAFT", "PUBLISHED", "ARCHIVED").contains(normalized)) {
+            throw new IllegalArgumentException("Trạng thái nội dung không hợp lệ.");
+        }
+        return normalized;
+    }
+
+    private String normalizeOptionalStatus(String value) {
+        return value == null || value.isBlank() || "ALL".equalsIgnoreCase(value)
+                ? null
+                : normalizeStatus(value, null);
     }
 }

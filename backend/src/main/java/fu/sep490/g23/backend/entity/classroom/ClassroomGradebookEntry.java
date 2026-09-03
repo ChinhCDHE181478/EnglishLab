@@ -23,11 +23,7 @@ public class ClassroomGradebookEntry {
 
     private BigDecimal homeworkScore;
 
-    private BigDecimal quizScore;
-
     private BigDecimal attendancePercent;
-
-    private BigDecimal participationScore;
 
     private BigDecimal finalResult;
 

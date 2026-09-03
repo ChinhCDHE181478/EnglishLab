@@ -73,7 +73,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     public Map<String, Object> getTest(String studentEmail) {
         User student = requireStudent(studentEmail);
         var definition = definitionService.getDefinition();
-        if (!definition.isActive()) {
+        if (!"PUBLISHED".equalsIgnoreCase(definition.getStatus())) {
             throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
         }
         Map<String, Object> response = new LinkedHashMap<>();
@@ -106,7 +106,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     public PlacementTestAttemptResponse submit(PlacementTestSubmissionRequest request, String studentEmail) {
         User student = requireStudent(studentEmail);
         var definition = definitionService.getDefinition();
-        if (!definition.isActive()) {
+        if (!"PUBLISHED".equalsIgnoreCase(definition.getStatus())) {
             throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
         }
         String examType = normalizeExamType(request.getExamType() == null ? definition.getExamType() : request.getExamType());

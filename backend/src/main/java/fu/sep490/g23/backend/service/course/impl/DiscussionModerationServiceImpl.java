@@ -134,7 +134,7 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
                 .targetAuthor(displayName(post.getAuthor()))
                 .contentPreview(preview(content))
                 .currentTargetStatus(post.getStatus())
-                .reportCount(post.getReportedCount())
+                .reportCount(Math.toIntExact(reportRepository.countByPost(post)))
                 .status(report.getStatus())
                 .reviewedBy(report.getReviewedBy() == null ? null : displayName(report.getReviewedBy()))
                 .reviewedAt(report.getReviewedAt())

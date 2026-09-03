@@ -110,9 +110,6 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
         } else if (attempt.getExpiresAt() != null && attempt.getExpiresAt().isBefore(now)) {
             status = PlacementEvaluationStatus.EXPIRED;
             missing.add("RESULT_EXPIRED");
-        } else if (attempt.isFraudSuspected()) {
-            status = PlacementEvaluationStatus.NOT_ELIGIBLE;
-            missing.add("FRAUD_REVIEW");
         } else if (attempt.getSubmittedAt() == null) {
             status = PlacementEvaluationStatus.NOT_STARTED;
             missing.add("TEST_SUBMISSION");

@@ -82,7 +82,7 @@ class GetCourseAssessmentsTest {
 
         assessment = new CourseAssessment();
         assessment.setId(100L);
-        assessment.setOnlineCourse(course);
+        assessment.setOnlineCourseVersion(OnlineCourseVersion.builder().id(20L).onlineCourse(course).build());
         assessment.setActive(true);
         assessment.setType(AssessmentType.MODULE_TEST);
         assessment.setProgressKey("assessment-100");
@@ -121,7 +121,6 @@ class GetCourseAssessmentsTest {
                 .onlineCourse(course)
                 .versionNumber(1)
                 .status(CourseVersionStatus.RETIRED)
-                .assessmentIdsJson("[100]")
                 .build();
         enrollment.setCourseVersion(versionOne);
         assessment.setActive(false);
@@ -151,7 +150,7 @@ class GetCourseAssessmentsTest {
         assessment.setProgressKey("module-1-writing");
         CourseAssessment previousAssessment = new CourseAssessment();
         previousAssessment.setId(90L);
-        previousAssessment.setOnlineCourse(course);
+        previousAssessment.setOnlineCourseVersion(enrollment.getCourseVersion());
         previousAssessment.setProgressKey(assessment.getProgressKey());
         previousAssessment.setType(AssessmentType.MODULE_TEST);
         AssessmentSubmission historicalSubmission = AssessmentSubmission.builder()

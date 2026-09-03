@@ -155,9 +155,8 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
         onlineCourseRepository.findAll().stream()
                 .filter(course -> PLACEHOLDER_COURSE_TITLES.contains(course.getTitle()))
                 .forEach(course -> {
-                    course.setDeleted(true);
                     course.setFeatured(false);
-                    course.setStatus(PackageStatus.DRAFT);
+                    course.setStatus(PackageStatus.ARCHIVED);
                 });
     }
 }

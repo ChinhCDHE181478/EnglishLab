@@ -146,7 +146,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         User teacher = accessHelper.requireUser(teacherEmail);
         accessHelper.assertTeacher(teacher);
         return assessmentBankItemRepository
-                .findByTypeAndStatusAndActiveTrueAndSkillInOrderByDisplayOrderAscUpdatedAtDescIdDesc(
+                .findByTypeAndStatusAndSkillInOrderByUpdatedAtDescIdDesc(
                         AssessmentType.MODULE_TEST,
                         "PUBLISHED",
                     List.of(
@@ -158,7 +158,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 ).stream()
                 .filter(item -> item.getSkill() == AssessmentSkill.LISTENING
                         || item.getSkill() == AssessmentSkill.READING
-                        || (item.getRubric() != null && item.getRubric().isActive()))
+                        || (item.getRubric() != null && "PUBLISHED".equalsIgnoreCase(item.getRubric().getStatus())))
                 .map(item -> HomeworkAiAssessmentOptionResponse.builder()
                         .id(item.getId())
                         .title(item.getTitle())
@@ -507,13 +507,14 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         AssessmentBankItem assessment = null;
         if (request.getAssessmentBankItemId() != null) {
             assessment = assessmentBankItemRepository
-                    .findByIdAndTypeAndStatusAndActiveTrue(
+                    .findByIdAndTypeAndStatus(
                             request.getAssessmentBankItemId(), AssessmentType.MODULE_TEST, "PUBLISHED")
                     .orElseThrow(() -> new RuntimeException("Đề hệ thống không tồn tại hoặc chưa được xuất bản."));
             if (request.getSkill() != null && request.getSkill() != assessment.getSkill()) {
                 throw new RuntimeException("Kỹ năng đã chọn không phù hợp với đề trong ngân hàng.");
             }
             if (homework.getActivityType() != HomeworkActivityType.TEXT_RESPONSE
+                    && homework.getActivityType() != HomeworkActivityType.FILE_RESPONSE
                     && homework.getActivityType() != HomeworkActivityType.SKILL_PRACTICE
                     && homework.getActivityType() != HomeworkActivityType.MIXED) {
                 throw new RuntimeException("Hình thức bài tập này không hỗ trợ chọn đề từ ngân hàng.");

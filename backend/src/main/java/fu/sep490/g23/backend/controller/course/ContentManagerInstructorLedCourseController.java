@@ -1,4 +1,4 @@
-package fu.sep490.g23.backend.controller.curriculum;
+package fu.sep490.g23.backend.controller.course;
 
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.InstructorLedCourseRequest;
@@ -13,7 +13,6 @@ import fu.sep490.g23.backend.dto.response.curriculum.CourseUnitResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,15 +42,12 @@ public class ContentManagerInstructorLedCourseController {
     private final InstructorLedCourseManagementService instructorLedCourseManagementService;
 
     @GetMapping("/curriculum-programs")
-    public ResponseEntity<List<InstructorLedCourseResponse>> listPrograms(
-            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
-    ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.listPrograms(deliveryMode));
+    public ResponseEntity<List<InstructorLedCourseResponse>> listPrograms() {
+        return ResponseEntity.ok(instructorLedCourseManagementService.listPrograms());
     }
 
     @GetMapping("/curriculum-programs/page")
     public ResponseEntity<Page<InstructorLedCourseResponse>> pagePrograms(
-            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String examCategory,
             @RequestParam(required = false) String entryLevel,
@@ -59,14 +55,20 @@ public class ContentManagerInstructorLedCourseController {
             @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.ok(instructorLedCourseManagementService.pagePrograms(
-                deliveryMode, keyword, examCategory, entryLevel, status, pageable));
+                keyword, examCategory, entryLevel, status, pageable));
     }
 
+    /**
+     * Retrieves the full instructor-led course structure, including units, lessons, and resource references.
+     */
     @GetMapping("/curriculum-programs/{id}")
     public ResponseEntity<InstructorLedCourseResponse> getProgram(@PathVariable Long id) {
         return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));
     }
 
+    /**
+     * Creates an instructor-led course with a unique code and validated English-learning profile.
+     */
     @PostMapping("/curriculum-programs")
     public ResponseEntity<InstructorLedCourseResponse> createProgram(
             @Valid @RequestBody InstructorLedCourseRequest request
@@ -74,6 +76,9 @@ public class ContentManagerInstructorLedCourseController {
         return ResponseEntity.ok(instructorLedCourseManagementService.createProgram(request));
     }
 
+    /**
+     * Updates course blueprint metadata, fee structure, and English learning outcomes.
+     */
     @PutMapping("/curriculum-programs/{id}")
     public ResponseEntity<InstructorLedCourseResponse> updateProgram(
             @PathVariable Long id,
@@ -82,6 +87,9 @@ public class ContentManagerInstructorLedCourseController {
         return ResponseEntity.ok(instructorLedCourseManagementService.updateProgram(id, request));
     }
 
+    /**
+     * Archives an instructor-led course template, removing it from active proposal creation.
+     */
     @DeleteMapping("/curriculum-programs/{id}")
     public ResponseEntity<Void> archiveProgram(@PathVariable Long id) {
         instructorLedCourseManagementService.archiveProgram(id);
@@ -153,6 +161,9 @@ public class ContentManagerInstructorLedCourseController {
         return ResponseEntity.ok(instructorLedCourseManagementService.attachMaterial(unitId, request));
     }
 
+    /**
+     * Links a practice exercise from the unified Content Bank into a specific course unit.
+     */
     @PostMapping("/curriculum-units/{unitId}/exercises")
     public ResponseEntity<CourseUnitResponse> attachExercise(
             @PathVariable Long unitId,
@@ -169,6 +180,9 @@ public class ContentManagerInstructorLedCourseController {
         return ResponseEntity.ok(instructorLedCourseManagementService.attachAssessment(unitId, request));
     }
 
+    /**
+     * Links a flashcard vocabulary set from the Content Bank into a course unit.
+     */
     @PostMapping("/curriculum-units/{unitId}/flashcards")
     public ResponseEntity<CourseUnitResponse> attachFlashcard(
             @PathVariable Long unitId,
@@ -252,7 +266,7 @@ public class ContentManagerInstructorLedCourseController {
             @RequestParam(required = false) String examCategory,
             @RequestParam(required = false) String skill,
             @RequestParam(required = false) String status,
-            @PageableDefault(size = 8, sort = "displayOrder", direction = Sort.Direction.ASC) Pageable pageable
+            @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.ok(instructorLedCourseManagementService.pageFlashcardSets(
                 keyword, examCategory, skill, status, pageable));

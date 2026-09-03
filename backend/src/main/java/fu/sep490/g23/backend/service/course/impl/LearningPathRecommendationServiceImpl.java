@@ -262,8 +262,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
     /** Published, non-deleted courses on this path, in display order. */
     private List<LearningPathCourse> refs(LearningPath path) {
         return pathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
-                .filter(ref -> ref.getOnlineCourse().getStatus() == PackageStatus.PUBLISHED
-                        && !ref.getOnlineCourse().isDeleted())
+                .filter(ref -> ref.getOnlineCourse().getStatus() == PackageStatus.PUBLISHED)
                 .toList();
     }
 

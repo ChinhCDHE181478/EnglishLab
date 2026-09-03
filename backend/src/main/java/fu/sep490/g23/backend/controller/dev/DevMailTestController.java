@@ -102,8 +102,6 @@ public class DevMailTestController {
                     .id(202L)
                     .contactName("Phạm Minh Đức")
                     .contactEmail(email)
-                    .testAppointmentAt(LocalDateTime.now().plusDays(2).withHour(14).withMinute(30))
-                    .testLocation("EnglishLab Cơ sở 1 - 123 Nguyễn Trãi, Thanh Xuân, Hà Nội")
                     .learner(testUser)
                     .build();
             enrollmentRequestMailService.sendTestAppointment(testRequest);
@@ -117,7 +115,6 @@ public class DevMailTestController {
             InstructorLedCourse instructorLedCourse = InstructorLedCourse.builder()
                     .id(301L)
                     .code("DEMO-IELTS-65")
-                    .slug("demo-ielts-65")
                     .title("IELTS Intensive Master 6.5+")
                     .build();
 
@@ -127,7 +124,6 @@ public class DevMailTestController {
                     .code("DEMO-IELTS-65-A")
                     .instructorLedCourse(instructorLedCourse)
                     .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                    .offlineAddress("Phòng A201 - EnglishLab Cơ sở 1")
                     .startDate(LocalDate.now().plusDays(7))
                     .primaryTeacher(teacherUser)
                     //.learningPackage(pkg)

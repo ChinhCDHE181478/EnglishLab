@@ -42,7 +42,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
@@ -258,36 +257,34 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             User showcaseLearner,
             User alien
     ) {
-        InstructorLedCourse ieltsOffline = ensureSheetTrainingProgram(
-                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
-        InstructorLedCourse ieltsLive = ensureSheetTrainingProgram(
-                "center-sheet-ielts-live", "IELTS 4 kỹ năng Google Meet", ClassroomDeliveryMode.VIRTUAL);
-        InstructorLedCourse toeicOffline = ensureSheetTrainingProgram(
-                "center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse ieltsProgram = ensureSheetInstructorLedCourse(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng");
+        InstructorLedCourse toeicProgram = ensureSheetInstructorLedCourse(
+                "center-sheet-toeic-lr", "TOEIC Listening & Reading");
         List<ClassSection> offerings = new ArrayList<>();
         int learnerCursor = 1;
         int[] classOrder = demoFirstClassIndexes(30);
         for (int classIndex : classOrder) {
-            boolean online = classIndex >= 24;
+            boolean virtualClass = classIndex >= 24;
             int intake = classIndex % 3;
             LocalDate start = LocalDate.now().minusWeeks(10 - intake * 4L);
             LocalDate end = start.plusWeeks(12);
             boolean mwf = classScheduleMwf(classIndex);
             boolean eveningTwo = classScheduleEveningTwo(classIndex);
-            Room room = online ? null : rooms.get(classIndex % 10);
+            Room room = virtualClass ? null : rooms.get(classIndex % 10);
             User teacher = (classIndex == 0 || classIndex == 24) ? alien : teachers.get(1 + (classIndex % 19));
             String slug = "center-sheet-class-%02d".formatted(classIndex + 1);
-            boolean toeic = !online && intake == 2;
-            String title = (online ? "IELTS Live Meet " : (toeic ? "TOEIC Center " : "IELTS Center "))
+            boolean toeic = !virtualClass && intake == 2;
+            String title = (virtualClass ? "IELTS Live Meet " : (toeic ? "TOEIC Center " : "IELTS Center "))
                     + (intake == 0 ? "K1 " : intake == 1 ? "K2 " : "K3 ")
                     + (mwf ? "T2-4-6 " : "T3-5-7 ")
                     + (eveningTwo ? "Ca 2" : "Ca 1");
-            InstructorLedCourse program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
+            InstructorLedCourse program = toeic ? toeicProgram : ieltsProgram;
             ClassSection offering = upsertOffering(
-                    slug, title, online, start, end, teacher, room, eveningTwo, program);
+                    slug, title, virtualClass, start, end, teacher, room, eveningTwo, program);
             attachCourse(offering, program);
             ensureTeacherAssignment(offering, teacher);
-            seedSessions(offering, teacher, room, mwf, eveningTwo, online);
+            seedSessions(offering, teacher, room, mwf, eveningTwo);
             List<User> classLearners = new ArrayList<>();
             if (classIndex == 0 || classIndex == 24) {
                 classLearners.add(showcaseLearner);
@@ -326,7 +323,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private ClassSection upsertOffering(
             String slug,
             String title,
-            boolean online,
+            boolean virtualClass,
             LocalDate start,
             LocalDate end,
             User teacher,
@@ -334,12 +331,17 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             boolean eveningTwo,
             InstructorLedCourse instructorLedCourse
     ) {
-        String cover = online ? "/course-covers/classroom-online.png" : "/course-covers/classroom-offline.png";
-        return offeringRepository.findByInstructorLedCourseSlugOrCode(slug).map(existing -> {
+        return offeringRepository.findByInstructorLedCourseCodeOrClassCode(slug).map(existing -> {
             existing.setName(title);
             existing.setInstructorLedCourse(instructorLedCourse);
+            existing.setDeliveryMode(virtualClass ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE);
             existing.setPrimaryTeacher(teacher);
             existing.setRoom(room);
+            existing.setGoogleMeetOwner(virtualClass ? teacher : null);
+            if (!virtualClass) {
+                existing.setGoogleMeetUrl(null);
+                existing.setGoogleMeetStatus(GoogleMeetStatus.NOT_CREATED);
+            }
             return offeringRepository.save(existing);
         }).orElseGet(() -> {
             ClassSection offering = ClassSection.builder()
@@ -347,20 +349,16 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .name(title)
                     .code(slug)
                     .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
-                    .deliveryMode(online ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
+                    .deliveryMode(virtualClass ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.ACTIVE)
-                    .entryLevel("IELTS 5.0")
-                    .targetOutcome("Đạt band 6.0-6.5 sau 36 buổi.")
                     .capacity(10)
                     .startDate(start)
                     .plannedEndDate(end)
                     .primaryTeacher(teacher)
                     .room(room)
-                    .offlineAddress(online ? null : ADDRESS)
-                    .googleMeetOwner(online ? teacher : null)
-                    .googleMeetUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
-                    .googleMeetStatus(online ? GoogleMeetStatus.READY : GoogleMeetStatus.NOT_CREATED)
-                    .syllabusSummary("36 buổi Listening-Reading-Writing-Speaking xoay vòng.")
+                    .googleMeetOwner(virtualClass ? teacher : null)
+                    .googleMeetUrl(null)
+                    .googleMeetStatus(GoogleMeetStatus.NOT_CREATED)
                     .build();
             return offeringRepository.save(offering);
         });
@@ -394,12 +392,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
 
     private void attachCourse(ClassSection offering, InstructorLedCourse curriculum) {
         offering.setInstructorLedCourse(curriculum);
-        offering.setEntryLevel(curriculum.getEntryLevel());
-        offering.setTargetOutcome(curriculum.getLearningOutcomes());
-        offering.setSyllabusSummary(curriculum.getLearningOutcomes());
-        offering.setProgramOutcomes(curriculum.getLearningOutcomes());
-        offering.setTeacherGuide(curriculum.getTeacherGuide());
-        offering.setInteractionActivities(null);
         offeringRepository.save(offering);
         User actor = offering.getPrimaryTeacher();
         if (actor == null) {
@@ -413,8 +405,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             User teacher,
             Room room,
             boolean mwf,
-            boolean eveningTwo,
-            boolean online
+            boolean eveningTwo
     ) {
         Set<DayOfWeek> days = mwf ? MWF : TTS;
         LocalTime start = eveningTwo ? SLOT_2_START : SLOT_1_START;
@@ -492,13 +483,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .agreedTuitionFeeVnd(offering.getTuitionFeeVnd())
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(4_690_000))
-                        .tuitionDepositPaid(BigDecimal.valueOf(1_000_000))
-                        .tuitionSettlementType(TuitionSettlementType.NONE)
-                        .enrolledAt(start.atTime(9, 0))
-                        .assignedAt(start.atTime(9, 0))
                         .assignedBy(teacher)
-                        .confirmedAt(start.atTime(9, 0))
-                        .confirmedBy(teacher)
                         .build()));
     }
 
@@ -553,12 +538,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 for (var module : version.getModules()) {
                     for (OnlineLesson lesson : module.getLessons()) {
                         LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
-                                .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
+                                .orElseGet(() -> LessonProgress.builder().lesson(lesson).enrollment(enrollment).build());
                         progress.setEnrollment(enrollment);
-                        progress.setCourseVersion(version);
-                        progress.setLessonKey(lesson.getLessonKey());
                         progress.setStatus(LessonProgressStatus.COMPLETED);
-                        progress.setProgressPercent(100);
                         progress.setCompletedAt(LocalDateTime.now().minusDays(5));
                         progress.setLastAccessedAt(LocalDateTime.now().minusDays(2));
                         lessonProgressRepository.save(progress);
@@ -739,7 +721,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private void publishMock(String title, AssessmentSkill skill, int minutes, String resource, boolean needsKey) throws Exception {
         String json = new String(new ClassPathResource(resource).getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         var existing = assessmentBankItemRepository
-                .findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(AssessmentType.MOCK_TEST, "PUBLISHED")
+                .findByTypeAndStatusOrderByUpdatedAtDescIdDesc(AssessmentType.MOCK_TEST, "PUBLISHED")
                 .stream()
                 .filter(item -> title.equalsIgnoreCase(item.getTitle()))
                 .findFirst();
@@ -774,7 +756,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         request.setMaxScore(BigDecimal.valueOf(9.0));
         request.setTimeLimitMinutes(minutes);
         request.setStatus("PUBLISHED");
-        request.setDisplayOrder(10);
         instructorLedCourseManagementService.createAssessmentBankItem(request);
     }
 
@@ -892,8 +873,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             List<ClassSection> offerings,
             User showcaseLearner
     ) {
-        InstructorLedCourse ieltsProgram = ensureSheetTrainingProgram("center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
-        InstructorLedCourse toeicProgram = ensureSheetTrainingProgram("center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse ieltsProgram = ensureSheetInstructorLedCourse("center-sheet-ielts-4skills", "IELTS 4 kỹ năng");
+        InstructorLedCourse toeicProgram = ensureSheetInstructorLedCourse("center-sheet-toeic-lr", "TOEIC Listening & Reading");
         if (enrollmentRequestRepository.count() > 0) {
             for (CourseRegistrationRequest existing : enrollmentRequestRepository.findAll()) {
                 if (existing.getCourseOffering() == null) {
@@ -959,7 +940,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .consultationTrack(i % 2 == 0 ? "IELTS_4_SKILLS" : "TOEIC_2_SKILLS")
                     .studyWorkGoal("Muốn học ca tối để đi làm ban ngày.")
                     .preferredSchedule("Thứ 2-4-6 · Tối")
-                    .campusPreference(CAMPUS_NAME)
                     .learnerNote("Đăng ký tư vấn từ lịch khai giảng sheet.")
                     .requestSource(EnrollmentRequestSource.ONLINE)
                     .courseOffering(i % 2 == 0 ? ieltsProgram : toeicProgram)
@@ -972,21 +952,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 builder.invitationSentAt(LocalDateTime.now().minusDays(5));
                 builder.staffNote("Đã gọi điện tư vấn ca tối và hướng dẫn bài xếp lớp.");
             }
-            if (status == EnrollmentRequestStatus.TEST_SCHEDULED
-                    || status == EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED
-                    || status == EnrollmentRequestStatus.UNDER_STAFF_REVIEW
-                    || status == EnrollmentRequestStatus.WAITING_FOR_CLASS
-                    || status == EnrollmentRequestStatus.CLASS_ASSIGNED) {
-                builder.testAppointmentAt(LocalDateTime.now().minusDays(2));
-                builder.testLocation(ADDRESS);
-            }
-            if (status == EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED
-                    || status == EnrollmentRequestStatus.UNDER_STAFF_REVIEW
-                    || status == EnrollmentRequestStatus.WAITING_FOR_CLASS
-                    || status == EnrollmentRequestStatus.CLASS_ASSIGNED) {
-                builder.testCompletedAt(LocalDateTime.now().minusDays(1));
                 builder.confirmedLevel(i % 3 == 0 ? PlacementLevel.BEGINNER : PlacementLevel.INTERMEDIATE);
-            }
             if (status == EnrollmentRequestStatus.CLASS_ASSIGNED && assigned != null) {
                 builder.assignedClassSection(assigned);
                 builder.preferredClassSection(assigned);
@@ -1019,25 +985,22 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
-    private InstructorLedCourse ensureSheetTrainingProgram(String slug, String title, ClassroomDeliveryMode mode) {
+    private InstructorLedCourse ensureSheetInstructorLedCourse(String slug, String title) {
         boolean toeic = slug.contains("toeic");
-        return ensureSheetCurriculum(slug, title, mode, toeic);
+        return ensureSheetCourseStructure(slug, title, toeic);
     }
 
-    private InstructorLedCourse ensureSheetCurriculum(
+    private InstructorLedCourse ensureSheetCourseStructure(
             String slug,
             String title,
-            ClassroomDeliveryMode mode,
             boolean toeic
     ) {
         String codeBase = slug.replace("center-sheet-", "").replace("-", "_").replace("_curriculum", "").toUpperCase();
-        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(slug)
+        InstructorLedCourse program = instructorLedCourseRepository.findByCodeIgnoreCase("CS_" + codeBase)
                 .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title(title)
                         .code("CS_" + codeBase)
-                        .slug(slug)
                         .examType(toeic ? "TOEIC" : "IELTS")
-                        .programTrack(toeic ? "TOEIC_2_SKILLS" : "IELTS_4_SKILLS")
                         .focusSkills(toeic ? "Listening, Reading" : "Listening, Reading, Writing, Speaking")
                         .entryLevel(toeic ? "TOEIC 350+" : "IELTS 5.0")
                         .learningOutcomes(toeic
@@ -1105,7 +1068,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
         request.setResourceId(resourceId);
         request.setDisplayOrder(1);
-        request.setNote(note);
         return request;
     }
 
@@ -1165,7 +1127,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .answerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
                         .explanation("Đối chiếu đáp án và ghi lại lỗi sai trước khi làm lại.")
                         .tags("sheet," + exam.toLowerCase() + ",unit-" + unitNumber)
-                        .active(true)
+                        .status("PUBLISHED")
                         .createdBy(creator)
                         .build());
         exercise.setExerciseType("PRACTICE");
@@ -1222,7 +1184,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         set.setTags("sheet," + exam.toLowerCase() + ",unit-" + unitNumber);
         set.setCardsJson("IELTS".equals(exam) ? ieltsFlashcardsJson(unitNumber) : toeicFlashcardsJson(unitNumber));
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(unitNumber);
         return flashcardSetRepository.save(set);
     }
 
@@ -1446,15 +1407,15 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private void seedUpcomingAlertClass(List<User> teachers, List<User> learners) {
-        if (offeringRepository.findByInstructorLedCourseSlugOrCode("center-sheet-class-31").isPresent()) {
+        if (offeringRepository.findByInstructorLedCourseCodeOrClassCode("center-sheet-class-31").isPresent()) {
             return;
         }
         if (teachers.size() < 2 || learners.size() < 4) {
             return;
         }
         User teacher = teachers.get(1);
-        InstructorLedCourse program = ensureSheetTrainingProgram(
-                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
+        InstructorLedCourse program = ensureSheetInstructorLedCourse(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng");
         ClassSection offering = upsertOffering(
                 "center-sheet-class-31",
                 "IELTS Center K4 T2-4-6 Ca 1",
@@ -1493,9 +1454,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .student(learner)
                         .build());
         entry.setHomeworkScore(homework);
-        entry.setQuizScore(quiz);
         entry.setAttendancePercent(attendance);
-        entry.setParticipationScore(participation);
         entry.setFinalResult(finalResult);
         entry.setTeacherComment("Tiến độ đều, cần giữ phong độ bài tập về nhà.");
         entry.setStatus(GradebookEntryStatus.PUBLISHED);

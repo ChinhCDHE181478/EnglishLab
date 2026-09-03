@@ -40,10 +40,6 @@ public class CenterSheetCourseCatalog {
             CourseLevel level,
             double minBand,
             double targetBand,
-            String pathCode,
-            String pathName,
-            int pathOrder,
-            String nextSlug,
             int displayOrder,
             String thumbnailUrl,
             List<String> moduleTitles
@@ -56,64 +52,56 @@ public class CenterSheetCourseCatalog {
                         "IELTS Listening Foundations",
                         "Luyện nghe IELTS từ 4.5 lên 6.5: chiến lược gạch keyword, bẫy distractors và chính tả.",
                         CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 3,
-                        "center-sheet-ielts-reading", 11, "/course-covers/ielts-listening.png",
+                        11, "/course-covers/ielts-listening.png",
                         List.of("Section 1 Forms and Notes", "Section 2 Maps and Plans", "Section 3 Academic Discussion", "Section 4 Lecture Monologue")),
                 new CourseSpec(
                         "center-sheet-ielts-reading",
                         "IELTS Academic Reading",
                         "Kỹ năng skim, scan, True/False/Not Given và Summary Completion cho bài thi Academic.",
                         CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 4,
-                        "center-sheet-ielts-writing", 12, "/course-covers/ielts-reading.png",
+                        12, "/course-covers/ielts-reading.png",
                         List.of("Skimming and Scanning", "True False Not Given Mastery", "Headings and Matching", "Multiple Choice and Summary")),
                 new CourseSpec(
                         "center-sheet-ielts-writing",
                         "IELTS Writing Task 1 and Task 2",
                         "Cấu trúc bài viết chuẩn học thuật: phân tích biểu đồ Task 1 và lập luận Task 2 band 6.5+.",
                         CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 5,
-                        "center-sheet-ielts-speaking", 13, "/course-covers/ielts-writing.png",
+                        13, "/course-covers/ielts-writing.png",
                         List.of("Task 1 Trend Charts", "Task 1 Process and Maps", "Task 2 Opinion Essays", "Task 2 Discussion and Problem Solution")),
                 new CourseSpec(
                         "center-sheet-ielts-speaking",
                         "IELTS Speaking Fluency Studio",
                         "Mở rộng ý tưởng Part 1, kéo dài câu Part 2 và lập luận phản biện Part 3.",
                         CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
-                        "IELTS_BAND_55_TO_70", "IELTS 5.5 to 7.0 Self-Paced Path", 6,
-                        "center-sheet-toeic-lr", 14, "/course-covers/ielts-speaking.png",
+                        14, "/course-covers/ielts-speaking.png",
                         List.of("Part 1 Fluency and Natural Idioms", "Part 2 The 1-Minute Plan", "Part 3 Counterarguments and Examples", "Pronunciation and Linking")),
                 new CourseSpec(
                         "center-sheet-toeic-lr",
                         "TOEIC Listening and Reading 650+",
                         "Chiến lược xử lý nhanh part 3-4-7 và hệ thống ngữ pháp - từ vựng trọng tâm TOEIC.",
                         CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 350.0, 650.0,
-                        "TOEIC_ACCELERATOR", "TOEIC Career Accelerator", 1,
-                        "center-sheet-toeic-sw", 15, "/course-covers/toeic-lr.png",
+                        15, "/course-covers/toeic-lr.png",
                         List.of("Part 1 and 2 Quick Response", "Part 3 and 4 Audio Inference", "Part 5 and 6 Speed Grammar", "Part 7 Double Passage Time Saving")),
                 new CourseSpec(
                         "center-sheet-toeic-sw",
                         "TOEIC Speaking and Writing 140+",
                         "Giao tiếp công sở chuẩn quốc tế: trả lời điện thoại, viết email và giải quyết than phiền.",
                         CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 110.0, 160.0,
-                        "TOEIC_ACCELERATOR", "TOEIC Career Accelerator", 2,
-                        "center-sheet-communication-work", 16, "/course-covers/toeic-sw.png",
+                        16, "/course-covers/toeic-sw.png",
                         List.of("Speaking Read Aloud and Describe Picture", "Speaking Respond to Questions", "Writing Business Email", "Writing Opinion Essay")),
                 new CourseSpec(
                         "center-sheet-communication-work",
                         "English Communication for Work",
                         "Kỹ năng thuyết trình, họp dự án, đàm phán nhẹ và viết thư công việc chuyên nghiệp.",
                         CourseCategoryCode.COMMUNICATION, CourseLevel.INTERMEDIATE, 4.0, 6.0,
-                        "COMMUNICATION_PATH", "Workplace Communication Path", 1,
-                        "center-sheet-grammar-foundation", 10, "/course-covers/communication.png",
+                        10, "/course-covers/communication.png",
                         List.of("Small Talk and Introductions", "Meetings and Opinions", "Email Etiquette", "Presentations and Pitches")),
                 new CourseSpec(
                         "center-sheet-grammar-foundation",
                         "English Grammar Foundation",
                         "Khóa ngữ pháp nền: thì, mệnh đề, giới từ và sửa lỗi thường gặp trong bài thi.",
                         CourseCategoryCode.FOUNDATION, CourseLevel.BEGINNER, 3.0, 5.0,
-                        "COMMUNICATION_PATH", "Workplace Communication Path", 2,
-                        "center-sheet-ielts-listening", 17, "/course-covers/grammar.png",
+                        17, "/course-covers/grammar.png",
                         List.of("Tenses in Context", "Complex Sentences", "Prepositions and Articles", "Error Correction"))
         );
     }
@@ -146,21 +134,15 @@ public class CenterSheetCourseCatalog {
         course.setDescription(spec.description());
         course.setTargetScore(spec.category() == CourseCategoryCode.TOEIC ? "TOEIC 650+" : "IELTS " + spec.targetBand());
         course.setDuration("8 giờ học");
-        course.setStudyMode("Tự học online, 4 module");
         course.setPrice(BigDecimal.valueOf(1_490_000));
         course.setThumbnailUrl(spec.thumbnailUrl());
         course.setStatus(PackageStatus.PUBLISHED);
-        course.setFeatured(spec.pathOrder() <= 2);
-        course.setDeleted(false);
+        course.setFeatured(false);
         course.setCreatedBy(contentManager);
         course.setCategory(category);
         course.setLevel(spec.level());
         course.setRecommendedCurrentBandMin(spec.minBand());
         course.setTargetBand(spec.targetBand());
-        course.setLearningPathCode(spec.pathCode());
-        course.setLearningPathName(spec.pathName());
-        course.setLearningPathOrder(spec.pathOrder());
-        course.setRecommendedNextCourseSlug(spec.nextSlug());
         course.setTargetOutcome(spec.description());
         final OnlineCourse savedCourse = onlineCourseRepository.save(course);
         OnlineCourseVersion targetVersion = onlineCourseVersionRepository
@@ -205,8 +187,6 @@ public class CenterSheetCourseCatalog {
                         .onlineCourse(course)
                         .versionNumber(1)
                         .status(CourseVersionStatus.DRAFT)
-                        .contentSnapshotJson("{}")
-                        .assessmentIdsJson("[]")
                         .totalRequiredLessons(0)
                         .totalRequiredAssessments(0)
                         .build()));

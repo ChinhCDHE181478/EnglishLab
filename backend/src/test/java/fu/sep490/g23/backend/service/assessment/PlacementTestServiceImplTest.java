@@ -66,7 +66,7 @@ class PlacementTestServiceImplTest {
                 .description("Placement test description")
                 .examType("IELTS")
                 .maxAttempts(3)
-                .active(true)
+                .status("PUBLISHED")
                 .build();
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -110,7 +110,7 @@ class PlacementTestServiceImplTest {
                 .testCode(PlacementTestDefinitionService.TEST_CODE)
                 .title("Placement test")
                 .examType("IELTS")
-                .active(true)
+                .status("PUBLISHED")
                 .build();
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode listeningConfig = objectMapper.createObjectNode();

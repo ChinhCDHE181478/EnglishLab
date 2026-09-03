@@ -437,15 +437,13 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
-  async getStaffPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/staff/classrooms/training-programs', {
-      params: deliveryMode ? { deliveryMode } : undefined,
-    });
+  async getStaffInstructorLedCourses() {
+    const response = await axiosClient.get('/api/staff/classrooms/instructor-led-courses');
     return asList(unwrapData(response));
   },
 
-  async getStaffProgram(id) {
-    const response = await axiosClient.get(`/api/staff/classrooms/training-programs/${id}`);
+  async getStaffInstructorLedCourse(id) {
+    const response = await axiosClient.get(`/api/staff/classrooms/instructor-led-courses/${id}`);
     return unwrapData(response);
   },
 
@@ -715,38 +713,6 @@ export const classroomApi = {
 
   async reviewAttendanceDispute(disputeId, payload) {
     const response = await axiosClient.post(`/api/teacher/attendance-disputes/${disputeId}/review`, payload);
-    return unwrapData(response);
-  },
-
-  async getContentManagerPrograms(deliveryType) {
-    const response = await axiosClient.get('/api/content-manager/training-programs', {
-      params: deliveryType ? { deliveryType } : undefined,
-    });
-    return asList(unwrapData(response));
-  },
-
-  async getContentManagerProgram(id) {
-    const response = await axiosClient.get(`/api/content-manager/training-programs/${id}`);
-    return unwrapData(response);
-  },
-
-  async createContentManagerProgram(payload) {
-    const response = await axiosClient.post('/api/content-manager/training-programs', payload);
-    return unwrapData(response);
-  },
-
-  async updateContentManagerProgram(id, payload) {
-    const response = await axiosClient.put(`/api/content-manager/training-programs/${id}`, payload);
-    return unwrapData(response);
-  },
-
-  async cloneContentManagerProgram(id) {
-    const response = await axiosClient.post(`/api/content-manager/training-programs/${id}/clone`);
-    return unwrapData(response);
-  },
-
-  async archiveContentManagerProgram(id) {
-    const response = await axiosClient.delete(`/api/content-manager/training-programs/${id}`);
     return unwrapData(response);
   },
 

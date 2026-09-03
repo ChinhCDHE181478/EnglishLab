@@ -119,9 +119,6 @@ public class ClassroomAttendanceServiceImpl implements ClassroomAttendanceServic
 
             attendance.setStatus(record.getStatus());
             attendance.setNote(record.getNote());
-            attendance.setJoinTime(record.getJoinTime());
-            attendance.setLeaveTime(record.getLeaveTime());
-            attendance.setDurationMinutes(record.getDurationMinutes());
             attendance.setTeacherConfirmed(true);
             attendance.setMarkedBy(marker);
 

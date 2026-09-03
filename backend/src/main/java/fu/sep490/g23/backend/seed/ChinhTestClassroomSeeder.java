@@ -14,7 +14,6 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomTuitionPayment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
@@ -313,11 +312,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     // ── Curriculum Program, Units, Flashcards, Practice, Materials ───────────
 
     private InstructorLedCourse ensureCurriculum(User teacher) {
-        InstructorLedCourse program = instructorLedCourseRepository.findBySlug(CURRICULUM_SLUG)
+        InstructorLedCourse program = instructorLedCourseRepository.findByCodeIgnoreCase("EL-IELTS-650-V1")
                 .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                         .title("IELTS Intensive 6.5+ - Virtual Curriculum")
                         .code("EL-IELTS-650-V1")
-                        .slug(CURRICULUM_SLUG)
                         .examType("IELTS")
                         .targetBand(BigDecimal.valueOf(6.5))
                         .entryLevel("IELTS 5.0+ hoặc CEFR B1")
@@ -388,7 +386,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         CourseUnitContentRefRequest request = new CourseUnitContentRefRequest();
         request.setResourceId(resourceId);
         request.setDisplayOrder(1);
-        request.setNote(note);
         return request;
     }
 
@@ -428,7 +425,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .answerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
                         .explanation("Đối chiếu đáp án, xác định nguyên nhân câu chưa đúng và ôn lại lý thuyết trọng tâm.")
                         .tags(seed.tags())
-                        .active(true)
+                        .status("PUBLISHED")
                         .createdBy(teacher)
                         .build());
         exercise.setExerciseType("PRACTICE");
@@ -487,7 +484,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         set.setTags(seed.tags());
         set.setCardsJson(flashcardsJson(unitNumber));
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(unitNumber);
         return flashcardSetRepository.save(set);
     }
 
@@ -647,16 +643,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .tuitionFeeVnd(BigDecimal.valueOf(4_690_000))
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
                 .status(ClassroomOfferingStatus.ACTIVE)
-                .entryLevel("IELTS 5.0+ hoặc CEFR B1")
-                .targetOutcome("Đạt IELTS 6.5+; thành thạo cả 4 kỹ năng; có chiến lược thi thực tế.")
                 .capacity(20)
                 .startDate(LocalDate.now().minusWeeks(5))
                 .plannedEndDate(LocalDate.now().plusWeeks(3))
                 .primaryTeacher(teacher)
-                .syllabusSummary("8 buổi bám sát 4 kỹ năng IELTS: Listening, Reading, Writing, Speaking. Mỗi buổi gồm lý thuyết + luyện tập + flashcards + feedback cá nhân.")
-                .programOutcomes("Đạt band 6.5 IELTS tổng. Viết task 1 và task 2 đạt band 6.0+. Nói liên tục 2 phút không dừng.")
-                .teacherGuide("Mỗi buổi: review 10 phút + dạy chiến lược 30 phút + luyện tập có hướng dẫn 40 phút + Q&A 10 phút.")
-                .interactionActivities("Mock test, pair speaking, error log review, timed writing, peer feedback.")
                 .build();
         return offeringRepository.save(offering);
     }
@@ -685,13 +675,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
                         .tuitionAmountPaid(BigDecimal.valueOf(4_690_000))
-                        .tuitionDepositPaid(BigDecimal.valueOf(1_000_000))
-                        .tuitionSettlementType(TuitionSettlementType.NONE)
-                        .enrolledAt(LocalDateTime.now().minusWeeks(5))
-                        .assignedAt(LocalDateTime.now().minusWeeks(5))
                         .assignedBy(teacher)
-                        .confirmedAt(LocalDateTime.now().minusWeeks(5))
-                        .confirmedBy(teacher)
                         .assignmentNote("Học viên tham gia lớp: " + learner.getEmail())
                         .build()));
     }
@@ -862,9 +846,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .teacherConfirmed(true)
                 .markedBy(teacher)
                 .note(note);
-        if (joinTime != null) builder.joinTime(joinTime);
-        if (leaveTime != null) builder.leaveTime(leaveTime);
-        if (durationMinutes != null) builder.durationMinutes(durationMinutes);
         attendanceRepository.save(builder.build());
     }
 
@@ -1164,9 +1145,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         if (existingOpt.isPresent()) {
             ClassroomGradebookEntry entry = existingOpt.get();
             entry.setHomeworkScore(BigDecimal.valueOf(8.2));
-            entry.setQuizScore(BigDecimal.valueOf(9.0));
             entry.setAttendancePercent(BigDecimal.valueOf(80.0));
-            entry.setParticipationScore(BigDecimal.valueOf(8.5));
             entry.setFinalResult(BigDecimal.valueOf(8.4));
             entry.setTeacherComment("Học viên học nghiêm túc, tham gia tốt. Đã hoàn thành 3 bài tập và đạt điểm số ấn tượng (TB: 8.2). Cần tiếp tục duy trì phong độ cho các bài tập sắp tới!");
             entry.setStatus(GradebookEntryStatus.PUBLISHED);
@@ -1179,9 +1158,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .classSection(offering)
                 .student(learner)
                 .homeworkScore(BigDecimal.valueOf(8.2))
-                .quizScore(BigDecimal.valueOf(9.0))
                 .attendancePercent(BigDecimal.valueOf(80.0))
-                .participationScore(BigDecimal.valueOf(8.5))
                 .finalResult(BigDecimal.valueOf(8.4))
                 .teacherComment("Học viên học nghiêm túc, tham gia tốt. Đã hoàn thành 3 bài tập và đạt điểm số ấn tượng (TB: 8.2). Cần tiếp tục duy trì phong độ cho các bài tập sắp tới!")
                 .status(GradebookEntryStatus.PUBLISHED)

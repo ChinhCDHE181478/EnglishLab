@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.service.assessment.impl;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementRecommendationResponse;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementSkillScoresResponse;
-import fu.sep490.g23.backend.dto.response.assessment.RecommendedTrainingProgramResponse;
+import fu.sep490.g23.backend.dto.response.assessment.RecommendedInstructorLedCourseResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -54,7 +54,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
      * 2. fromAttempt — pack scores + weak skills + learner target
      * 3. baseResponse — always return scores/status even if lists are empty
      * 4. canBuildRecommendations — skip ranking if expired / skill-only / no overall
-     * 5. recommendCourses / recommendTrainingPrograms / learning-path recommend
+     * 5. recommendCourses / recommendInstructorLedCourses / learning-path recommend
      */
     @Override
     public PlacementRecommendationResponse getRecommendations(Long attemptId, String learnerEmail) {
@@ -83,7 +83,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                     .recommendationReady(false)
                     .message(readinessMessage(eligibility.getStatus()))
                     .recommendedOnlineCourses(List.of())
-                    .recommendedTrainingPrograms(List.of())
+                    .recommendedInstructorLedCourses(List.of())
                     .recommendedLearningPath(null)
                     .build();
         }
@@ -93,7 +93,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .recommendationReady(true)
                 .message(null)
                 .recommendedOnlineCourses(onlineCourseService.recommendCourses(learner, context))
-                .recommendedTrainingPrograms(recommendTrainingPrograms(context))
+                .recommendedInstructorLedCourses(recommendInstructorLedCourses(context))
                 .recommendedLearningPath(learningPathRecommendationService.recommend(learner, context, true))
                 .build();
     }
@@ -136,25 +136,25 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
     }
 
     /**
-     * Core ranking for placement → classroom training programs.
+     * Core ranking for placement to instructor-led courses.
      *
      * Pipeline:
      * 1. Load active instructor-led courses.
      * 2. Keep PUBLISHED product + PUBLISHED curriculum only.
      * 3. Same exam category as placement (IELTS vs TOEIC) — hard filter, unlike online courses.
-     * 4. trainingProgramScore() — numeric match (level, weak skills, target stretch).
+     * 4. instructorLedCourseScore() - numeric match (level, weak skills, target stretch).
      * 5. Sort by score desc; tie-break by id.
-     * 6. Keep 6; toTrainingResponse() adds the Vietnamese reason.
+     * 6. Keep 6; toInstructorLedCourseResponse() adds the Vietnamese reason.
      */
-    private List<RecommendedTrainingProgramResponse> recommendTrainingPrograms(PlacementRecommendationContext context) {
+    private List<RecommendedInstructorLedCourseResponse> recommendInstructorLedCourses(PlacementRecommendationContext context) {
         return instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
                 .filter(program -> program.getPublicationStatus() == PackageStatus.PUBLISHED)
                 .filter(program -> context.getExamType().equalsIgnoreCase(program.getExamType()))
-                .map(program -> new ScoredTrainingProgram(program, trainingProgramScore(program, context)))
-                .sorted(Comparator.comparingDouble(ScoredTrainingProgram::score).reversed()
+                .map(program -> new ScoredInstructorLedCourse(program, instructorLedCourseScore(program, context)))
+                .sorted(Comparator.comparingDouble(ScoredInstructorLedCourse::score).reversed()
                         .thenComparing(item -> item.program().getId()))
                 .limit(6)
-                .map(item -> toTrainingResponse(item.program(), context))
+                .map(item -> toInstructorLedCourseResponse(item.program(), context))
                 .toList();
     }
 
@@ -168,7 +168,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
      *
      * IELTS uses targetBand; TOEIC uses targetScore.
      */
-    private double trainingProgramScore(InstructorLedCourse program, PlacementRecommendationContext context) {
+    private double instructorLedCourseScore(InstructorLedCourse program, PlacementRecommendationContext context) {
         InstructorLedCourse curriculum = program;
         double score = 20;
         if (curriculum.getEntryPlacementLevel() != null && context.getRecommendedLevel() != null) {
@@ -192,7 +192,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
      * Map a ranked program to the API DTO.
      * Reason priority: covers a weak skill → same placement level → same exam type.
      */
-    private RecommendedTrainingProgramResponse toTrainingResponse(
+    private RecommendedInstructorLedCourseResponse toInstructorLedCourseResponse(
             InstructorLedCourse program,
             PlacementRecommendationContext context
     ) {
@@ -206,15 +206,12 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 : curriculum.getEntryPlacementLevel() == context.getRecommendedLevel()
                     ? "Phù hợp với trình độ " + levelLabel(context.getRecommendedLevel().name()) + " hiện tại của bạn."
                     : "Phù hợp với mục tiêu " + context.getExamType() + " của bạn.";
-        return RecommendedTrainingProgramResponse.builder()
+        return RecommendedInstructorLedCourseResponse.builder()
                 .id(program.getId())
-                .slug(program.getSlug())
                 .title(program.getTitle())
-                .deliveryMode(null)
                 .shortDescription(program.getShortDescription())
                 .entryPlacementLevel(curriculum.getEntryPlacementLevel())
                 .examCategory(curriculum.getExamType())
-                .programTrack(curriculum.getProgramTrack())
                 .focusSkills(focusSkills(curriculum.getFocusSkills()).stream().map(Enum::name).toList())
                 .targetBand(curriculum.getTargetBand())
                 .targetScore(curriculum.getTargetScore())
@@ -274,5 +271,5 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
     }
 
     /** Temporary holder while sorting instructor-led courses by match score. */
-    private record ScoredTrainingProgram(InstructorLedCourse program, double score) {}
+    private record ScoredInstructorLedCourse(InstructorLedCourse program, double score) {}
 }

@@ -4,7 +4,6 @@ import fu.sep490.g23.backend.dto.request.assessment.ContentManagerCourseAssessme
 import fu.sep490.g23.backend.dto.request.course.OnlineCourseRequest;
 import fu.sep490.g23.backend.dto.request.course.ReorderLessonsRequest;
 import fu.sep490.g23.backend.dto.request.course.ReorderModulesRequest;
-import fu.sep490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sep490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
@@ -17,7 +16,6 @@ import fu.sep490.g23.backend.dto.response.course.LessonResponse;
 import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
-import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
@@ -47,7 +45,6 @@ public interface OnlineCourseService {
     OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail);
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request);
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request, String actorEmail);
-    List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request);
     OnlineCourseResponse publishCourse(Long id, String actorEmail);
     OnlineCourseResponse archiveCourse(Long id);
     void deleteCourse(Long id);
@@ -62,7 +59,6 @@ public interface OnlineCourseService {
     List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
     /** Placement ranking: score published courses, then mix weak-skill + level-fit shortlist. */
     List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context);
-    LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);
 

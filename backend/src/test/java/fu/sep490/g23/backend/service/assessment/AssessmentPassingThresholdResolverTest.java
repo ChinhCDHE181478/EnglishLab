@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -23,7 +24,7 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
-                .onlineCourse(course)
+                .onlineCourseVersion(versionOf(course))
                 .maxScore(null)
                 .build();
 
@@ -36,7 +37,7 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
-                .onlineCourse(course)
+                .onlineCourseVersion(versionOf(course))
                 .passingScore(new BigDecimal("5.0"))
                 .maxScore(new BigDecimal("10"))
                 .build();
@@ -50,7 +51,7 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
-                .onlineCourse(course)
+                .onlineCourseVersion(versionOf(course))
                 .passingScore(new BigDecimal("6.5"))
                 .maxScore(null)
                 .build();
@@ -81,7 +82,7 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.0D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
-                .onlineCourse(course)
+                .onlineCourseVersion(versionOf(course))
                 .maxScore(null)
                 .build();
 
@@ -94,11 +95,15 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
-                .onlineCourse(course)
+                .onlineCourseVersion(versionOf(course))
                 .maxScore(null)
                 .build();
 
         assertTrue(resolver.isScorePassing(new BigDecimal("6.0"), assessment));
         assertFalse(resolver.isScorePassing(new BigDecimal("5.5"), assessment));
+    }
+
+    private OnlineCourseVersion versionOf(OnlineCourse course) {
+        return OnlineCourseVersion.builder().onlineCourse(course).build();
     }
 }

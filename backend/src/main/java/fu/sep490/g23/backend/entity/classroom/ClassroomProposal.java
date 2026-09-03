@@ -94,12 +94,6 @@ public class ClassroomProposal {
     @JoinColumn(name = "room_id")
     private Room room;
 
-    @Column(name = "offline_address", length = 500)
-    private String offlineAddress;
-
-    @Column(name = "virtual_meeting_url", length = 700)
-    private String virtualMeetingUrl;
-
     @Column(name = "staff_note", length = 700)
     private String staffNote;
 

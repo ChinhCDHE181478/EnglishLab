@@ -14,13 +14,11 @@ describe('englishProgramProfile', () => {
 
   it('provides exam-specific defaults', () => {
     expect(getEnglishProfileDefaults('IELTS')).toMatchObject({
-      programTrack: 'IELTS_ACADEMIC',
       entryLevel: '4.0',
       targetBand: 6.5,
       targetScore: '',
     });
     expect(getEnglishProfileDefaults('TOEIC')).toMatchObject({
-      programTrack: 'TOEIC_LISTENING_READING',
       entryLevel: '450',
       targetBand: '',
       targetScore: 650,
@@ -36,7 +34,6 @@ describe('englishProgramProfile', () => {
   it('rejects a TOEIC score on the wrong scale', () => {
     expect(validateEnglishProgramProfile({
       examCategory: 'TOEIC',
-      programTrack: 'TOEIC_LISTENING_READING',
       focusSkills: ['LISTENING', 'READING'],
       entryLevel: '450',
       targetScore: 6.5,
@@ -46,7 +43,6 @@ describe('englishProgramProfile', () => {
   it('rejects an entry score higher than the target', () => {
     expect(validateEnglishProgramProfile({
       examCategory: 'TOEIC',
-      programTrack: 'TOEIC_LISTENING_READING',
       focusSkills: ['LISTENING', 'READING'],
       entryLevel: '750',
       targetScore: 650,
@@ -56,7 +52,6 @@ describe('englishProgramProfile', () => {
   it('requires a valid CEFR level for General English', () => {
     expect(validateEnglishProgramProfile({
       examCategory: 'GENERAL_ENGLISH',
-      programTrack: 'GENERAL_ENGLISH_FOUNDATION',
       focusSkills: ['LISTENING', 'SPEAKING'],
       entryLevel: 'Sơ cấp',
     })).toContain('CEFR');
@@ -65,7 +60,6 @@ describe('englishProgramProfile', () => {
   it('rejects a score scale from another exam', () => {
     expect(validateEnglishProgramProfile({
       examCategory: 'IELTS',
-      programTrack: 'IELTS_ACADEMIC',
       focusSkills: ['LISTENING', 'READING'],
       entryLevel: '4.0',
       targetBand: 6.5,
@@ -76,7 +70,6 @@ describe('englishProgramProfile', () => {
   it('accepts a complete IELTS profile', () => {
     expect(validateEnglishProgramProfile({
       examCategory: 'IELTS',
-      programTrack: 'IELTS_ACADEMIC',
       focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
       entryLevel: '5.0',
       targetBand: 6.5,

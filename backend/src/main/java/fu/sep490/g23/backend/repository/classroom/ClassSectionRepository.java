@@ -21,8 +21,8 @@ public interface ClassSectionRepository extends JpaRepository<ClassSection, Long
     List<ClassSection> findByPrimaryTeacherId(Long teacherId);
     Optional<ClassSection> findByCode(String code);
 
-    @Query("SELECT co FROM ClassSection co JOIN FETCH co.instructorLedCourse course WHERE course.slug = :slugOrId OR co.code = :slugOrId")
-    Optional<ClassSection> findByInstructorLedCourseSlugOrCode(@Param("slugOrId") String slugOrId);
+    @Query("SELECT co FROM ClassSection co JOIN FETCH co.instructorLedCourse course WHERE course.code = :code OR co.code = :code")
+    Optional<ClassSection> findByInstructorLedCourseCodeOrClassCode(@Param("code") String code);
 
     @Query("SELECT co FROM ClassSection co WHERE LOWER(co.name) = LOWER(:title)")
     Optional<ClassSection> findByNameIgnoreCase(@Param("title") String title);

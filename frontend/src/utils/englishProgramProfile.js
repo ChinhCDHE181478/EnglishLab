@@ -31,40 +31,20 @@ export const ENGLISH_SKILL_OPTIONS = [
   { label: 'Communication', value: 'COMMUNICATION' },
 ];
 
-export const ENGLISH_TRACK_OPTIONS = {
-  IELTS: [
-    { label: 'IELTS Foundation', value: 'IELTS_FOUNDATION' },
-    { label: 'IELTS Academic', value: 'IELTS_ACADEMIC' },
-    { label: 'IELTS Speaking & Writing', value: 'IELTS_SPEAKING_WRITING' },
-  ],
-  TOEIC: [
-    { label: 'TOEIC Listening & Reading', value: 'TOEIC_LISTENING_READING' },
-    { label: 'TOEIC Speaking & Writing', value: 'TOEIC_SPEAKING_WRITING' },
-    { label: 'TOEIC Communication', value: 'TOEIC_COMMUNICATION' },
-  ],
-  GENERAL_ENGLISH: [
-    { label: 'General English Foundation', value: 'GENERAL_ENGLISH_FOUNDATION' },
-    { label: 'General English Communication', value: 'GENERAL_ENGLISH_COMMUNICATION' },
-  ],
-};
-
 const DEFAULT_PROFILES = {
   IELTS: {
-    programTrack: 'IELTS_ACADEMIC',
     focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
     entryLevel: '4.0',
     targetBand: 6.5,
     targetScore: '',
   },
   TOEIC: {
-    programTrack: 'TOEIC_LISTENING_READING',
     focusSkills: ['LISTENING', 'READING'],
     entryLevel: '450',
     targetBand: '',
     targetScore: 650,
   },
   GENERAL_ENGLISH: {
-    programTrack: 'GENERAL_ENGLISH_FOUNDATION',
     focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
     entryLevel: 'A2',
     targetBand: '',
@@ -109,8 +89,6 @@ export const normalizeEnglishEntryLevel = (value, examCategory) => {
 
 export const validateEnglishProgramProfile = (profile) => {
   const examCategory = normalizeEnglishExamCategory(profile.examCategory);
-  const trackValues = (ENGLISH_TRACK_OPTIONS[examCategory] || []).map((item) => item.value);
-  if (!trackValues.includes(profile.programTrack)) return 'Hãy chọn đúng loại chương trình của nhóm thi.';
   if (!profile.focusSkills?.length) return 'Hãy chọn ít nhất một kỹ năng trọng tâm.';
 
   if (examCategory === 'IELTS') {
@@ -164,8 +142,4 @@ export const isValidToeicScore = (value) => (
   && Number(value) >= 10
   && Number(value) <= 990
   && Number(value) % 5 === 0
-);
-
-export const englishTrackLabel = (value) => (
-  Object.values(ENGLISH_TRACK_OPTIONS).flat().find((item) => item.value === value)?.label || value || '—'
 );

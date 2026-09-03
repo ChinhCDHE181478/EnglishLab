@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.controller.curriculum;
 
 import fu.sep490.g23.backend.config.SecurityConfig;
+import fu.sep490.g23.backend.controller.course.ContentManagerInstructorLedCourseController;
 import fu.sep490.g23.backend.dto.response.curriculum.CourseLessonResponse;
 import fu.sep490.g23.backend.security.CustomUserDetailsService;
 import fu.sep490.g23.backend.security.JwtAuthenticationFilter;

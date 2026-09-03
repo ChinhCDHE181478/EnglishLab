@@ -93,7 +93,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         // Fetch assessments, filter by course ID, and sort by display order.
         List<CourseAssessment> assessments = courseAssessmentRepository
                 .findAllById(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).stream()
-                .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
+                .filter(assessment -> assessment.getOnlineCourseVersion().getOnlineCourse().getId().equals(course.getId()))
                 .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
                 .toList();
                 
@@ -113,7 +113,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         
         // Normalize the rubric and verify the student is properly enrolled in this assessment's course.
         normalizeAssessmentRubricCompatibility(assessment);
-        OnlineCourseEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourse());
+        OnlineCourseEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourseVersion().getOnlineCourse());
         onlineCourseVersionService.assertAssessmentBelongsToEnrollment(enrollment, assessmentId);
 
         // Check if AI evaluation is enabled for this assessment.
@@ -180,17 +180,11 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .student(student)
                 .submittedText(request.getSubmittedText())
                 .submittedAudioUrl(request.getSubmittedAudioUrl())
-                .objectiveAnswersJson(request.getObjectiveAnswersJson())
+                .objectiveAnswers(request.getObjectiveAnswersJson())
                 .fullscreenExitCount(request.getFullscreenExitCount())
                 .tabSwitchCount(request.getTabSwitchCount())
-                .microphoneChecked(request.getMicrophoneChecked())
-                .deviceCheckPassed(request.getDeviceCheckPassed())
-                .aiScore(score)
-                .aiFeedbackJson(aiResult.getFeedbackJson())
-                .aiPromptSnapshot(prompt)
-                .aiProvider(aiResult.getProvider())
-                .aiModel(aiResult.getModel())
-                .aiRawResponse(aiResult.getRawResponse())
+                .score(score)
+                .aiFeedback(aiResult.getFeedbackJson())
                 .status(status)
                 .build();
 
@@ -198,10 +192,10 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         AssessmentSubmission savedSubmission = submissionRepository.save(submission);
         
         // If the student has an active enrollment, refresh their course progress based on this new submission.
-        enrollmentRepository.findByStudentAndOnlineCourse(student, assessment.getOnlineCourse())
+        enrollmentRepository.findByStudentAndOnlineCourse(student, assessment.getOnlineCourseVersion().getOnlineCourse())
                 .ifPresent(activeEnrollment -> courseProgressService.refreshEnrollmentProgress(
                         activeEnrollment,
-                        assessment.getOnlineCourse(),
+                        assessment.getOnlineCourseVersion().getOnlineCourse(),
                         student
                 ));
                 
@@ -714,7 +708,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
         // 2. Extract course information and student's submitted content (text or answers).
         // Example output for submittedContent: "I think the environment is very important because..."
-        OnlineCourse course = assessment.getOnlineCourse();
+        OnlineCourse course = assessment.getOnlineCourseVersion().getOnlineCourse();
         String submittedContent = buildSubmittedContent(request, assessment.getSkill(), hasAnalyzableAudio);
         
         // 3. Extract the target vocabulary for this specific module so the AI can check if the student used it.
@@ -826,9 +820,6 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - Minimum recommended current band: %s
                 - Target band: %s
                 - Target outcome: %s
-                - Learning path: %s
-                - Learning path stage: %s
-                - Recommended next course slug: %s
 
                 Module context:
                 - Module title: %s
@@ -861,9 +852,6 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 safe(course.getRecommendedCurrentBandMin()),
                 safe(course.getTargetBand()),
                 safe(course.getTargetOutcome()),
-                safe(course.getLearningPathName()),
-                safe(course.getLearningPathOrder()),
-                safe(course.getRecommendedNextCourseSlug()),
                 assessment.getModule() == null ? "Not provided" : safe(assessment.getModule().getTitle()),
                 assessment.getModule() == null ? "Not provided" : safe(assessment.getModule().getDescription()),
                 safe(targetVocabulary),
@@ -1454,7 +1442,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         String rawInstructions = assessment.getInstructions();
         return CourseAssessmentResponse.builder()
                 .id(assessment.getId())
-                .courseId(assessment.getOnlineCourse().getId())
+                .courseId(assessment.getOnlineCourseVersion().getOnlineCourse().getId())
                 .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
                 .lessonId(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getId())
                 .assessmentBankItemId(assessment.getAssessmentBankItem() == null ? null : assessment.getAssessmentBankItem().getId())
@@ -1468,9 +1456,9 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .instructions(extractDisplayInstructions(rawInstructions))
                 .objectiveAnswerKey(null)
                 .uiConfigJson(sanitizeUiConfigJson(
-                        assessment.getUiConfigJson() == null || assessment.getUiConfigJson().isBlank()
+                        assessment.getAssessmentConfig() == null || assessment.getAssessmentConfig().isBlank()
                                 ? extractUiConfigJson(rawInstructions)
-                                : assessment.getUiConfigJson()
+                                : assessment.getAssessmentConfig()
                 ))
                 .passingScore(assessment.getPassingScore())
                 .maxScore(IeltsBandScale.resolveScoreCap(assessment))
@@ -1537,7 +1525,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .taskType(rubric.getTaskType())
                 .scoringScale(rubric.getScoringScale())
                 .description(rubric.getDescription())
-                .active(rubric.isActive())
+                .status(rubric.getStatus())
                 .criteria(rubric.getCriteria().stream()
                         .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder).thenComparing(RubricCriterion::getId))
                         .map(criterion -> RubricCriterionResponse.builder()
@@ -1559,13 +1547,10 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .assessmentTitle(submission.getAssessment().getTitle())
                 .submittedText(submission.getSubmittedText())
                 .submittedAudioUrl(submission.getSubmittedAudioUrl())
-                .objectiveAnswersJson(submission.getObjectiveAnswersJson())
-                .aiScore(submission.getAiScore())
-                .aiFeedbackJson(submission.getAiFeedbackJson())
-                .aiPromptSnapshot(submission.getAiPromptSnapshot())
+                .objectiveAnswersJson(submission.getObjectiveAnswers())
+                .aiScore(submission.getScore())
+                .aiFeedbackJson(submission.getAiFeedback())
                 .status(submission.getStatus())
-                .aiProvider(submission.getAiProvider())
-                .aiModel(submission.getAiModel())
                 .submittedAt(submission.getSubmittedAt())
                 .build();
     }

@@ -1,9 +1,7 @@
 package fu.sep490.g23.backend.dto.request.classroom;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
-import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMin;
@@ -28,24 +26,11 @@ public class CreateClassroomOfferingRequest {
     @Size(max = 180)
     private String title;
 
-    @Size(max = 500)
-    private String shortDescription;
-
-    private String description;
-
     @NotNull(message = "Hình thức đào tạo không được để trống")
     private ClassroomDeliveryMode deliveryMode;
 
     private ClassroomOfferingStatus classroomStatus;
-    private PackageStatus packageStatus;
-
     private Long instructorLedCourseId;
-
-    @Size(max = 120)
-    private String entryLevel;
-
-    @Size(max = 700)
-    private String targetOutcome;
 
     @Min(1)
     private Integer capacity;
@@ -56,21 +41,6 @@ public class CreateClassroomOfferingRequest {
     private Long primaryTeacherId;
     private Long roomId;
 
-    @Size(max = 500)
-    private String offlineAddress;
-
-    @Size(max = 500)
-    private String locationNote;
-
-    @Size(max = 700)
-    private String defaultLarkMeetingUrl;
-
-    @Size(max = 700)
-    private String recordingUrl;
-
-    private Boolean recordingVisible;
-    private String syllabusSummary;
-
     @DecimalMin(value = "0.0", inclusive = true, message = "Học phí không được âm")
     private BigDecimal price;
 
@@ -79,9 +49,6 @@ public class CreateClassroomOfferingRequest {
 
     @Size(max = 80)
     private String duration;
-
-    @Size(max = 120)
-    private String studyMode;
 
     @Size(max = 80)
     private String targetScore;

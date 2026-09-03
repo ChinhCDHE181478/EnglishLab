@@ -6,11 +6,13 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.*;
 
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
-import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -28,8 +30,8 @@ public class CourseAssessment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "online_course_id", nullable = false)
-    private OnlineCourse onlineCourse;
+    @JoinColumn(name = "online_course_version_id", nullable = false)
+    private OnlineCourseVersion onlineCourseVersion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id")
@@ -52,7 +54,7 @@ public class CourseAssessment {
      * Different immutable assessment rows may share this key when one is a new version
      * of the same logical assessment.
      */
-    @Column(name = "progress_key", length = 80)
+    @Column(name = "progress_key", nullable = false, length = 80)
     @Builder.Default
     private String progressKey = UUID.randomUUID().toString();
 
@@ -78,11 +80,13 @@ public class CourseAssessment {
     @Column(name = "instructions", columnDefinition = "text")
     private String instructions;
 
-    @Column(name = "objective_answer_key", columnDefinition = "text")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "objective_answer_key", columnDefinition = "jsonb")
     private String objectiveAnswerKey;
 
-    @Column(name = "ui_config_json", columnDefinition = "text")
-    private String uiConfigJson;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "assessment_config", columnDefinition = "jsonb")
+    private String assessmentConfig;
 
     @Column(name = "passing_score", precision = 4, scale = 1)
     private BigDecimal passingScore;

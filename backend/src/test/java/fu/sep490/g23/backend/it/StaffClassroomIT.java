@@ -35,13 +35,16 @@ public class StaffClassroomIT {
         String token = login(mockMvc, STAFF, PASSWORD);
         mockMvc.perform(get("/api/staff/classrooms").header("Authorization", bearer(token)))
                 .andExpect(status().isOk());
+        mockMvc.perform(get("/api/staff/classrooms/training-programs")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("IT_CLASS_02")
     void itClass02() throws Exception {
         String token = login(mockMvc, STAFF, PASSWORD);
-        MvcResult progs = mockMvc.perform(get("/api/staff/classrooms/training-programs")
+        MvcResult progs = mockMvc.perform(get("/api/staff/classrooms/instructor-led-courses")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode arr = mapper().readTree(progs.getResponse().getContentAsString());
@@ -156,7 +159,6 @@ public class StaffClassroomIT {
         copyIfPresent(detail, classroom, "regularRoomId", "roomId");
         copyIfPresent(detail, classroom, "tuitionFeeVnd", "price");
         copyIfPresent(detail, classroom, "offlineAddress", "offlineAddress");
-        copyIfPresent(detail, classroom, "locationNote", "locationNote");
 
         var schedules = mapper().createArrayNode();
         long omittedLessonId = detail.path("sessions").valueStream()
