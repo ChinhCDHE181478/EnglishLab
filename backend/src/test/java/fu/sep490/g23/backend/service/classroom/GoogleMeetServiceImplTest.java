@@ -32,6 +32,8 @@ class GoogleMeetServiceImplTest {
     @Test
     void acceptsOnlyGoogleMeetHttpsUrls() {
         assertThat(service.isGoogleMeetUrl("https://meet.google.com/abc-defg-hij")).isTrue();
+        assertThat(service.isGoogleMeetUrl("https://meet.google.com/englishlab-sheet-class-1")).isFalse();
+        assertThat(service.isGoogleMeetUrl("https://meet.google.com/_meet/whoops?sc=232")).isFalse();
         assertThat(service.isGoogleMeetUrl("https://meet.larksuite.com/abc")).isFalse();
         assertThat(service.isGoogleMeetUrl("http://meet.google.com/abc")).isFalse();
         assertThat(service.isGoogleMeetUrl(null)).isFalse();
