@@ -56,7 +56,7 @@ public class CourseProgressionGuard {
     }
 
     public void ensureAssessmentCanBeSubmitted(User student, CourseAssessment assessment) {
-        OnlineCourse course = assessment.getOnlineCourse();
+        OnlineCourse course = assessment.getOnlineCourseVersion().getOnlineCourse();
         OnlineCourseModule module = assessment.getModule();
         if (module == null) {
             ensureAllLessonsCompleted(student, course);
@@ -112,7 +112,7 @@ public class CourseProgressionGuard {
                     if (status == SubmissionStatus.NEEDS_IMPROVEMENT) {
                         return false;
                     }
-                    BigDecimal score = submission.getAiScore();
+                    BigDecimal score = submission.getScore();
                     if (score == null) {
                         return status == SubmissionStatus.AI_EVALUATED
                                 && passingThresholdResolver.resolve(assessment) == null;

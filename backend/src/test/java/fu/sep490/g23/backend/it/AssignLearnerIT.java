@@ -115,7 +115,7 @@ public class AssignLearnerIT {
     private long createEnrollmentRequest(String staffToken, String prefix) throws Exception {
         String email = registerVerifiedLearner(mockMvc, userRepository, authTokenRepository, prefix);
         String learnerToken = login(mockMvc, email, PASSWORD);
-        JsonNode programs = items(json(mockMvc.perform(get("/api/staff/classrooms/training-programs")
+        JsonNode programs = items(json(mockMvc.perform(get("/api/staff/classrooms/instructor-led-courses")
                         .header("Authorization", bearer(staffToken)))
                 .andExpect(status().isOk()).andReturn()));
         assertFalse(programs.isEmpty(), "A published training program fixture is required");

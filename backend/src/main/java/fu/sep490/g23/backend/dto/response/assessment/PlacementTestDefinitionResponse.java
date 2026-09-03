@@ -13,7 +13,7 @@ public class PlacementTestDefinitionResponse {
     String description;
     String examType;
     Integer maxAttempts;
-    boolean active;
+    String status;
     String listeningConfigJson;
     String readingConfigJson;
     String writingConfigJson;

@@ -47,14 +47,6 @@ public class ClassroomAttendance {
     @Column(length = 500)
     private String note;
 
-    @Column(name = "join_time")
-    private LocalDateTime joinTime;
-
-    @Column(name = "leave_time")
-    private LocalDateTime leaveTime;
-
-    @Column(name = "duration_minutes")
-    private Integer durationMinutes;
 
     @Column(name = "teacher_confirmed", nullable = false)
     @Builder.Default
@@ -81,12 +73,6 @@ public class ClassroomAttendance {
     @Column(name = "dispute_reviewed_at")
     private LocalDateTime disputeReviewedAt;
 
-    @Column(name = "provider_participant_key", length = 255)
-    private String providerParticipantKey;
-
-    @Column(name = "provider_participant_active", nullable = false)
-    @Builder.Default
-    private boolean providerParticipantActive = false;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

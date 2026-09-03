@@ -31,6 +31,7 @@ const defaultFilters = {
 
 const Courses = () => {
   const [allCourses, setAllCourses] = useState([]);
+  const [learningPaths, setLearningPaths] = useState([]);
   const [coursePage, setCoursePage] = useState(EMPTY_PAGE);
   const [catalogPage, setCatalogPage] = useState(1);
   const [categories, setCategories] = useState([]);
@@ -101,6 +102,23 @@ const Courses = () => {
     };
 
     loadCategories();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadLearningPaths = async () => {
+      try {
+        const items = await courseApi.getLearningPathOffers();
+        if (active) setLearningPaths(Array.isArray(items) ? items : []);
+      } catch {
+        if (active) setLearningPaths([]);
+      }
+    };
+
+    loadLearningPaths();
     return () => {
       active = false;
     };
@@ -270,7 +288,7 @@ const Courses = () => {
           </div>
           <div className='mt-6'></div>
           <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
-          <LearningPathCatalog courses={allCourses} />
+          <LearningPathCatalog paths={learningPaths} />
           <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <PopularCourses courses={featuredCourses} />
           <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />

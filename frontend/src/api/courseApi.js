@@ -147,21 +147,6 @@ export const courseApi = {
     await axiosClient.delete(`/api/student/learning/notes/${noteId}`);
   },
 
-  async getLearnerLessonReviewFlags() {
-    const response = await axiosClient.get('/api/student/learning/review-flags');
-    const data = unwrapData(response);
-    return Array.isArray(data) ? data : data?.content || data?.items || [];
-  },
-
-  async addLearnerLessonReviewFlag(courseId, lessonId) {
-    const response = await axiosClient.post(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/review-flag`);
-    return unwrapData(response);
-  },
-
-  async removeLearnerLessonReviewFlag(courseId, lessonId) {
-    await axiosClient.delete(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/review-flag`);
-  },
-
   async getLessonDiscussions(courseId, lessonId, { filter = 'ALL', page = 0, size = 10 } = {}) {
     const response = await axiosClient.get(`/api/online-courses/${courseId}/lessons/${lessonId}/discussions`, {
       params: { filter, page, size },
@@ -462,11 +447,6 @@ export const courseApi = {
 
   async updateOnlineCourse(id, payload) {
     const response = await axiosClient.put(`/api/content-manager/online-courses/${id}`, payload);
-    return unwrapData(response);
-  },
-
-  async updateLearningPathOrder(courseIds) {
-    const response = await axiosClient.patch('/api/content-manager/online-courses/learning-path-order', { courseIds });
     return unwrapData(response);
   },
 

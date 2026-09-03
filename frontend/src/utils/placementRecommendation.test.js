@@ -21,13 +21,12 @@ describe('placement recommendation helpers', () => {
     ])).toBe(1);
   });
 
-  it('groups Offline, Virtual and Online recommendations', () => {
+  it('groups instructor-led and online recommendations', () => {
     const grouped = groupPlacementRecommendations({
-      recommendedTrainingPrograms: [{ id: 1, deliveryMode: 'OFFLINE' }, { id: 2, deliveryMode: 'VIRTUAL' }],
+      recommendedInstructorLedCourses: [{ id: 1 }, { id: 2 }],
       recommendedOnlineCourses: [{ id: 3 }],
     });
-    expect(grouped.offline).toHaveLength(1);
-    expect(grouped.virtual).toHaveLength(1);
+    expect(grouped.instructorLed).toHaveLength(2);
     expect(grouped.online).toHaveLength(1);
   });
 

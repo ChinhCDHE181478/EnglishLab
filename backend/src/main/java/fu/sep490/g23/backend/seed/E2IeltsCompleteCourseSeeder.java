@@ -74,21 +74,15 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.setDescription("An IELTS practice course for Listening, Reading, and Speaking practice. Each video is organized as one module with a study guide, the original video lesson, and follow-up practice.");
         onlineCourse.setTargetScore("IELTS 5.5 - 7.0");
         onlineCourse.setDuration("5 hours 32 minutes");
-        onlineCourse.setStudyMode("Self-paced online video course");
         onlineCourse.setPrice(BigDecimal.valueOf(1_190_000));
         onlineCourse.setThumbnailUrl("https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg");
         onlineCourse.setStatus(PackageStatus.PUBLISHED);
         onlineCourse.setFeatured(true);
-        onlineCourse.setDeleted(false);
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.INTERMEDIATE);
         onlineCourse.setRecommendedCurrentBandMin(6.0);
         onlineCourse.setTargetBand(7.0);
-        onlineCourse.setLearningPathCode("IELTS_BAND_55_TO_70");
-        onlineCourse.setLearningPathName("IELTS 5.5 to 7.0 Self-Paced Path");
-        onlineCourse.setLearningPathOrder(2);
         onlineCourse.setTargetOutcome("Complete IELTS-style practice tests, analyze mistakes, and build a personal review plan before the final mock.");
-        onlineCourse.setRecommendedNextCourseSlug(null);
         onlineCourse.setTotalLessons(18);
         onlineCourse.setTotalHours(6);
         OnlineCourse savedOnlineCourse = onlineCourseRepository.save(onlineCourse);
@@ -257,8 +251,6 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                         .onlineCourse(course)
                         .versionNumber(1)
                         .status(CourseVersionStatus.DRAFT)
-                        .contentSnapshotJson("{}")
-                        .assessmentIdsJson("[]")
                         .totalRequiredLessons(0)
                         .totalRequiredAssessments(0)
                         .build()));
@@ -279,9 +271,6 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         lesson.setContentType(video == null ? "text" : "video");
         lesson.setContentText(contentText);
         lesson.setVideoUrl(video == null ? null : video.embedUrl());
-        lesson.setBunnyVideoId(video == null ? null : video.videoId());
-        lesson.setBunnyLibraryId(video == null ? null : video.libraryId());
-        lesson.setBunnyCdnUrl(video == null ? null : video.embedUrl());
         lesson.setMaterialUrl(null);
         lesson.setDurationMinutes(durationMinutes);
         lesson.setSequenceNumber(order);

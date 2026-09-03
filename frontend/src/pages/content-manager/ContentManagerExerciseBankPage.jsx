@@ -43,8 +43,8 @@ const typeOptions = [
 
 const statusOptions = [
   { label: 'Tất cả', value: 'ALL' },
-  { label: 'Đang dùng', value: 'ACTIVE' },
-  { label: 'Đã tạm ngưng', value: 'INACTIVE' },
+  { label: 'Đang dùng', value: 'PUBLISHED' },
+  { label: 'Đã tạm ngưng', value: 'ARCHIVED' },
 ];
 
 const emptyForm = {
@@ -56,7 +56,7 @@ const emptyForm = {
   answerKey: '',
   explanation: '',
   tags: '',
-  active: true,
+  status: 'PUBLISHED',
 };
 
 export default function ContentManagerExerciseBankPage() {
@@ -74,7 +74,7 @@ export default function ContentManagerExerciseBankPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [pageResult, setPageResult] = useState(EMPTY_PAGE);
-  const [statsData, setStatsData] = useState({ total: 0, active: 0, inactive: 0, skills: 0 });
+  const [statsData, setStatsData] = useState({ total: 0, published: 0, archived: 0, skills: 0 });
   const editorRef = useRef(null);
   const deferredKeyword = useDeferredValue(keyword);
   const resetKey = `${deferredKeyword}|${skillFilter}|${typeFilter}|${statusFilter}`;
@@ -92,7 +92,7 @@ export default function ContentManagerExerciseBankPage() {
       const params = {
         skill: skillFilter === 'ALL' ? undefined : skillFilter,
         exerciseType: typeFilter === 'ALL' ? undefined : typeFilter,
-        active: statusFilter === 'ALL' ? undefined : statusFilter === 'ACTIVE',
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
         keyword: deferredKeyword.trim() || undefined,
       };
       const [data, summary] = await Promise.all([
@@ -113,8 +113,8 @@ export default function ContentManagerExerciseBankPage() {
 
   const stats = useMemo(() => [
     { label: 'Tổng bài tập', value: statsData.total, icon: Dumbbell, tone: 'text-[#4b0009]' },
-    { label: 'Đang dùng', value: statsData.active, icon: CheckCircle2, tone: 'text-emerald-700' },
-    { label: 'Tạm ngưng', value: statsData.inactive, icon: Archive, tone: 'text-slate-700' },
+    { label: 'Đang dùng', value: statsData.published, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Tạm ngưng', value: statsData.archived, icon: Archive, tone: 'text-slate-700' },
     { label: 'Kỹ năng', value: statsData.skills, icon: Layers3, tone: 'text-[#005236]' },
   ], [statsData]);
 
@@ -141,7 +141,7 @@ export default function ContentManagerExerciseBankPage() {
       answerKey: item.answerKey || '',
       explanation: item.explanation || '',
       tags: item.tags || '',
-      active: item.active !== false,
+      status: item.status || 'DRAFT',
     });
     window.setTimeout(() => {
       editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -207,7 +207,7 @@ export default function ContentManagerExerciseBankPage() {
     setError('');
     setSuccess('');
     try {
-      await courseApi.updateExerciseBankItem(item.id, { ...item, active: true });
+      await courseApi.updateExerciseBankItem(item.id, { ...item, status: 'PUBLISHED' });
       await loadItems();
       setSuccess('Đã khôi phục bài tập.');
     } catch (err) {
@@ -353,7 +353,7 @@ export default function ContentManagerExerciseBankPage() {
                     <td className="px-6 py-5"><ManagerStatusBadge tone="info">{formatSkill(item.skill)}</ManagerStatusBadge></td>
                     <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatExerciseType(item.exerciseType)}</td>
                     <td className="px-6 py-5 text-sm text-[#564241]">{item.level || '-'}</td>
-                    <td className="px-6 py-5"><ManagerStatusBadge tone={item.active === false ? 'neutral' : 'success'}>{item.active === false ? 'Đã tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
+                    <td className="px-6 py-5"><ManagerStatusBadge tone={item.status === 'PUBLISHED' ? 'success' : 'neutral'}>{item.status === 'PUBLISHED' ? 'Đang dùng' : 'Đã tạm ngưng'}</ManagerStatusBadge></td>
                     <td className="px-6 py-5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -364,7 +364,7 @@ export default function ContentManagerExerciseBankPage() {
                           <Edit3 className="h-3.5 w-3.5" />
                           Chỉnh sửa
                         </button>
-                        {item.active === false ? (
+                        {item.status !== 'PUBLISHED' ? (
                           <button className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014]" onClick={() => restoreItem(item)} type="button">
                             <RefreshCw className="h-3.5 w-3.5" />
                             Khôi phục

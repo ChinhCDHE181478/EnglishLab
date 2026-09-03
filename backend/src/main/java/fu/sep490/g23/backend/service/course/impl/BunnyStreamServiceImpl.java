@@ -94,18 +94,8 @@ public class BunnyStreamServiceImpl implements BunnyStreamService {
     }
 
     @Override
-    public Optional<BunnyVideoRef> resolveVideoRef(String videoUrl, String bunnyVideoId, String bunnyLibraryId) {
+    public Optional<BunnyVideoRef> resolveVideoRef(String videoUrl) {
         String configuredLibrary = blankToNull(libraryId);
-        String explicitLibrary = blankToNull(bunnyLibraryId);
-        String explicitVideoId = blankToNull(bunnyVideoId);
-
-        if (explicitVideoId != null) {
-            String resolvedLibrary = explicitLibrary != null ? explicitLibrary : configuredLibrary;
-            if (resolvedLibrary != null) {
-                return Optional.of(new BunnyVideoRef(resolvedLibrary, explicitVideoId));
-            }
-        }
-
         String url = blankToNull(videoUrl);
         if (url == null) {
             return Optional.empty();

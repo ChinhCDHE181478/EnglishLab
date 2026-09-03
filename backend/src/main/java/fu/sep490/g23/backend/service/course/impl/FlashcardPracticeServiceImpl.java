@@ -184,7 +184,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson, ContentBankItem item) {
         List<VocabularyTermResponse> terms = new ArrayList<>();
         try {
-            JsonNode cards = objectMapper.readTree(ContentBankPayloadSupport.cardsJsonFromPayload(item.getPayloadJsonb()));
+            JsonNode cards = objectMapper.readTree(ContentBankPayloadSupport.cardsJsonFromPayload(item.getContentData()));
             if (!cards.isArray()) return terms;
             int index = 0;
             for (JsonNode card : cards) {

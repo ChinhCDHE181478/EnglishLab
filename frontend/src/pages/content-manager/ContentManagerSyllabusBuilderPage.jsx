@@ -59,7 +59,6 @@ import {
 import {
   ENGLISH_EXAM_OPTIONS,
   ENGLISH_SKILL_OPTIONS,
-  ENGLISH_TRACK_OPTIONS,
   getEnglishProfileDefaults,
   normalizeEnglishEntryLevel,
   normalizeEnglishExamCategory,
@@ -92,7 +91,6 @@ const emptyAttach = {
   unitId: '',
   type: 'MATERIAL',
   resourceId: '',
-  note: '',
 };
 
 const COURSE_LEVEL_OPTIONS = [
@@ -106,14 +104,11 @@ const COURSE_LEVEL_OPTIONS = [
 const emptyProgramForm = {
   title: '',
   code: '',
-  slug: '',
   shortDescription: '',
   description: '',
   durationLabel: '',
   level: 'INTERMEDIATE',
-  deliveryMode: 'OFFLINE',
   examCategory: 'IELTS',
-  programTrack: 'IELTS_ACADEMIC',
   focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
   targetBand: 6.5,
   targetScore: '',
@@ -175,17 +170,6 @@ const getReadableResourceText = (value) => {
   return config ? describeStructuredResource(config) : value;
 };
 
-const toSlug = (value) => String(value || '')
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/đ/g, 'd')
-  .replace(/Đ/g, 'D')
-  .replace(/[^\w\s-]/g, '')
-  .trim()
-  .replace(/\s+/g, '-')
-  .replace(/-+/g, '-')
-  .toLowerCase();
-
 const makeCode = (title, examCategory) => {
   const words = String(title || '')
     .normalize('NFD')
@@ -212,7 +196,6 @@ const toProgramForm = (program) => {
     durationLabel: program?.durationLabel || '',
     level: program?.level || 'INTERMEDIATE',
     examCategory,
-    programTrack: program?.programTrack || defaults.programTrack,
     focusSkills: readEnglishFocusSkills(program?.focusSkills, examCategory),
     targetBand: examCategory === 'IELTS' ? (program?.targetBand ?? defaults.targetBand) : '',
     targetScore: examCategory === 'TOEIC' ? (program?.targetScore ?? defaults.targetScore) : '',
@@ -225,14 +208,11 @@ const toProgramForm = (program) => {
 const toProgramPayload = (form, forceDraft = false) => ({
   title: form.title.trim(),
   code: form.code.trim() || makeCode(form.title, form.examCategory),
-  slug: form.slug.trim() || toSlug(form.title),
   shortDescription: form.shortDescription?.trim() || null,
   description: form.description?.trim() || null,
   durationLabel: form.durationLabel?.trim() || null,
   level: form.level?.trim() || null,
-  deliveryMode: 'OFFLINE',
   examCategory: form.examCategory,
-  programTrack: form.programTrack,
   focusSkills: form.focusSkills.join(','),
   targetBand: form.targetBand === '' ? null : Number(form.targetBand),
   targetScore: form.targetScore === '' ? null : Number(form.targetScore),
@@ -391,7 +371,6 @@ export default function ContentManagerInstructorLedCoursesPage() {
       const next = { ...current, ...patch };
       if (Object.prototype.hasOwnProperty.call(patch, 'title')) {
         next.code = current.code || makeCode(patch.title, current.examCategory);
-        next.slug = current.slug || toSlug(patch.title);
       }
       return next;
     });
@@ -833,7 +812,6 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setSuccess('');
     const payload = {
       resourceId: Number(attachForm.resourceId),
-      note: attachForm.note?.trim() || null,
       displayOrder: 0,
     };
     try {
@@ -1025,7 +1003,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                 </button>
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
-                    {programDetail?.examCategory || 'IELTS'} · {programDetail?.programTrack || 'Tiêu chuẩn'}
+                    {programDetail?.examCategory || 'IELTS'}
                   </span>
                   <StatusPill status={programDetail?.status} />
                 </div>
@@ -1033,7 +1011,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                   {programDetail?.title}
                 </h2>
                 <p className="mt-1 text-sm text-[#69778a]">
-                  Mã: <span className="font-semibold text-[#26364a]">{programDetail?.code || '-'}</span> · Slug: <span className="font-mono text-xs">{programDetail?.slug || '-'}</span>
+                  Mã: <span className="font-semibold text-[#26364a]">{programDetail?.code || '-'}</span>
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -1220,10 +1198,6 @@ export default function ContentManagerInstructorLedCoursesPage() {
                       <p className="mt-1 text-xs text-[#8b706e]">{getReadableResourceText(selectedResource.description || selectedResource.prompt || selectedResource.materialType || 'Nội dung sẵn sàng')}</p>
                     </div>
                   ) : null}
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Ghi chú hướng dẫn học viên</span>
-                    <textarea className={TEXTAREA_CLASS} onChange={(event) => setAttachForm({ ...attachForm, note: event.target.value })} rows={2} value={attachForm.note} />
-                  </label>
                   <div className="flex justify-end gap-2 border-t border-[#dcc0bf]/20 pt-4">
                     <button className="rounded-xl border border-[#dfbfbd] px-4 py-2.5 text-sm font-bold text-[#730014]" onClick={closeResourcePanel} type="button">Hủy</button>
                     <button className="rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={working || !attachForm.resourceId} type="submit">{working ? 'Đang thêm...' : 'Thêm vào Unit'}</button>
@@ -1461,30 +1435,11 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
                   />
                 </label>
 
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
-                    Đường dẫn tĩnh (Slug)
-                  </span>
-                  <input
-                    className={FIELD_CLASS}
-                    onChange={(event) => onChange({ slug: event.target.value })}
-                    placeholder="Để trống để tự sinh từ tên khóa học..."
-                    value={form.slug}
-                  />
-                </label>
-
                 <FieldSelect
                   label="Danh mục / Nhóm thi"
                   onChange={(value) => onChange({ examCategory: value, ...getEnglishProfileDefaults(value) })}
                   options={ENGLISH_EXAM_OPTIONS}
                   value={form.examCategory}
-                />
-
-                <FieldSelect
-                  label="Loại chương trình"
-                  onChange={(value) => onChange({ programTrack: value })}
-                  options={ENGLISH_TRACK_OPTIONS[form.examCategory]}
-                  value={form.programTrack}
                 />
 
                 <FieldSelect
@@ -1713,7 +1668,6 @@ function InstructorLedCourseListPanel({
       const haystack = [
         item.title,
         item.code,
-        item.slug,
         item.examCategory,
         item.entryLevel,
         item.targetBand,
@@ -1809,7 +1763,7 @@ function InstructorLedCourseListPanel({
                           {program.title}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#8b706e]">
-                          <span className="font-semibold text-[#584140]">{program.code || program.slug || '-'}</span>
+                          <span className="font-semibold text-[#584140]">{program.code || '-'}</span>
                           {program.level ? (
                             <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-bold text-slate-700">
                               {formatLevel(program.level)}
@@ -1938,7 +1892,7 @@ function UnitResourceGroups({ onDetach, unit, working }) {
                   <div className="min-w-0">
                     <p className="line-clamp-1 text-xs font-bold text-[#0b1c30]">{reference.title || `Tài nguyên #${reference.resourceId}`}</p>
                     <p className="mt-0.5 line-clamp-1 text-[11px] text-[#8b706e]">
-                      {[reference.skill, getReadableResourceText(reference.subtitle), getReadableResourceText(reference.note)].filter(Boolean).join(' · ') || 'Tài nguyên liên kết'}
+                      {[reference.skill, getReadableResourceText(reference.subtitle)].filter(Boolean).join(' · ') || 'Tài nguyên liên kết'}
                     </p>
                   </div>
                   <button

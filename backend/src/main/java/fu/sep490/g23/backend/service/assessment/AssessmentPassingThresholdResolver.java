@@ -16,7 +16,9 @@ public class AssessmentPassingThresholdResolver {
             return null;
         }
 
-        OnlineCourse course = assessment.getOnlineCourse();
+        OnlineCourse course = assessment.getOnlineCourseVersion() == null
+                ? null
+                : assessment.getOnlineCourseVersion().getOnlineCourse();
         if (assessment.getType() == AssessmentType.MODULE_TEST
                 && IeltsBandScale.usesBandScale(assessment)
                 && course != null

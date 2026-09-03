@@ -54,9 +54,6 @@ public class InstructorLedCourse {
     @Column(nullable = false, unique = true, length = 120)
     private String code;
 
-    @Column(nullable = false, unique = true, length = 160)
-    private String slug;
-
     @Column(nullable = false, length = 180)
     private String title;
 
@@ -69,9 +66,6 @@ public class InstructorLedCourse {
     @Column(name = "exam_type", nullable = false, length = 30)
     @Builder.Default
     private String examType = "IELTS";
-
-    @Column(name = "program_track", length = 60)
-    private String programTrack;
 
     @Column(length = 120)
     private String level;

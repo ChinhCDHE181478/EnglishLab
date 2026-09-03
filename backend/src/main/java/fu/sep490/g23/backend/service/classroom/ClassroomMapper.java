@@ -120,7 +120,7 @@ public class ClassroomMapper {
                 .id(offering.getId())
                 .code(offering.getCode())
                 .title(offering.getName())
-                .slug(course.getSlug())
+                .slug(offering.getCode())
                 .shortDescription(course.getShortDescription())
                 .description(course.getDescription())
                 .deliveryMode(offering.getDeliveryMode())
@@ -129,12 +129,11 @@ public class ClassroomMapper {
                 .instructorLedCourseId(course.getId())
                 .instructorLedCourseTitle(course.getTitle())
                 .instructorLedCourseCode(course.getCode())
-                .instructorLedCourseSlug(course.getSlug())
                 .instructorLedCourseExamType(course.getExamType())
                 .instructorLedCourseStatus(course.getPublicationStatus() == null ? null : course.getPublicationStatus().name())
                 .instructorLedCourse(toInstructorLedCourseResponse(course, includeDetails))
-                .entryLevel(offering.getEntryLevel())
-                .targetOutcome(offering.getTargetOutcome())
+                .entryLevel(course.getEntryLevel())
+                .targetOutcome(course.getLearningOutcomes())
                 .capacity(offering.getCapacity())
                 .enrolledCount((int) enrolledCount)
                 .startDate(offering.getStartDate())
@@ -143,24 +142,17 @@ public class ClassroomMapper {
                 .primaryTeacherName(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getFullName())
                 .roomId(offering.getRoom() == null ? null : offering.getRoom().getId())
                 .roomName(offering.getRoom() == null ? null : offering.getRoom().getName())
-                .regularRoomId(offering.getRoom() == null ? null : offering.getRoom().getId())
-                .regularRoomName(offering.getRoom() == null ? null : offering.getRoom().getName())
-                .offlineAddress(offering.getOfflineAddress())
-                .locationNote(offering.getLocationNote())
+                .offlineAddress(offering.getRoom() == null ? null : offering.getRoom().getLocationAddress())
                 .googleMeetOwnerId(offering.getGoogleMeetOwner() == null ? null : offering.getGoogleMeetOwner().getId())
                 .googleMeetUrl(offering.getGoogleMeetUrl())
                 .googleMeetStatus(offering.getGoogleMeetStatus())
                 .googleMeetSyncError(offering.getGoogleMeetSyncError())
-                .syllabusSummary(offering.getSyllabusSummary())
-                .programOutcomes(offering.getProgramOutcomes())
-                .teacherGuide(offering.getTeacherGuide())
-                .interactionActivities(offering.getInteractionActivities())
+                .teacherGuide(course.getTeacherGuide())
                 .price(offering.getTuitionFeeVnd())
                 .tuitionFeeVnd(offering.getTuitionFeeVnd())
                 .salePrice(course.getSaleTuitionFeeVnd())
                 .targetScore(course.getTargetScore() == null ? null : String.valueOf(course.getTargetScore()))
                 .duration(course.getDurationLabel())
-                .studyMode(offering.getStudyMode())
                 .nextSession(nextSession)
                 .progressPercent(progressPercent)
                 .enrollmentId(enrollment == null ? null : enrollment.getId())
@@ -170,14 +162,8 @@ public class ClassroomMapper {
                 .registrationStatus(enrollment == null ? null : enrollment.getRegistrationStatus())
                 .registrationStatusLabel(ClassroomRegistrationSupport.registrationStatusLabel(
                         enrollment == null ? null : enrollment.getRegistrationStatus()))
-                .holdSpot(enrollment != null && enrollment.isHoldSpot())
                 .tuitionAmountDue(enrollment == null ? null : enrollment.getTuitionAmountDue())
                 .tuitionAmountPaid(enrollment == null ? null : enrollment.getTuitionAmountPaid())
-                .tuitionRemaining(enrollment == null ? null : enrollment.tuitionBalance())
-                .tuitionSettlementType(enrollment == null ? null : enrollment.getTuitionSettlementType())
-                .tuitionSettlementTypeLabel(ClassroomRegistrationSupport.tuitionSettlementLabel(
-                        enrollment == null ? null : enrollment.getTuitionSettlementType()))
-                .tuitionSettlementNote(enrollment == null ? null : enrollment.getTuitionSettlementNote())
                 .waitlistCount((int) waitlistCount)
                 .waitlistPosition(enrollment != null
                         && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST
@@ -270,7 +256,7 @@ public class ClassroomMapper {
                 .deliveryModeLabel(deliveryModeLabel(effectiveDeliveryMode))
                 .roomId(effectiveRoom == null ? null : effectiveRoom.getId())
                 .roomName(effectiveRoom == null ? null : effectiveRoom.getName())
-                .offlineAddress(section.getOfflineAddress())
+                .offlineAddress(effectiveRoom == null ? null : effectiveRoom.getLocationAddress())
                 .googleMeetUrl(section.getGoogleMeetUrl())
                 .googleMeetStatus(section.getGoogleMeetStatus())
                 .googleMeetJoinable(googleMeetJoinable)
@@ -296,7 +282,6 @@ public class ClassroomMapper {
     }
 
     public ClassroomEnrollmentResponse toEnrollmentResponse(ClassEnrollment enrollment) {
-        User confirmedBy = enrollment.getConfirmedBy();
         User assignedBy = enrollment.getAssignedBy();
         User tuitionRecordedBy = enrollment.getTuitionRecordedBy();
         ClassSection offering = enrollment.getClassSection();
@@ -319,33 +304,10 @@ public class ClassroomMapper {
                 .deliveryModeLabel(deliveryModeLabel(offering.getDeliveryMode()))
                 .registrationStatus(enrollment.getRegistrationStatus())
                 .registrationStatusLabel(ClassroomRegistrationSupport.registrationStatusLabel(enrollment.getRegistrationStatus()))
-                .holdSpot(enrollment.isHoldSpot())
                 .waitlistPriority(waitlisted ? enrollment.getWaitlistPriority() : null)
                 .waitlistPosition(waitlisted ? enrollment.getWaitlistPriority() : null)
                 .waitlistSize(waitlistSize)
                 .tuitionAmountDue(enrollment.getTuitionAmountDue())
-                .tuitionAmountPaid(enrollment.getTuitionAmountPaid())
-                .tuitionDepositPaid(enrollment.getTuitionDepositPaid())
-                .tuitionRemaining(remaining)
-                .tuitionSettlementType(enrollment.getTuitionSettlementType())
-                .tuitionSettlementTypeLabel(ClassroomRegistrationSupport.tuitionSettlementLabel(enrollment.getTuitionSettlementType()))
-                .tuitionSettlementNote(enrollment.getTuitionSettlementNote())
-                .tuitionSettlementStatus(enrollment.getTuitionSettlementStatus())
-                .tuitionSettlementStatusLabel(ClassroomRegistrationSupport.tuitionSettlementStatusLabel(
-                        enrollment.getTuitionSettlementStatus()))
-                .tuitionSettlementResolvedAt(enrollment.getTuitionSettlementResolvedAt())
-                .tuitionSettlementResolvedByName(enrollment.getTuitionSettlementResolvedBy() == null
-                        ? null
-                        : enrollment.getTuitionSettlementResolvedBy().getFullName())
-                .tuitionSettlementResolutionNote(enrollment.getTuitionSettlementResolutionNote())
-                .hasClassAccess(enrollment.hasClassAccess())
-                .transferredFromEnrollmentId(enrollment.getTransferredFromEnrollmentId())
-                .enrolledAt(enrollment.getEnrolledAt())
-                .assignedAt(enrollment.getAssignedAt())
-                .assignedByName(assignedBy == null ? null : assignedBy.getFullName())
-                .assignmentNote(enrollment.getAssignmentNote())
-                .confirmedAt(enrollment.getConfirmedAt())
-                .confirmedByName(confirmedBy == null ? null : confirmedBy.getFullName())
                 .tuitionRecordedAt(enrollment.getTuitionRecordedAt())
                 .tuitionRecordedByName(tuitionRecordedBy == null ? null : tuitionRecordedBy.getFullName())
                 .note(enrollment.getNote())
@@ -409,10 +371,6 @@ public class ClassroomMapper {
                 .studentName(attendance.getStudent().getFullName())
                 .studentEmail(attendance.getStudent().getEmail())
                 .status(attendance.getStatus())
-                .note(attendance.getNote())
-                .joinTime(attendance.getJoinTime())
-                .leaveTime(attendance.getLeaveTime())
-                .durationMinutes(attendance.getDurationMinutes())
                 .teacherConfirmed(attendance.isTeacherConfirmed())
                 .sessionDate(session.getSessionDate())
                 .startTime(session.getStartTime())
@@ -667,9 +625,7 @@ public class ClassroomMapper {
                 .id(course.getId())
                 .title(course.getTitle())
                 .code(course.getCode())
-                .slug(course.getSlug())
                 .examCategory(course.getExamType())
-                .programTrack(course.getProgramTrack())
                 .focusSkills(course.getFocusSkills())
                 .targetBand(course.getTargetBand())
                 .targetScore(course.getTargetScore())
@@ -762,7 +718,6 @@ public class ClassroomMapper {
                     .status(resource.getStatus())
                     .fileUrl(resource.getFileUrl())
                     .displayOrder(ref.getSequenceNumber())
-                    .note(ref.getNote())
                     .build();
         }
         var item = ref.getContentBankItem();
@@ -786,17 +741,16 @@ public class ClassroomMapper {
                 .skill(item == null ? null : item.getSkill())
                 .status(item == null ? null : item.getStatus())
                 .displayOrder(ref.getSequenceNumber())
-                .note(ref.getNote())
                 .contentJson(contentJson)
                 .build();
     }
 
     private String payloadText(fu.sep490.g23.backend.entity.curriculum.ContentBankItem item, String... keys) {
-        if (item.getPayloadJsonb() == null) {
+        if (item.getContentData() == null) {
             return null;
         }
         for (String key : keys) {
-            Object value = item.getPayloadJsonb().get(key);
+            Object value = item.getContentData().get(key);
             if (value != null) {
                 return String.valueOf(value);
             }
@@ -806,7 +760,7 @@ public class ClassroomMapper {
 
     private String serializePayload(fu.sep490.g23.backend.entity.curriculum.ContentBankItem item) {
         try {
-            return CONTENT_JSON_MAPPER.writeValueAsString(item.getPayloadJsonb());
+            return CONTENT_JSON_MAPPER.writeValueAsString(item.getContentData());
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Không thể chuyển nội dung kho học liệu sang JSON.", exception);
         }

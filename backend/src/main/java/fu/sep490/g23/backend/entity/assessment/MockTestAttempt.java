@@ -5,6 +5,8 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,8 +35,9 @@ public class MockTestAttempt {
     @Column(nullable = false, length = 30)
     private AssessmentSkill skill;
 
-    @Column(name = "objective_answers_json", columnDefinition = "text")
-    private String objectiveAnswersJson;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "objective_answers", columnDefinition = "jsonb")
+    private String objectiveAnswers;
 
     @Column(name = "submitted_text", columnDefinition = "text")
     private String submittedText;
@@ -51,8 +54,9 @@ public class MockTestAttempt {
     @Column(precision = 6, scale = 2)
     private BigDecimal score;
 
-    @Column(precision = 6, scale = 2)
-    private BigDecimal percent;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "ai_feedback", columnDefinition = "jsonb")
+    private String aiFeedback;
 
     @Column(nullable = false, length = 30)
     private String status;

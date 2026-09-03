@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.List;
 
 public interface ExerciseBankItemRepository extends JpaRepository<ExerciseBankItem, Long>, JpaSpecificationExecutor<ExerciseBankItem> {
-    List<ExerciseBankItem> findByActiveTrueOrderByUpdatedAtDesc();
+    List<ExerciseBankItem> findByStatusOrderByUpdatedAtDesc(String status);
 
     List<ExerciseBankItem> findAllByOrderByUpdatedAtDesc();
 
-    List<ExerciseBankItem> findBySkillAndActiveTrueOrderByUpdatedAtDesc(String skill);
+    List<ExerciseBankItem> findBySkillAndStatusOrderByUpdatedAtDesc(String skill, String status);
 }

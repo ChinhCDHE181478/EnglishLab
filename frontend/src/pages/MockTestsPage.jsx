@@ -6,6 +6,7 @@ import placementTestApi from '../api/placementTestApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import MockSkillPack from '../components/mock-tests/MockSkillPack';
 import MockYearBook from '../components/mock-tests/MockYearBook';
+import HomeworkAiFeedbackPanel from '../components/classroom/HomeworkAiFeedbackPanel';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import useMockTestSession from '../hooks/useMockTestSession';
 import {
@@ -37,7 +38,16 @@ function MockResult({ result }) {
           {result.score != null ? ` · ${result.score}` : ''}.
         </p>
       ) : (
-        <p className="mt-1 text-xs">{result.message}</p>
+        <>
+          <p className="mt-1 text-xs">
+            {result.score != null ? `Điểm: ${result.score}. ` : ''}{result.message}
+          </p>
+          {result.aiFeedbackJson ? (
+            <div className="mt-3 text-left">
+              <HomeworkAiFeedbackPanel value={result.aiFeedbackJson} />
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );

@@ -103,7 +103,6 @@ class EnrollmentRequestServiceImplTest {
         program = InstructorLedCourse.builder()
                 .id(20L)
                 .code("IELTS-FOUNDATION")
-                .slug("ielts-foundation")
                 .title("IELTS Foundation")
                 .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
@@ -183,14 +182,12 @@ class EnrollmentRequestServiceImplTest {
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.TEST_SCHEDULED);
         assertThat(response.getInvitationSentAt()).isNotNull();
-        assertThat(response.getTestLocation()).isEqualTo("EnglishLab Campus");
         verify(enrollmentRequestMailService).sendTestAppointment(request);
     }
 
     @Test
     void staffCanRecordResultWhenLearnerArrivesBeforeAppointment() {
         CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
-        request.setTestAppointmentAt(LocalDateTime.now().plusHours(2));
         stubStaffRequest(request);
         stubPersistence();
 
@@ -201,13 +198,11 @@ class EnrollmentRequestServiceImplTest {
         );
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
-        assertThat(response.getTestCompletedAt()).isNotNull();
     }
 
     @Test
     void passedTestMovesLearnerToWaitingForClass() {
         CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
-        request.setTestAppointmentAt(LocalDateTime.now().minusHours(1));
         stubStaffRequest(request);
         stubPersistence();
 
@@ -215,7 +210,6 @@ class EnrollmentRequestServiceImplTest {
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         assertThat(response.getConfirmedLevel()).isEqualTo(PlacementLevel.INTERMEDIATE);
-        assertThat(response.getTestCompletedAt()).isNotNull();
     }
 
     @Test
@@ -224,7 +218,6 @@ class EnrollmentRequestServiceImplTest {
         InstructorLedCourse placementProgram = InstructorLedCourse.builder()
                 .id(99L)
                 .code("IELTS-INTERMEDIATE")
-                .slug("ielts-intermediate")
                 .title("IELTS Intermediate")
                 .publicationStatus(PackageStatus.PUBLISHED)
                 .build();

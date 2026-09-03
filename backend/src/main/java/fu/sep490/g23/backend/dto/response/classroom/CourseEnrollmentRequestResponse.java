@@ -23,7 +23,6 @@ public class CourseEnrollmentRequestResponse {
     private String contactEmail;
     private String contactPhone;
     private String facebookUrl;
-    private String desiredClassCode;
     private String consultationTrack;
     private String studyWorkGoal;
     private Long courseOfferingId;
@@ -43,14 +42,10 @@ public class CourseEnrollmentRequestResponse {
     private boolean accountSetupEmailSent;
     private PlacementLevel confirmedLevel;
     private String preferredSchedule;
-    private String campusPreference;
     private String learnerNote;
     private String staffNote;
     private String rejectionReason;
     private LocalDateTime invitationSentAt;
-    private LocalDateTime testAppointmentAt;
-    private String testLocation;
-    private LocalDateTime testCompletedAt;
     private Long placementAttemptId;
     private PlacementEligibilityResult placementEligibility;
     private Long assignedClassroomId;

@@ -211,14 +211,11 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                         if (existing.getReactionType() == null) {
                             reactionRepository.delete(existing);
                         }
-                        reply.setHelpfulCount(Math.max(0, reply.getHelpfulCount() - 1));
                     } else {
                         existing.setHelpful(true);
-                        reply.setHelpfulCount(reply.getHelpfulCount() + 1);
                     }
                 }, () -> {
                     reactionRepository.save(newReaction(reply, user, null, true));
-                    reply.setHelpfulCount(reply.getHelpfulCount() + 1);
                 });
         return toReplyResponse(reply, user);
     }
@@ -304,21 +301,15 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 });
 
         ensureDiscussionAccess(reporter, post.getCourse());
-        post.setReportedCount(post.getReportedCount() + 1);
-        if (post.getPostType() == CourseDiscussionPostType.THREAD) {
-            if (post.getReportedCount() >= 3 && post.getStatus() != CourseDiscussionStatus.RESOLVED) {
-                post.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
-            }
-        } else if (post.getReportedCount() >= 3) {
-            post.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
-        }
-
         reportRepository.save(CourseDiscussionReport.builder()
                 .post(post)
                 .reporter(reporter)
                 .reason(clean(request.getReason()))
                 .reasonCategory(request.getReasonCategory())
                 .build());
+        if (reportRepository.countByPost(post) >= 3 && post.getStatus() != CourseDiscussionStatus.RESOLVED) {
+            post.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
+        }
 
         return ApiResponse.builder()
                 .message("Cảm ơn bạn đã báo cáo. Nội dung sẽ được xem xét.")
@@ -329,7 +320,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private OnlineCourse findPublicCourse(Long courseId) {
         OnlineCourse course = onlineCourseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
-        if (course.isDeleted() || course.getStatus() != PackageStatus.PUBLISHED) {
+        if (course.getStatus() != PackageStatus.PUBLISHED) {
             throw new RuntimeException("Khóa học này hiện không khả dụng.");
         }
         return course;
@@ -445,7 +436,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .helpfulCount(helpfulCount)
                 .reactionCounts(getReactionCounts(thread))
                 .myReaction(getMyReaction(thread, currentUser))
-                .reportedCount(thread.getReportedCount())
+                .reportedCount(Math.toIntExact(reportRepository.countByPost(thread)))
                 .resolved(thread.getStatus() == CourseDiscussionStatus.RESOLVED)
                 .authorName(resolveAuthorName(thread.getAuthor()))
                 .authorId(thread.getAuthor().getId())
@@ -463,7 +454,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .content(maskIfPending(reply.getContent(), reply.getStatus(), "Nội dung đang chờ kiểm duyệt."))
                 .status(reply.getStatus())
                 .accepted(reply.isAccepted())
-                .helpfulCount(reply.getHelpfulCount())
+                .helpfulCount(Math.toIntExact(reactionRepository.countByPostAndHelpfulTrue(reply)))
                 .reactionCounts(getReactionCounts(reply))
                 .myReaction(getMyReaction(reply, currentUser))
                 .authorName(resolveAuthorName(reply.getAuthor()))

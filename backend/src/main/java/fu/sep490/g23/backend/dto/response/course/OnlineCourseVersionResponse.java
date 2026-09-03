@@ -20,10 +20,8 @@ public class OnlineCourseVersionResponse {
     private Integer totalRequiredLessons;
     private Integer totalRequiredAssessments;
     private String changeNote;
-    private String reviewNote;
     private String createdByName;
-    private String reviewedByName;
-    private LocalDateTime submittedAt;
+    private String publishedByName;
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

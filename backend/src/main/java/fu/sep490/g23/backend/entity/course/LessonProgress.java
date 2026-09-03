@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.entity.course;
 
-import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,10 +45,6 @@ public class LessonProgress {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private User student;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "online_lesson_id", nullable = false)
     private OnlineLesson lesson;
 
@@ -57,21 +52,10 @@ public class LessonProgress {
     @JoinColumn(name = "online_course_enrollment_id", nullable = false)
     private OnlineCourseEnrollment enrollment;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_version_id")
-    private OnlineCourseVersion courseVersion;
-
-    @Column(name = "stable_lesson_key", length = 120)
-    private String lessonKey;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     @Builder.Default
     private LessonProgressStatus status = LessonProgressStatus.NOT_STARTED;
-
-    @Column(name = "progress_percent", nullable = false)
-    @Builder.Default
-    private Integer progressPercent = 0;
 
     @Column(name = "first_accessed_at")
     private LocalDateTime firstAccessedAt;
@@ -81,10 +65,6 @@ public class LessonProgress {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
-
-    @Column(name = "needs_review", nullable = false)
-    @Builder.Default
-    private boolean needsReview = false;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

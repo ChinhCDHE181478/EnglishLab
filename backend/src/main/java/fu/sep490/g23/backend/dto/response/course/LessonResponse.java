@@ -20,9 +20,6 @@ public class LessonResponse {
     private String contentType;
     private String contentText;
     private String videoUrl;
-    private String bunnyVideoId;
-    private String bunnyLibraryId;
-    private String bunnyCdnUrl;
     private String materialUrl;
     private List<TranscriptSegmentResponse> transcriptSegments;
     private List<FlashcardSetResponse> flashcardSets;

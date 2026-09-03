@@ -18,4 +18,6 @@ public interface CourseDiscussionReactionRepository extends JpaRepository<Course
     List<CourseDiscussionReaction> findByPostOrderByUpdatedAtDesc(CourseDiscussionPost post);
 
     Optional<CourseDiscussionReaction> findByPostAndUser(CourseDiscussionPost post, User user);
+
+    long countByPostAndHelpfulTrue(CourseDiscussionPost post);
 }

@@ -63,7 +63,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
         definition.setDescription(request.getDescription() == null ? "" : request.getDescription().trim());
         definition.setExamType(normalizeExamType(request.getExamType()));
         definition.setMaxAttempts(request.getMaxAttempts());
-        definition.setActive(request.isActive());
+        definition.setStatus(normalizeStatus(request.getStatus()));
         definition.setListeningConfigJson(request.getListeningConfigJson());
         definition.setReadingConfigJson(request.getReadingConfigJson());
         definition.setWritingConfigJson(request.getWritingConfigJson());
@@ -159,7 +159,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .description("Một phiên đánh giá gồm Nghe, Đọc, Viết và Nói để gợi ý điểm bắt đầu phù hợp.")
                 .examType("IELTS")
                 .maxAttempts(3)
-                .active(true)
+                .status("PUBLISHED")
                 .listeningConfigJson(loadResource("placement-test/current-listening.json"))
                 .readingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_reading_test_1.json"))
                 .writingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_writing_test_1.json"))
@@ -176,6 +176,15 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
         }
         String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
         return "TOEIC".equals(normalized) ? "TOEIC" : "IELTS";
+    }
+
+    private String normalizeStatus(String value) {
+        if (value == null || value.isBlank()) return "PUBLISHED";
+        String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!List.of("DRAFT", "PUBLISHED", "ARCHIVED").contains(normalized)) {
+            throw new IllegalArgumentException("Trạng thái bài đánh giá đầu vào không hợp lệ.");
+        }
+        return normalized;
     }
 
     private void validateConfig(String json, String skill) {
@@ -205,7 +214,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .description(definition.getDescription())
                 .examType(definition.getExamType())
                 .maxAttempts(definition.getMaxAttempts())
-                .active(definition.isActive())
+                .status(definition.getStatus())
                 .listeningConfigJson(definition.getListeningConfigJson())
                 .readingConfigJson(definition.getReadingConfigJson())
                 .writingConfigJson(definition.getWritingConfigJson())

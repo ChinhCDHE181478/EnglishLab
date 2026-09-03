@@ -29,8 +29,6 @@ export default function ContentManagerRoutes() {
         <Route path="courses/:slugOrId" element={<Navigate replace to="edit" />} />
         <Route path="classrooms" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
         <Route path="instructor-led-courses" element={<ContentManagerInstructorLedCoursesPage />} />
-        <Route path="offline-programs/*" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
-        <Route path="virtual-programs/*" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
         <Route path="syllabus-builder" element={<Navigate replace to="/content-manager/instructor-led-courses" />} />
         <Route path="exercise-bank" element={<ContentManagerExerciseBankPage />} />
         <Route path="courses/new" element={<ContentManagerCourseEditorPage />} />

@@ -10,9 +10,8 @@ const asList = (data) => {
 };
 
 const enrollmentRequestApi = {
-  async getCourseOfferings(deliveryType) {
+  async getCourseOfferings() {
     const response = await axiosClient.get('/api/course-offerings', {
-      params: deliveryType && deliveryType !== 'ALL' ? { deliveryType } : undefined,
       skipAuthRedirect: true,
     });
     const data = unwrapData(response);

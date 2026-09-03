@@ -50,6 +50,4 @@ public class AssessmentBankItemRequest {
     @Size(max = 30)
     private String status;
 
-    @Min(0)
-    private Integer displayOrder;
 }

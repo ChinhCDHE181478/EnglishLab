@@ -18,6 +18,8 @@ import java.util.Optional;
 public interface CourseDiscussionReportRepository extends JpaRepository<CourseDiscussionReport, Long> {
     Optional<CourseDiscussionReport> findByPostAndReporter(CourseDiscussionPost post, User reporter);
 
+    long countByPost(CourseDiscussionPost post);
+
     @EntityGraph(attributePaths = {
             "reporter", "reviewedBy", "post", "post.course", "post.lesson", "post.author"
     })

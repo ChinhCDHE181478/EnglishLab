@@ -57,9 +57,6 @@ public class CourseUnitContentRef {
     @Builder.Default
     private Integer sequenceNumber = 0;
 
-    @Column(length = 500)
-    private String note;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "learning_resource_id")
     private CenterMaterialLibraryItem learningResource;

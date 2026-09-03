@@ -9,13 +9,11 @@ import {
   learnerStorageKeys,
   readAssessmentDrafts,
   readAssessmentQueue,
-  readLessonFlags,
   readLessonNotes,
   readNotifications,
   readRecentLessons,
   writeAssessmentDrafts,
   writeAssessmentQueue,
-  writeLessonFlags,
   writeLessonNotes,
   writeNotifications,
   writeRecentLessons,
@@ -52,7 +50,6 @@ const ToastViewport = ({ toasts, onDismiss }) => (
 export const LearnerExperienceProvider = ({ children }) => {
   const { user } = useAuth();
   const [lessonNotes, setLessonNotes] = useState(() => readLessonNotes());
-  const [lessonFlags, setLessonFlags] = useState(() => readLessonFlags());
   const [recentLessons, setRecentLessons] = useState(() => readRecentLessons());
   const [assessmentDrafts, setAssessmentDrafts] = useState(() => readAssessmentDrafts());
   const [assessmentQueue, setAssessmentQueue] = useState(() => readAssessmentQueue());
@@ -66,7 +63,6 @@ export const LearnerExperienceProvider = ({ children }) => {
   const canSyncStudyTools = authenticated && canUseLearnerStudyTools(user);
 
   useEffect(() => { if (!authenticated) writeLessonNotes(lessonNotes); }, [authenticated, lessonNotes]);
-  useEffect(() => { if (!authenticated) writeLessonFlags(lessonFlags); }, [authenticated, lessonFlags]);
   useEffect(() => { writeRecentLessons(recentLessons); }, [recentLessons]);
   useEffect(() => { writeAssessmentDrafts(assessmentDrafts); }, [assessmentDrafts]);
   useEffect(() => { writeAssessmentQueue(assessmentQueue); }, [assessmentQueue]);
@@ -75,7 +71,6 @@ export const LearnerExperienceProvider = ({ children }) => {
   useEffect(() => {
     const syncStorage = (event) => {
       if ((!event.key || event.key === learnerStorageKeys.notes) && !hasAccessToken()) setLessonNotes(readLessonNotes());
-      if ((!event.key || event.key === learnerStorageKeys.lessonFlags) && !hasAccessToken()) setLessonFlags(readLessonFlags());
       if (!event.key || event.key === learnerStorageKeys.recentLessons) setRecentLessons(readRecentLessons());
       if (!event.key || event.key === learnerStorageKeys.assessmentDrafts) setAssessmentDrafts(readAssessmentDrafts());
       if (!event.key || event.key === learnerStorageKeys.assessmentQueue) setAssessmentQueue(readAssessmentQueue());
@@ -95,7 +90,6 @@ export const LearnerExperienceProvider = ({ children }) => {
     const loadStudyTools = async () => {
       if (!canSyncStudyTools) {
         setLessonNotes(authenticated ? [] : readLessonNotes());
-        setLessonFlags(authenticated ? [] : readLessonFlags());
         setStudyToolsSyncError('');
         setStudyToolsSyncing(false);
         return;
@@ -103,16 +97,12 @@ export const LearnerExperienceProvider = ({ children }) => {
       setStudyToolsSyncing(true);
       setStudyToolsSyncError('');
       try {
-        const [notes, flags] = await Promise.all([
-          courseApi.getLearnerLessonNotes(),
-          courseApi.getLearnerLessonReviewFlags(),
-        ]);
+        const notes = await courseApi.getLearnerLessonNotes();
         if (!cancelled) {
           setLessonNotes(notes);
-          setLessonFlags(flags);
         }
       } catch {
-        if (!cancelled) setStudyToolsSyncError('Không thể đồng bộ ghi chú và bài học đã đánh dấu.');
+        if (!cancelled) setStudyToolsSyncError('Không thể đồng bộ ghi chú.');
       } finally {
         if (!cancelled) setStudyToolsSyncing(false);
       }
@@ -216,30 +206,6 @@ export const LearnerExperienceProvider = ({ children }) => {
     } catch {
       setStudyToolsSyncError('Không thể xóa ghi chú. Vui lòng thử lại.');
       pushToast({ title: 'Không thể xóa ghi chú', message: 'Ghi chú vẫn được giữ nguyên.', type: 'error' });
-    } finally {
-      setStudyToolsSyncing(false);
-    }
-  };
-
-  const toggleLessonReviewFlag = async ({ courseId, lessonId, lessonTitle = '', courseTitle = '' }) => {
-    const exists = lessonFlags.some((item) => String(item.lessonId) === String(lessonId));
-    setStudyToolsSyncing(true);
-    setStudyToolsSyncError('');
-    try {
-      if (exists) {
-        if (authenticated) await courseApi.removeLearnerLessonReviewFlag(courseId, lessonId);
-        setLessonFlags((current) => current.filter((item) => String(item.lessonId) !== String(lessonId)));
-        return false;
-      }
-      const flag = authenticated
-        ? await courseApi.addLearnerLessonReviewFlag(courseId, lessonId)
-        : { id: `hoc-lai-${lessonId}`, courseId, lessonId, lessonTitle, courseTitle, createdAt: new Date().toISOString() };
-      setLessonFlags((current) => [flag, ...current]);
-      return true;
-    } catch {
-      setStudyToolsSyncError('Không thể cập nhật đánh dấu học lại. Vui lòng thử lại.');
-      pushToast({ title: 'Không thể đồng bộ đánh dấu', message: 'Vui lòng thử lại sau.', type: 'error' });
-      return exists;
     } finally {
       setStudyToolsSyncing(false);
     }
@@ -368,7 +334,6 @@ export const LearnerExperienceProvider = ({ children }) => {
     studyToolsSyncing,
     studyToolsSyncError,
     lessonNotes,
-    lessonFlags,
     recentLessons,
     assessmentDrafts,
     assessmentQueue,
@@ -377,7 +342,6 @@ export const LearnerExperienceProvider = ({ children }) => {
     saveLessonNote,
     updateLessonNote,
     removeLessonNote,
-    toggleLessonReviewFlag,
     saveRecentLesson,
     saveAssessmentDraft,
     clearAssessmentDraft,
@@ -390,7 +354,6 @@ export const LearnerExperienceProvider = ({ children }) => {
   }), [
     user,
     lessonNotes,
-    lessonFlags,
     recentLessons,
     assessmentDrafts,
     assessmentQueue,

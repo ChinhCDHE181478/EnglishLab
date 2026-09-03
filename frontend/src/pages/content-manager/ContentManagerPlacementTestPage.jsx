@@ -401,7 +401,7 @@ function Overview({ definition, onChange }) {
         value={definition.description}
       />
     </div>
-  </div><label className="mt-5 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.active} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onChange('active', event.target.checked)} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
+  </div><label className="mt-5 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.status === 'PUBLISHED'} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onChange('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
   </Panel>;
 }
 
@@ -506,7 +506,7 @@ function toPayload(draft) {
     description: draft.description,
     examType: draft.examType || 'IELTS',
     maxAttempts: Number(draft.maxAttempts),
-    active: Boolean(draft.active),
+    status: draft.status || 'DRAFT',
     listeningConfigJson: JSON.stringify(draft.listening),
     readingConfigJson: JSON.stringify(draft.reading),
     writingConfigJson: JSON.stringify(draft.writing),

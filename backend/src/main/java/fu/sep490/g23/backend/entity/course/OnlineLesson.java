@@ -62,15 +62,6 @@ public class OnlineLesson {
     @Column(name = "video_url", length = 700)
     private String videoUrl;
 
-    @Column(name = "bunny_video_id", length = 80)
-    private String bunnyVideoId;
-
-    @Column(name = "bunny_library_id", length = 80)
-    private String bunnyLibraryId;
-
-    @Column(name = "bunny_cdn_url", length = 700)
-    private String bunnyCdnUrl;
-
     @Column(name = "material_url", length = 700)
     private String materialUrl;
 

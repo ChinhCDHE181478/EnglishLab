@@ -69,7 +69,7 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
     void createsCompleteToeicClassForRequestedLearner() {
         User learner = userRepository.findByEmail("0386852628z@gmail.com").orElseThrow();
         ClassSection offering = offeringRepository
-                .findByInstructorLedCourseSlugOrCode("toeic-650-showcase-class-0386852628z")
+                .findByInstructorLedCourseCodeOrClassCode("toeic-650-showcase-class-0386852628z")
                 .orElseThrow();
 
         assertThat(offering.getInstructorLedCourse()).isNotNull();

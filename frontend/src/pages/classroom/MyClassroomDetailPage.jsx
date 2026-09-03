@@ -198,6 +198,7 @@ export default function MyClassroomDetailPage() {
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [selectedHomeworkForSubmission, setSelectedHomeworkForSubmission] = useState(null);
   const [confirmHomework, setConfirmHomework] = useState(null);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
   const [examHomework, setExamHomework] = useState(null);
   const [examError, setExamError] = useState('');
   const [flashcardHomework, setFlashcardHomework] = useState(null);
@@ -589,6 +590,8 @@ export default function MyClassroomDetailPage() {
       const isVirtual = classroom.deliveryMode === 'VIRTUAL';
       const totalSessions = sessions.length;
       const attendedCount = attendanceStats.present + Math.round(attendanceStats.late * 0.5);
+      const plainDescription = classroom.description ? stripRichTextToPlain(classroom.description) : '';
+      const isLongDescription = plainDescription.length > 400;
 
       return (
         <div className="space-y-8">
@@ -614,6 +617,36 @@ export default function MyClassroomDetailPage() {
             )}
             {meetMessage && <p className="w-full text-xs text-rose-700 font-semibold">{meetMessage}</p>}
           </div>
+
+          {/* ── Course Description ── */}
+          {classroom.description && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
+                <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Giới thiệu chung</h3>
+              </div>
+              <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.015)] text-[#584140]">
+                <div className={`relative overflow-hidden transition-all duration-500 ${(!isDescExpanded && isLongDescription) ? 'max-h-[140px]' : 'max-h-[3000px]'}`}>
+                  <RichTextHtml value={classroom.description} />
+                  {(!isDescExpanded && isLongDescription) && (
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                  )}
+                </div>
+                {isLongDescription && (
+                  <div className="mt-2 text-center">
+                    <button
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-[#8a0018] hover:text-[#584140] transition-colors"
+                      type="button"
+                    >
+                      {isDescExpanded ? 'Thu gọn' : 'Xem thêm'}
+                      {isDescExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── KPI Row ── */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -653,8 +686,8 @@ export default function MyClassroomDetailPage() {
                 <div className="flex flex-col">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5 whitespace-nowrap">Đánh giá</span>
                   <p className="font-['Manrope'] text-base lg:text-lg font-extrabold text-[#1a1c1c] break-words">
-                    {(gradebook?.finalResult != null && gradebook.finalResult !== '') 
-                      ? formatGradebookFinalResult(gradebook.finalResult) 
+                    {(gradebook?.finalResult != null && gradebook.finalResult !== '')
+                      ? formatGradebookFinalResult(gradebook.finalResult)
                       : '--/10'}
                   </p>
                 </div>

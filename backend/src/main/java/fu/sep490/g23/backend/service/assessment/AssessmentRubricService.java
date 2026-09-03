@@ -10,11 +10,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface AssessmentRubricService {
-    List<AssessmentRubricResponse> list(Boolean includeInactive, AssessmentSkill skill);
+    List<AssessmentRubricResponse> list(String status, AssessmentSkill skill);
 
     Page<AssessmentRubricResponse> page(
-            Boolean includeInactive,
-            Boolean active,
+            String status,
             AssessmentSkill skill,
             String keyword,
             Pageable pageable

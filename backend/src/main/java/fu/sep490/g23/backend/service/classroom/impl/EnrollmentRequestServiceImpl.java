@@ -123,11 +123,9 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .contactEmail(request.getContactEmail().trim().toLowerCase())
                 .contactPhone(request.getContactPhone().trim())
                 .facebookUrl(trimOrNull(request.getFacebookUrl()))
-                .desiredClassCode(trimOrNull(request.getDesiredClassCode()))
                 .consultationTrack(request.getConsultationTrack().trim())
                 .studyWorkGoal(trimOrNull(request.getStudyWorkGoal()))
                 .preferredSchedule(trimOrNull(request.getPreferredSchedule()))
-                .campusPreference(trimOrNull(request.getCampusPreference()))
                 .learnerNote(trimOrNull(request.getNote()))
                 .build();
         enrollmentRequestRepository.save(courseRegistrationRequest);
@@ -219,7 +217,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .staffNote(trimOrNull(payload.getNote()))
                 .reviewedBy(staff)
                 .reviewedAt(now)
-                .testCompletedAt(now)
                 .build();
         request = enrollmentRequestRepository.save(request);
         recordTransition(
@@ -282,8 +279,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         if (!payload.getAppointmentAt().isAfter(LocalDateTime.now())) {
             throw new IllegalArgumentException("Ngày giờ đến test phải ở trong tương lai.");
         }
-        request.setTestAppointmentAt(payload.getAppointmentAt());
-        request.setTestLocation(payload.getLocation().trim());
         request.setInvitationSentAt(LocalDateTime.now());
         request.setStaffNote(trimOrNull(payload.getNote()));
         request.setReviewedBy(staff);
@@ -312,7 +307,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         if (request.getStatus() != EnrollmentRequestStatus.TEST_SCHEDULED) {
             throw new IllegalArgumentException("Chỉ có thể ghi kết quả sau khi hồ sơ đã được xếp lịch test.");
         }
-        request.setTestCompletedAt(LocalDateTime.now());
         request.setStaffNote(trimOrNull(payload.getNote()));
         request.setReviewedBy(staff);
         request.setReviewedAt(LocalDateTime.now());
@@ -482,7 +476,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .contactEmail(request.getContactEmail() == null ? request.getLearner().getEmail() : request.getContactEmail())
                 .contactPhone(request.getContactPhone())
                 .facebookUrl(request.getFacebookUrl())
-                .desiredClassCode(request.getDesiredClassCode())
                 .consultationTrack(request.getConsultationTrack())
                 .studyWorkGoal(request.getStudyWorkGoal())
                 .courseOfferingId(offering == null ? null : offering.getId())
@@ -491,13 +484,17 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .requestedClassroomTitle(preferredClassSection == null ? null : preferredClassSection.getTitle())
                 .requestedClassroomCode(preferredClassSection == null ? null : preferredClassSection.getSlug())
                 .requestedClassroomStartDate(preferredClassSection == null ? null : preferredClassSection.getStartDate())
-                .requestedClassroomSchedule(preferredClassSection == null ? null : preferredClassSection.getStudyMode())
+                .requestedClassroomSchedule(preferredClassSection == null || preferredClassSection.getDeliveryMode() == null
+                        ? null
+                        : preferredClassSection.getDeliveryMode().name())
                 .requestedClassroomTeacherName(preferredClassSection == null || preferredClassSection.getPrimaryTeacher() == null
                         ? null
                         : preferredClassSection.getPrimaryTeacher().getFullName())
                 .requestedClassroomLocation(preferredClassSection == null
                         ? null
-                        : preferredClassSection.getOfflineAddress())
+                        : preferredClassSection.getRoom() == null
+                        ? null
+                        : preferredClassSection.getRoom().getLocationAddress())
                 .deliveryType(preferredClassSection == null ? null : preferredClassSection.getDeliveryMode())
                 .status(request.getStatus())
                 .statusLabel(statusLabel(request.getStatus()))
@@ -506,14 +503,10 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         : request.getRequestSource())
                 .confirmedLevel(request.getConfirmedLevel())
                 .preferredSchedule(request.getPreferredSchedule())
-                .campusPreference(request.getCampusPreference())
                 .learnerNote(request.getLearnerNote())
                 .staffNote(request.getStaffNote())
                 .rejectionReason(request.getRejectionReason())
                 .invitationSentAt(request.getInvitationSentAt())
-                .testAppointmentAt(request.getTestAppointmentAt())
-                .testLocation(request.getTestLocation())
-                .testCompletedAt(request.getTestCompletedAt())
                 .placementAttemptId(request.getPlacementAttempt() == null ? null : request.getPlacementAttempt().getId())
                 .placementEligibility(eligibility)
                 .assignedClassroomId(request.getAssignedClassSection() == null ? null : request.getAssignedClassSection().getId())

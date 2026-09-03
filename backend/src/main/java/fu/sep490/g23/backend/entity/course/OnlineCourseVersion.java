@@ -61,14 +61,6 @@ public class OnlineCourseVersion {
     @Column(nullable = false, length = 30)
     private CourseVersionStatus status;
 
-    @Column(name = "content_snapshot_json", columnDefinition = "text", nullable = false)
-    @Builder.Default
-    private String contentSnapshotJson = "{}";
-
-    @Column(name = "assessment_ids_json", columnDefinition = "text")
-    @Builder.Default
-    private String assessmentIdsJson = "[]";
-
     @Column(name = "total_required_lessons", nullable = false)
     @Builder.Default
     private Integer totalRequiredLessons = 0;
@@ -80,19 +72,13 @@ public class OnlineCourseVersion {
     @Column(name = "change_note", length = 700)
     private String changeNote;
 
-    @Column(name = "review_note", length = 700)
-    private String reviewNote;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewed_by_id")
-    private User reviewedBy;
-
-    @Column(name = "submitted_at")
-    private LocalDateTime submittedAt;
+    @JoinColumn(name = "published_by_id")
+    private User publishedBy;
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt;

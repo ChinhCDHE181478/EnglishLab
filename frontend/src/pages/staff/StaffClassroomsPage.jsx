@@ -31,7 +31,7 @@ const initialForm = {
   title: '', deliveryMode: 'OFFLINE', classroomStatus: 'DRAFT', originalStatus: 'DRAFT',
   instructorLedCourseId: '', instructorLedCourseTitle: '', instructorLedCourseCode: '',
   maxCapacity: '18', startDate: '', endDate: '', tuitionFeeVnd: '',
-  primaryTeacherId: '', regularRoomId: '', offlineAddress: '', locationNote: '',
+  primaryTeacherId: '', roomId: '',
   scheduleItems: [],
 };
 
@@ -60,7 +60,7 @@ export default function StaffClassroomsPage() {
     try {
       const [classroomData, roomData, teacherData, courseData] = await Promise.all([
         classroomApi.getStaffClassrooms(), classroomApi.getStaffRooms(), classroomApi.getStaffTeachers(),
-        classroomApi.getStaffPrograms(),
+        classroomApi.getStaffInstructorLedCourses(),
       ]);
       setClassrooms(classroomData);
       setRooms(roomData);
@@ -109,7 +109,7 @@ export default function StaffClassroomsPage() {
       const matchesStatus = statusFilter === 'ALL' || item.classroomStatus === statusFilter;
       const matchesCourse = courseFilter === 'ALL' || String(item.instructorLedCourseId) === courseFilter;
       const matchesSearch = !search || [item.title, item.code, item.instructorLedCourseTitle,
-        item.instructorLedCourseCode, item.primaryTeacherName, item.regularRoomName]
+        item.instructorLedCourseCode, item.primaryTeacherName, item.roomName]
         .filter(Boolean).some((value) => String(value).toLowerCase().includes(search));
       return matchesStatus && matchesCourse && matchesSearch;
     });
@@ -150,7 +150,7 @@ export default function StaffClassroomsPage() {
       const detail = await classroomApi.getStaffClassroom(item.id);
       const structure = detail.instructorLedCourse
         || (detail.instructorLedCourseId
-          ? await classroomApi.getStaffProgram(detail.instructorLedCourseId)
+          ? await classroomApi.getStaffInstructorLedCourse(detail.instructorLedCourseId)
           : null);
       setEditingId(item.id);
       setForm(mapToForm(detail));
@@ -172,7 +172,7 @@ export default function StaffClassroomsPage() {
     setWorking(true);
     setFormError('');
     try {
-      const detail = await classroomApi.getStaffProgram(value);
+      const detail = await classroomApi.getStaffInstructorLedCourse(value);
       setCourseStructure(detail);
     } catch (err) {
       setCourseStructure(null);
@@ -195,7 +195,7 @@ export default function StaffClassroomsPage() {
             ? 'Lớp đang hoạt động phải có giáo viên chính.'
           : '')
       : validateClassroomOfferingForm({
-        ...form, price: form.tuitionFeeVnd, roomId: form.regularRoomId,
+        ...form, price: form.tuitionFeeVnd,
       });
     if (validation) { setFormError(validation); return; }
     if (!limitedEdit) {
@@ -214,10 +214,8 @@ export default function StaffClassroomsPage() {
         startDate: form.startDate || null,
         endDate: form.endDate || null,
         primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
-        roomId: form.deliveryMode === 'OFFLINE' && form.regularRoomId ? Number(form.regularRoomId) : null,
+        roomId: form.deliveryMode === 'OFFLINE' && form.roomId ? Number(form.roomId) : null,
         price: form.tuitionFeeVnd ? Number(form.tuitionFeeVnd) : 0,
-        offlineAddress: form.offlineAddress || null,
-        locationNote: form.locationNote.trim() || null,
       };
       if (limitedEdit) {
         await classroomApi.updateStaffClassroom(editingId, classroomPayload);
@@ -290,7 +288,7 @@ function ClassroomRow({ item, navigate, onEdit, working }) {
     <td className="px-5 py-4"><p className="max-w-64 text-sm font-bold text-[#0b1c30]">{item.title}</p><p className="mt-1 text-xs text-slate-500">{item.code || 'Chưa có mã lớp'}</p></td>
     <td className="px-5 py-4"><p className="max-w-64 text-sm font-bold text-[#0b1c30]">{item.instructorLedCourseTitle || 'Chưa gắn khóa học'}</p><p className="mt-1 text-xs text-slate-500">{item.instructorLedCourseCode || ''}</p></td>
     <td className="px-5 py-4"><p className="max-w-60 font-semibold text-slate-700">{item.scheduleSummary || 'Chưa có lịch học'}</p><p className="mt-1 text-xs text-slate-500">{dateRange(item)}</p></td>
-    <td className="px-5 py-4"><div className="flex items-center gap-2 font-semibold text-slate-700">{item.deliveryMode === 'VIRTUAL' ? <Video className="h-4 w-4 text-blue-600" /> : <Building2 className="h-4 w-4 text-emerald-600" />}{formatDeliveryMode(item.deliveryMode, item.deliveryModeLabel)}</div><p className="mt-1 max-w-48 text-xs text-slate-500">{item.deliveryMode === 'VIRTUAL' ? meetStatus(item.googleMeetStatus) : item.regularRoomName || item.roomName || 'Chưa chọn phòng thường học'}</p></td>
+    <td className="px-5 py-4"><div className="flex items-center gap-2 font-semibold text-slate-700">{item.deliveryMode === 'VIRTUAL' ? <Video className="h-4 w-4 text-blue-600" /> : <Building2 className="h-4 w-4 text-emerald-600" />}{formatDeliveryMode(item.deliveryMode, item.deliveryModeLabel)}</div><p className="mt-1 max-w-48 text-xs text-slate-500">{item.deliveryMode === 'VIRTUAL' ? meetStatus(item.googleMeetStatus) : item.roomName || 'Chưa chọn phòng học'}</p></td>
     <td className="px-5 py-4 font-semibold text-slate-700">{item.primaryTeacherName || 'Chưa phân công'}</td>
     <td className="px-5 py-4 font-bold text-[#0b1c30]">{item.enrolledCount ?? 0}/{item.capacity ?? item.maxCapacity ?? 0}</td>
     <td className="px-5 py-4 font-bold text-[#0b1c30]">{formatClassroomPrice(item.tuitionFeeVnd ?? item.price ?? 0)}</td>
@@ -383,11 +381,10 @@ function Editor({ courseOptions, courseStructure, form, formError, onChange, onC
               <Field label="Hình thức"><BrandedSelect onChange={(e) => onChange('deliveryMode', e.target.value)} options={deliveryModeOptions} value={form.deliveryMode} /></Field>
               <Field label="Trạng thái"><BrandedSelect onChange={(e) => onChange('classroomStatus', e.target.value)} options={statusOptions.filter((item) => ['DRAFT', 'UPCOMING'].includes(item.value))} value={form.classroomStatus} /></Field>
               <Field label="Giáo viên chính"><BrandedSelect onChange={(e) => onChange('primaryTeacherId', e.target.value)} options={teacherOptions} searchable value={form.primaryTeacherId} /></Field>
-              {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng thường học"><BrandedSelect onChange={(e) => onChange('regularRoomId', e.target.value)} options={roomOptions} searchable value={form.regularRoomId} /></Field> : null}
+              {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng học"><BrandedSelect onChange={(e) => onChange('roomId', e.target.value)} options={roomOptions} searchable value={form.roomId} /></Field> : null}
               <Field label="Học phí lớp"><input className={inputClass} min="0" onChange={(e) => onChange('tuitionFeeVnd', e.target.value)} type="number" value={form.tuitionFeeVnd} /></Field>
               <Field label="Ngày bắt đầu"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('startDate', value)} required value={form.startDate} /></Field>
               <Field label="Ngày kết thúc"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('endDate', value)} value={form.endDate} /></Field>
-              <Field label="Ghi chú địa điểm" wide><textarea className={inputClass} onChange={(e) => onChange('locationNote', e.target.value)} rows={2} value={form.locationNote} /></Field>
             </> : null}
           </div>
         </section>
@@ -453,16 +450,14 @@ function mapToForm(item) {
     endDate: item.endDate || sessions[sessions.length - 1]?.sessionDate || '',
     tuitionFeeVnd: String(item.tuitionFeeVnd ?? item.price ?? ''),
     primaryTeacherId: String(item.primaryTeacherId || ''),
-    regularRoomId: String(item.regularRoomId ?? item.roomId ?? ''),
-    offlineAddress: item.offlineAddress || '',
-    locationNote: item.locationNote || '',
+    roomId: String(item.roomId || ''),
     scheduleItems: sessions.map((session) => ({
       id: session.id,
       sessionDate: session.sessionDate || '',
       startTime: String(session.startTime || '').slice(0, 5),
       endTime: String(session.endTime || '').slice(0, 5),
       teacherId: session.teacherId && session.teacherId !== item.primaryTeacherId ? String(session.teacherId) : '',
-      roomId: session.roomId && session.roomId !== (item.regularRoomId ?? item.roomId) ? String(session.roomId) : '',
+      roomId: session.roomId && session.roomId !== item.roomId ? String(session.roomId) : '',
       deliveryModeOverride: session.deliveryModeOverride || '',
       courseLessonId: session.courseLessonId ? String(session.courseLessonId) : '',
       courseLessonTitle: session.courseLessonTitle || '',

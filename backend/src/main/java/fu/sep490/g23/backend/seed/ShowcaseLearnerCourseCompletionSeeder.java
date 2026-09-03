@@ -183,12 +183,8 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
             }
             submissionRepository.save(baseSubmission(assessment, learner)
                     .submittedText(attempt.answer())
-                    .aiScore(attempt.score())
-                    .aiFeedbackJson(attempt.feedbackJson())
-                    .aiPromptSnapshot("Đánh giá bài output vocabulary theo rubric nghĩa, collocation, câu và mức bám chủ đề.")
-                    .aiProvider("EnglishLab")
-                    .aiModel("vocabulary-review-seed")
-                    .aiRawResponse("Deterministic vocabulary review aligned with the submitted sentences.")
+                    .score(attempt.score())
+                    .aiFeedback(attempt.feedbackJson())
                     .status(SubmissionStatus.PASSED)
                     .build());
         }
@@ -340,16 +336,12 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
             OnlineLesson lesson = lessons.get(index);
             LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
                     .orElseGet(() -> LessonProgress.builder()
-                            .student(learner)
                             .lesson(lesson)
                             .enrollment(enrollment)
                             .build());
             LocalDateTime completedAt = firstCompletion.plusDays(index);
             progress.setEnrollment(enrollment);
-            progress.setCourseVersion(version);
-            progress.setLessonKey(lesson.getLessonKey());
             progress.setStatus(LessonProgressStatus.COMPLETED);
-            progress.setProgressPercent(100);
             progress.setCompletedAt(completedAt);
             progress.setLastAccessedAt(completedAt.plusMinutes(45));
             lessonProgressRepository.save(progress);
@@ -393,10 +385,10 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                     .findTopByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, learner)
                     .orElse(null);
             if (existing != null) {
-                BigDecimal score = normalizeDemoScore(existing.getAiScore(), assessment);
-                existing.setAiScore(score);
+                BigDecimal score = normalizeDemoScore(existing.getScore(), assessment);
+                existing.setScore(score);
                 existing.setStatus(resolveSubmissionStatus(score, assessment));
-                existing.setAiFeedbackJson(ensureFeedbackScore(existing.getAiFeedbackJson(), score, assessment.getSkill()));
+                existing.setAiFeedback(ensureFeedbackScore(existing.getAiFeedback(), score, assessment.getSkill()));
                 submissionRepository.save(existing);
                 continue;
             }
@@ -439,13 +431,9 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
             int total = answerKey.size();
             String feedback = objectiveFeedback(assessment.getSkill(), total);
             return baseSubmission(assessment, learner)
-                    .objectiveAnswersJson(OBJECT_MAPPER.writeValueAsString(objectiveAnswers))
-                    .aiScore(BigDecimal.valueOf(total))
-                    .aiFeedbackJson(feedback)
-                    .aiPromptSnapshot("Đối chiếu từng câu trả lời với đáp án chuẩn của đề đã xuất bản.")
-                    .aiProvider("EnglishLab")
-                    .aiModel("objective-answer-key")
-                    .aiRawResponse("Deterministic objective scoring from stored answer key")
+                    .objectiveAnswers(OBJECT_MAPPER.writeValueAsString(objectiveAnswers))
+                    .score(BigDecimal.valueOf(total))
+                    .aiFeedback(feedback)
                     .status(SubmissionStatus.PASSED)
                     .build();
         } catch (Exception exception) {
@@ -477,16 +465,10 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         return baseSubmission(assessment, learner)
                 .submittedText(answer)
                 .submittedAudioUrl(audioUrl)
-                .microphoneChecked(audioBytes == null ? null : true)
-                .deviceCheckPassed(audioBytes == null ? null : true)
                 .fullscreenExitCount(0)
                 .tabSwitchCount(0)
-                .aiScore(score)
-                .aiFeedbackJson(ensureFeedbackScore(result.getFeedbackJson(), score, assessment.getSkill()))
-                .aiPromptSnapshot(prompt)
-                .aiProvider(result.getProvider())
-                .aiModel(result.getModel())
-                .aiRawResponse(result.getRawResponse())
+                .score(score)
+                .aiFeedback(ensureFeedbackScore(result.getFeedbackJson(), score, assessment.getSkill()))
                 .status(status)
                 .build();
     }
@@ -656,9 +638,9 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
             return;
         }
         for (AssessmentSubmission submission : submissionRepository.findByAssessmentInAndStudent(assessments, learner)) {
-            submission.setAiFeedbackJson(ensureFeedbackScore(
-                    submission.getAiFeedbackJson(),
-                    submission.getAiScore(),
+            submission.setAiFeedback(ensureFeedbackScore(
+                    submission.getAiFeedback(),
+                    submission.getScore(),
                     submission.getAssessment().getSkill()
             ));
             submissionRepository.save(submission);

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Helpers for reading/writing typed fields stored in {@code content_bank_items.payload_jsonb}.
+ * Helpers for reading/writing typed fields stored in {@code content_bank_items.content_data}.
  */
 public final class ContentBankPayloadSupport {
     private static final ObjectMapper MAPPER = new ObjectMapper();

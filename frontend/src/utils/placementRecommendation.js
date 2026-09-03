@@ -8,10 +8,6 @@ export const getPlacementLevelLabel = (value) => (
   PLACEMENT_LEVEL_OPTIONS.find((option) => option.value === value)?.label || value || 'Chưa xác định'
 );
 
-export const getDeliveryModeLabel = (value) => (
-  value === 'VIRTUAL' ? 'Virtual' : value === 'OFFLINE' ? 'Tại trung tâm' : value || 'Online'
-);
-
 export const getPlacementScoreLabel = (examType) => (
   String(examType || '').toUpperCase() === 'TOEIC' ? 'Điểm' : 'Band'
 );
@@ -29,8 +25,7 @@ export const countActuallyCompletedSteps = (courses = []) => (
 );
 
 export const groupPlacementRecommendations = (recommendation = {}) => ({
-  offline: (recommendation.recommendedTrainingPrograms || []).filter((item) => item.deliveryMode === 'OFFLINE'),
-  virtual: (recommendation.recommendedTrainingPrograms || []).filter((item) => item.deliveryMode === 'VIRTUAL'),
+  instructorLed: recommendation.recommendedInstructorLedCourses || [],
   online: recommendation.recommendedOnlineCourses || [],
 });
 

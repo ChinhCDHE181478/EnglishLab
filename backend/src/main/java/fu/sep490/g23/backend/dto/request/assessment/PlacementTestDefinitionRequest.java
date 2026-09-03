@@ -18,7 +18,7 @@ public class PlacementTestDefinitionRequest {
     @Max(10)
     private Integer maxAttempts;
 
-    private boolean active;
+    private String status;
 
     @NotBlank
     private String listeningConfigJson;

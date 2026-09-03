@@ -49,7 +49,6 @@ const emptyForm = {
   tags: '',
   cardsJson: '[]',
   status: 'DRAFT',
-  displayOrder: 0,
 };
 
 const examOptions = [
@@ -85,7 +84,6 @@ const toForm = (set = {}) => ({
   tags: set.tags || '',
   cardsJson: set.cardsJson || '[]',
   status: set.status || 'DRAFT',
-  displayOrder: set.displayOrder ?? 0,
 });
 
 const parseCards = (cardsJson) => {
@@ -305,7 +303,7 @@ function FlashcardBankPage({ editorRoute }) {
         examCategory: filters.examCategory === 'ALL' ? undefined : filters.examCategory,
         skill: filters.skill === 'ALL' ? undefined : filters.skill,
         status: filters.status === 'ALL' ? undefined : filters.status,
-        sort: ['displayOrder,asc', 'title,asc'],
+        sort: ['updatedAt,desc', 'title,asc'],
       };
       const [data, summary] = await Promise.all([
         curriculumApi.getFlashcardSetsPage(pageParams(page, 8, params)),
@@ -568,7 +566,6 @@ function FlashcardBankPage({ editorRoute }) {
     const payload = {
       ...form,
       cardsJson: serializeCards(validCards),
-      displayOrder: Number(form.displayOrder || 0),
       skill: form.skill || null,
     };
     try {

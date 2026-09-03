@@ -9,12 +9,12 @@ import java.util.List;
 import java.util.Map;
 
 public interface ExerciseBankService {
-    List<ExerciseBankItemResponse> list(String skill, boolean includeInactive);
+    List<ExerciseBankItemResponse> list(String skill, String status);
 
     Page<ExerciseBankItemResponse> page(
             String skill,
             String exerciseType,
-            Boolean active,
+            String status,
             String keyword,
             Pageable pageable
     );

@@ -561,7 +561,7 @@ public class PaymentServiceImpl implements PaymentService {
         for (Long courseId : courseIds) {
             OnlineCourse course = onlineCourseRepository.findById(courseId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học có mã " + courseId + "."));
-            if (course.isDeleted() || course.getStatus() != PackageStatus.PUBLISHED) {
+            if (course.getStatus() != PackageStatus.PUBLISHED) {
                 throw new RuntimeException("Có khóa học hiện không còn khả dụng để thanh toán.");
             }
 

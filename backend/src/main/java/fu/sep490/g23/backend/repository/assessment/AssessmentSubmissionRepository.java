@@ -42,7 +42,7 @@ public interface AssessmentSubmissionRepository extends JpaRepository<Assessment
             select count(distinct submission.assessment.id)
             from AssessmentSubmission submission
             where submission.student = :student
-              and submission.assessment.onlineCourse = :course
+              and submission.assessment.onlineCourseVersion.onlineCourse = :course
               and submission.assessment.active = true
               and submission.status in :completedStatuses
             """)

@@ -87,7 +87,6 @@ class PaymentServiceImplClassroomTuitionTest {
                 .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
                 .tuitionAmountDue(new BigDecimal("5000000"))
                 .tuitionAmountPaid(BigDecimal.ZERO)
-                .tuitionDepositPaid(BigDecimal.ZERO)
                 .build();
     }
 

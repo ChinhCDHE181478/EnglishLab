@@ -33,7 +33,8 @@ public class AssessmentRubricRequest {
 
     private String description;
 
-    private Boolean active = true;
+    @Size(max = 30)
+    private String status = "PUBLISHED";
 
     @Valid
     @NotEmpty(message = "Rubric cần có ít nhất một tiêu chí chấm điểm.")

@@ -36,13 +36,11 @@ const CourseWorkspace = () => {
     studyToolsSyncing,
     studyToolsSyncError,
     lessonNotes,
-    lessonFlags,
     recentLessons,
     assessmentQueue,
     saveLessonNote,
     updateLessonNote,
     removeLessonNote,
-    toggleLessonReviewFlag,
     saveRecentLesson,
     addNotification,
     enqueueAssessmentSubmission,
@@ -317,7 +315,6 @@ const CourseWorkspace = () => {
   const flashcardCount = Math.max(parsedVocabularyTerms.length, vocabularyCount);
   const hasVocabularyTerms = flashcardCount > 0;
   const courseNotes = useMemo(() => lessonNotes.filter((item) => String(item.courseId) === String(course?.id)), [lessonNotes, course?.id]);
-  const courseReviewFlags = useMemo(() => lessonFlags.filter((item) => String(item.courseId) === String(course?.id)), [lessonFlags, course?.id]);
   const courseRecentLessons = useMemo(() => recentLessons.filter((item) => String(item.courseId) === String(course?.id)), [recentLessons, course?.id]);
   const queuedItems = useMemo(() => assessmentQueue.filter((item) => String(item.courseId) === String(course?.id)), [assessmentQueue, course?.id]);
   const applyEnrollment = (nextEnrollment) => {
@@ -817,7 +814,6 @@ const CourseWorkspace = () => {
                 courseId={course.id}
                 mode={rightPanelVisible ? rightPanelMode : null}
                 notes={courseNotes}
-                reviewFlags={courseReviewFlags}
                 recentLessons={courseRecentLessons}
                 canPersist={isAuthenticated}
                 syncing={studyToolsSyncing}
@@ -843,12 +839,6 @@ const CourseWorkspace = () => {
                 })}
                 onUpdateNote={updateLessonNote}
                 onDeleteNote={removeLessonNote}
-                onToggleReviewFlag={() => toggleLessonReviewFlag({
-                  courseId: course.id,
-                  lessonId: activeWorkspaceItem?.id,
-                  lessonTitle: activeWorkspaceItem?.lesson?.title || activeWorkspaceItem?.title || '',
-                  courseTitle: course.title,
-                })}
                 onSelectRecentLesson={handleSelectLesson}
               />
             </div>

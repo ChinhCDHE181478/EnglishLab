@@ -36,8 +36,6 @@ public class ClassroomProposalResponse {
     private String primaryTeacherName;
     private Long roomId;
     private String roomName;
-    private String offlineAddress;
-    private String virtualMeetingUrl;
     private String staffNote;
     private ClassroomApprovalStatus approvalStatus;
     private String approvalStatusLabel;

@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.repository.classroom;
 
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -59,12 +58,6 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
     List<ClassEnrollment> findByRegistrationStatusIn(Collection<ClassroomRegistrationStatus> statuses);
 
-    List<ClassEnrollment> findByTuitionSettlementStatus(TuitionSettlementStatus status);
-
-    List<ClassEnrollment> findByClassSectionIdAndTuitionSettlementStatus(
-            Long classSectionId,
-            TuitionSettlementStatus status
-    );
 
     List<ClassEnrollment> findAllByOrderByEnrolledAtDesc();
 }

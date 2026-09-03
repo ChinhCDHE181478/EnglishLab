@@ -114,7 +114,7 @@ public class OnlineCoursePreviewValidator {
         String location = "modules[" + moduleIndex + "].lessons[" + lessonIndex + "]";
         String lessonTitle = isBlank(lesson.getTitle()) ? "Bài học " + (lessonIndex + 1) : lesson.getTitle();
         boolean hasText = !isBlank(lesson.getContentText());
-        boolean hasVideo = !isBlank(lesson.getVideoUrl()) || !isBlank(lesson.getBunnyCdnUrl());
+        boolean hasVideo = !isBlank(lesson.getVideoUrl());
         boolean hasMaterial = !isBlank(lesson.getMaterialUrl());
         boolean hasTranscript = lesson.getTranscriptSegments() != null && !lesson.getTranscriptSegments().isEmpty();
         boolean hasFlashcards = lesson.getFlashcardSets() != null && !lesson.getFlashcardSets().isEmpty();
@@ -142,7 +142,7 @@ public class OnlineCoursePreviewValidator {
             ));
         }
         if (contentType.contains("VIDEO")) {
-            String videoSource = !isBlank(lesson.getBunnyCdnUrl()) ? lesson.getBunnyCdnUrl() : lesson.getVideoUrl();
+            String videoSource = lesson.getVideoUrl();
             if (isBlank(videoSource) || !isHttpUrl(videoSource)) {
                 warnings.add(warning(
                         "INVALID_VIDEO_SOURCE",

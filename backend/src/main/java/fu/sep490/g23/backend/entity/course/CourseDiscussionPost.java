@@ -78,14 +78,6 @@ public class CourseDiscussionPost {
     @Builder.Default
     private CourseDiscussionStatus status = CourseDiscussionStatus.OPEN;
 
-    @Column(name = "reported_count", nullable = false)
-    @Builder.Default
-    private int reportedCount = 0;
-
-    @Column(name = "helpful_count", nullable = false)
-    @Builder.Default
-    private int helpfulCount = 0;
-
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

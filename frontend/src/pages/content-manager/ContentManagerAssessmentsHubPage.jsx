@@ -239,7 +239,8 @@ const emptyForm = (pageConfig) => {
     type: pageConfig?.type || 'LESSON_PRACTICE',
     skill,
     examCategory,
-    aiEvaluationMode: 'NONE',
+    aiEvaluationMode: ['WRITING', 'SPEAKING'].includes(skill) ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY',
+    rubricId: '',
     instructions: '',
     objectiveAnswerKey: '',
     uiConfigJson: isMock ? withExamTypeInConfig('{}', examCategory, skill) : '',
@@ -247,7 +248,6 @@ const emptyForm = (pageConfig) => {
     maxScore: 100,
     timeLimitMinutes: '',
     status: 'DRAFT',
-    displayOrder: 0,
   };
 };
 
@@ -259,7 +259,8 @@ const toForm = (item = {}, pageConfig) => {
     type: item.type || pageConfig?.type || 'LESSON_PRACTICE',
     skill: item.skill || pageConfig?.skill || 'LISTENING',
     examCategory,
-    aiEvaluationMode: item.aiEvaluationMode || 'NONE',
+    aiEvaluationMode: item.aiEvaluationMode || (['WRITING', 'SPEAKING'].includes(item.skill) ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY'),
+    rubricId: item.rubric?.id ? String(item.rubric.id) : '',
     instructions: item.instructions || '',
     objectiveAnswerKey: item.objectiveAnswerKey || '',
     uiConfigJson: item.uiConfigJson || '',
@@ -267,7 +268,6 @@ const toForm = (item = {}, pageConfig) => {
     maxScore: item.maxScore ?? 100,
     timeLimitMinutes: item.timeLimitMinutes ?? '',
     status: item.status || 'DRAFT',
-    displayOrder: item.displayOrder ?? 0,
   };
 };
 
@@ -279,6 +279,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const isSkillLocked = Boolean(pageConfig.lockedSkill);
   const isMockExamsPage = pageKey === 'mockExams';
   const [items, setItems] = useState([]);
+  const [rubrics, setRubrics] = useState([]);
   const [form, setForm] = useState(() => emptyForm(pageConfig));
   const [editingId, setEditingId] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -317,15 +318,17 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           ? filters.examCategory
           : undefined,
         keyword: deferredKeyword.trim() || undefined,
-        sort: ['displayOrder,asc', 'updatedAt,desc', 'title,asc'],
+        sort: ['updatedAt,desc', 'title,asc'],
       };
-      const [data, summary] = await Promise.all([
+      const [data, summary, rubricItems] = await Promise.all([
         curriculumApi.getAssessmentBankPage(pageParams(page, 8, params)),
         curriculumApi.getAssessmentBankStats(baseParams),
+        courseApi.getManagedAssessmentRubrics(),
       ]);
       setPageResult(data);
       setItems(data.content);
       setStatsData(summary);
+      setRubrics(rubricItems);
     } catch (err) {
       setError(err?.response?.data?.message || `Không tải được ${pageConfig.successNoun}.`);
     } finally {
@@ -380,6 +383,10 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           uiConfigJson: withExamTypeInConfig(value, current.examCategory || 'IELTS', current.skill),
         };
       }
+      if (field === 'skill') {
+        next.rubricId = '';
+        next.aiEvaluationMode = ['WRITING', 'SPEAKING'].includes(value) ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY';
+      }
       return next;
     });
   };
@@ -433,7 +440,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       passingScore: lockedDraft.passingScore === '' ? null : Number(lockedDraft.passingScore),
       maxScore: lockedDraft.maxScore === '' ? null : Number(lockedDraft.maxScore),
       timeLimitMinutes: lockedDraft.timeLimitMinutes === '' ? null : Number(lockedDraft.timeLimitMinutes),
-      displayOrder: Number(lockedDraft.displayOrder || 0),
     };
   };
 
@@ -463,6 +469,16 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     if (isSkillLocked && String(payload.skill || '').toUpperCase() !== pageConfig.skill) {
       setError('Kỹ năng của payload không khớp trang hiện tại. Vui lòng tải lại trang và thử lại.');
       return;
+    }
+    if (payload.type === 'MODULE_TEST' && ['WRITING', 'SPEAKING'].includes(payload.skill)) {
+      if (payload.aiEvaluationMode === 'NONE') {
+        setError('Module Test Viết/Nói phải bật chấm bằng AI.');
+        return;
+      }
+      if (!payload.rubricId) {
+        setError('Module Test Viết/Nói phải chọn bộ tiêu chí chấm.');
+        return;
+      }
     }
 
     setWorking(true);
@@ -656,7 +672,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         { label: pageConfig.tableTitle, key: 'title' },
         { label: 'Thời lượng', key: 'time', align: 'center' },
         { label: 'Trạng thái', key: 'status' },
-        { label: 'Thứ tự', key: 'order', align: 'center' },
         { label: 'Thao tác', key: 'actions', align: 'right' },
       ]
       : isMockExamsPage
@@ -666,7 +681,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           { label: 'Kỹ năng', key: 'skill' },
           { label: 'Thời lượng', key: 'time', align: 'center' },
           { label: 'Trạng thái', key: 'status' },
-          { label: 'Thứ tự', key: 'order', align: 'center' },
           { label: 'Thao tác', key: 'actions', align: 'right' },
         ]
         : [
@@ -675,7 +689,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           { label: 'Kỹ năng', key: 'skill' },
           { label: 'Thời lượng', key: 'time', align: 'center' },
           { label: 'Trạng thái', key: 'status' },
-          { label: 'Thứ tự', key: 'order', align: 'center' },
           { label: 'Thao tác', key: 'actions', align: 'right' },
         ];
 
@@ -700,7 +713,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
               ) : null}
               <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : '-'}</td>
               <td className="px-6 py-5"><AssessmentStatusBadge status={item.status} /></td>
-              <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{item.displayOrder ?? 0}</td>
               <td className="px-6 py-5 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <button
@@ -834,6 +846,21 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                     <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
                   </div>
                 </div>
+                {['WRITING', 'SPEAKING'].includes(form.skill) ? (
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bộ tiêu chí chấm</span>
+                    <BrandedSelect
+                      value={form.rubricId}
+                      onChange={(event) => updateForm('rubricId', event.target.value)}
+                      options={[
+                        { label: 'Chọn bộ tiêu chí', value: '' },
+                        ...rubrics
+                          .filter((rubric) => rubric.status === 'PUBLISHED' && (rubric.skill === form.skill || rubric.skill === 'MIXED'))
+                          .map((rubric) => ({ label: rubric.name, value: String(rubric.id) })),
+                      ]}
+                    />
+                  </div>
+                ) : null}
                 <label className="block">
                   <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hướng dẫn làm bài</span>
                   <RichTextEditor
@@ -858,10 +885,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                     <input type="number" value={form.timeLimitMinutes} onChange={(event) => updateForm('timeLimitMinutes', event.target.value)} className={FIELD_CLASS} />
                   </label>
                 </div>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
-                  <input type="number" value={form.displayOrder} onChange={(event) => updateForm('displayOrder', event.target.value)} className={FIELD_CLASS} />
-                </label>
                 <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                   <button type="button" disabled={working} onClick={saveItem} className={PRIMARY_BUTTON_CLASS}>
                     <Save className="h-4 w-4" /> Lưu {pageConfig.successNoun}
