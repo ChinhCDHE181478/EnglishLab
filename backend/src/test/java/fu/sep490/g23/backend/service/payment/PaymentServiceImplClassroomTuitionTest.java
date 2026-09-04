@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
@@ -18,6 +19,7 @@ import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +57,7 @@ class PaymentServiceImplClassroomTuitionTest {
     @Mock private OnlineCourseService onlineCourseService;
     @Mock private ClassroomOfferingService classroomOfferingService;
     @Mock private PaymentReceiptPdfService paymentReceiptPdfService;
+    @Mock private StudentCommerceService studentCommerceService;
 
     private PaymentServiceImpl paymentService;
 
@@ -75,7 +78,8 @@ class PaymentServiceImplClassroomTuitionTest {
                 userRepository,
                 onlineCourseService,
                 classroomOfferingService,
-                paymentReceiptPdfService
+                paymentReceiptPdfService,
+                studentCommerceService
         );
 
         student = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
@@ -186,6 +190,31 @@ class PaymentServiceImplClassroomTuitionTest {
                 eq("PayOS #123")
         );
         verify(onlineCourseService, never()).activatePaidCourse(any(), any());
+    }
+
+    @Test
+    void markOrderPaid_removesOnlyPurchasedCoursesFromCart() {
+        OnlineCourse course = OnlineCourse.builder().id(41L).title("IELTS Writing").build();
+        PaymentOrder order = PaymentOrder.builder()
+                .id(99L)
+                .orderCode(123456L)
+                .student(student)
+                .amount(500_000L)
+                .status(PaymentOrderStatus.PENDING)
+                .build();
+        PaymentOrderItem item = PaymentOrderItem.builder()
+                .paymentOrder(order)
+                .itemType(PaymentOrderItemType.ONLINE_COURSE)
+                .onlineCourse(course)
+                .titleSnapshot(course.getTitle())
+                .build();
+        when(paymentOrderItemRepository.findByPaymentOrderIdOrderById(99L)).thenReturn(List.of(item));
+
+        ReflectionTestUtils.invokeMethod(paymentService, "markOrderPaid", order);
+
+        assertEquals(PaymentOrderStatus.PAID, order.getStatus());
+        verify(onlineCourseService).activatePaidCourse(41L, "learner@example.com");
+        verify(studentCommerceService).removeCoursesFromCart(List.of(41L), "learner@example.com");
     }
 
     @Test
