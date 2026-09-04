@@ -235,8 +235,8 @@ export default function ContentManagerCourseBuilderPage() {
         const normalizedCourse = normalizeCourseStructure(courseData);
         setCourse(normalizedCourse);
         setRubrics(Array.isArray(rubricItems) ? rubricItems : []);
-        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter((item) => item.status !== 'ARCHIVED'));
-        setFlashcardSets((Array.isArray(flashcardItems) ? flashcardItems : []).filter((item) => item.status !== 'ARCHIVED'));
+        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter((item) => item.status === 'PUBLISHED'));
+        setFlashcardSets((Array.isArray(flashcardItems) ? flashcardItems : []).filter((item) => item.status === 'PUBLISHED'));
 
         if (!normalizedCourse.id) {
           setAssessments([]);

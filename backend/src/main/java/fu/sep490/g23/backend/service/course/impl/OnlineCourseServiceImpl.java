@@ -215,6 +215,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return buildCertificateResponse(course, enrollment, student, completion, true);
     }
 
+    /**
+     * Retrieves paginated courses for Content Manager with search filters.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, CourseLevel level, PackageStatus status, Set<Long> excludedIds, Pageable pageable) {
@@ -226,12 +229,18 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .map(mapper::toResponse);
     }
 
+    /**
+     * Retrieves full course details for Content Manager by ID or slug.
+     */
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse getManagerCourse(String slugOrId) {
         return mapper.toResponse(findManagerCourse(slugOrId));
     }
 
+    /**
+     * Generates a preview mode response with validation warnings before publication.
+     */
     @Override
     @Transactional(readOnly = true)
     public OnlineCoursePreviewResponse getManagerCoursePreview(String slugOrId) {
@@ -254,6 +263,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .build();
     }
 
+    /**
+     * Reorders course modules within the editable draft version.
+     */
     @Override
     public List<fu.sep490.g23.backend.dto.response.course.ModuleResponse> reorderModules(
             Long courseId,
@@ -377,6 +389,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .build();
     }
 
+    /**
+     * Creates a new online self-paced course in DRAFT status and initializes its draft version.
+     */
     @Override
     public OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail) {
         validateCourseRequest(request);
@@ -426,11 +441,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return updateCourse(id, request, null);
     }
 
+    /**
+     * Updates course metadata without changing versioned modules or lessons.
+     */
     @Override
     public OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request, String actorEmail) {
         validateCourseRequest(request);
         OnlineCourse course = findCourse(id);
-        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
 
         CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
                 .orElseThrow(() -> new RuntimeException("Course category not found"));
@@ -454,17 +471,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setTargetBand(request.getTargetBand());
         course.setTargetOutcome(request.getTargetOutcome());
         
-        OnlineCourseVersion editableVersion = onlineCourseVersionService.requireEditableVersion(course);
-        moveContentOrdersToTemporaryRange(editableVersion.getModules());
-        onlineCourseRepository.flush();
-        synchronizeModules(course, editableVersion, request.getModules());
-        refreshCourseTotals(course, editableVersion.getModules());
-        OnlineCourse savedCourse = onlineCourseRepository.save(course);
-        onlineCourseVersionRepository.save(editableVersion);
-        onlineCourseVersionService.synchronizeDraftSnapshot(savedCourse);
-        return mapper.toResponse(savedCourse);
+        return mapper.toResponse(onlineCourseRepository.save(course));
     }
 
+    /**
+     * Validates and publishes the draft version of the online course.
+     */
     @Override
     public OnlineCourseResponse publishCourse(Long id, String actorEmail) {
         OnlineCourse course = findCourse(id);
@@ -483,10 +495,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return mapper.toResponse(course);
     }
 
+    /**
+     * Archives an online course so it is no longer purchasable.
+     */
     @Override
     public OnlineCourseResponse archiveCourse(Long id) {
         OnlineCourse course = findCourse(id);
-        course.setStatus(PackageStatus.ARCHIVED);
         course.setStatus(PackageStatus.ARCHIVED);
         return mapper.toResponse(course);
     }
@@ -1323,6 +1337,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return "%s-%s-%s".formatted(module.getId(), lesson.getId(), toSlug(term));
     }
 
+    /**
+     * Rebuilds all modules and lessons from scratch for newly created course draft.
+     */
     private void rebuildModules(OnlineCourse course, OnlineCourseVersion version, List<ModuleRequest> modules) {
         if (modules == null) return;
         for (int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
@@ -1356,6 +1373,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
     }
 
+    /**
+     * Synchronizes module list differentials (upserts existing, adds new, safely deletes removed).
+     */
     private void synchronizeModules(OnlineCourse course, OnlineCourseVersion version, List<ModuleRequest> modules) {
         if (modules == null) {
             return;
@@ -1392,6 +1412,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         nextModules.forEach(version::addModule);
     }
 
+    /**
+     * Synchronizes lesson list differentials under a specific course module.
+     */
     private void synchronizeLessons(OnlineCourseModule module, List<LessonRequest> lessons) {
         List<OnlineLesson> existingLessons = module.getLessons();
         Set<Long> incomingLessonIds = new HashSet<>();
@@ -1453,7 +1476,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     /**
-     * Synchronizes course assessments for the draft version, updating records and safely archiving deleted items.
+     * Synchronizes course assessments for the draft version via batch differential update.
      */
     private void synchronizeAssessments(OnlineCourse course, List<ContentManagerCourseAssessmentRequest> requests) {
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
@@ -1461,6 +1484,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         OnlineCourseVersion editableVersion = onlineCourseVersionService.requireEditableVersion(course);
         List<OnlineCourseModule> modules = new ArrayList<>(editableVersion.getModules());
 
+        // Upsert incoming assessments
         for (int index = 0; index < requests.size(); index++) {
             ContentManagerCourseAssessmentRequest request = requests.get(index);
             CourseAssessment assessment = findExistingAssessment(existingAssessments, request.getId());
@@ -1471,6 +1495,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                     course,
                     assessment.getId()
             )) {
+                // Copy-on-write guard: preserve published assessment history by creating a new record
                 String progressKey = assessment.getProgressKey();
                 if (progressKey == null || progressKey.isBlank()) {
                     progressKey = UUID.randomUUID().toString();
@@ -1485,12 +1510,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 incomingAssessmentIds.add(assessment.getId());
             }
 
+            // Resolve parent hierarchy and bank template
             OnlineCourseModule targetModule = resolveAssessmentModule(modules, request.getModuleId());
             OnlineLesson targetLesson = resolveAssessmentLesson(targetModule, request.getLessonId());
             AssessmentBankItem bankItem = resolveAssessmentBankItem(request.getAssessmentBankItemId());
             AssessmentRubric rubric = bankItem == null
                     ? resolveAssessmentRubric(request.getRubricId())
                     : bankItem.getRubric();
+
             try {
                 validateAssessmentConfiguration(request, bankItem);
                 validateAssessmentRubric(
@@ -1507,6 +1534,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             assessment.setOnlineLesson(targetLesson);
             assessment.setRubric(rubric);
             assessment.setAssessmentBankItem(bankItem);
+
             if (bankItem == null) {
                 assessment.setTitle(request.getTitle().trim());
                 assessment.setDescription(request.getDescription());
@@ -1519,6 +1547,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             } else {
                 applyAssessmentBankSnapshot(assessment, bankItem);
             }
+
+            // Normalize passing/max scores according to standard scale
             assessment.setPassingScore(IeltsBandScale.normalizeConfiguredPassingScore(
                     bankItem == null ? request.getPassingScore() : bankItem.getPassingScore(),
                     assessment.getType(),
@@ -1537,6 +1567,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             courseAssessmentRepository.save(assessment);
         }
 
+        // Cleanup removed assessments: soft-delete if referenced in history/submissions, else hard-delete
         for (CourseAssessment existingAssessment : existingAssessments) {
             if (existingAssessment.getId() == null || incomingAssessmentIds.contains(existingAssessment.getId())) {
                 continue;
@@ -1704,8 +1735,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
         AssessmentBankItem bankItem = assessmentBankItemRepository.findById(bankItemId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng đề."));
-        if ("ARCHIVED".equalsIgnoreCase(bankItem.getStatus())) {
-            throw new RuntimeException("Đề trong ngân hàng đã được lưu trữ.");
+        if (!"PUBLISHED".equalsIgnoreCase(bankItem.getStatus())) {
+            throw new IllegalArgumentException("Đề trong ngân hàng phải được xuất bản trước khi gắn vào khóa học.");
         }
         return bankItem;
     }
@@ -1884,8 +1915,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                     .findByIdAndBankType(flashcardSetId, ContentBankType.FLASHCARD)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
             contentBankTypeGuard.assertFlashcard(item);
-            if ("ARCHIVED".equalsIgnoreCase(item.getStatus())) {
-                throw new RuntimeException("Bộ flashcard \"" + item.getTitle() + "\" đã được lưu trữ.");
+            if (!"PUBLISHED".equalsIgnoreCase(item.getStatus())) {
+                throw new IllegalArgumentException("Bộ flashcard \"" + item.getTitle()
+                        + "\" phải được xuất bản trước khi gắn vào khóa học.");
             }
             lesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
                     .contentBankItem(item)
@@ -2167,12 +2199,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 request.getTargetBand()
         );
 
-        if (request.getStatus() == PackageStatus.PUBLISHED
-                && (request.getModules() == null
-                || request.getModules().isEmpty()
-                || request.getModules().stream().allMatch(module -> module.getLessons() == null || module.getLessons().isEmpty()))) {
-            throw new IllegalArgumentException("Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.");
-        }
         if (request.getStatus() == PackageStatus.PUBLISHED
                 && (request.getTargetOutcome() == null || request.getTargetOutcome().isBlank())) {
             throw new IllegalArgumentException("Khóa học phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.");
