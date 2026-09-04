@@ -466,10 +466,6 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
                 <p className="text-[#584140] font-semibold">
                   Tạo khóa học ở trạng thái nháp trước. Sau đó mở khu vực biên soạn để thêm mô-đun, bài học và tài nguyên.
                 </p>
-              ) : hasNoStructure ? (
-                <p className="text-[#730014] font-semibold">
-                  ⚠️ Khóa học này hiện chưa có mô-đun hoặc bài học. Hãy kiểm tra cẩn thận trước khi xuất bản.
-                </p>
               ) : (
                 <p>
                   Thiết lập band đầu vào, band mục tiêu và đầu ra cho khóa học. Các giá trị này được áp dụng cho lượt ghi danh mới.
