@@ -325,11 +325,6 @@ export const courseApi = {
     return unwrapData(response);
   },
 
-  async updateOnlineCourseVersion(courseId, versionId, payload) {
-    const response = await axiosClient.put(`/api/content-manager/online-courses/${courseId}/versions/${versionId}`, payload);
-    return unwrapData(response);
-  },
-
   async publishOnlineCourseVersion(courseId, versionId) {
     const response = await axiosClient.patch(`/api/content-manager/online-courses/${courseId}/versions/${versionId}/publish`);
     return unwrapData(response);

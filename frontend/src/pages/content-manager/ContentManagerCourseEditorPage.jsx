@@ -142,18 +142,8 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
     };
   }, [editMode, slugOrId]);
 
-  const hasNoStructure = useMemo(
-    () => !(form.modules || []).some((module) => (module.lessons || []).length > 0),
-    [form.modules],
-  );
   const flashcardOverview = useMemo(() => getFlashcardOverview(form.modules), [form.modules]);
   const editableVersion = useMemo(() => findEditableCourseVersion(versions), [versions]);
-  const hasPublishedVersion = useMemo(() => versions.some((version) => version.status === 'PUBLISHED'), [versions]);
-  const legacyPendingVersion = useMemo(
-    () => versions.find((version) => version.status === 'PENDING_REVIEW') || null,
-    [versions],
-  );
-  const canEdit = !editMode || Boolean(editableVersion) || (!hasPublishedVersion && !legacyPendingVersion);
   const categoryOptions = useMemo(() => {
     const fallback = ['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION'];
     const available = categories
@@ -196,7 +186,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   const handleSubmit = async (nextStatus = null) => {
     const publishingVersion = nextStatus === 'PUBLISH';
     const targetStatus = publishingVersion ? form.status : nextStatus ?? form.status;
-    const validationMessage = validateCourseForm(form, publishingVersion ? 'PUBLISHED' : targetStatus, hasNoStructure);
+    const validationMessage = validateCourseForm(form, publishingVersion ? 'PUBLISHED' : targetStatus);
     if (validationMessage) {
       setError(validationMessage);
       setSuccess('');
@@ -222,15 +212,17 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       description: form.description,
       category: form.category,
       level: form.level,
-      targetScore: form.targetScore,
+      targetScore: form.category === 'TOEIC' ? form.targetScore : null,
       targetOutcome: form.targetOutcome,
       duration: form.duration,
       thumbnailUrl: form.thumbnailUrl,
       featured: form.featured,
       price: Number(form.price || 0),
       salePrice: form.salePrice === '' ? null : Number(form.salePrice || 0),
-      recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
-      targetBand: form.targetBand === '' ? null : Number(form.targetBand),
+      recommendedCurrentBandMin: form.category === 'IELTS' && form.recommendedCurrentBandMin !== ''
+        ? Number(form.recommendedCurrentBandMin)
+        : null,
+      targetBand: form.category === 'IELTS' && form.targetBand !== '' ? Number(form.targetBand) : null,
       status: targetStatus,
     };
 
@@ -238,19 +230,9 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       if (editMode && !courseId) {
         throw new Error('Missing course id');
       }
-      if (editMode && !canEdit) {
-        throw new Error('Hãy tạo phiên bản nháp mới trước khi chỉnh sửa khóa học đã xuất bản.');
-      }
-
-      let response;
-      if (editMode && editableVersion) {
-        const updatedVersion = await courseApi.updateOnlineCourseVersion(courseId, editableVersion.id, payload);
-        response = updatedVersion.content;
-      } else {
-        response = editMode
-          ? await courseApi.updateOnlineCourse(courseId, payload)
-          : await courseApi.createOnlineCourse(payload);
-      }
+      let response = editMode
+        ? await courseApi.updateOnlineCourse(courseId, payload)
+        : await courseApi.createOnlineCourse(payload);
 
       if (!response) throw new Error('Dữ liệu phiên bản trả về không hợp lệ.');
 
@@ -263,7 +245,11 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       setCourseId(response.id);
       setCourseSlug(response.slug || '');
       setForm(mapCourseToForm(response));
-      setSuccess(publishingVersion ? 'Đã lưu và xuất bản phiên bản.' : 'Khóa học đã được lưu thành công.');
+      setSuccess(
+        publishingVersion
+          ? 'Đã lưu và xuất bản phiên bản.'
+          : 'Khóa học đã được lưu thành công.',
+      );
 
       if (!editMode && !onClose) {
         navigate(`/content-manager/courses/${response.slug}/edit`, { replace: true });
@@ -341,7 +327,6 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
           <CourseVersionPanel
             busy={saving || versionBusy}
             onCreateDraft={handleCreateVersion}
-            onSubmitReview={() => handleSubmit('SUBMIT_REVIEW')}
             previewBasePath={`/content-manager/courses/${courseSlug || slugOrId}/preview`}
             versions={versions}
           />
@@ -351,7 +336,16 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
           <FormSection number="01" title="Thông tin khóa học">
             <div className="grid gap-4 md:grid-cols-2">
               <TextField label="Tên khóa học" onChange={handleChange('title')} value={form.title} />
-              <SelectField label="Danh mục" onChange={handleChange('category')} options={categoryOptions} value={form.category} />
+              <SelectField
+                label="Danh mục"
+                onChange={(value) => setForm((current) => ({
+                  ...current,
+                  ...courseProfileDefaults(value),
+                  category: value,
+                }))}
+                options={categoryOptions}
+                value={form.category}
+              />
               <SelectField label="Trình độ" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
               <TextField label="Thời gian hoàn thành dự kiến" onChange={handleChange('duration')} value={form.duration} />
             </div>
@@ -399,7 +393,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             <div className="grid gap-4 md:grid-cols-2">
               <TextField label="Giá bán" onChange={handleChange('price')} value={String(form.price)} />
               <TextField label="Giá ưu đãi" onChange={handleChange('salePrice')} value={String(form.salePrice)} />
-              <SelectField disabled label="Trạng thái khóa học" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
+              <ReadOnlyStatusField value={form.status} />
             </div>
             <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px]">
               <div className="space-y-3">
@@ -486,7 +480,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             <div className="flex items-center gap-3">
               <button
                 className="rounded-2xl border border-[#dfbfbd] bg-white px-6 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
-                disabled={saving || !canEdit}
+                disabled={saving}
                 onClick={() => handleSubmit()}
                 type="button"
               >
@@ -525,12 +519,30 @@ function CourseThumbnailPreview({ url }) {
   );
 }
 
-function SelectField({ label, value, onChange, options, disabled = false }) {
+function SelectField({ label, value, onChange, options }) {
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
-      <BrandedSelect disabled={disabled} onChange={onChange} options={options} value={value} />
+      <BrandedSelect onChange={onChange} options={options} value={value} />
     </label>
+  );
+}
+
+function ReadOnlyStatusField({ value }) {
+  const labels = {
+    DRAFT: 'Bản nháp',
+    PENDING_REVIEW: 'Sẵn sàng xuất bản',
+    PUBLISHED: 'Đã xuất bản',
+    ARCHIVED: 'Đã lưu trữ',
+    REJECTED: 'Cần chỉnh sửa',
+  };
+  return (
+    <div>
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Trạng thái khóa học</span>
+      <div className="flex min-h-12 items-center rounded-2xl border border-[#ead9db] bg-[#f8f5f5] px-4 text-sm font-bold text-[#584140]">
+        {labels[value] || value || 'Bản nháp'}
+      </div>
+    </div>
   );
 }
 
@@ -546,7 +558,7 @@ function FormSection({ children, number, title }) {
   );
 }
 
-function validateCourseForm(form, targetStatus, hasNoStructure) {
+function validateCourseForm(form, targetStatus) {
   if (!form.title.trim()) return 'Tên khóa học không được để trống.';
   if (!ALLOWED_ENGLISH_CATEGORIES.has(form.category)) {
     return 'EnglishLab chỉ cho phép khóa IELTS, TOEIC, tiếng Anh giao tiếp hoặc tiếng Anh nền tảng.';
@@ -567,9 +579,6 @@ function validateCourseForm(form, targetStatus, hasNoStructure) {
     if (!Number.isInteger(score) || score < 10 || score > 990 || score % 5 !== 0) {
       return 'Điểm TOEIC phải từ 10 đến 990 và tăng theo bước 5.';
     }
-  }
-  if (targetStatus === 'PUBLISHED' && hasNoStructure) {
-    return 'Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.';
   }
   if (targetStatus === 'PUBLISHED' && !String(form.targetOutcome || '').trim()) {
     return 'Khóa học phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.';

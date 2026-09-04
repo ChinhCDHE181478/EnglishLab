@@ -148,6 +148,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toProgramResponse(findProgram(id), true);
     }
 
+    /**
+     * Creates a new instructor-led course in DRAFT status with a unique course code.
+     */
     @Override
     public InstructorLedCourseResponse createProgram(InstructorLedCourseRequest request) {
         String code = resolveNewProgramCode(request);
@@ -165,12 +168,17 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .publicationStatus(parsePublicationStatus(request.getStatus()))
                 .build();
         applyEnglishProfile(program, request);
+
+        // Disallow publishing new courses without units and lessons
         if (program.getPublicationStatus() == PackageStatus.PUBLISHED) {
             throw new RuntimeException("Giáo trình mới tạo chưa có Unit và buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
         }
         return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
+    /**
+     * Updates an existing instructor-led course metadata and publication status.
+     */
     @Override
     public InstructorLedCourseResponse updateProgram(Long id, InstructorLedCourseRequest request) {
         InstructorLedCourse program = findProgram(id);
@@ -182,7 +190,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
         program.setTitle(requireText(request.getTitle(), "Tên giáo trình không được để trống."));
         program.setCode(code);
-        program.setShortDescription(trimOrNull(request.getShortDescription()));
+        program.setShortDescription(trimOrNull(request.getShortDescription())) ;
         program.setDescription(trimOrNull(request.getDescription()));
         program.setDurationLabel(trimOrNull(request.getDurationLabel()));
         program.setLevel(trimOrNull(request.getLevel()));
@@ -195,6 +203,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
         PackageStatus previousStatus = program.getPublicationStatus();
         PackageStatus nextStatus = parsePublicationStatus(request.getStatus());
+
+        // Validate course readiness before publishing
         if (nextStatus == PackageStatus.PUBLISHED && previousStatus != PackageStatus.PUBLISHED) {
             validateReadyForPublish(program);
         }
@@ -281,6 +291,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toProgramResponse(program, true);
     }
 
+    /**
+     * Creates a new course unit in the instructor-led course.
+     */
     @Override
     public CourseUnitResponse createUnit(Long programId, CourseUnitRequest request) {
         InstructorLedCourse program = findProgram(programId);
@@ -296,6 +309,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(saved);
     }
 
+    /**
+     * Updates an existing course unit.
+     */
     @Override
     public CourseUnitResponse updateUnit(Long unitId, CourseUnitRequest request) {
         CourseUnit unit = findUnit(unitId);
@@ -307,6 +323,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(saved);
     }
 
+    /**
+     * Deletes a course unit and synchronizes total sessions count.
+     */
     @Override
     public void deleteUnit(Long unitId) {
         CourseUnit unit = findUnit(unitId);
@@ -316,6 +335,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         synchronizeTotalSessions(program);
     }
 
+    /**
+     * Creates a new lesson/session plan under a specified course unit.
+     */
     @Override
     public CourseLessonResponse createSessionPlan(
             Long unitId,
@@ -337,6 +359,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toSessionPlanResponse(sessionPlan);
     }
 
+    /**
+     * Updates an existing lesson/session plan.
+     */
     @Override
     public CourseLessonResponse updateSessionPlan(
             Long sessionPlanId,
@@ -358,6 +383,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toSessionPlanResponse(sessionPlan);
     }
 
+    /**
+     * Deletes a lesson/session plan and recalculates course totals.
+     */
     @Override
     public void deleteSessionPlan(Long sessionPlanId) {
         CourseLesson sessionPlan = findSessionPlan(sessionPlanId);
@@ -372,6 +400,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         CourseUnit unit = findUnit(unitId);
         CenterMaterialLibraryItem material = materialRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trong kho."));
+        requirePublishedResource(material.getStatus(), "Học liệu");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndLearningResourceId(
                 unitId, CourseUnitContentType.MATERIAL, material.getId())) {
             throw new IllegalArgumentException("Học liệu này đã tồn tại trong Unit.");
@@ -385,12 +414,16 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(findUnit(unitId));
     }
 
+    /**
+     * Attaches a practice exercise from the Content Bank to a course unit.
+     */
     @Override
     public CourseUnitResponse attachExercise(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
         Long resolvedId = request.getResourceId();
         ContentBankItem exercise = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.EXERCISE)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
+        requirePublishedResource(exercise.getStatus(), "Bài tập");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.EXERCISE, exercise.getId())) {
             throw new IllegalArgumentException("Bài tập này đã tồn tại trong Unit.");
@@ -404,12 +437,16 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(findUnit(unitId));
     }
 
+    /**
+     * Attaches an assessment item from the Content Bank to a course unit.
+     */
     @Override
     public CourseUnitResponse attachAssessment(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
         Long resolvedId = request.getResourceId();
         ContentBankItem assessment = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.ASSESSMENT)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
+        requirePublishedResource(assessment.getStatus(), "Đề đánh giá");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.ASSESSMENT, assessment.getId())) {
             throw new IllegalArgumentException("Đề đánh giá này đã tồn tại trong Unit.");
@@ -423,12 +460,16 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(findUnit(unitId));
     }
 
+    /**
+     * Attaches a flashcard set from the Content Bank to a course unit.
+     */
     @Override
     public CourseUnitResponse attachFlashcard(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
         Long resolvedId = request.getResourceId();
         ContentBankItem flashcardSet = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.FLASHCARD)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
+        requirePublishedResource(flashcardSet.getStatus(), "Bộ flashcard");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.FLASHCARD, flashcardSet.getId())) {
             throw new IllegalArgumentException("Bộ flashcard này đã tồn tại trong Unit.");
@@ -895,6 +936,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return 0;
     }
 
+    /**
+     * Applies and validates standardized English exam profile (IELTS, TOEIC, General English).
+     */
     private void applyEnglishProfile(InstructorLedCourse program, InstructorLedCourseRequest request) {
         String examCategory = normalizeExamCategory(request.getExamCategory());
         String focusSkills = normalizeFocusSkills(request.getFocusSkills());
@@ -1106,6 +1150,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return 0L;
     }
 
+    /**
+     * Resolves course code from request or generates a unique slug based on title.
+     */
     private String resolveNewProgramCode(InstructorLedCourseRequest request) {
         if (StringUtils.hasText(request.getCode())) {
             String requestedCode = normalizeProgramCode(request.getCode());
@@ -1117,6 +1164,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return uniqueCode(makeProgramCode(request.getTitle()));
     }
 
+    /**
+     * Generates a slugified uppercase code prefixed with ILC-.
+     */
     private String makeProgramCode(String title) {
         String normalizedTitle = Normalizer.normalize(defaultText(title, "CURRICULUM"), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
@@ -1128,6 +1178,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return normalizeProgramCode("ILC-" + defaultText(normalizedTitle, "COURSE"));
     }
 
+    /**
+     * Trims and normalizes course code within length limits.
+     */
     private String normalizeProgramCode(String sourceCode) {
         String normalized = sourceCode.trim().toUpperCase(Locale.ROOT);
         return normalized.length() <= PROGRAM_CODE_MAX_LENGTH
@@ -1139,6 +1192,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return uniqueCode(sourceCode + "-COPY");
     }
 
+    /**
+     * Ensures code uniqueness by appending incremental numerical suffixes if duplicated.
+     */
     private String uniqueCode(String sourceCode) {
         String base = normalizeProgramCode(sourceCode);
         String code = base;
@@ -1336,6 +1392,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     private String defaultText(String value, String fallback) {
         return StringUtils.hasText(value) ? value.trim() : fallback;
+    }
+
+    private void requirePublishedResource(String status, String resourceLabel) {
+        if (!"PUBLISHED".equalsIgnoreCase(status)) {
+            throw new IllegalArgumentException(resourceLabel + " phải được xuất bản trước khi gắn vào khóa học.");
+        }
     }
 
     private String trimOrNull(String value) {
