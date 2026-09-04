@@ -13,10 +13,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface PaymentService {
-    PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classSectionIds, String couponCode, String studentEmail);
-    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classSectionIds, String couponCode, String studentEmail);
-    PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classSectionIds, Long learningPathId, String couponCode, String studentEmail);
-    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classSectionIds, Long learningPathId, String couponCode, String studentEmail);
+    PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail);
+    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail);
+    PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail);
+    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail);
     PaymentOrderStatusResponse getOrderStatus(Long orderCode, String studentEmail);
       List<PaymentOrderSummaryResponse> listMyOrders(String studentEmail);
       Page<PaymentOrderSummaryResponse> pageMyOrders(String studentEmail, Pageable pageable);

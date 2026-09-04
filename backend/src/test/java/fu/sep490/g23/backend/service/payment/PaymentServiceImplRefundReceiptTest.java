@@ -19,6 +19,7 @@ import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +55,7 @@ class PaymentServiceImplRefundReceiptTest {
     @Mock private OnlineCourseService onlineCourseService;
     @Mock private ClassroomOfferingService classroomOfferingService;
     @Mock private PaymentReceiptPdfService paymentReceiptPdfService;
+    @Mock private StudentCommerceService studentCommerceService;
 
     private PaymentServiceImpl paymentService;
     private User student;
@@ -75,7 +77,8 @@ class PaymentServiceImplRefundReceiptTest {
                 userRepository,
                 onlineCourseService,
                 classroomOfferingService,
-                paymentReceiptPdfService
+                paymentReceiptPdfService,
+                studentCommerceService
         );
 
         student = User.builder().id(1L).email("learner@example.com").fullName("Learner").build();

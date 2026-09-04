@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import paymentApi from '../api/paymentApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
@@ -30,6 +31,8 @@ const TransactionHistoryPage = () => {
   const [error, setError] = useState('');
   const [orders, setOrders] = useState([]);
   const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [downloadingOrderCode, setDownloadingOrderCode] = useState(null);
+  const [receiptError, setReceiptError] = useState('');
   const { page, setPage, totalPages, pageItems: paginatedOrders, totalItems } = usePagination(
     orders,
     5,
@@ -67,6 +70,27 @@ const TransactionHistoryPage = () => {
     };
   }, [page]);
 
+  const handleDownloadReceipt = async (orderCode) => {
+    if (!orderCode || downloadingOrderCode) return;
+    setDownloadingOrderCode(orderCode);
+    setReceiptError('');
+    try {
+      const receipt = await paymentApi.downloadReceipt(orderCode);
+      const url = URL.createObjectURL(receipt instanceof Blob ? receipt : new Blob([receipt], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `EnglishLab-receipt-${orderCode}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setReceiptError(err?.response?.data?.message || 'Không thể tải biên lai. Vui lòng thử lại.');
+    } finally {
+      setDownloadingOrderCode(null);
+    }
+  };
+
   return (
     <LearnerPageShell
       title="Lịch sử giao dịch"
@@ -102,6 +126,11 @@ const TransactionHistoryPage = () => {
         </section>
       ) : (
         <div className="space-y-6 flex-1 flex flex-col justify-between">
+          {receiptError ? (
+            <p className="rounded-2xl border border-[#f0d4d7] bg-[#fff8f8] px-4 py-3 text-sm font-bold text-[#93000a]">
+              {receiptError}
+            </p>
+          ) : null}
           <section className="grid gap-6">
             {paginatedOrders.map((order) => {
               const badge = statusLabel(order.status);
@@ -139,6 +168,18 @@ const TransactionHistoryPage = () => {
                       Mã giảm: <strong className="text-[#2b2828]">{order.discountCodeText || 'Không có'}</strong>
                     </div>
                   </div>
+                  {order.hasReceipt ? (
+                    <button
+                      className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/50 px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fcf8f8] disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={downloadingOrderCode === order.orderCode}
+                      onClick={() => handleDownloadReceipt(order.orderCode)}
+                      title="Tải biên lai PDF"
+                      type="button"
+                    >
+                      <Download className="h-4 w-4" />
+                      {downloadingOrderCode === order.orderCode ? 'Đang tải...' : 'Tải biên lai'}
+                    </button>
+                  ) : null}
                 </article>
               );
             })}

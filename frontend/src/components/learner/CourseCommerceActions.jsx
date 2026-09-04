@@ -35,6 +35,7 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
   }, [course?.id]);
 
   const isRegistered = Boolean(course?.registered);
+  const isFreeCourse = Number(course?.salePrice ?? course?.price ?? 0) <= 0;
   const buttonSizeClassName = compact ? 'h-10 w-10' : '';
   const iconSizeClassName = compact ? 'h-4 w-4' : 'h-[18px] w-[18px]';
 
@@ -95,15 +96,17 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <button
-        aria-label={isRegistered ? 'Khóa học đã được ghi nhận' : cartAdded ? 'Khóa học đã có trong giỏ hàng' : 'Thêm vào giỏ hàng'}
-        className={`${iconButtonClassName} ${buttonSizeClassName} ${cartAdded ? 'border-[#730014]/20 bg-[#fff3f4] text-[#730014]' : ''}`}
-        disabled={isRegistered || cartAdded}
-        onClick={handleAddCart}
-        type="button"
-      >
-        <ShoppingCart className={iconSizeClassName} />
-      </button>
+      {!isFreeCourse ? (
+        <button
+          aria-label={isRegistered ? 'Khóa học đã được ghi nhận' : cartAdded ? 'Khóa học đã có trong giỏ hàng' : 'Thêm vào giỏ hàng'}
+          className={`${iconButtonClassName} ${buttonSizeClassName} ${cartAdded ? 'border-[#730014]/20 bg-[#fff3f4] text-[#730014]' : ''}`}
+          disabled={isRegistered || cartAdded}
+          onClick={handleAddCart}
+          type="button"
+        >
+          <ShoppingCart className={iconSizeClassName} />
+        </button>
+      ) : null}
       <button
         aria-label={wishlistAdded ? 'Đã lưu vào danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}
         className={`${iconButtonClassName} ${buttonSizeClassName} ${
