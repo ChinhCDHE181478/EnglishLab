@@ -121,6 +121,8 @@ public class PlacementTestServiceImpl implements PlacementTestService {
 
         validateSubmission(request); // IELTS needs all 4 skills + a completed device check.
 
+        //Lấy toàn bộ bộ cấu hình (bao gồm đề bài, danh sách câu hỏi và bộ đáp án chuẩn answerKey)
+        // của phần thi Nghe (Listening) và Đọc (Reading) được lưu dạng JSON trong Ngân hàng đề thi
         JsonNode listeningConfig = definitionService.getConfig(definition, "listening");
         JsonNode readingConfig = definitionService.getConfig(definition, "reading");
         JsonNode listeningAnswers = objectMapper.valueToTree(request.getListeningAnswers());
