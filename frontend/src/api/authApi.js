@@ -36,6 +36,4 @@ export const updateCurrentUserNotificationPreferences = async (data) => (
   axiosClient.put('/api/user/me/notification-preferences', data)
 );
 
-export const getHomeMessage = async () => axiosClient.get('/api/home');
-
 export const loginWithGoogle = async (accessToken) => axiosClient.post('/api/auth/google', { accessToken }, { skipAuthRedirect: true });

@@ -266,7 +266,7 @@ export const classroomApi = {
 
   async getHomeworkAiAssessmentOptions() {
     const response = await axiosClient.get('/api/teacher/classrooms/homework/ai-assessment-options');
-    return response.data;
+    return unwrapData(response);
   },
 
   async updateHomework(homeworkId, payload) {

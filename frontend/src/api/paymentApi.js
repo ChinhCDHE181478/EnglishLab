@@ -46,11 +46,6 @@ export const paymentApi = {
     const response = await axiosClient.get('/api/content-manager/revenue/analytics');
     return unwrapData(response);
   },
-
-  async confirmPayosWebhook() {
-    const response = await axiosClient.post('/api/student/payments/payos/confirm-webhook');
-    return unwrapData(response);
-  },
 };
 
 export default paymentApi;
