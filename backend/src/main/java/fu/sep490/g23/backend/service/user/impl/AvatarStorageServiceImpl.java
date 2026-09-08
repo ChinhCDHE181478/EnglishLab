@@ -1,8 +1,9 @@
 package fu.sep490.g23.backend.service.user.impl;
 
+import fu.sep490.g23.backend.service.storage.LegacyLocalFileReader;
+import fu.sep490.g23.backend.service.storage.ObjectStore;
 import fu.sep490.g23.backend.service.user.AvatarStorageService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -11,23 +12,29 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Stores user avatars in the configured {@link ObjectStore} (Cloudflare R2 in production,
+ * local filesystem during development). All objects live under the {@code avatars/} prefix.
+ *
+ * <p>Objects are public by default: the returned {@code store()} result contains the full
+ * URL of the uploaded object and is written straight to {@code User.avatarUrl}.
+ */
 @Service
 public class AvatarStorageServiceImpl implements AvatarStorageService {
 
+    static final String PREFIX = "avatars";
+    private static final String FILE_PREFIX = "avatar-";
     private static final long MAX_FILE_SIZE_BYTES = 1024L * 1024;
     private static final int MAX_IMAGE_DIMENSION = 4096;
-    private static final String FILE_PREFIX = "avatar-";
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif");
     private static final Map<String, Set<String>> ALLOWED_CONTENT_TYPES = Map.of(
             "jpg", Set.of("image/jpeg"),
@@ -36,15 +43,12 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
             "gif", Set.of("image/gif")
     );
 
-    private final Path storageDirectory;
+    private final ObjectStore objectStore;
+    private final LegacyLocalFileReader legacyLocalReader;
 
-    public AvatarStorageServiceImpl(@Value("${englishlab.avatars.dir:backend/uploads/avatars}") String storageDir) {
-        this.storageDirectory = Paths.get(storageDir).toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(storageDirectory);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Không thể tạo thư mục lưu ảnh hồ sơ.", exception);
-        }
+    public AvatarStorageServiceImpl(ObjectStore objectStore, LegacyLocalFileReader legacyLocalReader) {
+        this.objectStore = objectStore;
+        this.legacyLocalReader = legacyLocalReader;
     }
 
     @Override
@@ -52,33 +56,53 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
         validate(file);
 
         String extension = normalizeExtension(file.getOriginalFilename());
+        if (extension == null || extension.isBlank()) {
+            throw new IllegalArgumentException("Tệp ảnh hồ sơ phải có phần mở rộng (.jpg, .jpeg, .png, .gif).");
+        }
         String fileName = FILE_PREFIX + UUID.randomUUID() + "." + extension;
-        Path target = resolveStoredFile(fileName);
-        try {
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        String objectKey = objectStore.objectKey(PREFIX, fileName);
+        // Null-safe content-type lookup (defensive: if extension is not in the map, default to image/jpeg).
+        Set<String> contentTypes = ALLOWED_CONTENT_TYPES.get(extension);
+        String contentType = (contentTypes != null && !contentTypes.isEmpty())
+                ? contentTypes.iterator().next()
+                : "image/jpeg";
+        try (InputStream stream = file.getInputStream()) {
+            objectStore.put(objectKey, stream, file.getSize(), contentType);
         } catch (IOException exception) {
             throw new IllegalStateException("Không thể lưu ảnh hồ sơ.", exception);
         }
         return fileName;
     }
 
+    /**
+     * Streams the avatar bytes back to the caller. Used by {@code UserController} to support
+     * the legacy {@code /api/user/avatars/{fileName}} endpoint – in practice the frontend
+     * should always hit the public R2 URL directly.
+     *
+     * <p>To keep the old URLs working after the R2 migration we first try the legacy local
+     * directory (only useful for pre-migration files). If the file is not on disk, we fall
+     * back to R2.
+     */
     @Override
     public Resource load(String fileName) {
-        Path target = resolveStoredFile(fileName);
-        if (!Files.isRegularFile(target)) {
-            throw new IllegalArgumentException("Không tìm thấy ảnh hồ sơ.");
+        String sanitized = safeFileName(fileName);
+        var legacy = legacyLocalReader.tryLoad(PREFIX, sanitized);
+        if (legacy.isPresent()) {
+            return legacy.get();
         }
-        return new FileSystemResource(target);
+        String objectKey = objectStore.objectKey(PREFIX, sanitized);
+        return objectStore.getBytes(objectKey)
+                .map(ByteArrayResource::new)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ảnh hồ sơ."));
     }
 
     @Override
     public String contentType(String fileName) {
-        try {
-            String contentType = Files.probeContentType(resolveStoredFile(fileName));
-            return contentType == null ? "application/octet-stream" : contentType;
-        } catch (IOException exception) {
-            return "application/octet-stream";
+        String sanitized = safeFileName(fileName);
+        if (legacyLocalReader.isEnabled() && legacyLocalReader.tryLoad(PREFIX, sanitized).isPresent()) {
+            return legacyLocalReader.probeContentType(PREFIX, sanitized);
         }
+        return objectStore.probeContentType(objectStore.objectKey(PREFIX, sanitized));
     }
 
     @Override
@@ -86,19 +110,21 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
         if (fileName == null || fileName.isBlank()) {
             return;
         }
-        try {
-            Files.deleteIfExists(resolveStoredFile(fileName));
-        } catch (IOException exception) {
-            throw new IllegalStateException("Không thể xóa ảnh hồ sơ cũ.", exception);
-        }
+        objectStore.delete(objectStore.objectKey(PREFIX, safeFileName(fileName)));
     }
 
     @Override
     public void deleteByUrl(String avatarUrl) {
-        String fileName = extractFileName(avatarUrl);
-        if (fileName != null) {
-            delete(fileName);
+        Optional<String> fileName = extractFileName(avatarUrl);
+        fileName.ifPresent(this::delete);
+    }
+
+    @Override
+    public void deleteByKey(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return;
         }
+        objectStore.delete(objectKey);
     }
 
     private void validate(MultipartFile file) {
@@ -134,36 +160,29 @@ public class AvatarStorageServiceImpl implements AvatarStorageService {
         return extension == null ? "" : extension.toLowerCase(Locale.ROOT);
     }
 
-    private Path resolveStoredFile(String fileName) {
+    private String safeFileName(String fileName) {
         if (fileName == null || fileName.isBlank() || !fileName.startsWith(FILE_PREFIX)
                 || fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
             throw new IllegalArgumentException("Tên ảnh hồ sơ không hợp lệ.");
         }
-        Path target = storageDirectory.resolve(fileName).normalize();
-        if (!target.startsWith(storageDirectory)) {
-            throw new IllegalArgumentException("Tên ảnh hồ sơ không hợp lệ.");
-        }
-        return target;
+        return fileName;
     }
 
-    private String extractFileName(String avatarUrl) {
+    private Optional<String> extractFileName(String avatarUrl) {
         if (avatarUrl == null || avatarUrl.isBlank()) {
-            return null;
+            return Optional.empty();
         }
         String normalized = avatarUrl.trim().replace('\\', '/');
-        String marker = "/api/user/avatars/";
-        int markerIndex = normalized.indexOf(marker);
-        if (markerIndex < 0) {
-            return null;
-        }
-        String fileName = normalized.substring(markerIndex + marker.length());
+        String fileName = normalized.substring(normalized.lastIndexOf('/') + 1);
         int queryIndex = fileName.indexOf('?');
         if (queryIndex >= 0) {
             fileName = fileName.substring(0, queryIndex);
         }
         fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8).trim();
-        return fileName.contains("/") || fileName.contains("..") || !fileName.startsWith(FILE_PREFIX)
-                ? null
-                : fileName;
+        if (fileName.isBlank() || fileName.contains("/") || fileName.contains("..")
+                || !fileName.startsWith(FILE_PREFIX)) {
+            return Optional.empty();
+        }
+        return Optional.of(fileName);
     }
 }

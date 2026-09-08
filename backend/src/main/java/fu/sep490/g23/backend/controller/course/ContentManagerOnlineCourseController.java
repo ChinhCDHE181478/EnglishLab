@@ -18,6 +18,8 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.course.CourseThumbnailStorageService;
+import fu.sep490.g23.backend.service.course.impl.CourseThumbnailStorageServiceImpl;
+import fu.sep490.g23.backend.service.storage.ObjectStore;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -54,6 +56,7 @@ public class ContentManagerOnlineCourseController {
 
     private final OnlineCourseService onlineCourseService;
     private final CourseThumbnailStorageService courseThumbnailStorageService;
+    private final ObjectStore objectStore;
 
     @GetMapping
     public ResponseEntity<Page<OnlineCourseResponse>> getCourses(
@@ -177,11 +180,17 @@ public class ContentManagerOnlineCourseController {
 
     @PostMapping(value = "/thumbnail", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CourseThumbnailUploadResponse> uploadThumbnail(@RequestPart("file") MultipartFile file) {
+        // DESIGN NOTE: this endpoint writes the file to R2 and returns a URL. The caller is
+        // expected to send the URL to a course create/update endpoint so the DB row references
+        // it. If the caller never finishes the create/update flow, the file stays orphaned
+        // until the scheduled ObjectStoreOrphanCleanupService reclaims it (default 7 days).
         String fileName = courseThumbnailStorageService.store(file);
-        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/course-thumbnails/")
-                .path(fileName)
-                .toUriString();
+        String url = objectStore.isPublic()
+                ? objectStore.publicUrl(objectStore.objectKey(CourseThumbnailStorageServiceImpl.getPrefix(), fileName))
+                : ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/course-thumbnails/")
+                        .path(fileName)
+                        .toUriString();
         return ResponseEntity.ok(new CourseThumbnailUploadResponse(url));
     }
 

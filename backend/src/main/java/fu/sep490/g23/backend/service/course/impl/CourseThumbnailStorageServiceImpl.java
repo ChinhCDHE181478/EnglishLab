@@ -1,8 +1,9 @@
 package fu.sep490.g23.backend.service.course.impl;
 
 import fu.sep490.g23.backend.service.course.CourseThumbnailStorageService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import fu.sep490.g23.backend.service.storage.LegacyLocalFileReader;
+import fu.sep490.g23.backend.service.storage.ObjectStore;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -11,21 +12,28 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.io.InputStream;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Stores course thumbnails in the configured {@link ObjectStore} under the {@code course-thumbnails/}
+ * prefix. Thumbnails are public (served directly from Cloudflare R2 when configured).
+ */
 @Service
 public class CourseThumbnailStorageServiceImpl implements CourseThumbnailStorageService {
 
+    static final String PREFIX = "course-thumbnails";
+    /** Public accessor so callers in other packages (controllers, services) can build object keys. */
+    public static String getPrefix() {
+        return PREFIX;
+    }
+    private static final String FILE_PREFIX = "course-thumbnail-";
     private static final long MAX_FILE_SIZE_BYTES = 5L * 1024 * 1024;
     private static final int MAX_IMAGE_DIMENSION = 4096;
-    private static final String FILE_PREFIX = "course-thumbnail-";
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png");
     private static final Map<String, Set<String>> ALLOWED_CONTENT_TYPES = Map.of(
             "jpg", Set.of("image/jpeg"),
@@ -33,17 +41,12 @@ public class CourseThumbnailStorageServiceImpl implements CourseThumbnailStorage
             "png", Set.of("image/png")
     );
 
-    private final Path storageDirectory;
+    private final ObjectStore objectStore;
+    private final LegacyLocalFileReader legacyLocalReader;
 
-    public CourseThumbnailStorageServiceImpl(
-            @Value("${englishlab.course-thumbnails.dir:backend/uploads/course-thumbnails}") String storageDir
-    ) {
-        this.storageDirectory = Paths.get(storageDir).toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(storageDirectory);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Không thể tạo thư mục lưu ảnh bìa khóa học.", exception);
-        }
+    public CourseThumbnailStorageServiceImpl(ObjectStore objectStore, LegacyLocalFileReader legacyLocalReader) {
+        this.objectStore = objectStore;
+        this.legacyLocalReader = legacyLocalReader;
     }
 
     @Override
@@ -51,9 +54,18 @@ public class CourseThumbnailStorageServiceImpl implements CourseThumbnailStorage
         validate(file);
 
         String extension = normalizeExtension(file.getOriginalFilename());
+        if (extension == null || extension.isBlank()) {
+            throw new IllegalArgumentException("Tệp ảnh bìa phải có phần mở rộng (.jpg, .jpeg, .png, .webp).");
+        }
         String fileName = FILE_PREFIX + UUID.randomUUID() + "." + extension;
-        try {
-            Files.copy(file.getInputStream(), resolveStoredFile(fileName), StandardCopyOption.REPLACE_EXISTING);
+        String objectKey = objectStore.objectKey(PREFIX, fileName);
+        // Null-safe content-type lookup (defensive: default to image/jpeg if map misses).
+        Set<String> contentTypes = ALLOWED_CONTENT_TYPES.get(extension);
+        String contentType = (contentTypes != null && !contentTypes.isEmpty())
+                ? contentTypes.iterator().next()
+                : "image/jpeg";
+        try (InputStream stream = file.getInputStream()) {
+            objectStore.put(objectKey, stream, file.getSize(), contentType);
         } catch (IOException exception) {
             throw new IllegalStateException("Không thể lưu ảnh bìa khóa học.", exception);
         }
@@ -62,21 +74,50 @@ public class CourseThumbnailStorageServiceImpl implements CourseThumbnailStorage
 
     @Override
     public Resource load(String fileName) {
-        Path target = resolveStoredFile(fileName);
-        if (!Files.isRegularFile(target)) {
-            throw new IllegalArgumentException("Không tìm thấy ảnh bìa khóa học.");
+        String sanitized = safeFileName(fileName);
+        var legacy = legacyLocalReader.tryLoad(PREFIX, sanitized);
+        if (legacy.isPresent()) {
+            return legacy.get();
         }
-        return new FileSystemResource(target);
+        String objectKey = objectStore.objectKey(PREFIX, sanitized);
+        return objectStore.getBytes(objectKey)
+                .map(ByteArrayResource::new)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ảnh bìa khóa học."));
     }
 
     @Override
     public String contentType(String fileName) {
-        try {
-            String contentType = Files.probeContentType(resolveStoredFile(fileName));
-            return contentType == null ? "application/octet-stream" : contentType;
-        } catch (IOException exception) {
-            return "application/octet-stream";
+        String sanitized = safeFileName(fileName);
+        if (legacyLocalReader.isEnabled() && legacyLocalReader.tryLoad(PREFIX, sanitized).isPresent()) {
+            return legacyLocalReader.probeContentType(PREFIX, sanitized);
         }
+        return objectStore.probeContentType(objectStore.objectKey(PREFIX, sanitized));
+    }
+
+    /**
+     * Deletes the thumbnail referenced by a previously-stored URL.
+     *
+     * <p>This is used by CRUD flows (course update/delete) so the previous thumbnail does not
+     * stay orphaned in R2 once the course row no longer references it.
+     */
+    public void deleteByUrl(String thumbnailUrl) {
+        extractFileNameFromUrl(thumbnailUrl).ifPresent(this::delete);
+    }
+
+    /** Optional delete helper – currently no controller calls it, kept for future use. */
+    public void delete(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return;
+        }
+        objectStore.delete(objectStore.objectKey(PREFIX, safeFileName(fileName)));
+    }
+
+    @Override
+    public void deleteByKey(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return;
+        }
+        objectStore.delete(objectKey);
     }
 
     private void validate(MultipartFile file) {
@@ -112,15 +153,34 @@ public class CourseThumbnailStorageServiceImpl implements CourseThumbnailStorage
         return extension == null ? "" : extension.toLowerCase(Locale.ROOT);
     }
 
-    private Path resolveStoredFile(String fileName) {
+    private String safeFileName(String fileName) {
         if (fileName == null || fileName.isBlank() || !fileName.startsWith(FILE_PREFIX)
                 || fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
             throw new IllegalArgumentException("Tên ảnh bìa khóa học không hợp lệ.");
         }
-        Path target = storageDirectory.resolve(fileName).normalize();
-        if (!target.startsWith(storageDirectory)) {
-            throw new IllegalArgumentException("Tên ảnh bìa khóa học không hợp lệ.");
+        return fileName;
+    }
+
+    public Optional<String> extractFileNameFromUrl(String thumbnailUrl) {
+        if (thumbnailUrl == null || thumbnailUrl.isBlank()) {
+            return Optional.empty();
         }
-        return target;
+        String normalized = thumbnailUrl.trim().replace('\\', '/');
+        String fileName = normalized.substring(normalized.lastIndexOf('/') + 1);
+        int queryIndex = fileName.indexOf('?');
+        if (queryIndex >= 0) {
+            fileName = fileName.substring(0, queryIndex);
+        }
+        // URL-decode so percent-encoded chars (e.g. %20 for spaces) do not leak through.
+        try {
+            fileName = java.net.URLDecoder.decode(fileName, java.nio.charset.StandardCharsets.UTF_8).trim();
+        } catch (IllegalArgumentException ignored) {
+            // Malformed encoding – keep raw.
+        }
+        if (fileName.isBlank() || fileName.contains("/") || fileName.contains("..")
+                || !fileName.startsWith(FILE_PREFIX)) {
+            return Optional.empty();
+        }
+        return Optional.of(fileName);
     }
 }

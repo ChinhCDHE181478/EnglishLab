@@ -95,6 +95,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -161,6 +162,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final FlashcardPracticeService flashcardPracticeService;
     private final CourseEnrollmentMailService courseEnrollmentMailService;
+    private final ApplicationEventPublisher eventPublisher;
     private final YouTubeTranscriptService youTubeTranscriptService;
     private final ContentBankItemRepository contentBankItemRepository;
     private final ContentBankTypeGuard contentBankTypeGuard;
@@ -448,6 +450,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     public OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request, String actorEmail) {
         validateCourseRequest(request);
         OnlineCourse course = findCourse(id);
+        String oldThumbnailUrl = course.getThumbnailUrl();
 
         CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
                 .orElseThrow(() -> new RuntimeException("Course category not found"));
@@ -470,8 +473,46 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setRecommendedCurrentBandMin(request.getRecommendedCurrentBandMin());
         course.setTargetBand(request.getTargetBand());
         course.setTargetOutcome(request.getTargetOutcome());
-        
-        return mapper.toResponse(onlineCourseRepository.save(course));
+
+        OnlineCourse saved = onlineCourseRepository.save(course);
+        // Drop the previous thumbnail AFTER the transaction commits via event listener.
+        // This avoids holding a DB transaction open during a potentially-slow R2 delete call.
+        if (oldThumbnailUrl != null && !oldThumbnailUrl.equals(saved.getThumbnailUrl())) {
+            String previousKey = extractThumbnailObjectKey(oldThumbnailUrl);
+            if (previousKey != null) {
+                eventPublisher.publishEvent(
+                        new fu.sep490.g23.backend.service.course.event.CourseThumbnailReplacedEvent(previousKey));
+            }
+        }
+        return mapper.toResponse(saved);
+    }
+
+    /**
+     * Extracts the canonical R2 object key for a course-thumbnail URL so the event listener
+     * can delete it without re-implementing URL parsing.
+     */
+    private String extractThumbnailObjectKey(String thumbnailUrl) {
+        if (thumbnailUrl == null || thumbnailUrl.isBlank()) {
+            return null;
+        }
+        String normalized = thumbnailUrl.trim().replace('\\', '/');
+        int query = normalized.indexOf('?');
+        if (query >= 0) {
+            normalized = normalized.substring(0, query);
+        }
+        int lastSlash = normalized.lastIndexOf('/');
+        if (lastSlash < 0 || lastSlash == normalized.length() - 1) {
+            return null;
+        }
+        String fileName = normalized.substring(lastSlash + 1);
+        try {
+            fileName = java.net.URLDecoder.decode(fileName, java.nio.charset.StandardCharsets.UTF_8).trim();
+        } catch (Exception ignored) {
+        }
+        if (fileName.isBlank() || fileName.contains("..") || fileName.contains("/")) {
+            return null;
+        }
+        return "course-thumbnails/" + fileName;
     }
 
     /**
