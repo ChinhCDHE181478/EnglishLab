@@ -29,6 +29,17 @@ const DIALOG_DEFAULTS = {
   },
 };
 
+const normalizeDialogOptions = (message, options = {}) => {
+  if (message && typeof message === 'object' && !Array.isArray(message)) {
+    return {
+      ...message,
+      confirmLabel: message.confirmLabel ?? message.confirmText,
+    };
+  }
+
+  return { ...options, message };
+};
+
 export function AppDialogProvider({ children }) {
   const [dialog, setDialog] = useState(null);
   const [inputValue, setInputValue] = useState('');
@@ -91,14 +102,12 @@ export function AppDialogProvider({ children }) {
   const api = useMemo(() => ({
     alert: (message, options = {}) => openDialog({
       ...DIALOG_DEFAULTS.alert,
-      ...options,
-      message,
+      ...normalizeDialogOptions(message, options),
       type: 'alert',
     }).then(() => undefined),
     confirm: (message, options = {}) => openDialog({
       ...DIALOG_DEFAULTS.confirm,
-      ...options,
-      message,
+      ...normalizeDialogOptions(message, options),
       type: 'confirm',
     }),
     prompt: (message, defaultValue = '', options = {}) => openDialog({

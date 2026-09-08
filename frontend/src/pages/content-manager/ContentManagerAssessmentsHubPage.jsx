@@ -46,6 +46,7 @@ import {
   SECONDARY_BUTTON_CLASS,
 } from '../../utils/formStyles';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
 
 const strictSkill = (skill) => (item) => String(item.skill || '').toUpperCase() === skill;
 
@@ -856,7 +857,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                         { label: 'Chọn bộ tiêu chí', value: '' },
                         ...rubrics
                           .filter((rubric) => rubric.status === 'PUBLISHED' && (rubric.skill === form.skill || rubric.skill === 'MIXED'))
-                          .map((rubric) => ({ label: rubric.name, value: String(rubric.id) })),
+                          .map((rubric) => ({ label: formatCriteriaSetName(rubric.name), value: String(rubric.id) })),
                       ]}
                     />
                   </div>

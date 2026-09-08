@@ -505,7 +505,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     }
 
     private String buildEvaluationPrompt(CourseAssessment assessment, String answer, boolean hasAudio) {
-        String criteria = assessment.getRubric() == null ? "Không có rubric định lượng; hãy phân tích lỗi và kế hoạch ôn tập."
+        String criteria = assessment.getRubric() == null ? "Không có bộ tiêu chí định lượng; hãy phân tích lỗi và kế hoạch ôn tập."
                 : assessment.getRubric().getCriteria().stream()
                 .sorted(Comparator.comparing(criterion -> criterion.getDisplayOrder() == null ? Integer.MAX_VALUE : criterion.getDisplayOrder()))
                 .map(criterion -> "- " + criterion.getName() + ": " + criterion.getDescription())

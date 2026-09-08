@@ -1371,10 +1371,10 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         AssessmentRubric rubric = assessmentRubricRepository.findById(rubricId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy rubric."));
         if (!"PUBLISHED".equalsIgnoreCase(rubric.getStatus())) {
-            throw new RuntimeException("Rubric đã tạm ngưng.");
+            throw new RuntimeException("Bộ tiêu chí đã tạm ngưng.");
         }
         if (rubric.getSkill() != null && rubric.getSkill() != skill && rubric.getSkill() != AssessmentSkill.MIXED) {
-            throw new RuntimeException("Rubric không phù hợp với kỹ năng của nội dung.");
+            throw new RuntimeException("Bộ tiêu chí không phù hợp với kỹ năng của nội dung.");
         }
         return rubric;
     }

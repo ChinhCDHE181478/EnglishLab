@@ -1707,15 +1707,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
      */
     private void validateAssessmentRubric(AssessmentSkill skill, AssessmentRubric rubric) {
         if ((skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING) && rubric != null) {
-            throw new RuntimeException("Bài Listening hoặc Reading không được dùng rubric chấm Writing/Speaking.");
+            throw new RuntimeException("Bài Listening hoặc Reading không được dùng bộ tiêu chí chấm Writing/Speaking.");
         }
         if (skill == AssessmentSkill.WRITING
                 && (rubric == null || rubric.getSkill() != AssessmentSkill.WRITING)) {
-            throw new RuntimeException("Bài Writing cần một rubric Writing phù hợp.");
+            throw new RuntimeException("Bài Writing cần một bộ tiêu chí Writing phù hợp.");
         }
         if (skill == AssessmentSkill.SPEAKING
                 && (rubric == null || rubric.getSkill() != AssessmentSkill.SPEAKING)) {
-            throw new RuntimeException("Bài Speaking cần một rubric Speaking phù hợp.");
+            throw new RuntimeException("Bài Speaking cần một bộ tiêu chí Speaking phù hợp.");
         }
     }
 
@@ -1763,9 +1763,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             return null;
         }
         AssessmentRubric rubric = assessmentRubricRepository.findById(rubricId)
-                .orElseThrow(() -> new RuntimeException("Rubric not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ tiêu chí"));
         if (!"PUBLISHED".equalsIgnoreCase(rubric.getStatus())) {
-            throw new RuntimeException("Rubric chưa ở trạng thái xuất bản");
+            throw new RuntimeException("Bộ tiêu chí chưa ở trạng thái xuất bản");
         }
         return rubric;
     }

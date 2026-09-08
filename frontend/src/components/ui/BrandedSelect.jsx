@@ -29,18 +29,27 @@ export default function BrandedSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [menuCoords, setMenuCoords] = useState({ top: 0, left: 0, width: 0, isTop: false });
+  const [menuCoords, setMenuCoords] = useState({ top: 0, left: 0, width: 0, isTop: false, maxHeight: 320 });
   const containerRef = useRef(null);
   const menuRef = useRef(null);
 
   const updatePosition = () => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
+    const gap = 6;
+    const preferredMenuHeight = 320;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+    const isTop = menuPlacement === 'top'
+      || (menuPlacement === 'auto' && spaceBelow < preferredMenuHeight && spaceAbove > spaceBelow);
+    const availableSpace = isTop ? spaceAbove : spaceBelow;
 
     setMenuCoords({
-      top: rect.bottom + 6,
+      top: isTop ? rect.top - gap : rect.bottom + gap,
       left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
       width: Math.max(rect.width, 260),
+      isTop,
+      maxHeight: Math.max(140, Math.min(preferredMenuHeight, availableSpace)),
     });
   };
 
@@ -121,6 +130,8 @@ export default function BrandedSelect({
             top: `${menuCoords.top}px`,
             left: `${menuCoords.left}px`,
             width: `${menuCoords.width}px`,
+            maxHeight: `${menuCoords.maxHeight}px`,
+            transform: menuCoords.isTop ? 'translateY(-100%)' : undefined,
             zIndex: 99999,
           }}
           className={`max-h-80 overflow-hidden rounded-2xl border border-[#dfbfbd]/75 bg-white p-1 shadow-[0_18px_45px_rgba(75,0,9,0.22)] flex flex-col ${menuClassName}`}

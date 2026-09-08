@@ -22,6 +22,7 @@ import { createCourseBuilderFingerprint } from '../../utils/courseBuilderState';
 import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
 import { canAutoFetchTranscript, isBunnyVideoUrl, isYouTubeVideoUrl } from '../../utils/youtubeVideoUrl';
+import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
@@ -2288,7 +2289,7 @@ function buildRubricOptions(rubrics, skill) {
     .filter((rubric) => !skill || rubric.skill === skill || rubric.skill === 'MIXED')
     .map((rubric) => ({
       value: String(rubric.id),
-      label: `${rubric.name} (${getSkillLabel(rubric.skill)})`,
+      label: `${formatCriteriaSetName(rubric.name)} (${getSkillLabel(rubric.skill)})`,
     }));
   return [...base, ...matched];
 }
