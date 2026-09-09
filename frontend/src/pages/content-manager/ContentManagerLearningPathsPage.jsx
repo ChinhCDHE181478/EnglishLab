@@ -242,11 +242,12 @@ export default function ContentManagerLearningPathsPage() {
       {!modal ? <ManagementToast message={error} onClose={() => setError("")} /> : null}
       <ManagementToast message={success} onClose={() => setSuccess("")} tone="success" title="Đã cập nhật lộ trình" />
       {pathPageItems.map((group) => {
-        const isExpanded = expanded[group.code] !== false;
+        const isExpanded = expanded[group.code] === true;
         return (
           <Panel key={group.code} className="overflow-hidden transition-all duration-200 hover:border-[#dfbfbd] hover:shadow-md">
             <div className="flex items-center gap-3 px-6 py-5">
               <button
+                aria-expanded={isExpanded}
                 className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 onClick={() =>
                   setExpanded((current) => ({
@@ -292,6 +293,8 @@ export default function ContentManagerLearningPathsPage() {
                   </button>
               </div>
               <button
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? "Thu gọn lộ trình" : "Mở rộng lộ trình"}
                 className="rounded-xl p-2 text-[#730014]"
                 onClick={() =>
                   setExpanded((current) => ({

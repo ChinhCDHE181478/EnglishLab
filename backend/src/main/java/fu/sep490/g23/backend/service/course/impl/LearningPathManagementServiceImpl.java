@@ -47,6 +47,10 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 @Transactional
+/**
+ * Implements learning-path management, learner recommendations, and public
+ * bundle pricing. Write operations run within a single transaction.
+ */
 public class LearningPathManagementServiceImpl implements LearningPathManagementService {
     private final LearningPathRepository learningPathRepository;
     private final LearningPathCourseRepository learningPathCourseRepository;
@@ -201,6 +205,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         return offer;
     }
 
+    /** Maps a path to sequential progress and locks steps behind incomplete prerequisites. */
     private LearnerLearningPathResponse.PathOverview toLearnerPath(
             LearningPath path, Map<Long, OnlineCourseEnrollment> enrollmentsByPackageId) {
         List<LearningPathCourse> refs = learningPathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId())
@@ -246,11 +251,13 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .build();
     }
 
+    /** Finds a learning path or raises a consistent domain error. */
     private LearningPath findPath(Long pathId) {
         return learningPathRepository.findById(pathId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lộ trình."));
     }
 
+    /** Maps a path with its ordered courses for the management screen. */
     private LearningPathResponse toResponse(LearningPath path) {
         List<LearningPathCourseResponse> courses = learningPathCourseRepository
                 .findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
@@ -276,6 +283,10 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .build();
     }
 
+    /**
+     * Builds a public bundle offer, excludes owned courses from the payable amount,
+     * and applies the path discount only when enough courses remain.
+     */
     private LearningPathOfferResponse toOfferResponse(LearningPath path, User student) {
         Set<Long> ownedPackageIds = student == null
                 ? Set.of()
@@ -341,15 +352,18 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .build();
     }
 
+    /** Resolves the learner when authenticated; anonymous visitors are represented by null. */
     private User optionalStudent(String studentEmail) {
         if (studentEmail == null || studentEmail.isBlank()) return null;
         return userRepository.findByEmail(studentEmail).orElse(null);
     }
 
+    /** Normalizes null or negative prices to zero before aggregation. */
     private BigDecimal safePrice(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value.max(BigDecimal.ZERO);
     }
 
+    /** Uses a sale price only when it is valid and below the original price. */
     private BigDecimal resolveCurrentPrice(BigDecimal originalPrice, BigDecimal salePrice) {
         if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
             return originalPrice;
@@ -357,32 +371,39 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         return salePrice;
     }
 
+    /** Converts an amount to whole VND units for payment calculations. */
     private long toVnd(BigDecimal value) {
         return safePrice(value).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
+    /** Excludes cancelled enrollments from ownership and progress calculations. */
     private OnlineCourseEnrollment activeEnrollment(OnlineCourseEnrollment enrollment) {
         return enrollment == null || enrollment.getStatus() == EnrollmentStatus.CANCELLED ? null : enrollment;
     }
 
+    /** Normalizes a nullable integer to zero. */
     private int defaultInt(Integer value) {
         return value == null ? 0 : value;
     }
 
+    /** Uses a zero discount when the path has no configured percentage. */
     private int defaultDiscountPercent(Integer value) {
         return value == null ? 0 : value;
     }
 
+    /** Ensures bundle discounts require at least two courses. */
     private int defaultMinimumCourses(Integer value) {
         return value == null ? 2 : Math.max(2, value);
     }
 
+    /** Trims and validates a required text field. */
     private String required(String value, String field) {
         String result = value == null ? "" : value.trim();
         if (result.isEmpty()) throw new RuntimeException(field + " không được để trống.");
         return result;
     }
 
+    /** Normalizes and restricts the exam category to IELTS or TOEIC. */
     private String normalizeExamCategory(String value) {
         if (value == null || value.isBlank()) return null;
         String normalized = value.trim().toUpperCase(Locale.ROOT);
@@ -392,6 +413,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         return normalized;
     }
 
+    /** Validates target score type and increments for the selected exam. */
     private void validateTarget(LearningPath path) {
         if ("IELTS".equals(path.getExamCategory())) {
             if (path.getTargetScore() != null) throw new IllegalArgumentException("Lộ trình IELTS không sử dụng điểm TOEIC.");
@@ -408,6 +430,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         }
     }
 
+    /** Builds fallback recommendation context from the profile when no eligible placement exists. */
     private PlacementRecommendationContext profileContext(User student) {
         String rawExam = student.getTargetExam() == null ? "" : student.getTargetExam().trim().toUpperCase(Locale.ROOT);
         String exam = Set.of("IELTS", "TOEIC").contains(rawExam) ? rawExam : "IELTS";
@@ -422,6 +445,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .build();
     }
 
+    /** Extracts the first decimal number from a legacy text-based target. */
     private BigDecimal parseDecimal(String value) {
         if (value == null) return null;
         java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+)?)").matcher(value);
