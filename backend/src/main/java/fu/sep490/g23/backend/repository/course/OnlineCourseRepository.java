@@ -47,4 +47,7 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
             order by count(course) desc
             """)
     List<Object[]> summarizeCategoryDistribution();
+
+    @Query("select c.thumbnailUrl from OnlineCourse c where c.thumbnailUrl is not null and c.thumbnailUrl <> ''")
+    List<String> findAllNonEmptyThumbnailUrls();
 }

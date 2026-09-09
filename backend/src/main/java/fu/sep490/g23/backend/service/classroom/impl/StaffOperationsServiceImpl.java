@@ -80,12 +80,6 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         List<ClassroomChangeRequest> pendingRequests = changeRequestRepository
                 .findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING);
 
-        int pendingConfirmationCount = countByStatus(pendingRegistrations, ClassroomRegistrationStatus.PENDING_CONFIRMATION);
-        int pendingTuitionCount = countByStatus(pendingRegistrations, ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
-                + countByStatus(pendingRegistrations, ClassroomRegistrationStatus.DEPOSIT_PAID)
-                + countByStatus(pendingRegistrations, ClassroomRegistrationStatus.PARTIALLY_PAID);
-        int readyToAssignCount = countByStatus(pendingRegistrations, ClassroomRegistrationStatus.FULLY_PAID);
-
         List<StaffActionItemResponse> actionItems = new ArrayList<>();
         pendingRegistrations.stream()
                 .sorted(Comparator.comparing(ClassEnrollment::getEnrolledAt).reversed())
@@ -103,9 +97,6 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
         return StaffDashboardResponse.builder()
                 .pendingRegistrationCount(pendingRegistrations.size())
                 .pendingChangeRequestCount(pendingRequests.size())
-                .pendingConfirmationCount(pendingConfirmationCount)
-                .pendingTuitionCount(pendingTuitionCount)
-                .readyToAssignCount(readyToAssignCount)
                 .registeredLearnerCount((int) enrollmentRequests.stream()
                         .filter(item -> item.getStatus() != EnrollmentRequestStatus.CANCELLED)
                         .count())
@@ -119,12 +110,6 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
                 .teacherScores(teacherScores.stream().limit(6).toList())
                 .studentScores(studentScores.stream().limit(8).toList())
                 .build();
-    }
-
-    private int countByStatus(List<ClassEnrollment> enrollments, ClassroomRegistrationStatus status) {
-        return (int) enrollments.stream()
-                .filter(enrollment -> enrollment.getRegistrationStatus() == status)
-                .count();
     }
 
     private StaffActionItemResponse toRegistrationActionItem(ClassEnrollment enrollment) {

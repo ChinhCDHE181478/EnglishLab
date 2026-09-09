@@ -125,12 +125,12 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
 
     private AssessmentRubric findRubric(Long id) {
         return rubricRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy rubric."));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bộ tiêu chí."));
     }
 
     private void validateRequest(AssessmentRubricRequest request) {
         if (request.getCriteria() == null || request.getCriteria().isEmpty()) {
-            throw new IllegalArgumentException("Rubric cần có ít nhất một tiêu chí chấm điểm.");
+            throw new IllegalArgumentException("Bộ tiêu chí cần có ít nhất một tiêu chí chấm điểm.");
         }
         int totalWeight = request.getCriteria().stream()
                 .map(RubricCriterionRequest::getWeight)

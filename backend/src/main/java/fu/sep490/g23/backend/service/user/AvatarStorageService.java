@@ -14,4 +14,10 @@ public interface AvatarStorageService {
     void delete(String fileName);
 
     void deleteByUrl(String avatarUrl);
+
+    /**
+     * Deletes the object with the given R2 key directly.
+     * Used by event listeners that already have the object key (e.g. "avatars/avatar-xxx.jpg").
+     */
+    void deleteByKey(String objectKey);
 }

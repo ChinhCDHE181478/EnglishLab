@@ -270,7 +270,7 @@ export default function ContentManagerExerciseBankPage() {
                   size="form"
                   value={form.prompt}
                 />
-                <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / rubric" rows={3} className={TEXTAREA_CLASS} />
+                <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / tiêu chí chấm" rows={3} className={TEXTAREA_CLASS} />
               </>
             )}
             <RichTextEditor

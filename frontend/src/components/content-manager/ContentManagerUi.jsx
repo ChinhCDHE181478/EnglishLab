@@ -395,7 +395,7 @@ function formatCrumbLabel(crumbs, index) {
     'placement-test': 'Bài đánh giá đầu vào',
     'mock-exams': 'Ngân hàng đề thi thử',
     'exercise-bank': 'Ngân hàng bài tập',
-    rubrics: 'Rubrics chấm điểm',
+    rubrics: 'Bộ tiêu chí chấm điểm',
     publication: 'Hàng chờ xuất bản',
     analytics: 'Phân tích nội dung',
     edit: 'Chỉnh sửa khóa học',

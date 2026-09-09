@@ -1,21 +1,19 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
-
 import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
+import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
+import fu.sep490.g23.backend.service.storage.LegacyLocalFileReader;
+import fu.sep490.g23.backend.service.storage.ObjectStore;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -30,16 +28,23 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentStorageService {
-    private static final String PUBLIC_ATTACHMENT_PATH = "/api/classroom-homework/attachments/";
+    /** Legacy URL marker used by DB rows written before the R2 migration. */
+    private static final String LEGACY_PUBLIC_ATTACHMENT_PATH = "/api/classroom-homework/attachments/";
+    /** New R2-style object prefix – keeps objects grouped per logical kind. */
+    static final String PREFIX = "classroom-attachments";
     private static final long MAX_FILE_SIZE_BYTES = 20L * 1024 * 1024;
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "zip", "rar",
             "jpg", "jpeg", "png", "mp3", "m4a", "wav", "webm", "mp4"
     );
 
-    private final Path storageDirectory;
+    private final ObjectStore objectStore;
+    private final LegacyLocalFileReader legacyLocalReader;
     private final long maxStorageBytes;
     private final int maxUploadsPerHour;
     private final long maxBytesPerDay;
@@ -48,21 +53,18 @@ public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentS
     private final Object storageLock = new Object();
 
     public HomeworkAttachmentStorageServiceImpl(
-            @Value("${englishlab.homework-attachments.dir:backend/uploads/homework-attachments}") String storageDir,
+            ObjectStore objectStore,
+            LegacyLocalFileReader legacyLocalReader,
             @Value("${englishlab.homework-attachments.max-storage-bytes:5368709120}") long maxStorageBytes,
             @Value("${englishlab.homework-attachments.max-uploads-per-hour:30}") int maxUploadsPerHour,
             @Value("${englishlab.homework-attachments.max-bytes-per-day:209715200}") long maxBytesPerDay
     ) {
-        this.storageDirectory = Paths.get(storageDir).toAbsolutePath().normalize();
+        this.objectStore = objectStore;
+        this.legacyLocalReader = legacyLocalReader;
         this.maxStorageBytes = Math.max(MAX_FILE_SIZE_BYTES, maxStorageBytes);
         this.maxUploadsPerHour = Math.max(1, maxUploadsPerHour);
         this.maxBytesPerDay = Math.max(MAX_FILE_SIZE_BYTES, maxBytesPerDay);
-        try {
-            Files.createDirectories(storageDirectory);
-            this.storedBytes = new AtomicLong(calculateStoredBytes());
-        } catch (IOException exception) {
-            throw new IllegalStateException("Không thể tạo thư mục tệp bài tập.", exception);
-        }
+        this.storedBytes = new AtomicLong(estimateStoredBytes());
     }
 
     @Override
@@ -85,10 +87,10 @@ public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentS
         }
 
         String fileName = "homework-" + UUID.randomUUID() + "." + normalizedExtension;
-        Path target = storageDirectory.resolve(fileName).normalize();
+        String objectKey = objectStore.objectKey(PREFIX, fileName);
         UploadQuota quota = uploadQuotas.computeIfAbsent(normalizedOwner, ignored -> new UploadQuota());
+        Instant now = Instant.now();
         synchronized (quota) {
-            Instant now = Instant.now();
             quota.prune(now);
             if (quota.lastHour.size() >= maxUploadsPerHour) {
                 throw new IllegalArgumentException("Bạn đã tải quá nhiều tệp trong một giờ. Vui lòng thử lại sau.");
@@ -98,144 +100,191 @@ public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentS
                 throw new IllegalArgumentException("Bạn đã vượt quá dung lượng tải tệp cho phép trong ngày.");
             }
 
+            // Perform the slow R2 put OUTSIDE the global storageLock so concurrent uploads
+            // for different users do not serialize behind each other. The cheap counter
+            // update happens after the I/O completes.
+            ObjectStore.StoredObject stored;
+            try (InputStream stream = file.getInputStream()) {
+                stored = objectStore.put(
+                        objectKey,
+                        stream,
+                        file.getSize(),
+                        audioContentType(fileName, file.getContentType())
+                );
+            } catch (IOException ioException) {
+                throw new IllegalStateException("Không thể đọc tệp đính kèm.", ioException);
+            }
+
+            // Re-check quota after the I/O completes, before adding to the global counter.
             synchronized (storageLock) {
                 if (storedBytes.get() + file.getSize() > maxStorageBytes) {
+                    // Rollback: delete the file we just uploaded so quota stays consistent.
+                    safeDeleteQuietly(objectKey);
                     throw new IllegalStateException("Kho lưu trữ tệp đang đầy. Vui lòng liên hệ quản trị viên.");
                 }
-                try {
-                    Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-                    storedBytes.addAndGet(file.getSize());
-                } catch (IOException exception) {
-                    throw new IllegalStateException("Không thể lưu tệp đính kèm.", exception);
-                }
+                storedBytes.addAndGet(file.getSize());
+            }
+
+            String url = stored.publicUrl();
+            if (url.startsWith("/local-files/")) {
+                String base = publicUrlBase == null ? LEGACY_PUBLIC_ATTACHMENT_PATH : publicUrlBase;
+                url = base.endsWith("/") ? base + fileName : base + "/" + fileName;
             }
             UploadEvent event = new UploadEvent(now, file.getSize());
             quota.lastHour.addLast(event);
             quota.lastDay.addLast(event);
+            return HomeworkAttachmentUploadResponse.builder()
+                    .fileName(fileName)
+                    .originalFileName(safeOriginalFileName(file.getOriginalFilename()))
+                    .contentType(audioContentType(fileName, file.getContentType()))
+                    .size(file.getSize())
+                    .url(url)
+                    .build();
         }
+    }
 
-        return HomeworkAttachmentUploadResponse.builder()
-                .fileName(fileName)
-                .originalFileName(safeOriginalFileName(file.getOriginalFilename()))
-                .contentType(file.getContentType() == null ? "application/octet-stream" : file.getContentType())
-                .size(file.getSize())
-                .url(publicUrlBase.endsWith("/") ? publicUrlBase + fileName : publicUrlBase + "/" + fileName)
-                .build();
+    /** Best-effort delete used for rollback when quota is exceeded after the upload. */
+    private void safeDeleteQuietly(String objectKey) {
+        try {
+            objectStore.delete(objectKey);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to roll back uploaded object {}: {}", objectKey, exception.getMessage());
+        }
     }
 
     @Override
     public Resource load(String fileName) {
-        Path target = resolveStoredFile(fileName);
-        if (!target.startsWith(storageDirectory) || !Files.exists(target)) {
-            throw new IllegalArgumentException("Không tìm thấy tệp đính kèm.");
+        String sanitized = safeFileName(fileName);
+        var legacy = legacyLocalReader.tryLoad(PREFIX, sanitized);
+        if (legacy.isPresent()) {
+            return legacy.get();
         }
-        return new FileSystemResource(target);
+        String objectKey = objectStore.objectKey(PREFIX, sanitized);
+        return objectStore.getBytes(objectKey)
+                .map(ByteArrayResource::new)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tệp đính kèm."));
     }
 
     @Override
     public String contentType(String fileName) {
-        try {
-            String type = Files.probeContentType(resolveStoredFile(fileName));
-            return type == null ? "application/octet-stream" : type;
-        } catch (IOException exception) {
-            return "application/octet-stream";
+        String sanitized = safeFileName(fileName);
+        if (legacyLocalReader.isEnabled() && legacyLocalReader.tryLoad(PREFIX, sanitized).isPresent()) {
+            return legacyLocalReader.probeContentType(PREFIX, sanitized);
         }
+        return objectStore.probeContentType(objectStore.objectKey(PREFIX, sanitized));
     }
 
     @Override
     public Optional<StoredHomeworkAttachment> loadStoredAttachmentFromUrl(String attachmentUrl) {
-        String fileName = extractStoredFileName(attachmentUrl);
-        if (fileName == null) {
+        Optional<String> fileName = extractStoredFileName(attachmentUrl);
+        if (fileName.isEmpty()) {
             return Optional.empty();
+        }
+        String sanitized = fileName.get();
+
+        // Prefer the legacy local file when present so AI grading keeps working on data uploaded
+        // before the R2 migration.
+        var legacy = legacyLocalReader.tryLoad(PREFIX, sanitized);
+        if (legacy.isPresent()) {
+            try {
+                byte[] bytes = legacy.get().getInputStream().readAllBytes();
+                return Optional.of(new StoredHomeworkAttachment(
+                        sanitized,
+                        audioContentType(sanitized, legacyLocalReader.probeContentType(PREFIX, sanitized)),
+                        bytes.length,
+                        bytes
+                ));
+            } catch (IOException exception) {
+                throw new IllegalStateException("Không thể đọc tệp đính kèm để chấm bài.", exception);
+            }
         }
 
-        Path target;
-        try {
-            target = resolveStoredFile(fileName);
-        } catch (IllegalArgumentException exception) {
+        String objectKey = objectStore.objectKey(PREFIX, sanitized);
+        Optional<byte[]> bytes = objectStore.getBytes(objectKey);
+        if (bytes.isEmpty()) {
             return Optional.empty();
         }
-        if (!Files.isRegularFile(target)) {
-            return Optional.empty();
-        }
-
-        try {
-            byte[] bytes = Files.readAllBytes(target);
-            return Optional.of(new StoredHomeworkAttachment(
-                    fileName,
-                    audioContentType(fileName, contentType(fileName)),
-                    bytes.length,
-                    bytes
-            ));
-        } catch (IOException exception) {
-            throw new IllegalStateException("Không thể đọc tệp đính kèm để chấm bài.", exception);
-        }
+        byte[] data = bytes.get();
+        return Optional.of(new StoredHomeworkAttachment(
+                sanitized,
+                audioContentType(sanitized, contentType(sanitized)),
+                data.length,
+                data
+        ));
     }
 
     @Override
     public List<String> findStoredFileNamesOlderThan(Duration minimumAge) {
         Instant cutoff = Instant.now().minus(minimumAge == null ? Duration.ofHours(24) : minimumAge);
-        List<String> result = new ArrayList<>();
-        try (var files = Files.list(storageDirectory)) {
-            files.filter(Files::isRegularFile)
-                    .filter(path -> {
-                        try {
-                            return Files.getLastModifiedTime(path).toInstant().isBefore(cutoff);
-                        } catch (IOException exception) {
-                            return false;
-                        }
-                    })
-                    .map(path -> path.getFileName().toString())
-                    .forEach(result::add);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Không thể kiểm tra tệp đính kèm cũ.", exception);
+        // The orphan-cleanup job only cares about files uploaded by students; teacher uploads
+        // (homework problems, classroom material, center material) live in the same prefix so we
+        // list everything and let the caller filter by reference existence.
+        List<String> keys = objectStore.listKeysOlderThan(PREFIX, cutoff);
+        List<String> result = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            int slash = key.lastIndexOf('/');
+            String name = slash >= 0 ? key.substring(slash + 1) : key;
+            result.add(name);
         }
         return result;
     }
 
     @Override
     public void delete(String fileName) {
-        Path target = resolveStoredFile(fileName);
+        String objectKey = objectStore.objectKey(PREFIX, safeFileName(fileName));
         synchronized (storageLock) {
-            try {
-                long size = Files.exists(target) ? Files.size(target) : 0L;
-                if (Files.deleteIfExists(target)) {
-                    storedBytes.updateAndGet(current -> Math.max(0L, current - size));
-                }
-            } catch (IOException exception) {
-                throw new IllegalStateException("Không thể xóa tệp đính kèm không còn sử dụng.", exception);
+            long size = objectStore.getSize(objectKey).orElse(0L);
+            objectStore.delete(objectKey);
+            if (size > 0L) {
+                storedBytes.updateAndGet(current -> Math.max(0L, current - size));
             }
         }
     }
 
-    private Path resolveStoredFile(String fileName) {
-        String safeName = StringUtils.getFilename(String.valueOf(fileName == null ? "" : fileName));
-        if (safeName == null || safeName.isBlank() || !safeName.equals(fileName)) {
+    private String safeFileName(String fileName) {
+        String safe = StringUtils.getFilename(String.valueOf(fileName == null ? "" : fileName));
+        if (safe == null || safe.isBlank() || !safe.equals(fileName)) {
             throw new IllegalArgumentException("Tên tệp đính kèm không hợp lệ.");
         }
-        Path target = storageDirectory.resolve(safeName).normalize();
-        if (!target.startsWith(storageDirectory)) {
+        // Explicit path-traversal and shell-meta guard. StringUtils.getFilename strips
+        // path segments, but be explicit so the contract is obvious to future readers.
+        if (safe.contains("/") || safe.contains("\\") || safe.contains("..")
+                || safe.contains(":") || safe.contains("\0") || safe.contains("?")
+                || safe.contains("*") || safe.startsWith(".")) {
             throw new IllegalArgumentException("Tên tệp đính kèm không hợp lệ.");
         }
-        return target;
+        return safe;
     }
 
-    private String extractStoredFileName(String attachmentUrl) {
+    private Optional<String> extractStoredFileName(String attachmentUrl) {
         String value = String.valueOf(attachmentUrl == null ? "" : attachmentUrl).trim();
         if (value.isBlank()) {
-            return null;
+            return Optional.empty();
         }
+        String fileName;
         try {
             String path = new URI(value).getPath();
-            int markerIndex = path == null ? -1 : path.indexOf(PUBLIC_ATTACHMENT_PATH);
-            if (markerIndex < 0) {
-                return null;
+            if (path != null && path.contains(LEGACY_PUBLIC_ATTACHMENT_PATH)) {
+                int markerIndex = path.indexOf(LEGACY_PUBLIC_ATTACHMENT_PATH);
+                fileName = path.substring(markerIndex + LEGACY_PUBLIC_ATTACHMENT_PATH.length());
+            } else {
+                // R2 URL – use the last path segment.
+                String normalized = path == null ? value : path;
+                int slash = normalized.lastIndexOf('/');
+                fileName = slash >= 0 ? normalized.substring(slash + 1) : normalized;
             }
-            String fileName = path.substring(markerIndex + PUBLIC_ATTACHMENT_PATH.length());
-            return fileName.startsWith("homework-") && !fileName.contains("/") ? fileName : null;
         } catch (URISyntaxException exception) {
-            return null;
+            int slash = value.lastIndexOf('/');
+            fileName = slash >= 0 ? value.substring(slash + 1) : value;
         }
+        int query = fileName.indexOf('?');
+        if (query >= 0) {
+            fileName = fileName.substring(0, query);
+        }
+        if (fileName.isBlank() || !fileName.startsWith("homework-") || fileName.contains("/")) {
+            return Optional.empty();
+        }
+        return Optional.of(fileName);
     }
 
     private String audioContentType(String fileName, String detectedType) {
@@ -245,21 +294,24 @@ public class HomeworkAttachmentStorageServiceImpl implements HomeworkAttachmentS
             case "m4a", "mp4" -> "audio/mp4";
             case "wav" -> "audio/wav";
             case "webm" -> "audio/webm";
-            default -> detectedType;
+            default -> detectedType == null ? "application/octet-stream" : detectedType;
         };
     }
 
-    private long calculateStoredBytes() throws IOException {
-        try (var files = Files.list(storageDirectory)) {
-            return files.filter(Files::isRegularFile)
-                    .mapToLong(path -> {
-                        try {
-                            return Files.size(path);
-                        } catch (IOException exception) {
-                            return 0L;
-                        }
-                    })
+    private long estimateStoredBytes() {
+        // Sum the size of every existing object under the homework prefix so the in-memory
+        // quota starts at a sane value rather than 0. Failures are non-fatal: we fall back
+        // to 0 if R2 cannot be listed for any reason, and the counter will self-correct as
+        // files are uploaded and deleted.
+        try {
+            Instant farPast = Instant.EPOCH;
+            return objectStore.listKeysOlderThan(PREFIX, farPast).stream()
+                    .mapToLong(key -> objectStore.getSize(key).orElse(0L))
                     .sum();
+        } catch (RuntimeException exception) {
+            log.warn("Failed to estimate stored bytes for {}: {}. Starting at 0.",
+                    PREFIX, exception.getMessage());
+            return 0L;
         }
     }
 

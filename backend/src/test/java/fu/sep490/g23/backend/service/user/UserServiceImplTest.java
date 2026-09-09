@@ -6,12 +6,14 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.service.storage.ObjectStore;
 import fu.sep490.g23.backend.service.user.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -31,7 +33,9 @@ class UserServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private PlacementTestAttemptRepository placementTestAttemptRepository;
     @Mock private AvatarStorageService avatarStorageService;
+    @Mock private ObjectStore objectStore;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     private UserServiceImpl service;
     private User user;
@@ -42,7 +46,9 @@ class UserServiceImplTest {
                 userRepository,
                 placementTestAttemptRepository,
                 avatarStorageService,
-                passwordEncoder
+                objectStore,
+                passwordEncoder,
+                eventPublisher
         );
         user = User.builder()
                 .id(10L)

@@ -44,7 +44,7 @@ export const contentManagerNav = [
       { label: 'Bài đánh giá đầu vào', href: '/content-manager/placement-test', icon: ClipboardCheck },
       { label: 'Ngân hàng đề thi thử', href: '/content-manager/mock-exams', icon: FileQuestion },
       { label: 'Ngân hàng bài tập', href: '/content-manager/exercise-bank', icon: Dumbbell },
-      { label: 'Rubrics chấm điểm', href: '/content-manager/rubrics', icon: SlidersHorizontal },
+      { label: 'Bộ tiêu chí chấm điểm', href: '/content-manager/rubrics', icon: SlidersHorizontal },
     ],
   },
   {
@@ -144,9 +144,9 @@ export const contentManagerPageMeta = {
     searchPlaceholder: 'Tìm phần thi hoặc câu hỏi...',
   },
   '/content-manager/rubrics': {
-    title: 'Quản lý rubrics chấm điểm',
+    title: 'Quản lý bộ tiêu chí chấm điểm',
     subtitle: 'Tạo, sửa và tạm ngưng các bộ tiêu chí chấm điểm cho giáo viên, bài tập và AI feedback.',
-    searchPlaceholder: 'Tìm rubric hoặc rule...',
+    searchPlaceholder: 'Tìm bộ tiêu chí hoặc quy tắc...',
   },
   '/content-manager/publication': {
     title: 'Kiểm soát xuất bản',

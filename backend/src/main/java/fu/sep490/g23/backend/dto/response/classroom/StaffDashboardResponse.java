@@ -11,9 +11,6 @@ import java.util.List;
 public class StaffDashboardResponse {
     private int pendingRegistrationCount;
     private int pendingChangeRequestCount;
-    private int pendingConfirmationCount;
-    private int pendingTuitionCount;
-    private int readyToAssignCount;
     private int registeredLearnerCount;
     private int consultedLearnerCount;
     private BigDecimal teacherAverageScore;
