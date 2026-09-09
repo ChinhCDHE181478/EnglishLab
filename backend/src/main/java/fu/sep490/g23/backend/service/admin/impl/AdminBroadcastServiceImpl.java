@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -112,8 +111,6 @@ public class AdminBroadcastServiceImpl implements AdminBroadcastService {
     }
 
     @Override
-    @Scheduled(fixedDelayString = "${englishlab.broadcast.scan-delay-ms:60000}",
-            initialDelayString = "${englishlab.broadcast.initial-delay-ms:30000}")
     @Transactional
     public void dispatchScheduled() {
         repository.findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAsc(

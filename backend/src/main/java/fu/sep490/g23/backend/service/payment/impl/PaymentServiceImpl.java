@@ -39,7 +39,6 @@ import fu.sep490.g23.backend.service.payment.PayosProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 import vn.payos.PayOS;
 import vn.payos.exception.PayOSException;
@@ -275,7 +274,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    @Scheduled(fixedDelayString = "${englishlab.payos.reconciliation-delay-ms:300000}", initialDelayString = "${englishlab.payos.reconciliation-initial-delay-ms:60000}")
+    @Override
     @Transactional
     public void reconcilePendingPaymentOrders() {
         if (!payosProperties.isEnabled()) {

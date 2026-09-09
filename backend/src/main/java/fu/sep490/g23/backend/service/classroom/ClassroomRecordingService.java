@@ -12,4 +12,6 @@ public interface ClassroomRecordingService {
 
     ClassroomSessionResponse syncRecording(Long sessionId);
 
+    void reconcilePendingRecordings();
+
 }

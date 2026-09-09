@@ -11,12 +11,10 @@ import fu.sep490.g23.backend.service.classroom.ClassroomLifecycleService;
 import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +25,6 @@ import java.util.Set;
 @Transactional
 public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService {
 
-    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final long SESSION_COMPLETION_GRACE_MINUTES = 30;
     private static final Set<ClassroomSessionStatus> ENDABLE_SESSION_STATUSES = EnumSet.of(
             ClassroomSessionStatus.OPEN,
@@ -41,14 +38,6 @@ public class ClassroomLifecycleServiceImpl implements ClassroomLifecycleService 
     private final ClassScheduleRepository sessionRepository;
     private final ClassSectionRepository offeringRepository;
     private final VirtualAttendanceService virtualAttendanceService;
-
-    @Scheduled(
-            fixedDelayString = "${englishlab.classroom.lifecycle-delay-ms:60000}",
-            initialDelayString = "${englishlab.classroom.lifecycle-initial-delay-ms:5000}"
-    )
-    public void reconcileScheduledStatuses() {
-        reconcileStatuses(LocalDateTime.now(BUSINESS_ZONE));
-    }
 
     @Override
     public void reconcileStatuses(LocalDateTime now) {
