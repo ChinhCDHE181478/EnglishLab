@@ -42,7 +42,7 @@ public class EnrollCourseIT {
         String email = registerVerifiedLearner(mockMvc, userRepository, authTokenRepository, "enroll");
         String token = login(mockMvc, email, PASSWORD);
         String staffToken = login(mockMvc, STAFF, PASSWORD);
-        MvcResult programsResult = mockMvc.perform(get("/api/staff/classrooms/training-programs")
+        MvcResult programsResult = mockMvc.perform(get("/api/staff/classrooms/instructor-led-courses")
                         .header("Authorization", bearer(staffToken)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode programs = items(json(programsResult));

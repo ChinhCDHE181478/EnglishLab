@@ -9,6 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AssessmentRubricRepository extends JpaRepository<AssessmentRubric, Long>, JpaSpecificationExecutor<AssessmentRubric> {
-    Optional<AssessmentRubric> findByNameIgnoreCaseAndActiveTrue(String name);
-    List<AssessmentRubric> findBySkillAndActiveTrueOrderByIdAsc(AssessmentSkill skill);
+    Optional<AssessmentRubric> findByNameIgnoreCaseAndStatus(String name, String status);
+    List<AssessmentRubric> findBySkillAndStatusOrderByIdAsc(AssessmentSkill skill, String status);
 }

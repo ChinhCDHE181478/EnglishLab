@@ -14,6 +14,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { usePagination } from '../../components/ui/Pagination';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
+import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const skillOptions = [
@@ -27,10 +28,10 @@ const skillOptions = [
   { label: 'Mixed', value: 'MIXED' },
 ];
 
-const activeOptions = [
-  { label: 'Đang dùng', value: 'ACTIVE' },
+const statusOptions = [
+  { label: 'Đang dùng', value: 'PUBLISHED' },
   { label: 'Tất cả', value: 'ALL' },
-  { label: 'Đã tạm ngưng', value: 'INACTIVE' },
+  { label: 'Đã tạm ngưng', value: 'ARCHIVED' },
 ];
 
 const emptyCriterion = {
@@ -48,7 +49,7 @@ const emptyForm = {
   taskType: '',
   scoringScale: 'Estimated IELTS band 0-9',
   description: '',
-  active: true,
+  status: 'PUBLISHED',
   criteria: [
     { ...emptyCriterion, name: 'Task Achievement', displayOrder: 1 },
     { ...emptyCriterion, name: 'Coherence and Cohesion', displayOrder: 2 },
@@ -64,16 +65,16 @@ export default function ContentManagerRubricsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [skillFilter, setSkillFilter] = useState('ALL');
-  const [activeFilter, setActiveFilter] = useState('ACTIVE');
+  const [statusFilter, setStatusFilter] = useState('PUBLISHED');
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [pageResult, setPageResult] = useState(EMPTY_PAGE);
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, criteria: 0 });
+  const [stats, setStats] = useState({ total: 0, published: 0, archived: 0, criteria: 0 });
   const editorRef = useRef(null);
   const deferredKeyword = useDeferredValue(keyword);
-  const resetKey = `${deferredKeyword}|${skillFilter}|${activeFilter}`;
+  const resetKey = `${deferredKeyword}|${skillFilter}|${statusFilter}`;
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
     pageResult.content,
     8,
@@ -87,8 +88,7 @@ export default function ContentManagerRubricsPage() {
     try {
       const params = {
         keyword: deferredKeyword.trim() || undefined,
-        includeInactive: true,
-        active: activeFilter === 'ALL' ? undefined : activeFilter === 'ACTIVE',
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
         skill: skillFilter === 'ALL' ? undefined : skillFilter,
       };
       const [data, summary] = await Promise.all([
@@ -99,7 +99,7 @@ export default function ContentManagerRubricsPage() {
       setRubrics(data.content);
       setStats(summary);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được danh sách rubrics.');
+      setError(err?.response?.data?.message || 'Không tải được danh sách bộ tiêu chí.');
     } finally {
       setLoading(false);
     }
@@ -107,12 +107,12 @@ export default function ContentManagerRubricsPage() {
 
   useEffect(() => {
     loadRubrics();
-  }, [activeFilter, deferredKeyword, page, skillFilter]);
+  }, [statusFilter, deferredKeyword, page, skillFilter]);
 
   const statItems = useMemo(() => [
-    { label: 'Tổng rubric', value: stats.total, icon: SlidersHorizontal, tone: 'text-[#4b0009]' },
-    { label: 'Đang dùng', value: stats.active, icon: CheckCircle2, tone: 'text-emerald-700' },
-    { label: 'Tạm ngưng', value: stats.inactive, icon: Archive, tone: 'text-slate-700' },
+    { label: 'Tổng bộ tiêu chí', value: stats.total, icon: SlidersHorizontal, tone: 'text-[#4b0009]' },
+    { label: 'Đang dùng', value: stats.published, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Tạm ngưng', value: stats.archived, icon: Archive, tone: 'text-slate-700' },
     { label: 'Rule', value: stats.criteria, icon: Layers3, tone: 'text-[#005236]' },
   ], [stats]);
 
@@ -125,13 +125,13 @@ export default function ContentManagerRubricsPage() {
     setEditingId(rubric.id);
     setEditorOpen(true);
     setForm({
-      name: rubric.name || '',
+      name: formatCriteriaSetName(rubric.name),
       examType: rubric.examType || '',
       skill: rubric.skill || 'MIXED',
       taskType: rubric.taskType || '',
       scoringScale: rubric.scoringScale || '',
       description: rubric.description || '',
-      active: rubric.active !== false,
+      status: rubric.status || 'DRAFT',
       criteria: (rubric.criteria || []).length
         ? rubric.criteria.map((criterion, index) => ({
             id: criterion.id,
@@ -198,11 +198,11 @@ export default function ContentManagerRubricsPage() {
     setError('');
     setSuccess('');
     if (!form.name.trim()) {
-      setError('Vui lòng nhập tên rubric.');
+      setError('Vui lòng nhập tên bộ tiêu chí.');
       return;
     }
     if (!form.criteria.length || form.criteria.some((criterion) => !criterion.name.trim())) {
-      setError('Mỗi rubric cần ít nhất một tiêu chí và tên tiêu chí không được để trống.');
+      setError('Mỗi bộ tiêu chí cần ít nhất một tiêu chí và tên tiêu chí không được để trống.');
       return;
     }
     if (totalWeight <= 0) {
@@ -218,7 +218,7 @@ export default function ContentManagerRubricsPage() {
         taskType: form.taskType,
         scoringScale: form.scoringScale,
         description: form.description,
-        active: form.active,
+        status: form.status,
         criteria: form.criteria.map((criterion, index) => ({
           id: criterion.id || null,
           name: criterion.name.trim(),
@@ -230,15 +230,15 @@ export default function ContentManagerRubricsPage() {
       };
       if (editingId) {
         await courseApi.updateContentManagerRubric(editingId, payload);
-        setSuccess('Đã cập nhật rubric và các rule chấm điểm.');
+        setSuccess('Đã cập nhật bộ tiêu chí và các quy tắc chấm điểm.');
       } else {
         await courseApi.createContentManagerRubric(payload);
-        setSuccess('Đã tạo rubric mới.');
+        setSuccess('Đã tạo bộ tiêu chí mới.');
       }
       resetForm();
       await loadRubrics();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được rubric.');
+      setError(err?.response?.data?.message || 'Không lưu được bộ tiêu chí.');
     } finally {
       setWorking(false);
     }
@@ -249,16 +249,16 @@ export default function ContentManagerRubricsPage() {
     setError('');
     setSuccess('');
     try {
-      if (rubric.active === false) {
+      if (rubric.status !== 'PUBLISHED') {
         await courseApi.reactivateContentManagerRubric(rubric.id);
-        setSuccess('Đã kích hoạt lại rubric.');
+        setSuccess('Đã kích hoạt lại bộ tiêu chí.');
       } else {
         await courseApi.deactivateContentManagerRubric(rubric.id);
-        setSuccess('Đã tạm ngưng rubric. Các assessment đang dùng rubric này vẫn giữ dữ liệu tham chiếu hiện có.');
+        setSuccess('Đã tạm ngưng bộ tiêu chí.');
       }
       await loadRubrics();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không cập nhật được trạng thái rubric.');
+      setError(err?.response?.data?.message || 'Không cập nhật được trạng thái bộ tiêu chí.');
     } finally {
       setWorking(false);
     }
@@ -267,7 +267,7 @@ export default function ContentManagerRubricsPage() {
   return (
     <div className="space-y-6">
       {!editorOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
-      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật rubric" />
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật bộ tiêu chí" />
 
       {editorOpen && (
         <RubricEditorModal onClose={() => resetForm(false)}>
@@ -275,10 +275,10 @@ export default function ContentManagerRubricsPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#730014]">
-                  {editingId ? 'Edit rubric' : 'New rubric'}
+                  {editingId ? 'Chỉnh sửa' : 'Tạo mới'}
                 </p>
                 <h3 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-slate-900">
-                  {editingId ? 'Sửa rubric' : 'Tạo rubric mới'}
+                  {editingId ? 'Sửa bộ tiêu chí' : 'Tạo bộ tiêu chí mới'}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Tổng trọng số hiện tại: <strong className={totalWeight === 100 ? 'text-emerald-700' : 'text-amber-700'}>{totalWeight}%</strong>
@@ -292,7 +292,7 @@ export default function ContentManagerRubricsPage() {
                   type="button"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Reset
+                  Đặt lại
                 </button>
                 <button
                   className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#eff4ff]"
@@ -308,7 +308,7 @@ export default function ContentManagerRubricsPage() {
             {error ? <div className="mb-4"><Notice tone="error">{error}</Notice></div> : null}
 
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField label="Tên rubric" onChange={(value) => setForm((current) => ({ ...current, name: value }))} value={form.name} />
+              <TextField label="Tên bộ tiêu chí" onChange={(value) => setForm((current) => ({ ...current, name: value }))} value={form.name} />
               <TextField label="Loại kỳ thi" onChange={(value) => setForm((current) => ({ ...current, examType: value }))} value={form.examType} />
               <Picker
                 label="Kỹ năng"
@@ -316,36 +316,28 @@ export default function ContentManagerRubricsPage() {
                 options={skillOptions.filter((option) => option.value !== 'ALL')}
                 value={form.skill}
               />
-              <TextField label="Loại task" onChange={(value) => setForm((current) => ({ ...current, taskType: value }))} value={form.taskType} />
+              <TextField label="Dạng bài" onChange={(value) => setForm((current) => ({ ...current, taskType: value }))} value={form.taskType} />
               <TextField label="Thang điểm" onChange={(value) => setForm((current) => ({ ...current, scoringScale: value }))} value={form.scoringScale} />
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <input
-                  checked={form.active}
-                  className="h-4 w-4 accent-[#4b0009]"
-                  onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
-                  type="checkbox"
-                />
-                <span className="text-sm font-bold text-slate-700">Cho phép sử dụng rubric này</span>
-              </label>
+              <FilterSelect label="Trạng thái" onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))} options={statusOptions.filter((item) => item.value !== 'ALL')} value={form.status} />
             </div>
             <RichTextEditor
               label="Mô tả"
               onChange={(value) => setForm((current) => ({ ...current, description: value }))}
-              placeholder="Mô tả rubric..."
+              placeholder="Mô tả bộ tiêu chí..."
               size="compact"
               value={form.description}
             />
 
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Tiêu chí / rule chấm điểm</h4>
+                <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Các tiêu chí chấm điểm</h4>
                 <button
                   className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-extrabold text-[#730014] transition hover:bg-[#fff4f5]"
                   onClick={addCriterion}
                   type="button"
                 >
                   <Plus className="h-4 w-4" />
-                  Thêm rule
+                  Thêm tiêu chí
                 </button>
               </div>
               {form.criteria.map((criterion, index) => (
@@ -366,7 +358,7 @@ export default function ContentManagerRubricsPage() {
               type="submit"
             >
               <Save className="h-4 w-4" />
-              {working ? 'Đang lưu...' : editingId ? 'Cập nhật rubric' : 'Tạo rubric'}
+              {working ? 'Đang lưu...' : editingId ? 'Cập nhật bộ tiêu chí' : 'Tạo bộ tiêu chí'}
             </button>
           </form>
         </RubricEditorModal>
@@ -381,17 +373,17 @@ export default function ContentManagerRubricsPage() {
             <input
               className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Tìm rubric, task, thang điểm..."
+              placeholder="Tìm bộ tiêu chí, dạng bài, thang điểm..."
               value={keyword}
             />
           </div>
         </div>
         <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
           <FilterSelect label="Kỹ năng" onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} value={skillFilter} />
-          <FilterSelect label="Trạng thái" onChange={(event) => setActiveFilter(event.target.value)} options={activeOptions} value={activeFilter} />
+          <FilterSelect label="Trạng thái" onChange={(event) => setStatusFilter(event.target.value)} options={statusOptions} value={statusFilter} />
         </div>
         <button
-          aria-label="Làm mới rubrics"
+          aria-label="Làm mới bộ tiêu chí"
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 text-[#564241] transition hover:bg-[#eff4ff]"
           onClick={loadRubrics}
           type="button"
@@ -400,22 +392,22 @@ export default function ContentManagerRubricsPage() {
         </button>
         <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={() => resetForm(true)} type="button">
           <Plus className="h-4 w-4" />
-          Tạo rubric mới
+          Tạo bộ tiêu chí mới
         </button>
       </ManagerFilterBar>
 
       {loading ? (
-        <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải rubrics...</div>
+        <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải bộ tiêu chí...</div>
       ) : totalItems === 0 ? (
-        <ManagerEmptyState>Chưa có rubric phù hợp.</ManagerEmptyState>
+        <ManagerEmptyState>Chưa có bộ tiêu chí phù hợp.</ManagerEmptyState>
       ) : (
         <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
           <ManagerTable
             columns={[
-              { label: 'Tên rubric', key: 'name' },
+              { label: 'Tên bộ tiêu chí', key: 'name' },
               { label: 'Kỹ năng', key: 'skill' },
-              { label: 'Task', key: 'task' },
-              { label: 'Rule', key: 'rules', align: 'center' },
+              { label: 'Dạng bài', key: 'task' },
+              { label: 'Số tiêu chí', key: 'rules', align: 'center' },
               { label: 'Trạng thái', key: 'status' },
               { label: 'Thao tác', key: 'actions', align: 'right' },
             ]}
@@ -424,13 +416,13 @@ export default function ContentManagerRubricsPage() {
             {pageItems.map((rubric) => (
               <tr className="transition hover:bg-[#eff4ff]" key={rubric.id}>
                 <td className="px-6 py-5">
-                  <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{rubric.name}</p>
+                  <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{formatCriteriaSetName(rubric.name)}</p>
                   {rubric.scoringScale ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{rubric.scoringScale}</p> : null}
                 </td>
                 <td className="px-6 py-5"><ManagerStatusBadge tone="info">{rubric.skill || '-'}</ManagerStatusBadge></td>
                 <td className="px-6 py-5 text-sm text-[#0b1c30]">{rubric.taskType || '-'}</td>
                 <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{rubric.criteria?.length || 0}</td>
-                <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.active === false ? 'neutral' : 'success'}>{rubric.active === false ? 'Tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
+                <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.status === 'PUBLISHED' ? 'success' : 'neutral'}>{rubric.status === 'PUBLISHED' ? 'Đang dùng' : 'Tạm ngưng'}</ManagerStatusBadge></td>
                 <td className="px-6 py-5 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]" onClick={() => editRubric(rubric)} type="button">
@@ -443,15 +435,15 @@ export default function ContentManagerRubricsPage() {
                       onClick={() => toggleRubricActive(rubric)}
                       type="button"
                     >
-                      {rubric.active === false ? <RefreshCw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
-                      {rubric.active === false ? 'Khôi phục' : 'Tạm ngưng'}
+                      {rubric.status !== 'PUBLISHED' ? <RefreshCw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                      {rubric.status !== 'PUBLISHED' ? 'Khôi phục' : 'Tạm ngưng'}
                     </button>
                   </div>
                 </td>
               </tr>
             ))}
           </ManagerTable>
-          <ManagerTablePagination itemLabel="rubric" onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+          <ManagerTablePagination itemLabel="bộ tiêu chí" onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
         </section>
       )}
     </div>
@@ -532,11 +524,11 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
           <div className="flex flex-wrap gap-2">
             <Badge>{rubric.skill}</Badge>
             {rubric.examType ? <Badge>{rubric.examType}</Badge> : null}
-            {rubric.active === false ? <Badge tone="muted">Tạm ngưng</Badge> : <Badge tone="success">Đang dùng</Badge>}
+            {rubric.status !== 'PUBLISHED' ? <Badge tone="muted">Tạm ngưng</Badge> : <Badge tone="success">Đang dùng</Badge>}
           </div>
-          <h3 className="mt-3 font-['Manrope'] text-xl font-extrabold text-slate-900">{rubric.name}</h3>
+          <h3 className="mt-3 font-['Manrope'] text-xl font-extrabold text-slate-900">{formatCriteriaSetName(rubric.name)}</h3>
           <p className="mt-1 text-sm font-semibold text-slate-500">
-            {rubric.taskType || 'Chưa gắn task'} · {rubric.scoringScale || 'Chưa gắn thang điểm'} · Tổng weight {totalWeight}%
+            {rubric.taskType || 'Chưa gắn dạng bài'} · {rubric.scoringScale || 'Chưa gắn thang điểm'} · Tổng trọng số {totalWeight}%
           </p>
           {rubric.description ? <p className="mt-3 text-sm leading-7 text-slate-600">{stripRichTextToPlain(rubric.description)}</p> : null}
         </div>
@@ -550,7 +542,7 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
           </button>
           <button
             className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              rubric.active === false
+              rubric.status !== 'PUBLISHED'
                 ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                 : 'border-rose-200 text-rose-700 hover:bg-rose-50'
             }`}
@@ -558,8 +550,8 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
             onClick={onToggleActive}
             type="button"
           >
-            {rubric.active === false ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-            {rubric.active === false ? 'Kích hoạt' : 'Tạm ngưng'}
+            {rubric.status !== 'PUBLISHED' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+            {rubric.status !== 'PUBLISHED' ? 'Kích hoạt' : 'Tạm ngưng'}
           </button>
         </div>
       </div>

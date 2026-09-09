@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import lombok.Builder;
 import lombok.Data;
@@ -14,17 +13,12 @@ public class InstructorLedCourseResponse {
     private Long id;
     private String title;
     private String code;
-    private String slug;
-    private ClassroomDeliveryMode deliveryType;
-    private ClassroomDeliveryMode deliveryMode;
-    private String deliveryModeLabel;
     private Long instructorLedCourseId;
     private String instructorLedCourseTitle;
     private String instructorLedCourseCode;
     private String instructorLedCourseExamType;
     private String examType;
     private String examCategory;
-    private String programTrack;
     private String focusSkills;
     private String instructorLedCourseStatus;
     private String shortDescription;
@@ -35,7 +29,6 @@ public class InstructorLedCourseResponse {
     private BigDecimal price;
     private BigDecimal salePrice;
     private String duration;
-    private String studyMode;
     private PackageStatus status;
     private String statusLabel;
     private Integer classroomCount;

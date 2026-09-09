@@ -48,6 +48,8 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     private final ClassroomNotificationService notificationService;
     private final ClassroomOfferingService classSectionService;
 
+    //PENDING_CONFIRMATION (doi staff xac nhan dang ky hoc), PENDING_TUITION_PAYMENT (doi bang chung nop tien), DEPOSIT_PAID (da dat coc),
+    //PARTIALLY_PAID (da thanh toan 1 phan), FULLY_PAID
     @Override
     public TuitionProofResponse submitProof(
             Long offeringId,

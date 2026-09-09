@@ -83,10 +83,6 @@ public class PlacementTestAttempt {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
-    @Column(name = "fraud_suspected", nullable = false, columnDefinition = "boolean default false")
-    @Builder.Default
-    private boolean fraudSuspected = false;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewer_id")
     private User reviewer;

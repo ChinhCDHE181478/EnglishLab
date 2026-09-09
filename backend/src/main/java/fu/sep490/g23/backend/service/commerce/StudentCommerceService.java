@@ -8,6 +8,7 @@ public interface StudentCommerceService {
     List<CommerceCourseItemResponse> getCart(String studentEmail);
     CommerceCourseItemResponse addToCart(Long courseId, String studentEmail);
     void removeFromCart(Long courseId, String studentEmail);
+    void removeCoursesFromCart(List<Long> courseIds, String studentEmail);
     void clearCart(String studentEmail);
     List<CommerceCourseItemResponse> getWishlist(String studentEmail);
     CommerceCourseItemResponse addToWishlist(Long courseId, String studentEmail);

@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 @Service
 public class GoogleMeetServiceImpl implements VirtualMeetingService {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+    private static final String GOOGLE_MEET_CODE_PATTERN = "/[a-z]{3}-[a-z]{4}-[a-z]{3}/?";
 
     private final GoogleMeetProperties properties;
     private final TeacherGoogleMeetConnectionService connectionService;
@@ -61,7 +62,9 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
             String host = uri.getHost();
             return "https".equalsIgnoreCase(uri.getScheme()) && host != null
                     && (host.equalsIgnoreCase("meet.google.com")
-                    || host.toLowerCase().endsWith(".meet.google.com"));
+                    || host.toLowerCase().endsWith(".meet.google.com"))
+                    && uri.getPath() != null
+                    && uri.getPath().matches(GOOGLE_MEET_CODE_PATTERN);
         } catch (IllegalArgumentException exception) {
             return false;
         }

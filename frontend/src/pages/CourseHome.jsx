@@ -599,10 +599,6 @@ const CourseHome = () => {
                 <td className="bg-[#f9fafb] p-4 font-semibold">Thời lượng</td>
                 <td className="p-4">{course.duration || `${course.totalHours || 0} giờ`}</td>
               </tr>
-              <tr className="border-b border-[#e5e7eb]">
-                <td className="bg-[#f9fafb] p-4 font-semibold">Lộ trình</td>
-                <td className="p-4">{course.learningPathName || 'Đang cập nhật'}</td>
-              </tr>
               <tr>
                 <td className="bg-[#f9fafb] p-4 font-semibold">Đầu ra mục tiêu</td>
                 <td className="p-4">{course.targetOutcome || 'Đang cập nhật mục tiêu đầu ra.'}</td>

@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.service.curriculum.impl;
 
 import fu.sep490.g23.backend.dto.request.curriculum.InstructorLedCourseRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CourseLessonRequest;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
@@ -59,7 +58,6 @@ class InstructorLedCourseManagementServiceImplTest {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setFocusSkills("SPEAKING,LISTENING,READING,WRITING,LISTENING");
         when(programRepository.existsByCodeIgnoreCase("IELTS-65")).thenReturn(false);
-        when(programRepository.findBySlug("ielts-academic-65")).thenReturn(Optional.empty());
         when(programRepository.save(any(InstructorLedCourse.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -69,7 +67,6 @@ class InstructorLedCourseManagementServiceImplTest {
         verify(programRepository).save(captor.capture());
         InstructorLedCourse saved = captor.getValue();
         assertThat(saved.getExamType()).isEqualTo("IELTS");
-        assertThat(saved.getProgramTrack()).isEqualTo("IELTS_ACADEMIC");
         assertThat(saved.getFocusSkills()).isEqualTo("LISTENING,READING,WRITING,SPEAKING");
         assertThat(saved.getTargetBand()).isEqualByComparingTo("6.5");
         assertThat(saved.getTargetScore()).isNull();
@@ -79,9 +76,8 @@ class InstructorLedCourseManagementServiceImplTest {
     void createProgramGeneratesUniqueCodeWhenCodeIsMissing() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setCode(null);
-        when(programRepository.existsByCodeIgnoreCase("OFFLINE-IELTS-ACADEMIC-6-5")).thenReturn(true);
-        when(programRepository.existsByCodeIgnoreCase("OFFLINE-IELTS-ACADEMIC-6-5-2")).thenReturn(false);
-        when(programRepository.findBySlug("ielts-academic-65")).thenReturn(Optional.empty());
+        when(programRepository.existsByCodeIgnoreCase("ILC-IELTS-ACADEMIC-6-5")).thenReturn(true);
+        when(programRepository.existsByCodeIgnoreCase("ILC-IELTS-ACADEMIC-6-5-2")).thenReturn(false);
         when(programRepository.save(any(InstructorLedCourse.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -89,7 +85,7 @@ class InstructorLedCourseManagementServiceImplTest {
 
         ArgumentCaptor<InstructorLedCourse> captor = ArgumentCaptor.forClass(InstructorLedCourse.class);
         verify(programRepository).save(captor.capture());
-        assertThat(captor.getValue().getCode()).isEqualTo("OFFLINE-IELTS-ACADEMIC-6-5-2");
+        assertThat(captor.getValue().getCode()).isEqualTo("ILC-IELTS-ACADEMIC-6-5-2");
     }
 
     @Test
@@ -100,12 +96,10 @@ class InstructorLedCourseManagementServiceImplTest {
                 .id(9L)
                 .title("IELTS cũ")
                 .code("OFFLINE-IELTS-CU")
-                .slug("ielts-cu")
                 .examType("IELTS")
                 .publicationStatus(PackageStatus.DRAFT)
                 .build();
         when(programRepository.findById(9L)).thenReturn(Optional.of(existing));
-        when(programRepository.findBySlug("ielts-academic-65")).thenReturn(Optional.empty());
         when(programRepository.save(any(InstructorLedCourse.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -118,7 +112,6 @@ class InstructorLedCourseManagementServiceImplTest {
     void createProgramRejectsToeicUsingIeltsBand() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setExamCategory("TOEIC");
-        request.setProgramTrack("TOEIC_LISTENING_READING");
         request.setEntryLevel("450");
         request.setTargetScore(650);
 
@@ -143,7 +136,6 @@ class InstructorLedCourseManagementServiceImplTest {
     void createProgramRejectsInvalidGeneralEnglishCefrLevel() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setExamCategory("GENERAL_ENGLISH");
-        request.setProgramTrack("GENERAL_ENGLISH_FOUNDATION");
         request.setEntryLevel("Sơ cấp");
         request.setTargetBand(null);
 
@@ -295,10 +287,8 @@ class InstructorLedCourseManagementServiceImplTest {
         InstructorLedCourse program = program(1L);
         program.setTitle("General English Foundation");
         program.setCode("GE-A1");
-        program.setSlug("general-english-a1");
         program.setPublicationStatus(PackageStatus.DRAFT);
         program.setExamType("GENERAL_ENGLISH");
-        program.setProgramTrack("GENERAL_ENGLISH_FOUNDATION");
         program.setFocusSkills("LISTENING,READING");
         program.setEntryLevel("A1");
         program.setLearningOutcomes("Hoàn thành nền tảng A1.");
@@ -350,10 +340,7 @@ class InstructorLedCourseManagementServiceImplTest {
         InstructorLedCourseRequest request = new InstructorLedCourseRequest();
         request.setTitle("IELTS Academic 6.5");
         request.setCode("IELTS-65");
-        request.setSlug("ielts-academic-65");
-        request.setDeliveryMode(ClassroomDeliveryMode.OFFLINE);
         request.setExamCategory("IELTS");
-        request.setProgramTrack("IELTS_ACADEMIC");
         request.setFocusSkills("LISTENING,READING,WRITING,SPEAKING");
         request.setTargetBand(BigDecimal.valueOf(6.5));
         request.setEntryLevel("5.0");

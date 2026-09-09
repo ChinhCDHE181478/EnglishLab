@@ -37,14 +37,14 @@ public class ClassroomHomeworkGradingCatalogServiceImpl implements ClassroomHome
         if (skill == null) {
             return List.of();
         }
-        return rubricRepository.findBySkillAndActiveTrueOrderByIdAsc(skill).stream()
+        return rubricRepository.findBySkillAndStatusOrderByIdAsc(skill, "PUBLISHED").stream()
                 .map(this::toRubricResponse)
                 .toList();
     }
 
     public List<AssessmentRubricResponse> listAllHomeworkRubrics() {
         return HOMEWORK_SKILLS.stream()
-                .flatMap(skill -> rubricRepository.findBySkillAndActiveTrueOrderByIdAsc(skill).stream())
+                .flatMap(skill -> rubricRepository.findBySkillAndStatusOrderByIdAsc(skill, "PUBLISHED").stream())
                 .sorted(Comparator
                         .comparing((AssessmentRubric rubric) -> skillOrder(rubric.getSkill()))
                         .thenComparing(AssessmentRubric::getId))
@@ -55,7 +55,7 @@ public class ClassroomHomeworkGradingCatalogServiceImpl implements ClassroomHome
     public AssessmentRubric requireActiveRubric(Long rubricId) {
         AssessmentRubric rubric = rubricRepository.findById(rubricId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ tiêu chí chấm."));
-        if (!rubric.isActive()) {
+        if (!"PUBLISHED".equalsIgnoreCase(rubric.getStatus())) {
             throw new RuntimeException("Bộ tiêu chí chấm không còn hoạt động.");
         }
         return rubric;
@@ -85,7 +85,7 @@ public class ClassroomHomeworkGradingCatalogServiceImpl implements ClassroomHome
                 .taskType(rubric.getTaskType())
                 .scoringScale(rubric.getScoringScale())
                 .description(rubric.getDescription())
-                .active(rubric.isActive())
+                .status(rubric.getStatus())
                 .criteria(rubric.getCriteria().stream()
                         .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder).thenComparing(RubricCriterion::getId))
                         .map(criterion -> RubricCriterionResponse.builder()

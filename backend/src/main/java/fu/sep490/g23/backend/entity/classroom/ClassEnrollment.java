@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.entity.classroom;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
+
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+
 
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 
@@ -47,9 +47,6 @@ public class ClassEnrollment {
     @Builder.Default
     private ClassroomRegistrationStatus registrationStatus = ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
 
-    @Column(name = "hold_spot", nullable = false)
-    @Builder.Default
-    private boolean holdSpot = false;
 
     @Column(name = "waitlist_priority")
     private Integer waitlistPriority;
@@ -64,32 +61,8 @@ public class ClassEnrollment {
     @Builder.Default
     private BigDecimal tuitionAmountPaid = BigDecimal.ZERO;
 
-    @Column(name = "tuition_deposit_paid", precision = 12, scale = 2)
-    @Builder.Default
-    private BigDecimal tuitionDepositPaid = BigDecimal.ZERO;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tuition_settlement_type", length = 40)
-    @Builder.Default
-    private TuitionSettlementType tuitionSettlementType = TuitionSettlementType.NONE;
 
-    @Column(name = "tuition_settlement_note", length = 700)
-    private String tuitionSettlementNote;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tuition_settlement_status", length = 30)
-    @Builder.Default
-    private TuitionSettlementStatus tuitionSettlementStatus = TuitionSettlementStatus.NONE;
-
-    @Column(name = "tuition_settlement_resolved_at")
-    private LocalDateTime tuitionSettlementResolvedAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tuition_settlement_resolved_by_id")
-    private User tuitionSettlementResolvedBy;
-
-    @Column(name = "tuition_settlement_resolution_note", length = 700)
-    private String tuitionSettlementResolutionNote;
 
     @Column(name = "transferred_from_enrollment_id")
     private Long transferredFromEnrollmentId;
@@ -108,12 +81,6 @@ public class ClassEnrollment {
     @Column(name = "assignment_note", length = 500)
     private String assignmentNote;
 
-    @Column(name = "confirmed_at")
-    private LocalDateTime confirmedAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "confirmed_by_id")
-    private User confirmedBy;
 
     @Column(name = "tuition_recorded_at")
     private LocalDateTime tuitionRecordedAt;
@@ -128,14 +95,10 @@ public class ClassEnrollment {
     @Column(name = "homework_score", precision = 6, scale = 2)
     private BigDecimal homeworkScore;
 
-    @Column(name = "quiz_score", precision = 6, scale = 2)
-    private BigDecimal quizScore;
 
     @Column(name = "attendance_percent", precision = 5, scale = 2)
     private BigDecimal attendancePercent;
 
-    @Column(name = "participation_score", precision = 6, scale = 2)
-    private BigDecimal participationScore;
 
     @Column(name = "final_result", precision = 6, scale = 2)
     private BigDecimal finalResult;
@@ -181,15 +144,6 @@ public class ClassEnrollment {
         }
         if (tuitionAmountPaid == null) {
             tuitionAmountPaid = BigDecimal.ZERO;
-        }
-        if (tuitionDepositPaid == null) {
-            tuitionDepositPaid = BigDecimal.ZERO;
-        }
-        if (tuitionSettlementType == null) {
-            tuitionSettlementType = TuitionSettlementType.NONE;
-        }
-        if (tuitionSettlementStatus == null) {
-            tuitionSettlementStatus = TuitionSettlementStatus.NONE;
         }
         if (registrationStatus != ClassroomRegistrationStatus.WAITLIST) {
             waitlistPriority = null;

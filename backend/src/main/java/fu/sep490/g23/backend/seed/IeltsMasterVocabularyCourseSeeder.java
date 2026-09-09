@@ -90,21 +90,15 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         onlineCourse.setDescription(seed.description());
         onlineCourse.setTargetScore("IELTS Band 7+");
         onlineCourse.setDuration(seed.totalDurationText() == null ? "8 giờ 9 phút" : seed.totalDurationText());
-        onlineCourse.setStudyMode("Tự học online theo playlist IELTS Master");
         onlineCourse.setPrice(paidPrice(seed.price()));
         onlineCourse.setThumbnailUrl(seed.thumbnail());
         onlineCourse.setStatus(PackageStatus.PUBLISHED);
         onlineCourse.setFeatured(true);
-        onlineCourse.setDeleted(false);
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.ADVANCED);
         onlineCourse.setRecommendedCurrentBandMin(5.5);
         onlineCourse.setTargetBand(7.0);
-        onlineCourse.setLearningPathCode("IELTS_BAND_55_TO_70");
-        onlineCourse.setLearningPathName("IELTS 5.5 to 7.0 Self-Paced Path");
-        onlineCourse.setLearningPathOrder(1);
         onlineCourse.setTargetOutcome("Use band-7 topic vocabulary, collocations, and examples naturally in IELTS Writing and Speaking responses.");
-        onlineCourse.setRecommendedNextCourseSlug("e2-ielts-practice-tests");
         onlineCourse.setTotalLessons(seed.totalLessons() == null ? countLessons(seed.modules()) : seed.totalLessons());
         onlineCourse.setTotalHours(seed.totalDurationSeconds() == null ? 8 : Math.max(1, (int) Math.ceil(seed.totalDurationSeconds() / 3600.0)));
         OnlineCourse savedOnlineCourse = onlineCourseRepository.save(onlineCourse);
@@ -151,8 +145,6 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
                         .onlineCourse(course)
                         .versionNumber(1)
                         .status(CourseVersionStatus.DRAFT)
-                        .contentSnapshotJson("{}")
-                        .assessmentIdsJson("[]")
                         .totalRequiredLessons(0)
                         .totalRequiredAssessments(0)
                         .build()));
@@ -203,7 +195,6 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         set.setSkill("VOCABULARY");
         set.setTags(module.getTitle() + ", IELTS vocabulary, course-linked");
         set.setStatus("PUBLISHED");
-        set.setDisplayOrder(module.getSequenceNumber() == null ? 0 : module.getSequenceNumber());
         set.setCardsJson(toJson(cards));
         FlashcardSet savedSet = flashcardSetRepository.save(set);
 

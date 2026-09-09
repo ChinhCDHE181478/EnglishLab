@@ -11,7 +11,7 @@ export const HOMEWORK_GRADING_MODES = [
   },
   {
     value: 'AI',
-    label: 'AI chấm theo rubric',
+    label: 'AI chấm theo bộ tiêu chí',
     description: 'Hệ thống chấm tự động theo bộ tiêu chí đã chọn. Giáo viên vẫn có thể xem lại và chỉnh điểm.',
   },
 ];
@@ -100,5 +100,5 @@ export const getHomeworkFeedbackLabel = (homework) => (
 export const getHomeworkGradingHint = (homework) => {
   if (!isAiGradedHomework(homework)) return null;
   const skill = getHomeworkSkillLabel(homework.skill);
-  return `Bài ${skill} này được AI chấm theo rubric ngay sau khi nộp. Giáo viên vẫn có thể xem lại và chỉnh điểm.`;
+  return `Bài ${skill} này được AI chấm theo bộ tiêu chí ngay sau khi nộp. Giáo viên vẫn có thể xem lại và chỉnh điểm.`;
 };

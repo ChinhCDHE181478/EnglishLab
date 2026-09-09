@@ -2,6 +2,7 @@ package fu.sep490.g23.backend.service.mail;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.service.mail.impl.EnrollmentRequestMailServiceImpl;
@@ -64,7 +65,7 @@ class EnrollmentRequestMailServiceImplTest {
                 .id(30L)
                 .name("IELTS Foundation F01")
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .offlineAddress("EnglishLab Campus")
+                .room(Room.builder().locationAddress("EnglishLab Campus").build())
                 .startDate(LocalDate.of(2026, 8, 5))
                 .build();
 

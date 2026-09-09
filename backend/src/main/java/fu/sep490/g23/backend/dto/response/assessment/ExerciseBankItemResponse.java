@@ -17,7 +17,7 @@ public class ExerciseBankItemResponse {
     private String answerKey;
     private String explanation;
     private String tags;
-    private boolean active;
+    private String status;
     private String createdByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

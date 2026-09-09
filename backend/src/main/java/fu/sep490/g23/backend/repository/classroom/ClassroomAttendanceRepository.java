@@ -20,9 +20,5 @@ public interface ClassroomAttendanceRepository extends JpaRepository<ClassroomAt
 
     List<ClassroomAttendance> findBySessionClassSectionIdAndDisputeReasonIsNotNullOrderByCreatedAtDesc(Long classSectionId);
 
-    List<ClassroomAttendance> findBySessionIdAndProviderParticipantKeyIsNotNull(Long sessionId);
 
-    Optional<ClassroomAttendance> findBySessionIdAndProviderParticipantKey(Long sessionId, String participantKey);
-
-    long countBySessionIdAndProviderParticipantActiveTrue(Long sessionId);
 }

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
 import AiAssessmentPanel from '../components/course-assessment/AiAssessmentPanel';
+import LessonQuizPanel from '../components/course-assessment/LessonQuizPanel';
 import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import WorkspaceFlashcards, { extractVocabularyTerms } from '../components/course-workspace/WorkspaceFlashcards';
 import WorkspaceLessonPanel from '../components/course-workspace/WorkspaceLessonPanel';
@@ -35,13 +36,11 @@ const CourseWorkspace = () => {
     studyToolsSyncing,
     studyToolsSyncError,
     lessonNotes,
-    lessonFlags,
     recentLessons,
     assessmentQueue,
     saveLessonNote,
     updateLessonNote,
     removeLessonNote,
-    toggleLessonReviewFlag,
     saveRecentLesson,
     addNotification,
     enqueueAssessmentSubmission,
@@ -89,7 +88,20 @@ const CourseWorkspace = () => {
   const assessmentsByModule = useMemo(() => {
     const grouped = new Map();
     assessments.forEach((assessment) => {
+      if (assessment.lessonId != null) return;
       const key = String(assessment.moduleId ?? 'course');
+      const bucket = grouped.get(key) || [];
+      bucket.push(assessment);
+      grouped.set(key, bucket);
+    });
+    return grouped;
+  }, [assessments]);
+
+  const assessmentsByLesson = useMemo(() => {
+    const grouped = new Map();
+    assessments.forEach((assessment) => {
+      if (assessment.lessonId == null) return;
+      const key = String(assessment.lessonId);
       const bucket = grouped.get(key) || [];
       bucket.push(assessment);
       grouped.set(key, bucket);
@@ -243,15 +255,22 @@ const CourseWorkspace = () => {
     const courseLevelAssessments = assessmentsByModule.get('course') || [];
 
     return course.modules.flatMap((module, moduleIndex) => {
-      const moduleLessons = (module.lessons || []).map((lesson, lessonIndex) => ({
-        id: getLessonId(module, lesson, lessonIndex),
-        module,
-        moduleIndex,
-        lesson,
-        lessonIndex,
-        type: 'lesson',
-        isLocked: lessonItems.find((item) => String(item.id) === String(getLessonId(module, lesson, lessonIndex)))?.isLocked ?? false,
-      }));
+      const moduleLessons = (module.lessons || []).map((lesson, lessonIndex) => {
+        const lessonId = getLessonId(module, lesson, lessonIndex);
+        const lessonAssessments = assessmentsByLesson.get(String(lesson.id)) || [];
+        return {
+          id: lessonId,
+          module,
+          moduleIndex,
+          lesson,
+          lessonIndex,
+          type: lessonAssessments.length ? 'assessment' : 'lesson',
+          assessments: lessonAssessments,
+          title: lesson.title,
+          description: lesson.description,
+          isLocked: lessonItems.find((item) => String(item.id) === String(lessonId))?.isLocked ?? false,
+        };
+      });
 
       const moduleAssessments = assessmentsByModule.get(String(module.id)) || [];
       const trailingAssessments = moduleIndex === course.modules.length - 1
@@ -275,7 +294,7 @@ const CourseWorkspace = () => {
         },
       ];
     });
-  }, [assessmentLockByModule, assessmentLockReasonByModule, assessmentsByModule, course?.modules, lessonItems]);
+  }, [assessmentLockByModule, assessmentLockReasonByModule, assessmentsByLesson, assessmentsByModule, course?.modules, lessonItems]);
 
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
@@ -296,7 +315,6 @@ const CourseWorkspace = () => {
   const flashcardCount = Math.max(parsedVocabularyTerms.length, vocabularyCount);
   const hasVocabularyTerms = flashcardCount > 0;
   const courseNotes = useMemo(() => lessonNotes.filter((item) => String(item.courseId) === String(course?.id)), [lessonNotes, course?.id]);
-  const courseReviewFlags = useMemo(() => lessonFlags.filter((item) => String(item.courseId) === String(course?.id)), [lessonFlags, course?.id]);
   const courseRecentLessons = useMemo(() => recentLessons.filter((item) => String(item.courseId) === String(course?.id)), [recentLessons, course?.id]);
   const queuedItems = useMemo(() => assessmentQueue.filter((item) => String(item.courseId) === String(course?.id)), [assessmentQueue, course?.id]);
   const applyEnrollment = (nextEnrollment) => {
@@ -572,6 +590,10 @@ const CourseWorkspace = () => {
   const handleSubmitAssessment = async (assessmentId, payload) => {
     try {
       const response = await courseApi.submitAssessment(assessmentId, payload);
+      if (activeWorkspaceItem?.lesson?.id && ['PASSED', 'AI_EVALUATED'].includes(response?.status)) {
+        const nextEnrollment = await courseApi.updateLessonProgress(course.id, activeWorkspaceItem.lesson.id, true);
+        applyEnrollment(nextEnrollment);
+      }
       await refreshAssessments(course?.id);
       clearAssessmentDraft(assessmentId);
       removeAssessmentQueueItem(assessmentId);
@@ -740,6 +762,13 @@ const CourseWorkspace = () => {
           <div className="min-w-0 flex-1 space-y-6">
             {workspaceMode === 'flashcards' ? (
               <WorkspaceFlashcards course={course} totalTerms={flashcardCount} />
+            ) : activeWorkspaceItem?.type === 'assessment' && activeWorkspaceItem.assessments?.[0]?.type === 'QUIZ' ? (
+              <LessonQuizPanel
+                assessment={activeWorkspaceItem.assessments[0]}
+                isLocked={activeWorkspaceItem.isLocked}
+                onMoveStep={handleMoveLesson}
+                onSubmit={handleSubmitAssessment}
+              />
             ) : activeWorkspaceItem?.type === 'assessment' ? (
               <AiAssessmentPanel
                 assessments={activeWorkspaceItem.assessments}
@@ -785,7 +814,6 @@ const CourseWorkspace = () => {
                 courseId={course.id}
                 mode={rightPanelVisible ? rightPanelMode : null}
                 notes={courseNotes}
-                reviewFlags={courseReviewFlags}
                 recentLessons={courseRecentLessons}
                 canPersist={isAuthenticated}
                 syncing={studyToolsSyncing}
@@ -811,12 +839,6 @@ const CourseWorkspace = () => {
                 })}
                 onUpdateNote={updateLessonNote}
                 onDeleteNote={removeLessonNote}
-                onToggleReviewFlag={() => toggleLessonReviewFlag({
-                  courseId: course.id,
-                  lessonId: activeWorkspaceItem?.id,
-                  lessonTitle: activeWorkspaceItem?.lesson?.title || activeWorkspaceItem?.title || '',
-                  courseTitle: course.title,
-                })}
                 onSelectRecentLesson={handleSelectLesson}
               />
             </div>

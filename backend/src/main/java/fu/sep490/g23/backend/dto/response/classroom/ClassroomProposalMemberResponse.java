@@ -13,6 +13,5 @@ public class ClassroomProposalMemberResponse {
     private String learnerEmail;
     private PlacementLevel placementLevel;
     private String preferredSchedule;
-    private String campusPreference;
     private Long classEnrollmentId;
 }

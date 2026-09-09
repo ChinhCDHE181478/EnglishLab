@@ -96,6 +96,16 @@ public class StudentOnlineCourseController {
         return ResponseEntity.ok(courseReviewService.saveRating(courseId, request, authentication.getName()));
     }
 
+    /**
+     * Updates the progress of a specific lesson in a course for the authenticated user.
+     * This endpoint marks the lesson as completed or in progress.
+     *
+     * @param courseId       the ID of the course
+     * @param lessonId       the ID of the lesson to update
+     * @param completed      true to mark as completed, false to mark as in progress (defaults to true)
+     * @param authentication current user's authentication info
+     * @return Updated course enrollment information reflecting the new progress
+     */
     @PatchMapping("/{courseId}/lessons/{lessonId}/progress")
     public ResponseEntity<OnlineCourseEnrollmentResponse> updateLessonProgress(
             @PathVariable Long courseId,

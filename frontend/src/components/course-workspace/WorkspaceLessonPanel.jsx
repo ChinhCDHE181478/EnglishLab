@@ -149,8 +149,8 @@ const WorkspaceLessonPanel = ({
   const activeLessonId = activeLessonItem?.id;
   const lessonContent = activeLesson?.contentText || activeLesson?.description;
   const activeIndex = lessonItems.findIndex((item) => String(item.id) === String(activeLessonId));
-  const embedUrl = getVideoEmbedUrl(activeLesson?.bunnyCdnUrl || activeLesson?.videoUrl);
-  const sourceUrl = activeLesson?.bunnyCdnUrl || activeLesson?.videoUrl;
+  const embedUrl = getVideoEmbedUrl(activeLesson?.videoUrl);
+  const sourceUrl = activeLesson?.videoUrl;
   const directVideoUrl = sourceUrl && !embedUrl ? sourceUrl : '';
   const [iframeStartSeconds, setIframeStartSeconds] = useState(0);
   const hasMaterial = Boolean(activeLesson?.materialUrl);

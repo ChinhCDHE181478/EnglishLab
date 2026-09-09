@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.response.curriculum;
 
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -16,17 +15,13 @@ public class InstructorLedCourseResponse {
     private Long id;
     private String title;
     private String code;
-    private String slug;
     private String shortDescription;
     private String description;
     private String durationLabel;
     private String level;
     private BigDecimal baseTuitionFeeVnd;
     private BigDecimal saleTuitionFeeVnd;
-    private ClassroomDeliveryMode deliveryMode;
-    private String deliveryModeLabel;
     private String examCategory;
-    private String programTrack;
     private String focusSkills;
     private BigDecimal targetBand;
     private Integer targetScore;
@@ -49,20 +44,6 @@ public class InstructorLedCourseResponse {
     private Integer classroomUsageCount;
     /** Số lớp sắp khai giảng / đang diễn ra dùng giáo trình này. */
     private Integer activeClassroomCount;
-
-    // Cấu hình riêng cho chương trình virtual
-    private String virtualPlatform;
-    private Boolean recordingAllowed;
-    private Integer recordingAvailableDays;
-    private Boolean materialsDownloadable;
-    private Integer sessionOpenBeforeMinutes;
-    private Integer sessionCloseAfterMinutes;
-    private Boolean deviceCheckRequired;
-    private Boolean micRequired;
-    private Boolean speakerRequired;
-    private Boolean cameraRequired;
-    private Boolean autoAttendanceEnabled;
-    private Integer minAttendanceMinutes;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

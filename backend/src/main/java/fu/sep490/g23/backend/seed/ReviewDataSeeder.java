@@ -144,10 +144,9 @@ public class ReviewDataSeeder implements CommandLineRunner {
             long price
     ) {
         return offeringRepository.findByCode(slug).orElseGet(() -> {
-            InstructorLedCourse course = instructorLedCourseRepository.findBySlug(slug + "-course")
+            InstructorLedCourse course = instructorLedCourseRepository.findByCodeIgnoreCase(("REVIEW-" + slug).toUpperCase())
                     .orElseGet(() -> instructorLedCourseRepository.save(InstructorLedCourse.builder()
                     .code(("REVIEW-" + slug).toUpperCase())
-                    .slug(slug + "-course")
                     .title(title)
                     .shortDescription("Dữ liệu review cho lớp học tại EnglishLab.")
                     .description("Lớp học dùng để review các luồng vận hành, giáo viên và học viên.")
@@ -163,15 +162,11 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .instructorLedCourse(course)
                     .tuitionFeeVnd(BigDecimal.valueOf(price))
                     .status(ClassroomOfferingStatus.UPCOMING)
-                    .entryLevel(entryLevel)
-                    .targetOutcome(outcome)
                     .capacity(room.getCapacity())
                     .startDate(startDate)
                     .plannedEndDate(startDate.plusWeeks(8))
                     .primaryTeacher(teacher)
                     .room(room)
-                    .offlineAddress("EnglishLab Center, Hà Nội")
-                    .syllabusSummary("Lộ trình 10 buổi có bài tập và phản hồi từ giáo viên.")
                     .build());
             teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
                     .classSection(offering)
@@ -207,8 +202,6 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .enrolledAt(LocalDateTime.now())
                     .assignedAt(LocalDateTime.now())
                     .assignedBy(manager)
-                    .confirmedAt(LocalDateTime.now())
-                    .confirmedBy(manager)
                     .build());
         });
     }

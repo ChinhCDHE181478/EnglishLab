@@ -25,58 +25,11 @@ public class VirtualAttendanceServiceImpl implements VirtualAttendanceService {
 
     @Override
     public void recordVirtualJoin(ClassSchedule session, User learner) {
-        LocalDateTime now = LocalDateTime.now();
-        ClassroomAttendance attendance = attendanceRepository
-                .findBySessionIdAndStudentId(session.getId(), learner.getId())
-                .orElseGet(() -> ClassroomAttendance.builder()
-                        .session(session)
-                        .student(learner)
-                        .status(ClassroomAttendanceStatus.ABSENT)
-                        .build());
-
-        if (attendance.getJoinTime() == null) {
-            attendance.setJoinTime(now);
-        }
-        attendance.setStatus(resolveJoinStatus(session, now));
-        attendance.setTeacherConfirmed(false);
-        attendanceRepository.save(attendance);
+        // No-op: virtual tracking columns removed from schema
     }
 
     @Override
     public void finalizeVirtualAttendance(ClassSchedule session) {
-        LocalDateTime now = LocalDateTime.now();
-        List<ClassroomAttendance> records = attendanceRepository.findBySessionId(session.getId());
-        for (ClassroomAttendance attendance : records) {
-            if (attendance.getJoinTime() == null) {
-                continue;
-            }
-            if (attendance.getLeaveTime() == null) {
-                attendance.setLeaveTime(now);
-            }
-            int minutes = computeDurationMinutes(attendance.getJoinTime(), attendance.getLeaveTime());
-            attendance.setDurationMinutes(minutes);
-            if (!attendance.isTeacherConfirmed()) {
-                attendance.setStatus(minutes >= MIN_ATTENDANCE_MINUTES
-                        ? ClassroomAttendanceStatus.PRESENT
-                        : ClassroomAttendanceStatus.LATE);
-            }
-            attendanceRepository.save(attendance);
-        }
+        // No-op: virtual tracking columns removed from schema
     }
-
-    private ClassroomAttendanceStatus resolveJoinStatus(ClassSchedule session, LocalDateTime joinTime) {
-        LocalDateTime start = session.getStartDateTime();
-        if (joinTime.isAfter(start.plusMinutes(10))) {
-            return ClassroomAttendanceStatus.LATE;
-        }
-        return ClassroomAttendanceStatus.PRESENT;
-    }
-
-    private int computeDurationMinutes(LocalDateTime joinTime, LocalDateTime leaveTime) {
-        if (joinTime == null || leaveTime == null || leaveTime.isBefore(joinTime)) {
-            return 0;
-        }
-        return (int) Duration.between(joinTime, leaveTime).toMinutes();
-    }
-
 }

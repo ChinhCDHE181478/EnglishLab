@@ -53,7 +53,7 @@ const emptyForm = {
   status: 'DRAFT',
 };
 
-const materialTypeOptions = ['PDF', 'DOC', 'SLIDE', 'AUDIO', 'VIDEO', 'LINK', 'WORKSHEET'];
+const materialTypeOptions = ['PDF', 'DOC', 'SLIDE', 'IMAGE', 'AUDIO', 'VIDEO', 'WORKSHEET', 'ARCHIVE', 'LINK'];
 const examOptions = ['IELTS', 'TOEIC', 'GENERAL'];
 const skillOptions = [
   { label: 'Từ vựng', value: 'Vocabulary' },
@@ -72,6 +72,21 @@ const inferFileType = (value) => {
   return match ? match[1].toUpperCase() : '';
 };
 
+const inferMaterialType = (value) => {
+  const fileType = inferFileType(value);
+  if (['JPG', 'JPEG', 'PNG', 'GIF', 'WEBP', 'SVG'].includes(fileType)) return 'IMAGE';
+  if (['MP3', 'WAV', 'M4A', 'AAC', 'OGG'].includes(fileType)) return 'AUDIO';
+  if (['MP4', 'MOV', 'WEBM', 'MKV', 'AVI'].includes(fileType)) return 'VIDEO';
+  if (fileType === 'PDF') return 'PDF';
+  if (['DOC', 'DOCX', 'ODT', 'TXT'].includes(fileType)) return 'DOC';
+  if (['PPT', 'PPTX', 'ODP'].includes(fileType)) return 'SLIDE';
+  if (['XLS', 'XLSX', 'CSV', 'ODS'].includes(fileType)) return 'WORKSHEET';
+  if (['ZIP', 'RAR', '7Z'].includes(fileType)) return 'ARCHIVE';
+  if (/docs\.google/i.test(String(value || ''))) return 'DOC';
+  if (/youtube|youtu\.be/i.test(String(value || ''))) return 'VIDEO';
+  return 'LINK';
+};
+
 const guessProvider = (url) => {
   const text = String(url || '');
   if (!text) return 'EnglishLab';
@@ -82,22 +97,26 @@ const guessProvider = (url) => {
   return 'EnglishLab';
 };
 
-const toRequestPayload = (form) => ({
-  title: form.title.trim(),
-  description: form.description.trim(),
-  fileUrl: form.fileUrl.trim(),
-  fileType: form.fileType.trim() || inferFileType(form.fileUrl),
-  materialType: form.materialType || null,
-  provider: form.provider.trim() || guessProvider(form.fileUrl),
-  examCategory: form.examCategory || null,
-  ieltsBandMin: form.ieltsBandMin === '' ? null : Number(form.ieltsBandMin),
-  ieltsBandMax: form.ieltsBandMax === '' ? null : Number(form.ieltsBandMax),
-  toeicScoreMin: form.toeicScoreMin === '' ? null : Number(form.toeicScoreMin),
-  toeicScoreMax: form.toeicScoreMax === '' ? null : Number(form.toeicScoreMax),
-  skill: form.skill || null,
-  tags: form.tags.trim() || null,
-  status: form.status || 'DRAFT',
-});
+const toRequestPayload = (form) => {
+  const examCategory = form.examCategory || 'GENERAL';
+  const fileType = inferFileType(form.fileUrl) || form.fileType.trim();
+  return {
+    title: form.title.trim(),
+    description: form.description.trim(),
+    fileUrl: form.fileUrl.trim(),
+    fileType,
+    materialType: fileType ? inferMaterialType(`file.${fileType}`) : inferMaterialType(form.fileUrl),
+    provider: guessProvider(form.fileUrl),
+    examCategory,
+    ieltsBandMin: examCategory === 'IELTS' && form.ieltsBandMin !== '' ? Number(form.ieltsBandMin) : null,
+    ieltsBandMax: examCategory === 'IELTS' && form.ieltsBandMax !== '' ? Number(form.ieltsBandMax) : null,
+    toeicScoreMin: examCategory === 'TOEIC' && form.toeicScoreMin !== '' ? Number(form.toeicScoreMin) : null,
+    toeicScoreMax: examCategory === 'TOEIC' && form.toeicScoreMax !== '' ? Number(form.toeicScoreMax) : null,
+    skill: form.skill || null,
+    tags: form.tags.trim() || null,
+    status: form.status || 'DRAFT',
+  };
+};
 
 export default function ContentManagerMaterialsPage() {
   const { confirm: confirmDialog } = useAppDialog();
@@ -216,8 +235,9 @@ export default function ContentManagerMaterialsPage() {
         ...current,
         title: current.title || uploaded.originalFileName || uploaded.fileName || current.title,
         fileUrl: nextUrl,
-        fileType: inferFileType(uploaded.originalFileName || uploaded.fileName || nextUrl) || current.fileType,
-        provider: current.provider || guessProvider(nextUrl),
+        fileType: inferFileType(uploaded.originalFileName || uploaded.fileName || nextUrl),
+        materialType: inferMaterialType(uploaded.originalFileName || uploaded.fileName || nextUrl),
+        provider: guessProvider(nextUrl),
       }));
       setMessage('Đã tải tệp lên kho học liệu. Bạn có thể lưu ngay hoặc chỉnh thêm mô tả.');
       setComposerOpen(true);
@@ -402,27 +422,22 @@ export default function ContentManagerMaterialsPage() {
             <TextInput
               label="Liên kết tệp *"
               value={form.fileUrl}
-              onChange={(value) => setForm((current) => ({ ...current, fileUrl: value, provider: current.provider || guessProvider(value) }))}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                fileUrl: value,
+                fileType: inferFileType(value),
+                materialType: inferMaterialType(value),
+                provider: guessProvider(value),
+              }))}
               placeholder="https://docs.google.com/document/d/... hoặc link tải tệp"
             />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <TextInput label="Định dạng tệp" value={form.fileType} onChange={(value) => setForm((current) => ({ ...current, fileType: value }))} placeholder="Ví dụ: PDF, DOCX, ZIP" />
-              <TextInput label="Nguồn / Nền tảng" value={form.provider} onChange={(value) => setForm((current) => ({ ...current, provider: value }))} placeholder="Ví dụ: Google Drive, Youtube, EnglishLab" />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
               <FilterSelect
                 label="Kỹ năng chính"
                 value={form.skill}
                 options={skillOptions}
                 onChange={(value) => setForm((current) => ({ ...current, skill: value }))}
-              />
-              <FilterSelect
-                label="Loại học liệu"
-                value={form.materialType}
-                options={materialTypeOptions.map((value) => ({ label: value, value }))}
-                onChange={(value) => setForm((current) => ({ ...current, materialType: value }))}
               />
               <FilterSelect
                 label="Nhóm chứng chỉ"
@@ -432,12 +447,18 @@ export default function ContentManagerMaterialsPage() {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
-              <TextInput label="IELTS Band tối thiểu" value={String(form.ieltsBandMin)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMin: value }))} placeholder="5.5" />
-              <TextInput label="IELTS Band tối đa" value={String(form.ieltsBandMax)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMax: value }))} placeholder="7.5" />
-              <TextInput label="TOEIC điểm tối thiểu" value={String(form.toeicScoreMin)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMin: value }))} placeholder="550" />
-              <TextInput label="TOEIC điểm tối đa" value={String(form.toeicScoreMax)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMax: value }))} placeholder="850" />
-            </div>
+            {form.examCategory === 'IELTS' ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <TextInput label="IELTS Band tối thiểu" value={String(form.ieltsBandMin)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMin: value }))} placeholder="5.5" />
+                <TextInput label="IELTS Band tối đa" value={String(form.ieltsBandMax)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMax: value }))} placeholder="7.5" />
+              </div>
+            ) : null}
+            {form.examCategory === 'TOEIC' ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <TextInput label="TOEIC điểm tối thiểu" value={String(form.toeicScoreMin)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMin: value }))} placeholder="550" />
+                <TextInput label="TOEIC điểm tối đa" value={String(form.toeicScoreMax)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMax: value }))} placeholder="850" />
+              </div>
+            ) : null}
 
             <div className="grid gap-4 md:grid-cols-2">
               <TextInput label="Nhãn gợi ý" value={form.tags} onChange={(value) => setForm((current) => ({ ...current, tags: value }))} placeholder="band 6.5, luyện viết, ôn tập" />
@@ -712,10 +733,10 @@ function validateMaterialForm(form) {
   if (!form.title.trim()) return 'Vui lòng nhập tên học liệu.';
   if (!form.fileUrl.trim()) return 'Vui lòng tải tệp lên hoặc dán liên kết học liệu.';
 
-  const ieltsMin = parseOptionalNumber(form.ieltsBandMin);
-  const ieltsMax = parseOptionalNumber(form.ieltsBandMax);
-  const toeicMin = parseOptionalNumber(form.toeicScoreMin);
-  const toeicMax = parseOptionalNumber(form.toeicScoreMax);
+  const ieltsMin = form.examCategory === 'IELTS' ? parseOptionalNumber(form.ieltsBandMin) : null;
+  const ieltsMax = form.examCategory === 'IELTS' ? parseOptionalNumber(form.ieltsBandMax) : null;
+  const toeicMin = form.examCategory === 'TOEIC' ? parseOptionalNumber(form.toeicScoreMin) : null;
+  const toeicMax = form.examCategory === 'TOEIC' ? parseOptionalNumber(form.toeicScoreMax) : null;
 
   if ([ieltsMin, ieltsMax].some((value) => value != null && (!Number.isFinite(value) || value < 0 || value > 9))) {
     return 'Band IELTS phải nằm trong khoảng từ 0 đến 9.';

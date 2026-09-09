@@ -79,8 +79,6 @@ public class CourseRegistrationRequest {
     @Column(name = "facebook_url", length = 500)
     private String facebookUrl;
 
-    @Column(name = "desired_class_code", length = 120)
-    private String desiredClassCode;
 
     @Column(name = "consultation_track", length = 80)
     private String consultationTrack;
@@ -105,8 +103,6 @@ public class CourseRegistrationRequest {
     @Column(name = "preferred_schedule", length = 500)
     private String preferredSchedule;
 
-    @Column(name = "campus_preference", length = 255)
-    private String campusPreference;
 
     @Column(name = "learner_note", length = 700)
     private String learnerNote;
@@ -127,14 +123,6 @@ public class CourseRegistrationRequest {
     @Column(name = "invitation_sent_at")
     private LocalDateTime invitationSentAt;
 
-    @Column(name = "test_appointment_at")
-    private LocalDateTime testAppointmentAt;
-
-    @Column(name = "test_location", length = 300)
-    private String testLocation;
-
-    @Column(name = "test_completed_at")
-    private LocalDateTime testCompletedAt;
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;

@@ -15,7 +15,6 @@ public class CourseUnitContentRefResponse {
     private String status;
     private String fileUrl;
     private Integer displayOrder;
-    private String note;
     /** Nội dung để học viên mở trực tiếp, dùng cho flashcard và hướng dẫn bài luyện tập. */
     private String contentJson;
 }

@@ -50,12 +50,6 @@ public class CreateClassroomProposalRequest {
     private Long primaryTeacherId;
     private Long roomId;
 
-    @Size(max = 500)
-    private String offlineAddress;
-
-    @Size(max = 700)
-    private String virtualMeetingUrl;
-
     @Size(max = 700)
     private String note;
 

@@ -30,13 +30,8 @@ public class OnlineCourseResponse {
     private String targetScore;
     private Double recommendedCurrentBandMin;
     private Double targetBand;
-    private String learningPathCode;
-    private String learningPathName;
-    private Integer learningPathOrder;
     private String targetOutcome;
-    private String recommendedNextCourseSlug;
     private String duration;
-    private String studyMode;
     private BigDecimal price;
     private BigDecimal originalPrice;
     private BigDecimal salePrice;

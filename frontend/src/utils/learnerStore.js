@@ -1,7 +1,6 @@
 const storageKeys = {
   enrollments: 'englishlab_enrollments',
   notes: 'englishlab_lesson_notes',
-  lessonFlags: 'englishlab_lesson_flags',
   recentLessons: 'englishlab_recent_lessons',
   assessmentDrafts: 'englishlab_assessment_drafts',
   assessmentQueue: 'englishlab_assessment_queue',
@@ -77,9 +76,6 @@ export const readEnrollments = () => readJson(storageKeys.enrollments, []);
 
 export const readLessonNotes = () => readJson(storageKeys.notes, []);
 export const writeLessonNotes = (value) => writeJson(storageKeys.notes, value);
-
-export const readLessonFlags = () => readJson(storageKeys.lessonFlags, []);
-export const writeLessonFlags = (value) => writeJson(storageKeys.lessonFlags, value);
 
 export const readRecentLessons = () => readJson(storageKeys.recentLessons, []);
 export const writeRecentLessons = (value) => writeJson(storageKeys.recentLessons, value);

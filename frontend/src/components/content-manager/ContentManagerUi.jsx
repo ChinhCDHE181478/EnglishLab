@@ -315,28 +315,6 @@ function resolveMeta(pathname) {
     return contentManagerPageMeta['/content-manager/flashcards'];
   }
 
-  if (/^\/content-manager\/offline-programs\/[^/]+\/edit$/.test(pathname)) {
-    return {
-      ...contentManagerPageMeta['/content-manager/offline-programs'],
-      title: 'Sửa khóa học Offline',
-    };
-  }
-
-  if (/^\/content-manager\/virtual-programs\/[^/]+\/edit$/.test(pathname)) {
-    return {
-      ...contentManagerPageMeta['/content-manager/virtual-programs'],
-      title: 'Sửa khóa học Virtual',
-    };
-  }
-
-  if (pathname.startsWith('/content-manager/offline-programs/')) {
-    return contentManagerPageMeta['/content-manager/offline-programs'];
-  }
-
-  if (pathname.startsWith('/content-manager/virtual-programs/')) {
-    return contentManagerPageMeta['/content-manager/virtual-programs'];
-  }
-
   return contentManagerPageMeta['/content-manager/dashboard'];
 }
 
@@ -417,7 +395,7 @@ function formatCrumbLabel(crumbs, index) {
     'placement-test': 'Bài đánh giá đầu vào',
     'mock-exams': 'Ngân hàng đề thi thử',
     'exercise-bank': 'Ngân hàng bài tập',
-    rubrics: 'Rubrics chấm điểm',
+    rubrics: 'Bộ tiêu chí chấm điểm',
     publication: 'Hàng chờ xuất bản',
     analytics: 'Phân tích nội dung',
     edit: 'Chỉnh sửa khóa học',

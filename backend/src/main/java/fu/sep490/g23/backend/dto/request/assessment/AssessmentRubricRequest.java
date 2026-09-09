@@ -15,8 +15,8 @@ import java.util.List;
 @Getter
 @Setter
 public class AssessmentRubricRequest {
-    @NotBlank(message = "Tên rubric không được để trống.")
-    @Size(max = 180, message = "Tên rubric không được vượt quá 180 ký tự.")
+    @NotBlank(message = "Tên bộ tiêu chí không được để trống.")
+    @Size(max = 180, message = "Tên bộ tiêu chí không được vượt quá 180 ký tự.")
     private String name;
 
     @Size(max = 40, message = "Loại kỳ thi không được vượt quá 40 ký tự.")
@@ -33,9 +33,10 @@ public class AssessmentRubricRequest {
 
     private String description;
 
-    private Boolean active = true;
+    @Size(max = 30)
+    private String status = "PUBLISHED";
 
     @Valid
-    @NotEmpty(message = "Rubric cần có ít nhất một tiêu chí chấm điểm.")
+    @NotEmpty(message = "Bộ tiêu chí cần có ít nhất một tiêu chí chấm điểm.")
     private List<RubricCriterionRequest> criteria = new ArrayList<>();
 }

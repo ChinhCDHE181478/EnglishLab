@@ -9,6 +9,8 @@ import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.LearningPath;
+import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
@@ -23,6 +25,8 @@ import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.repository.course.LearningPathRepository;
+import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +61,8 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final LessonProgressRepository lessonProgressRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
+    private final LearningPathRepository learningPathRepository;
+    private final LearningPathCourseRepository learningPathCourseRepository;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -91,12 +97,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
 
     private void normalizePrimaryPathOrder(String slug, int order) {
         onlineCourseRepository.findBySlug(slug)
-                .ifPresent(course -> {
-                    course.setLearningPathCode(PRIMARY_PATH_CODE);
-                    course.setLearningPathName(PRIMARY_PATH_NAME);
-                    course.setLearningPathOrder(order);
-                    onlineCourseRepository.save(course);
-                });
+                .ifPresent(course -> ensurePathMembership(PRIMARY_PATH_CODE, PRIMARY_PATH_NAME, course, order));
     }
 
     private void assignCatalogToLongContentManager() {
@@ -147,24 +148,20 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         course.setDescription(description);
         course.setTargetScore("IELTS Band 5.5");
         course.setDuration("4 weeks");
-        course.setStudyMode("Self-paced online");
         course.setPrice(java.math.BigDecimal.ZERO);
         course.setThumbnailUrl(thumbnailUrl);
         course.setStatus(PackageStatus.PUBLISHED);
         course.setFeatured(true);
-        course.setDeleted(false);
         course.setCategory(category);
         course.setLevel(CourseLevel.BEGINNER);
         course.setRecommendedCurrentBandMin(3.0);
         course.setTargetBand(5.5);
-        course.setLearningPathCode("IELTS_FOUNDATION_REVIEW");
-        course.setLearningPathName("Lộ trình IELTS Foundation");
-        course.setLearningPathOrder(pathOrder);
         course.setTargetOutcome(description);
         course.setTotalLessons(1);
         course.setTotalHours(4);
         OnlineCourse savedCourse = onlineCourseRepository.save(course);
         course = savedCourse;
+        ensurePathMembership("IELTS_FOUNDATION_REVIEW", "Lộ trình IELTS Foundation", course, pathOrder);
 
         OnlineCourseVersion draftVersion = ensureDraftVersion(course);
         if (draftVersion.getModules().isEmpty()) {
@@ -197,20 +194,14 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                         .onlineCourse(course)
                         .versionNumber(1)
                         .status(CourseVersionStatus.DRAFT)
-                        .contentSnapshotJson("{}")
-                        .assessmentIdsJson("[]")
                         .totalRequiredLessons(0)
                         .totalRequiredAssessments(0)
                         .build()));
     }
 
     private void prepareCatalogAndCertificateDemo(OnlineCourse course) {
-        // Keep a second visible path in the public course catalog without changing the two IELTS seed courses.
-        course.setLearningPathCode("IELTS_FOUNDATION_REVIEW");
-        course.setLearningPathName("Lộ trình IELTS Foundation");
-        course.setLearningPathOrder(1);
-        course.setRecommendedNextCourseSlug(null);
         onlineCourseRepository.save(course);
+        ensurePathMembership("IELTS_FOUNDATION_REVIEW", "Lộ trình IELTS Foundation", course, 1);
 
         User existing = userRepository.findByEmail(CERTIFICATE_LEARNER_EMAIL).orElse(null);
         if (existing == null) {
@@ -251,6 +242,26 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         enrollForDiscussionDemo(learner, "ielts-master-vocabulary-band-7-plus");
     }
 
+    private void ensurePathMembership(String code, String name, OnlineCourse course, int order) {
+        LearningPath path = learningPathRepository.findByCodeIgnoreCase(code)
+                .orElseGet(() -> learningPathRepository.save(LearningPath.builder()
+                        .code(code)
+                        .name(name)
+                        .discountPercent(0)
+                        .minimumCoursesForDiscount(2)
+                        .build()));
+        LearningPathCourse relation = learningPathCourseRepository
+                .findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
+                .filter(item -> item.getOnlineCourse().getId().equals(course.getId()))
+                .findFirst()
+                .orElseGet(() -> LearningPathCourse.builder()
+                        .learningPath(path)
+                        .onlineCourse(course)
+                        .build());
+        relation.setDisplayOrder(order);
+        learningPathCourseRepository.save(relation);
+    }
+
     private void enrollForDiscussionDemo(User learner, String courseSlug) {
         onlineCourseRepository.findBySlug(courseSlug)
                 .ifPresent(course -> enrollmentRepository.findByStudentAndOnlineCourse(learner, course)
@@ -264,10 +275,9 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
 
     private void completeLesson(User learner, OnlineCourseEnrollment enrollment, OnlineLesson lesson) {
         LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
-                .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
+                .orElseGet(() -> LessonProgress.builder().lesson(lesson).enrollment(enrollment).build());
         progress.setEnrollment(enrollment);
         progress.setStatus(LessonProgressStatus.COMPLETED);
-        progress.setProgressPercent(100);
         progress.setCompletedAt(LocalDateTime.now().minusDays(7));
         progress.setLastAccessedAt(LocalDateTime.now().minusDays(7));
         lessonProgressRepository.save(progress);

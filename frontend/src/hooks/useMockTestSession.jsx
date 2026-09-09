@@ -111,8 +111,12 @@ export default function useMockTestSession() {
         submittedText: savedAttempt.submittedText || payload.submittedText || '',
         submittedAudioUrl: savedAttempt.submittedAudioUrl || payload.submittedAudioUrl || '',
         submittedAt: savedAttempt.submittedAt || new Date().toISOString(),
-        score: savedAttempt.score || 'Đã nộp bài',
-        message: 'Bài thi đã được lưu.',
+        score: savedAttempt.score ?? null,
+        aiFeedbackJson: savedAttempt.aiFeedbackJson || '',
+        status: savedAttempt.status,
+        message: savedAttempt.status === 'FAILED'
+          ? 'Chưa thể chấm bài tự động. Vui lòng thử lại sau.'
+          : 'Bài thi đã được AI chấm và lưu kết quả.',
       };
       setResult(resObj);
       if (activeTest?.id) saveScoreResult(activeTest.id, resObj);

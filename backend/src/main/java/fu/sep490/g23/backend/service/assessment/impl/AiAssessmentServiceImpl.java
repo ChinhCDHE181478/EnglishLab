@@ -3,6 +3,7 @@ import fu.sep490.g23.backend.dto.response.assessment.RubricCriterionResponse;
 import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
 import fu.sep490.g23.backend.service.assessment.AssessmentPassingThresholdResolver;
 import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
@@ -80,15 +81,23 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
     @Override
     @Transactional
+    // Retrieves a list of course assessments for a given course and student.
     public List<CourseAssessmentResponse> getCourseAssessments(Long courseId, String studentEmail) {
+        // Find the student by email or throw an error.
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
+        // Find the course by ID or throw an error.
         OnlineCourse course = onlineCourseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
+        // Ensure the student is enrolled in the course.
         OnlineCourseEnrollment enrollment = ensureEnrolled(student, course);
+        
+        // Fetch assessments, filter by course ID, and sort by display order.
         List<CourseAssessment> assessments = courseAssessmentRepository
                 .findAllById(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).stream()
-                .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
+                .filter(assessment -> assessment.getOnlineCourseVersion().getOnlineCourse().getId().equals(course.getId()))
                 .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
                 .toList();
+                
+        // Map assessments to response objects.
         return assessments
                 .stream()
                 .map(assessment -> toResponse(assessment, student))
@@ -96,70 +105,101 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     }
 
     @Override
+    // Submits and evaluates an assessment for a given student.
     public AiAssessmentSubmissionResponse submitAssessment(Long assessmentId, AssessmentSubmissionRequest request, String studentEmail) {
+        // Fetch student and assessment, throwing an error if either is missing.
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         CourseAssessment assessment = courseAssessmentRepository.findById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        
+        // Normalize the rubric and verify the student is properly enrolled in this assessment's course.
         normalizeAssessmentRubricCompatibility(assessment);
-        OnlineCourseEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourse());
+        OnlineCourseEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourseVersion().getOnlineCourse());
         onlineCourseVersionService.assertAssessmentBelongsToEnrollment(enrollment, assessmentId);
 
+        // Check if AI evaluation is enabled for this assessment.
         if (assessment.getAiEvaluationMode() == AiEvaluationMode.NONE) {
             throw new RuntimeException("Bài đánh giá này chưa bật phản hồi tự động.");
         }
+        // Ensure there is actually content submitted by the student.
         if (!hasSubmissionContent(request)) {
             throw new RuntimeException("Vui lòng nhập nội dung bài làm trước khi nộp.");
         }
+        // Validate the skill configuration (e.g. writing/speaking).
         validateSkillAssessmentConfiguration(assessment);
 
+        // === STEP 1: PREPARE DATA FOR AI EVALUATION ===
+        // 1. Load the audio file if this is a speaking test (returns empty if not).
         var speakingAudio = resolveSpeakingAudio(assessment, request);
+        // 2. Generate the 'prompt' (instructions) for the AI, containing the rubric, task requirements, and student info.
         String prompt = buildRubricPrompt(assessment, request, student, speakingAudio.isPresent());
+        // 3. Extract the text submitted by the student (for Writing) or the JSON objective answers.
         String submittedText = firstNonBlank(request.getSubmittedText(), request.getObjectiveAnswersJson());
+        // 4. Extract the target vocabulary for this lesson to cross-check if the student used them.
         String targetVocabulary = extractTargetVocabulary(assessment.getModule());
-        AiEvaluationResult aiResult;
+        
+        AiEvaluationResult aiResult; // Holds the final result (score, feedback) after AI evaluation.
+        
+        // === STEP 2: DETERMINE EVALUATION STRATEGY BASED ON ASSESSMENT TYPE ===
         if (usesObjectiveAnswerKey(assessment, request)) {
+            // Case 1: Objective test with an answer key (e.g. multiple choice).
+            // The system automatically checks student answers against the key (saves AI API cost).
             aiResult = evaluateObjectiveAssessment(assessment, request);
-        } else if (isObjectiveAssessmentSkill(assessment.getSkill())) {
+        } else if (isObjectiveAssessment(assessment)) {
+            // Case 2: Objective test but without a provided answer key.
+            // The AI might read the question and figure out the correct answer to grade it.
             aiResult = evaluateObjectiveAssessmentWithoutAnswerKey(assessment);
         } else if (isInsufficientWritingSubmission(assessment, request)) {
+            // Case 3: Writing task but the student wrote too little (or submitted blank).
+            // System immediately returns a 0 score and an error remark to save AI API cost.
             aiResult = buildInsufficientWritingResult(assessment);
         } else {
+            // Case 4: Full AI Evaluation (for valid Writing or Speaking tasks).
+            
+            // Send the prompt (and audio if present) to the AI model (e.g. GPT-4 / Gemini) for grading.
             aiResult = speakingAudio
                     .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
                     .orElseGet(() -> aiEvaluationClient.evaluate(prompt));
+            
+            // === STEP 3: APPLY GUARDRAILS TO VERIFY AI RESULTS ===
+            // Ensure the AI returned the result in the expected JSON format.
             aiResult = normalizeEvaluationResult(aiResult, assessment);
+            // Check if the student used the target vocabulary; if not, deduct points.
             aiResult = applyVocabularyRelevanceGuard(aiResult, assessment, submittedText, targetVocabulary);
+            // Anti-cheat check for Speaking (e.g. check if audio length is reasonable and contains voice).
             aiResult = applySpeakingEvidenceGuard(aiResult, assessment, request);
         }
+        
+        // Final normalization to get the estimated score and pass/fail status.
         aiResult = normalizeEvaluationResult(aiResult, assessment);
         BigDecimal score = aiResult.getEstimatedScore();
         SubmissionStatus status = resolveSubmissionStatus(score, assessment);
 
+        // Build the submission entity with all collected data, AI feedback, and metadata.
         AssessmentSubmission submission = AssessmentSubmission.builder()
                 .assessment(assessment)
                 .student(student)
                 .submittedText(request.getSubmittedText())
                 .submittedAudioUrl(request.getSubmittedAudioUrl())
-                .objectiveAnswersJson(request.getObjectiveAnswersJson())
+                .objectiveAnswers(request.getObjectiveAnswersJson())
                 .fullscreenExitCount(request.getFullscreenExitCount())
                 .tabSwitchCount(request.getTabSwitchCount())
-                .microphoneChecked(request.getMicrophoneChecked())
-                .deviceCheckPassed(request.getDeviceCheckPassed())
-                .aiScore(score)
-                .aiFeedbackJson(aiResult.getFeedbackJson())
-                .aiPromptSnapshot(prompt)
-                .aiProvider(aiResult.getProvider())
-                .aiModel(aiResult.getModel())
-                .aiRawResponse(aiResult.getRawResponse())
+                .score(score)
+                .aiFeedback(aiResult.getFeedbackJson())
                 .status(status)
                 .build();
 
+        // Save the submission to the database.
         AssessmentSubmission savedSubmission = submissionRepository.save(submission);
-        enrollmentRepository.findByStudentAndOnlineCourse(student, assessment.getOnlineCourse())
+        
+        // If the student has an active enrollment, refresh their course progress based on this new submission.
+        enrollmentRepository.findByStudentAndOnlineCourse(student, assessment.getOnlineCourseVersion().getOnlineCourse())
                 .ifPresent(activeEnrollment -> courseProgressService.refreshEnrollmentProgress(
                         activeEnrollment,
-                        assessment.getOnlineCourse(),
+                        assessment.getOnlineCourseVersion().getOnlineCourse(),
                         student
                 ));
+                
+        // Return the final formatted response back to the controller.
         return toSubmissionResponse(savedSubmission);
     }
 
@@ -214,7 +254,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         if (assessment == null || request == null) {
             return false;
         }
-        if (!isObjectiveAssessmentSkill(assessment.getSkill())) {
+        if (!isObjectiveAssessment(assessment)) {
             return false;
         }
         return hasText(assessment.getObjectiveAnswerKey()) && hasText(request.getObjectiveAnswersJson());
@@ -222,6 +262,12 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
     private boolean isObjectiveAssessmentSkill(AssessmentSkill skill) {
         return skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING;
+    }
+
+    private boolean isObjectiveAssessment(CourseAssessment assessment) {
+        return assessment != null
+                && (assessment.getType() == AssessmentType.QUIZ
+                || isObjectiveAssessmentSkill(assessment.getSkill()));
     }
 
     private AiEvaluationResult evaluateObjectiveAssessmentWithoutAnswerKey(CourseAssessment assessment) {
@@ -636,7 +682,19 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return assessmentAudioStorageService.loadStoredAudioFromUrl(request.getSubmittedAudioUrl());
     }
 
+    /**
+     * Constructs the master prompt string that will be sent to the AI model.
+     * This prompt contains all the context the AI needs to evaluate the student:
+     * - The grading rubric criteria and weights.
+     * - The actual text/audio the student submitted.
+     * - The target vocabulary they are expected to use.
+     * - Strict rules on how the AI must format its JSON response (e.g. returning feedback in Vietnamese).
+     */
     private String buildRubricPrompt(CourseAssessment assessment, AssessmentSubmissionRequest request, User student, boolean hasAnalyzableAudio) {
+        // 1. Build the Rubric section: Loop through all criteria (e.g. Grammar, Pronunciation) and append their descriptions.
+        // Example output of criteriaText: 
+        // "- Grammar (25%): Evaluate sentence structures...
+        //  Band/level descriptors: Band 7 uses complex sentences..."
         StringBuilder criteriaText = new StringBuilder();
         if (assessment.getRubric() != null) {
             assessment.getRubric().getCriteria().stream()
@@ -648,11 +706,22 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                             .append("\n"));
         }
 
-        OnlineCourse course = assessment.getOnlineCourse();
+        // 2. Extract course information and student's submitted content (text or answers).
+        // Example output for submittedContent: "I think the environment is very important because..."
+        OnlineCourse course = assessment.getOnlineCourseVersion().getOnlineCourse();
         String submittedContent = buildSubmittedContent(request, assessment.getSkill(), hasAnalyzableAudio);
+        
+        // 3. Extract the target vocabulary for this specific module so the AI can check if the student used it.
+        // Example output for targetVocabulary: "environment, pollution, climate change, ecosystem"
         String targetVocabulary = extractTargetVocabulary(assessment.getModule());
+        
+        // 4. Get specific AI instructions based on the skill type (e.g. Writing vs Speaking).
+        // Example output for submissionGuidance: "Evaluate the essay structure, thesis statement, and supporting ideas."
         String submissionGuidance = skillSubmissionGuidance(assessment.getSkill());
         String skillEvaluationPolicy = skillEvaluationPolicy(assessment, hasAnalyzableAudio);
+        
+        // 5. Tell the AI explicitly whether to expect an attached audio file for speaking assessments.
+        // Example output: "Actual speaking audio is attached in this Gemini request..."
         String speakingAudioState = hasAnalyzableAudio
                 ? "Actual speaking audio is attached in this Gemini request. You must listen to it and use it as primary evidence for pronunciation, fluency, pacing, pauses, stress, intonation, and spoken delivery."
                 : "No actual audio bytes are attached. Treat any audio URL as a reference only.";
@@ -751,9 +820,6 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - Minimum recommended current band: %s
                 - Target band: %s
                 - Target outcome: %s
-                - Learning path: %s
-                - Learning path stage: %s
-                - Recommended next course slug: %s
 
                 Module context:
                 - Module title: %s
@@ -786,9 +852,6 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 safe(course.getRecommendedCurrentBandMin()),
                 safe(course.getTargetBand()),
                 safe(course.getTargetOutcome()),
-                safe(course.getLearningPathName()),
-                safe(course.getLearningPathOrder()),
-                safe(course.getRecommendedNextCourseSlug()),
                 assessment.getModule() == null ? "Not provided" : safe(assessment.getModule().getTitle()),
                 assessment.getModule() == null ? "Not provided" : safe(assessment.getModule().getDescription()),
                 safe(targetVocabulary),
@@ -808,22 +871,32 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         );
     }
 
+    /**
+     * Called by buildRubricPrompt to get strict grading policies for the AI.
+     * What it does: Returns a specific rule string based on the assessment skill so the AI doesn't hallucinate scores.
+     * Example: For LISTENING, it tells the AI *not* to invent a band score, but only explain wrong answers.
+     */
     private String skillEvaluationPolicy(CourseAssessment assessment, boolean hasAnalyzableAudio) {
         AssessmentSkill skill = assessment.getSkill();
+        // If it's a listening test, tell AI not to score it, only explain mistakes.
         if (skill == AssessmentSkill.LISTENING) {
             return "Listening is scored by stored answer key only. Do not invent a band or score. Use AI feedback only to explain wrong answers, weak sections, distractors, missed keywords, and review priorities.";
         }
+        // If it's a reading test, do the same as listening.
         if (skill == AssessmentSkill.READING) {
             return "Reading is scored by stored answer key only. Do not invent a band or score. Use AI feedback only to explain wrong answers, passage evidence, weak question types, and review priorities.";
         }
+        // If writing, force the AI to stick to the IELTS rubric.
         if (skill == AssessmentSkill.WRITING) {
             String taskType = assessment.getRubric() == null ? "" : safe(assessment.getRubric().getTaskType());
             return "Writing must be evaluated only with the linked IELTS Writing rubric. Task type: " + taskType + ". Do not create extra criteria outside the rubric.";
         }
+        // If speaking, behavior changes based on whether real audio was provided.
         if (skill == AssessmentSkill.SPEAKING) {
             if (hasAnalyzableAudio) {
                 return "Speaking audio is attached. Use audio as primary evidence for pronunciation, fluency, pace, pauses, stress, intonation, clarity, and delivery. Transcript is secondary context.";
             }
+            // If no audio, forbid the AI from grading pronunciation.
             return "No analyzable speaking audio is attached. Do not score Pronunciation or claim detailed pronunciation errors. You may only comment on content, grammar, vocabulary, and coherence visible in the provided text or metadata.";
         }
         if (skill == AssessmentSkill.MIXED) {
@@ -889,22 +962,30 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         }
     }
 
+    /**
+     * Called by buildRubricPrompt to extract what the student actually submitted.
+     * What it does: Gathers the submitted text, JSON answers, or audio URL from the request and formats it into a single readable string for the AI.
+     */
     private String buildSubmittedContent(AssessmentSubmissionRequest request, AssessmentSkill skill, boolean hasAnalyzableAudio) {
-        String submittedText = request.getSubmittedText();
-        String objectiveAnswers = request.getObjectiveAnswersJson();
-        String audioUrl = request.getSubmittedAudioUrl();
+        String submittedText = request.getSubmittedText(); // e.g., the essay text
+        String objectiveAnswers = request.getObjectiveAnswersJson(); // e.g., multiple choice answers
+        String audioUrl = request.getSubmittedAudioUrl(); // e.g., the link to the speaking recording
 
         StringBuilder builder = new StringBuilder();
+        // If the student submitted text, append it under a clear heading so the AI knows what it is.
         if (hasText(submittedText)) {
             builder.append(skill == AssessmentSkill.SPEAKING ? "Transcript / spoken response:\n" : "Text response / notes:\n")
                     .append(submittedText.trim())
                     .append("\n\n");
         }
+        // If the student submitted multiple-choice answers, format the JSON into a readable string.
+        // CALLS: formatObjectiveAnswers -> turns JSON into a human/AI-readable list.
         if (hasText(objectiveAnswers)) {
             builder.append(skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING ? "Answers and error notes:\n" : "Objective answers / structured notes:\n")
                     .append(formatObjectiveAnswers(objectiveAnswers))
                     .append("\n\n");
         }
+        // If there's an audio URL, append it, telling the AI whether to just reference it or actually listen to the bytes (which are sent separately).
         if (hasText(audioUrl)) {
             builder.append(hasAnalyzableAudio
                             ? "Attached audio file source URL (audio bytes are included separately in this request):\n"
@@ -912,6 +993,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                     .append(audioUrl.trim())
                     .append("\n\n");
         }
+        // Extra instruction for speaking audio.
         if (skill == AssessmentSkill.SPEAKING && hasAnalyzableAudio) {
             builder.append("Audio-native instruction:\n")
                     .append("Use the attached audio bytes as primary evidence for pronunciation, fluency, pauses, pace, stress, intonation, and delivery. Use transcript/metadata only as secondary context.\n\n");
@@ -983,10 +1065,15 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         }
     }
 
+    /**
+     * Called by buildRubricPrompt to add extra context about the expected submission format.
+     * What it does: Returns a hint string telling the AI what the student's submission format represents.
+     */
     private String skillSubmissionGuidance(AssessmentSkill skill) {
         if (skill == null) {
             return "Use the assessment instructions to interpret the learner submission.";
         }
+        // Use a switch statement to return specific guidance for each skill type.
         return switch (skill) {
             case LISTENING -> "The learner may submit an IELTS-style answer sheet for 40 listening questions plus section notes. Explain likely listening traps, distractors, missed keywords, and what to review.";
             case READING -> "The learner may submit an IELTS-style answer sheet for 40 reading questions plus passage notes. Explain likely reading traps, evidence use, time-management issues, and what to review.";
@@ -1355,10 +1442,12 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         String rawInstructions = assessment.getInstructions();
         return CourseAssessmentResponse.builder()
                 .id(assessment.getId())
-                .courseId(assessment.getOnlineCourse().getId())
+                .courseId(assessment.getOnlineCourseVersion().getOnlineCourse().getId())
                 .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .lessonId(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getId())
                 .assessmentBankItemId(assessment.getAssessmentBankItem() == null ? null : assessment.getAssessmentBankItem().getId())
                 .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
+                .lessonTitle(assessment.getOnlineLesson() == null ? null : assessment.getOnlineLesson().getTitle())
                 .title(assessment.getTitle())
                 .description(assessment.getDescription())
                 .type(assessment.getType())
@@ -1367,9 +1456,9 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .instructions(extractDisplayInstructions(rawInstructions))
                 .objectiveAnswerKey(null)
                 .uiConfigJson(sanitizeUiConfigJson(
-                        assessment.getUiConfigJson() == null || assessment.getUiConfigJson().isBlank()
+                        assessment.getAssessmentConfig() == null || assessment.getAssessmentConfig().isBlank()
                                 ? extractUiConfigJson(rawInstructions)
-                                : assessment.getUiConfigJson()
+                                : assessment.getAssessmentConfig()
                 ))
                 .passingScore(assessment.getPassingScore())
                 .maxScore(IeltsBandScale.resolveScoreCap(assessment))
@@ -1396,10 +1485,21 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         }
     }
 
+    /**
+     * Called by buildRubricPrompt to get the mandatory vocabulary for the lesson.
+     * What it does: Scans the lesson's markdown content, extracts the vocabulary list, and formats it as a comma-separated string so the AI can check if the student used them.
+     */
     private String extractTargetVocabulary(OnlineCourseModule module) {
         if (module == null || module.getLessons() == null) {
-            return "Not provided";
+            return "Not provided"; // No vocabulary required.
         }
+        // Search through all lessons in the module.
+        // 1. Get the markdown content of each lesson.
+        // 2. Filter lessons that have a "### " heading (likely where vocabulary is stored).
+        // 3. Use a regex matcher (VOCABULARY_HEADING) to extract the actual words.
+        // 4. Remove empty words and duplicates.
+        // 5. Limit to 20 words max to avoid overwhelming the AI prompt.
+        // 6. Join them with commas into a single string.
         return module.getLessons().stream()
                 .map(OnlineLesson::getContentText)
                 .filter(content -> content != null && content.contains("### "))
@@ -1425,7 +1525,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .taskType(rubric.getTaskType())
                 .scoringScale(rubric.getScoringScale())
                 .description(rubric.getDescription())
-                .active(rubric.isActive())
+                .status(rubric.getStatus())
                 .criteria(rubric.getCriteria().stream()
                         .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder).thenComparing(RubricCriterion::getId))
                         .map(criterion -> RubricCriterionResponse.builder()
@@ -1447,13 +1547,10 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .assessmentTitle(submission.getAssessment().getTitle())
                 .submittedText(submission.getSubmittedText())
                 .submittedAudioUrl(submission.getSubmittedAudioUrl())
-                .objectiveAnswersJson(submission.getObjectiveAnswersJson())
-                .aiScore(submission.getAiScore())
-                .aiFeedbackJson(submission.getAiFeedbackJson())
-                .aiPromptSnapshot(submission.getAiPromptSnapshot())
+                .objectiveAnswersJson(submission.getObjectiveAnswers())
+                .aiScore(submission.getScore())
+                .aiFeedbackJson(submission.getAiFeedback())
                 .status(submission.getStatus())
-                .aiProvider(submission.getAiProvider())
-                .aiModel(submission.getAiModel())
                 .submittedAt(submission.getSubmittedAt())
                 .build();
     }

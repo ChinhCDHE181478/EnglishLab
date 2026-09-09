@@ -22,5 +22,4 @@ public interface OnlineCourseVersionRepository extends JpaRepository<OnlineCours
 
     boolean existsByOnlineCourseAndStatusIn(OnlineCourse onlineCourse, List<CourseVersionStatus> statuses);
 
-    List<OnlineCourseVersion> findByStatusOrderBySubmittedAtAsc(CourseVersionStatus status);
 }

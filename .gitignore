@@ -12,6 +12,7 @@ docs/
 rtk/
 backend/scripts/
 scripts/
+scratch/
 .cursor/
 .agents/
 
@@ -26,3 +27,4 @@ backend/*.log
 backend/*.err
 backend/*.pid
 database-backups/
+*.py

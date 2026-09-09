@@ -24,7 +24,7 @@ export default function CourseVersionPanel({
     iconClass: 'text-[#730014]',
     title: `Bản nháp v${draft.versionNumber} đang chỉnh sửa`,
     sub: 'Bản nháp chỉ hiển thị trong khu vực biên soạn. Bản xuất bản mới nhất được dùng cho học viên và không làm thay đổi tiến độ đã ghi nhận.',
-    note: draft.reviewNote ? `Phản hồi: ${draft.reviewNote}` : null,
+    note: null,
   } : pending ? {
     icon: Clock4,
     iconClass: 'text-amber-600',

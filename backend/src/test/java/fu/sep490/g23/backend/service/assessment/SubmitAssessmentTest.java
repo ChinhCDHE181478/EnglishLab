@@ -12,6 +12,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -91,7 +92,8 @@ class SubmitAssessmentTest {
 
         assessment = new CourseAssessment();
         assessment.setId(100L);
-        assessment.setOnlineCourse(course);
+        assessment.setOnlineCourseVersion(OnlineCourseVersion.builder().id(20L).onlineCourse(course).build());
+        assessment.setType(AssessmentType.MODULE_TEST);
         assessment.setAiEvaluationMode(AiEvaluationMode.RUBRIC_FEEDBACK);
         AssessmentRubric rubric = new AssessmentRubric();
         rubric.setSkill(AssessmentSkill.WRITING);
@@ -137,6 +139,7 @@ class SubmitAssessmentTest {
         verify(onlineCourseVersionService, times(1))
                 .assertAssessmentBelongsToEnrollment(enrollment, assessment.getId());
         verify(submissionRepository, times(1)).save(any(AssessmentSubmission.class));
+        verify(aiEvaluationClient).evaluate(anyString());
         verify(courseProgressService, times(1)).refreshEnrollmentProgress(enrollment, course, student);
     }
 
@@ -262,6 +265,38 @@ class SubmitAssessmentTest {
         assertEquals(AssessmentSkill.LISTENING, assessment.getSkill());
         assertEquals("Snapshot đề Listening đã xuất bản", assessment.getTitle());
         assertNull(assessment.getRubric());
+        verify(aiEvaluationClient, never()).evaluate(anyString());
+    }
+
+    @Test
+    void submitAssessment_VocabularyQuiz_UsesDeterministicAnswerKey() {
+        assessment.setType(AssessmentType.QUIZ);
+        assessment.setSkill(AssessmentSkill.VOCABULARY);
+        assessment.setRubric(null);
+        assessment.setObjectiveAnswerKey("{\"1\":\"A\"}");
+        assessment.setMaxScore(BigDecimal.ONE);
+        request.setSubmittedText(null);
+        request.setObjectiveAnswersJson("{\"responses\":[{\"questionNumber\":\"1\",\"part\":\"part_1\",\"answerType\":\"single_choice\",\"answer\":\"A\"}]}");
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
+        when(enrollmentRepository.findByStudentAndOnlineCourse(student, course)).thenReturn(Optional.empty());
+        when(passingThresholdResolver.resolve(assessment)).thenReturn(BigDecimal.ONE);
+        when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
+            AssessmentSubmission saved = invocation.getArgument(0);
+            saved.setId(1002L);
+            return saved;
+        });
+
+        AiAssessmentSubmissionResponse result = aiAssessmentService.submitAssessment(
+                assessment.getId(),
+                request,
+                student.getEmail()
+        );
+
+        assertEquals(0, BigDecimal.ONE.compareTo(result.getAiScore()));
+        assertTrue(result.getAiFeedbackJson().contains("\"correctCount\":1"));
         verify(aiEvaluationClient, never()).evaluate(anyString());
     }
 }

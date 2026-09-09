@@ -19,7 +19,7 @@ describe('youtubeVideoUrl helpers', () => {
     expect(canAutoFetchTranscript({
       videoUrl: 'https://iframe.mediadelivery.net/embed/1/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
     })).toBe(true);
-    expect(canAutoFetchTranscript({ bunnyVideoId: 'guid' })).toBe(true);
+    expect(canAutoFetchTranscript({ videoUrl: 'https://iframe.mediadelivery.net/embed/1/guid' })).toBe(true);
     expect(canAutoFetchTranscript({ videoUrl: 'https://vimeo.com/1' })).toBe(false);
   });
 });

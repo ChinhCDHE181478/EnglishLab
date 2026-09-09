@@ -1,10 +1,8 @@
 import {
   ArrowRight,
   BookOpen,
-  Building2,
   CheckCircle2,
   Clock,
-  Laptop,
   LockKeyhole,
   RefreshCw,
   Route,
@@ -13,7 +11,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
-  getDeliveryModeLabel,
   getLearningPathStepLabel,
   getPlacementLevelLabel,
   groupPlacementRecommendations,
@@ -91,9 +88,8 @@ export default function PlacementRecommendationSection({ error, loading, onRetry
 
         <div className="space-y-7">
           <RecommendationGroup icon={BookOpen} items={grouped.online} title="Khóa học Online có bài giảng" type="online" />
-          <RecommendationGroup icon={Building2} items={grouped.offline} title="Chương trình đào tạo tại trung tâm" type="training" />
-          <RecommendationGroup icon={Laptop} items={grouped.virtual} title="Chương trình đào tạo Virtual (Lớp học trực tuyến)" type="training" />
-          {!grouped.offline.length && !grouped.virtual.length && !grouped.online.length ? (
+          <RecommendationGroup icon={BookOpen} items={grouped.instructorLed} title="Khóa học có giảng viên" type="training" />
+          {!grouped.instructorLed.length && !grouped.online.length ? (
             <div className="rounded-2xl border border-dashed border-[#dfbfbd] bg-white p-6 text-center">
               <p className="text-sm text-[#584140]">Chưa có khóa học xuất bản phù hợp với kết quả hiện tại.</p>
             </div>
@@ -213,7 +209,7 @@ function TrainingCard({ item }) {
 
       <div className="flex items-center justify-between gap-2">
         <span className="rounded-md bg-[#fff0f1] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#730014]">
-          {getDeliveryModeLabel(item.deliveryMode)}
+          Khóa học có giảng viên
         </span>
         <span className="text-[11px] font-semibold text-slate-500">
           Đầu vào: {getPlacementLevelLabel(item.entryPlacementLevel)}

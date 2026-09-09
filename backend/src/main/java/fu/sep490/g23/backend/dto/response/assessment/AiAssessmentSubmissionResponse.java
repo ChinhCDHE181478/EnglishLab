@@ -19,12 +19,9 @@ public class AiAssessmentSubmissionResponse {
     private String assessmentTitle;
     private BigDecimal aiScore;
     private String aiFeedbackJson;
-    private String aiPromptSnapshot;
     private String submittedText;
     private String submittedAudioUrl;
     private String objectiveAnswersJson;
-    private String aiProvider;
-    private String aiModel;
     private SubmissionStatus status;
     private LocalDateTime submittedAt;
 }

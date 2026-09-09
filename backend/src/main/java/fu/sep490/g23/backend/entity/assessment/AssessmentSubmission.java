@@ -6,6 +6,8 @@ import fu.sep490.g23.backend.entity.assessment.enums.*;
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -39,8 +41,9 @@ public class AssessmentSubmission {
     @Column(name = "submitted_audio_url", length = 700)
     private String submittedAudioUrl;
 
-    @Column(name = "objective_answers_json", columnDefinition = "text")
-    private String objectiveAnswersJson;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "objective_answers", columnDefinition = "jsonb")
+    private String objectiveAnswers;
 
     @Column(name = "fullscreen_exit_count")
     private Integer fullscreenExitCount;
@@ -48,29 +51,12 @@ public class AssessmentSubmission {
     @Column(name = "tab_switch_count")
     private Integer tabSwitchCount;
 
-    @Column(name = "microphone_checked")
-    private Boolean microphoneChecked;
+    @Column(precision = 4, scale = 1)
+    private BigDecimal score;
 
-    @Column(name = "device_check_passed")
-    private Boolean deviceCheckPassed;
-
-    @Column(name = "ai_score", precision = 4, scale = 1)
-    private BigDecimal aiScore;
-
-    @Column(name = "ai_feedback_json", columnDefinition = "text")
-    private String aiFeedbackJson;
-
-    @Column(name = "ai_prompt_snapshot", columnDefinition = "text")
-    private String aiPromptSnapshot;
-
-    @Column(name = "ai_provider", length = 40)
-    private String aiProvider;
-
-    @Column(name = "ai_model", length = 120)
-    private String aiModel;
-
-    @Column(name = "ai_raw_response", columnDefinition = "text")
-    private String aiRawResponse;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "ai_feedback", columnDefinition = "jsonb")
+    private String aiFeedback;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

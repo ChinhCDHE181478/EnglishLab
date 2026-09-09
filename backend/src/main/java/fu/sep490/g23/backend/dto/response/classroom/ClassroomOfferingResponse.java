@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
@@ -20,6 +19,7 @@ import java.util.List;
 @Builder
 public class ClassroomOfferingResponse {
     private Long id;
+    private String code;
     private String title;
     private String slug;
     private String shortDescription;
@@ -30,9 +30,9 @@ public class ClassroomOfferingResponse {
     private Long instructorLedCourseId;
     private String instructorLedCourseTitle;
     private String instructorLedCourseCode;
-    private String instructorLedCourseSlug;
     private String instructorLedCourseExamType;
     private String instructorLedCourseStatus;
+    // Materials of class
     private InstructorLedCourseResponse instructorLedCourse;
     private String entryLevel;
     private String targetOutcome;
@@ -45,20 +45,16 @@ public class ClassroomOfferingResponse {
     private Long roomId;
     private String roomName;
     private String offlineAddress;
-    private String locationNote;
     private Long googleMeetOwnerId;
     private String googleMeetUrl;
     private GoogleMeetStatus googleMeetStatus;
     private String googleMeetSyncError;
-    private String syllabusSummary;
-    private String programOutcomes;
     private String teacherGuide;
-    private String interactionActivities;
     private BigDecimal price;
+    private BigDecimal tuitionFeeVnd;
     private BigDecimal salePrice;
     private String targetScore;
     private String duration;
-    private String studyMode;
     private ClassroomSessionResponse nextSession;
     private Integer progressPercent;
     private Long enrollmentId;
@@ -67,13 +63,9 @@ public class ClassroomOfferingResponse {
     private boolean hasClassAccess;
     private ClassroomRegistrationStatus registrationStatus;
     private String registrationStatusLabel;
-    private boolean holdSpot;
     private BigDecimal tuitionAmountDue;
     private BigDecimal tuitionAmountPaid;
     private BigDecimal tuitionRemaining;
-    private TuitionSettlementType tuitionSettlementType;
-    private String tuitionSettlementTypeLabel;
-    private String tuitionSettlementNote;
     private Integer waitlistCount;
     private Integer waitlistPosition;
     /** Lịch học tóm tắt, ví dụ "T2, T4 · 18:00–20:00". */

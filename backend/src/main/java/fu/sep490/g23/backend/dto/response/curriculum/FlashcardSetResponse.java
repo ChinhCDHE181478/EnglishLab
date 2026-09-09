@@ -20,7 +20,6 @@ public class FlashcardSetResponse {
     private String tags;
     private String cardsJson;
     private String status;
-    private Integer displayOrder;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

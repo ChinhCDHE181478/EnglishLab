@@ -50,7 +50,7 @@ public class ToeicMockBankSeeder implements CommandLineRunner {
     private void publishMock(String title, AssessmentSkill skill, int minutes, String resource) throws Exception {
         String json = new String(new ClassPathResource(resource).getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         var existing = assessmentBankItemRepository
-                .findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(AssessmentType.MOCK_TEST, "PUBLISHED")
+                .findByTypeAndStatusOrderByUpdatedAtDescIdDesc(AssessmentType.MOCK_TEST, "PUBLISHED")
                 .stream()
                 .filter(item -> title.equalsIgnoreCase(item.getTitle()))
                 .findFirst();
@@ -74,7 +74,6 @@ public class ToeicMockBankSeeder implements CommandLineRunner {
         request.setMaxScore(BigDecimal.valueOf(9.0));
         request.setTimeLimitMinutes(minutes);
         request.setStatus("PUBLISHED");
-        request.setDisplayOrder(20);
         instructorLedCourseManagementService.createAssessmentBankItem(request);
     }
 }

@@ -8,7 +8,10 @@ import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sep490.g23.backend.service.payment.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-  import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
   import org.springframework.data.domain.Page;
   import org.springframework.data.domain.PageRequest;
   import org.springframework.data.domain.Sort;
@@ -37,7 +40,7 @@ public class StudentPaymentController {
     ) {
         return ResponseEntity.ok(paymentService.createPaymentLink(
                 request.getCourseIds(),
-                request.getClassSectionIds(),
+                request.getClassroomOfferingIds(),
                 request.getLearningPathId(),
                 request.getCouponCode(),
                 authentication.getName()
@@ -51,7 +54,7 @@ public class StudentPaymentController {
     ) {
         return ResponseEntity.ok(paymentService.quotePayment(
                 request.getCourseIds(),
-                request.getClassSectionIds(),
+                request.getClassroomOfferingIds(),
                 request.getLearningPathId(),
                 request.getCouponCode(),
                 authentication.getName()
@@ -70,6 +73,19 @@ public class StudentPaymentController {
       public ResponseEntity<List<PaymentOrderSummaryResponse>> listMyOrders(Authentication authentication) {
           return ResponseEntity.ok(paymentService.listMyOrders(authentication.getName()));
       }
+
+    @GetMapping("/orders/{orderCode}/receipt")
+    public ResponseEntity<byte[]> downloadCourseReceipt(
+            @PathVariable Long orderCode,
+            Authentication authentication
+    ) {
+        byte[] receipt = paymentService.downloadCourseReceipt(orderCode, authentication.getName());
+        String fileName = "EnglishLab-receipt-" + orderCode + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(fileName).build().toString())
+                .body(receipt);
+    }
 
       @GetMapping("/orders/page")
       public ResponseEntity<Page<PaymentOrderSummaryResponse>> pageMyOrders(

@@ -257,6 +257,16 @@ export const openGoogleMeet = (url) => {
     return { ok: false, message: 'Chưa có liên kết Google Meet cho buổi học này.' };
   }
 
+  try {
+    const parsedUrl = new URL(url);
+    const validMeetCode = /^\/[a-z]{3}-[a-z]{4}-[a-z]{3}\/?$/;
+    if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== 'meet.google.com' || !validMeetCode.test(parsedUrl.pathname)) {
+      return { ok: false, message: 'Liên kết Google Meet không hợp lệ. Vui lòng yêu cầu nhân viên tạo lại phòng học.' };
+    }
+  } catch {
+    return { ok: false, message: 'Liên kết Google Meet không hợp lệ. Vui lòng yêu cầu nhân viên tạo lại phòng học.' };
+  }
+
   const popup = window.open(url, '_blank', 'noopener,noreferrer');
   if (!popup) {
     return {

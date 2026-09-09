@@ -96,6 +96,24 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     @Query("""
             SELECT s FROM ClassSchedule s
+            WHERE (s.teacher.id = :teacherId
+                   OR (s.teacher IS NULL AND s.classSection.primaryTeacher.id = :teacherId))
+              AND s.classSection.id <> :classSectionId
+              AND s.status IN :statuses
+              AND s.sessionDate = :sessionDate
+              AND s.startTime < :endTime AND s.endTime > :startTime
+            """)
+    List<ClassSchedule> findTeacherConflictsOutsideClass(
+            @Param("teacherId") Long teacherId,
+            @Param("classSectionId") Long classSectionId,
+            @Param("sessionDate") LocalDate sessionDate,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime,
+            @Param("statuses") Collection<ClassroomSessionStatus> statuses
+    );
+
+    @Query("""
+            SELECT s FROM ClassSchedule s
             WHERE s.room.id = :roomId
               AND s.status IN :statuses
               AND s.sessionDate = :sessionDate
@@ -109,6 +127,24 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
             @Param("endTime") LocalTime endTime,
             @Param("statuses") Collection<ClassroomSessionStatus> statuses,
             @Param("excludeSessionId") Long excludeSessionId
+    );
+
+    @Query("""
+            SELECT s FROM ClassSchedule s
+            WHERE (s.room.id = :roomId
+                   OR (s.room IS NULL AND s.classSection.room.id = :roomId))
+              AND s.classSection.id <> :classSectionId
+              AND s.status IN :statuses
+              AND s.sessionDate = :sessionDate
+              AND s.startTime < :endTime AND s.endTime > :startTime
+            """)
+    List<ClassSchedule> findRoomConflictsOutsideClass(
+            @Param("roomId") Long roomId,
+            @Param("classSectionId") Long classSectionId,
+            @Param("sessionDate") LocalDate sessionDate,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime,
+            @Param("statuses") Collection<ClassroomSessionStatus> statuses
     );
 
     @Query("""
@@ -131,6 +167,28 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
             @Param("endTime") LocalTime endTime,
             @Param("statuses") Collection<ClassroomSessionStatus> statuses,
             @Param("excludeSessionId") Long excludeSessionId
+    );
+
+    @Query("""
+            SELECT s FROM ClassSchedule s
+            JOIN ClassEnrollment e ON e.classSection = s.classSection
+            WHERE e.student.id = :studentId
+              AND s.classSection.id <> :classSectionId
+              AND e.registrationStatus IN (
+                  fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus.ASSIGNED,
+                  fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus.WAITLIST
+              )
+              AND s.status IN :statuses
+              AND s.sessionDate = :sessionDate
+              AND s.startTime < :endTime AND s.endTime > :startTime
+            """)
+    List<ClassSchedule> findLearnerConflictsOutsideClass(
+            @Param("studentId") Long studentId,
+            @Param("classSectionId") Long classSectionId,
+            @Param("sessionDate") LocalDate sessionDate,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime,
+            @Param("statuses") Collection<ClassroomSessionStatus> statuses
     );
 
     @Query("""

@@ -1,26 +1,10 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Route } from 'lucide-react';
 import Pagination, { usePagination } from '../ui/Pagination';
 
 const PAGE_SIZE = 3;
 
-export default function LearningPathCatalog({ courses = [] }) {
-  const paths = useMemo(() => {
-    const groups = courses.reduce((acc, course) => {
-      const code = String(course.learningPathCode || '').trim();
-      if (!code) return acc;
-      acc[code] ||= { code, name: course.learningPathName || code, courses: [] };
-      acc[code].courses.push(course);
-      return acc;
-    }, {});
-
-    return Object.values(groups).map((path) => ({
-      ...path,
-      courses: path.courses.sort((left, right) => Number(left.learningPathOrder || 0) - Number(right.learningPathOrder || 0))
-    }));
-  }, [courses]);
-
+export default function LearningPathCatalog({ paths = [] }) {
   const { page, setPage, totalPages, pageItems: visiblePaths, totalItems } = usePagination(
     paths,
     PAGE_SIZE,
@@ -53,28 +37,28 @@ export default function LearningPathCatalog({ courses = [] }) {
             key={path.code}
           >
             <div className="flex h-36 items-center justify-center overflow-hidden rounded-2xl bg-[#fff0f2] shrink-0">
-              {path.courses[0]?.thumbnailUrl ? (
+              {path.courses?.[0]?.thumbnailUrl ? (
                 <img alt="" className="h-full w-full object-cover" src={path.courses[0].thumbnailUrl} />
               ) : (
                 <Route className="h-10 w-10 text-[#8a0018]" />
               )}
             </div>
             <p className="mt-5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">
-              {path.courses.length} khóa học · Lộ trình
+              {path.totalCourses ?? path.courses?.length ?? 0} khóa học · Lộ trình
             </p>
             <h3 className="mt-2 font-['Manrope'] text-xl font-extrabold leading-snug text-[#2b2828] line-clamp-1">
               {path.name}
             </h3>
             <ol className="mt-4 space-y-2">
-              {path.courses.slice(0, 3).map((course, index) => (
-                <li className="flex items-center gap-2 text-sm text-[#584140]" key={course.id}>
+              {(path.courses || []).slice(0, 3).map((course, index) => (
+                <li className="flex items-center gap-2 text-sm text-[#584140]" key={course.courseId}>
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fff0f2] text-xs font-extrabold text-[#8a0018]">
-                    {course.learningPathOrder || index + 1}
+                    {course.displayOrder || index + 1}
                   </span>
                   <span className="truncate font-semibold">{course.title}</span>
                 </li>
               ))}
-              {path.courses.length > 3 && (
+              {(path.courses?.length || 0) > 3 && (
                 <li className="text-xs font-semibold text-[#8c716f] pl-8">
                   + {path.courses.length - 3} khóa học khác...
                 </li>

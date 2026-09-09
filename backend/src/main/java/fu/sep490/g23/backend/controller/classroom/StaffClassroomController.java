@@ -10,6 +10,7 @@ import fu.sep490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RejectRegistrationRequest;
 import fu.sep490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.TransferStudentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.UpdateClassroomPlanRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
@@ -166,15 +167,13 @@ public class StaffClassroomController {
         return ResponseEntity.ok(scheduleAvailabilityService.listAvailableReplacementTeachers(id));
     }
 
-    @GetMapping("/training-programs")
-    public ResponseEntity<List<InstructorLedCourseResponse>> listPublishedTrainingPrograms(
-            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
-    ) {
-        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms(deliveryMode));
+    @GetMapping({"/instructor-led-courses", "/training-programs"})
+    public ResponseEntity<List<InstructorLedCourseResponse>> listPublishedInstructorLedCourses() {
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms());
     }
 
-    @GetMapping("/training-programs/{id}")
-    public ResponseEntity<fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse> getPublishedTrainingProgram(
+    @GetMapping({"/instructor-led-courses/{id}", "/training-programs/{id}"})
+    public ResponseEntity<fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse> getPublishedInstructorLedCourse(
             @PathVariable Long id
     ) {
         return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));
@@ -192,6 +191,15 @@ public class StaffClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classSectionService.updateOffering(id, request, authentication.getName()));
+    }
+
+    @PutMapping("/{id}/prelaunch-plan")
+    public ResponseEntity<ClassroomOfferingResponse> updatePrelaunchPlan(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateClassroomPlanRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classSectionService.updatePrelaunchPlan(id, request, authentication.getName()));
     }
 
     @PostMapping("/{id}/close")

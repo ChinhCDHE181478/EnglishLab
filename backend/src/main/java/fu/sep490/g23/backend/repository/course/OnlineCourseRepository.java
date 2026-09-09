@@ -14,47 +14,40 @@ import java.util.Optional;
 
 @Repository
 public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long>, JpaSpecificationExecutor<OnlineCourse> {
-    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
+    // Fetch only one List collection per query. Modules are initialized separately
+    // inside the service transaction to avoid Hibernate's MultipleBagFetchException.
+    @EntityGraph(attributePaths = {"category", "versions"})
     Optional<OnlineCourse> findWithModulesById(Long id);
 
-    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
-    Optional<OnlineCourse> findWithModulesByIdAndDeletedFalseAndStatus(Long id, PackageStatus status);
+    @EntityGraph(attributePaths = {"category", "versions"})
+    Optional<OnlineCourse> findWithModulesByIdAndStatus(Long id, PackageStatus status);
 
-    @EntityGraph(attributePaths = {"category", "versions", "versions.modules"})
-    Optional<OnlineCourse> findBySlugAndDeletedFalseAndStatus(String slug, PackageStatus status);
+    @EntityGraph(attributePaths = {"category", "versions"})
+    Optional<OnlineCourse> findBySlugAndStatus(String slug, PackageStatus status);
 
     Optional<OnlineCourse> findBySlug(String slug);
-
-    Optional<OnlineCourse> findBySlugAndDeletedFalse(String slug);
 
     boolean existsBySlug(String slug);
 
     @EntityGraph(attributePaths = {"category"})
     List<OnlineCourse> findAllByCategoryIsNull();
 
-    @Query("""
-            select c from OnlineCourse c
-            where c.deleted = false
-              and c.status = :status
-              and c.learningPathCode is not null
-              and trim(c.learningPathCode) <> ''
-            order by c.learningPathCode asc, c.learningPathName asc, c.learningPathOrder asc, c.id asc
-            """)
-    List<OnlineCourse> findPublishedLearningPathCourses(PackageStatus status);
+    long countByCategoryAndStatusNot(CourseCategory category, PackageStatus status);
 
-    long countByCategoryAndDeletedFalse(CourseCategory category);
+    long countByStatusNot(PackageStatus status);
 
-    long countByDeletedFalse();
-
-    long countByDeletedFalseAndStatus(PackageStatus status);
+    long countByStatus(PackageStatus status);
 
     @Query("""
             select coalesce(category.name, 'Chưa phân loại'), count(course)
             from OnlineCourse course
             left join course.category category
-            where course.deleted = false
+            where course.status <> fu.sep490.g23.backend.entity.course.enums.PackageStatus.ARCHIVED
             group by category.name
             order by count(course) desc
             """)
     List<Object[]> summarizeCategoryDistribution();
+
+    @Query("select c.thumbnailUrl from OnlineCourse c where c.thumbnailUrl is not null and c.thumbnailUrl <> ''")
+    List<String> findAllNonEmptyThumbnailUrls();
 }

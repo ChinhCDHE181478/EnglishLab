@@ -120,10 +120,7 @@ public class SyllabusIT {
                 {
                   "title":"%s",
                   "code":"IT-%s",
-                  "slug":"it-%s",
-                  "deliveryMode":"OFFLINE",
                   "examCategory":"IELTS",
-                  "programTrack":"IELTS_FOUNDATION",
                   "focusSkills":"LISTENING,READING",
                   "targetBand":6.5,
                   "entryLevel":"4.0",
@@ -133,7 +130,6 @@ public class SyllabusIT {
                   "status":"DRAFT",
                   "displayOrder":99
                 }
-                """.formatted(title, UUID.randomUUID().toString().substring(0, 8),
-                UUID.randomUUID().toString().substring(0, 8));
+                """.formatted(title, UUID.randomUUID().toString().substring(0, 8));
     }
 }

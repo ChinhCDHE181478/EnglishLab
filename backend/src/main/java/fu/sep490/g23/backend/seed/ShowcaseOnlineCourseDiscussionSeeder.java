@@ -160,8 +160,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     null,
                     null
             );
-            rude.setReportedCount(Math.max(rude.getReportedCount(), 1));
-            postRepository.save(rude);
 
             CourseDiscussionPost spam = upsertThread(
                     course,
@@ -171,8 +169,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     "Ae vào link bit.ly/ielts-re hoi để nhận voucher. Inbox mình để được tư vấn 1-1 miễn phí.",
                     CourseDiscussionStatus.HIDDEN
             );
-            spam.setReportedCount(2);
-            postRepository.save(spam);
             ensureReport(
                     spam,
                     showcase,
@@ -243,8 +239,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 null,
                 null
         );
-        offTopic.setReportedCount(Math.max(offTopic.getReportedCount(), 1));
-        postRepository.save(offTopic);
 
         CourseDiscussionPost falseAlarm = upsertThread(
                 course,
@@ -343,7 +337,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 .findFirst()
                 .map(existing -> {
                     existing.setAccepted(accepted);
-                    existing.setHelpfulCount(helpfulCount);
                     existing.setStatus(CourseDiscussionStatus.OPEN);
                     return postRepository.save(existing);
                 })
@@ -365,7 +358,6 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 .postType(CourseDiscussionPostType.REPLY)
                 .content(content)
                 .accepted(accepted)
-                .helpfulCount(helpfulCount)
                 .status(CourseDiscussionStatus.OPEN)
                 .build());
         if (thread.getReplies() == null) {

@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.controller.course;
 
 import fu.sep490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sep490.g23.backend.dto.request.course.OnlineCourseRequest;
-import fu.sep490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sep490.g23.backend.dto.request.course.ReorderLessonsRequest;
 import fu.sep490.g23.backend.dto.request.course.ReorderModulesRequest;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
@@ -19,6 +18,8 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.course.CourseThumbnailStorageService;
+import fu.sep490.g23.backend.service.course.impl.CourseThumbnailStorageServiceImpl;
+import fu.sep490.g23.backend.service.storage.ObjectStore;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -55,6 +56,7 @@ public class ContentManagerOnlineCourseController {
 
     private final OnlineCourseService onlineCourseService;
     private final CourseThumbnailStorageService courseThumbnailStorageService;
+    private final ObjectStore objectStore;
 
     @GetMapping
     public ResponseEntity<Page<OnlineCourseResponse>> getCourses(
@@ -100,6 +102,9 @@ public class ContentManagerOnlineCourseController {
         };
     }
 
+    /**
+     * Retrieves full online course structure including version history, modules, lessons, and linked assessments.
+     */
     @GetMapping("/{slugOrId}")
     public ResponseEntity<OnlineCourseResponse> getCourse(@PathVariable String slugOrId) {
         return ResponseEntity.ok(onlineCourseService.getManagerCourse(slugOrId));
@@ -110,6 +115,9 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.getManagerCoursePreview(slugOrId));
     }
 
+    /**
+     * Reorders modules sequentially within the editable draft course version.
+     */
     @PatchMapping("/{courseId}/modules/reorder")
     public ResponseEntity<List<ModuleResponse>> reorderModules(
             @PathVariable Long courseId,
@@ -119,6 +127,9 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.reorderModules(courseId, request, authentication.getName()));
     }
 
+    /**
+     * Reorders lessons sequentially within a specific course module.
+     */
     @PatchMapping("/{courseId}/modules/{moduleId}/lessons/reorder")
     public ResponseEntity<List<LessonResponse>> reorderLessons(
             @PathVariable Long courseId,
@@ -139,6 +150,11 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.getManagerCourseAssessments(courseId));
     }
 
+    /**
+     * Batch synchronizes course assessment items across modules and lessons.
+     * Iterates through the incoming list, resolves bank items and rubrics, validates configuration,
+     * updates active CourseAssessment records, and captures a new draft snapshot.
+     */
     @PutMapping("/{courseId}/assessments")
     public ResponseEntity<List<CourseAssessmentResponse>> saveCourseAssessments(
             @PathVariable Long courseId,
@@ -164,19 +180,32 @@ public class ContentManagerOnlineCourseController {
 
     @PostMapping(value = "/thumbnail", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CourseThumbnailUploadResponse> uploadThumbnail(@RequestPart("file") MultipartFile file) {
+        // DESIGN NOTE: this endpoint writes the file to R2 and returns a URL. The caller is
+        // expected to send the URL to a course create/update endpoint so the DB row references
+        // it. If the caller never finishes the create/update flow, the file stays orphaned
+        // until the scheduled ObjectStoreOrphanCleanupService reclaims it (default 7 days).
         String fileName = courseThumbnailStorageService.store(file);
-        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/course-thumbnails/")
-                .path(fileName)
-                .toUriString();
+        String url = objectStore.isPublic()
+                ? objectStore.publicUrl(objectStore.objectKey(CourseThumbnailStorageServiceImpl.getPrefix(), fileName))
+                : ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/course-thumbnails/")
+                        .path(fileName)
+                        .toUriString();
         return ResponseEntity.ok(new CourseThumbnailUploadResponse(url));
     }
 
+    /**
+     * Creates a new online course and initializes its first draft version (V1 DRAFT).
+     * Validates slug uniqueness, active category existence, and default pricing.
+     */
     @PostMapping
     public ResponseEntity<OnlineCourseResponse> createCourse(@Valid @RequestBody OnlineCourseRequest request, Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED).body(onlineCourseService.createCourse(request, authentication.getName()));
     }
 
+    /**
+     * Updates course metadata and pricing, ensuring modifications only apply to editable draft versions.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<OnlineCourseResponse> updateCourse(
             @PathVariable Long id,
@@ -184,13 +213,6 @@ public class ContentManagerOnlineCourseController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(onlineCourseService.updateCourse(id, request, authentication.getName()));
-    }
-
-    @PatchMapping("/learning-path-order")
-    public ResponseEntity<List<OnlineCourseResponse>> updateLearningPathOrder(
-            @Valid @RequestBody LearningPathOrderRequest request
-    ) {
-        return ResponseEntity.ok(onlineCourseService.updateLearningPathOrder(request));
     }
 
     @PatchMapping("/{id}/publish")
@@ -203,6 +225,9 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.archiveCourse(id));
     }
 
+    /**
+     * Soft-deletes / archives an online course to safely preserve enrollment history.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteCourse(@PathVariable Long id) {
         onlineCourseService.deleteCourse(id);

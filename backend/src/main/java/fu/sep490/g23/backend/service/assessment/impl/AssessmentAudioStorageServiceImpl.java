@@ -1,37 +1,35 @@
 package fu.sep490.g23.backend.service.assessment.impl;
-import fu.sep490.g23.backend.service.assessment.AssessmentAudioStorageService;
-
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentAudioUploadResponse;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import fu.sep490.g23.backend.service.assessment.AssessmentAudioStorageService;
+import fu.sep490.g23.backend.service.storage.LegacyLocalFileReader;
+import fu.sep490.g23.backend.service.storage.ObjectStore;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class AssessmentAudioStorageServiceImpl implements AssessmentAudioStorageService {
 
-    private final Path storageDirectory;
+    static final String PREFIX = "assessment-audio";
 
-    public AssessmentAudioStorageServiceImpl(@Value("${englishlab.assessment-audio.dir:backend/uploads/assessment-audio}") String storageDir) {
-        this.storageDirectory = Paths.get(storageDir).toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(storageDirectory);
-        } catch (IOException exception) {
-            throw new RuntimeException("Cannot create assessment audio directory", exception);
-        }
+    private final ObjectStore objectStore;
+    private final LegacyLocalFileReader legacyLocalReader;
+
+    public AssessmentAudioStorageServiceImpl(ObjectStore objectStore, LegacyLocalFileReader legacyLocalReader) {
+        this.objectStore = objectStore;
+        this.legacyLocalReader = legacyLocalReader;
     }
 
     public AssessmentAudioUploadResponse store(MultipartFile file, String publicUrlBase) {
@@ -46,71 +44,128 @@ public class AssessmentAudioStorageServiceImpl implements AssessmentAudioStorage
 
         String normalizedContentType = normalizeAssessmentRecordingContentType(contentType);
         String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
-        String safeExtension = extension == null || extension.isBlank() ? guessExtension(contentType) : "." + extension.toLowerCase(Locale.ROOT);
+        String safeExtension = extension == null || extension.isBlank()
+                ? guessExtension(contentType)
+                : "." + extension.toLowerCase(Locale.ROOT);
         String fileName = "assessment-audio-" + UUID.randomUUID() + safeExtension;
-        Path targetFile = storageDirectory.resolve(fileName).normalize();
+        String objectKey = objectStore.objectKey(PREFIX, fileName);
 
-        try {
-            Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+        try (InputStream stream = file.getInputStream()) {
+            ObjectStore.StoredObject stored = objectStore.put(objectKey, stream, file.getSize(), normalizedContentType);
+            // Audio recordings stay private (no R2 public access) – fall back to the legacy
+            // backend proxy URL so the controller's access checks remain authoritative.
+            String url = stored.publicUrl();
+            if (url.startsWith("/local-files/")) {
+                String base = publicUrlBase == null ? "/api/student/assessments/audio" : publicUrlBase;
+                url = base.endsWith("/") ? base + fileName : base + "/" + fileName;
+            }
+            return AssessmentAudioUploadResponse.builder()
+                    .fileName(fileName)
+                    .contentType(normalizedContentType)
+                    .size(file.getSize())
+                    .url(url)
+                    .build();
         } catch (IOException exception) {
             throw new RuntimeException("Cannot store assessment audio", exception);
         }
-
-        return AssessmentAudioUploadResponse.builder()
-                .fileName(fileName)
-                .contentType(normalizedContentType)
-                .size(file.getSize())
-                .url(publicUrlBase.endsWith("/") ? publicUrlBase + fileName : publicUrlBase + "/" + fileName)
-                .build();
     }
 
     public Resource loadAsResource(String fileName) {
-        Path targetFile = storageDirectory.resolve(fileName).normalize();
-        if (!targetFile.startsWith(storageDirectory) || !Files.exists(targetFile)) {
-            throw new RuntimeException("Assessment audio not found");
+        String sanitized = safeFileName(fileName);
+        var legacy = legacyLocalReader.tryLoad(PREFIX, sanitized);
+        if (legacy.isPresent()) {
+            return legacy.get();
         }
-        return new FileSystemResource(targetFile);
+        String objectKey = objectStore.objectKey(PREFIX, sanitized);
+        return objectStore.getBytes(objectKey)
+                .map(ByteArrayResource::new)
+                .orElseThrow(() -> new RuntimeException("Assessment audio not found"));
     }
 
     public String detectContentType(String fileName) {
-        try {
-            String detected = Files.probeContentType(storageDirectory.resolve(fileName).normalize());
-            return detected == null || detected.equals("application/octet-stream")
-                    ? guessContentType(fileName)
-                    : detected;
-        } catch (IOException exception) {
-            return guessContentType(fileName);
+        String sanitized = safeFileName(fileName);
+        if (legacyLocalReader.isEnabled() && legacyLocalReader.tryLoad(PREFIX, sanitized).isPresent()) {
+            return legacyLocalReader.probeContentType(PREFIX, sanitized);
         }
+        String detected = objectStore.probeContentType(objectStore.objectKey(PREFIX, sanitized));
+        return detected == null || "application/octet-stream".equals(detected)
+                ? guessContentType(fileName)
+                : detected;
+    }
+
+    /**
+     * Deletes the audio file referenced by {@code fileName} from the active object store.
+     *
+     * <p>Failures are swallowed so the caller (typically a CRUD flow) can still complete its
+     * database update – the scheduled orphan-cleanup job will eventually reclaim the file.
+     */
+    public void delete(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return;
+        }
+        try {
+            objectStore.delete(objectStore.objectKey(PREFIX, safeFileName(fileName)));
+        } catch (RuntimeException exception) {
+            log.warn("Failed to delete assessment audio {}: {}", fileName, exception.getMessage());
+        }
+    }
+
+    /**
+     * Convenience wrapper that extracts the file name from a previously-stored URL before
+     * delegating to {@link #delete(String)}.
+     */
+    public void deleteByUrl(String audioUrl) {
+        extractStoredFileName(audioUrl).ifPresent(this::delete);
     }
 
     public Optional<StoredAssessmentAudio> loadStoredAudioFromUrl(String audioUrl) {
-        String fileName = extractStoredFileName(audioUrl);
-        if (fileName == null) {
+        Optional<String> fileName = extractStoredFileName(audioUrl);
+        if (fileName.isEmpty()) {
             return Optional.empty();
         }
+        String sanitized = fileName.get();
 
-        Path targetFile = storageDirectory.resolve(fileName).normalize();
-        if (!targetFile.startsWith(storageDirectory) || !Files.exists(targetFile)) {
+        var legacy = legacyLocalReader.tryLoad(PREFIX, sanitized);
+        if (legacy.isPresent()) {
+            try {
+                byte[] bytes = legacy.get().getInputStream().readAllBytes();
+                return Optional.of(new StoredAssessmentAudio(
+                        sanitized,
+                        normalizeAssessmentRecordingContentType(legacyLocalReader.probeContentType(PREFIX, sanitized)),
+                        bytes.length,
+                        bytes
+                ));
+            } catch (IOException exception) {
+                throw new RuntimeException("Cannot read assessment audio", exception);
+            }
+        }
+
+        String objectKey = objectStore.objectKey(PREFIX, sanitized);
+        Optional<byte[]> bytes = objectStore.getBytes(objectKey);
+        if (bytes.isEmpty()) {
             return Optional.empty();
         }
-
-        try {
-            return Optional.of(new StoredAssessmentAudio(
-                    fileName,
-                    normalizeAssessmentRecordingContentType(detectContentType(fileName)),
-                    Files.size(targetFile),
-                    Files.readAllBytes(targetFile)
-            ));
-        } catch (IOException exception) {
-            throw new RuntimeException("Cannot read assessment audio", exception);
-        }
+        byte[] data = bytes.get();
+        return Optional.of(new StoredAssessmentAudio(
+                sanitized,
+                normalizeAssessmentRecordingContentType(detectContentType(sanitized)),
+                data.length,
+                data
+        ));
     }
 
-    private String extractStoredFileName(String audioUrl) {
-        if (audioUrl == null || audioUrl.isBlank()) {
-            return null;
+    private String safeFileName(String fileName) {
+        if (fileName == null || fileName.isBlank() || !fileName.startsWith("assessment-audio-")
+                || fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
+            throw new RuntimeException("Invalid assessment audio file name");
         }
+        return fileName;
+    }
 
+    private Optional<String> extractStoredFileName(String audioUrl) {
+        if (audioUrl == null || audioUrl.isBlank()) {
+            return Optional.empty();
+        }
         String normalized = audioUrl.trim().replace('\\', '/');
         String marker = "/api/student/assessments/audio/";
         int markerIndex = normalized.indexOf(marker);
@@ -121,14 +176,18 @@ public class AssessmentAudioStorageServiceImpl implements AssessmentAudioStorage
         if (queryIndex >= 0) {
             fileName = fileName.substring(0, queryIndex);
         }
-        fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8).trim();
+        try {
+            fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8).trim();
+        } catch (IllegalArgumentException ignored) {
+            // Malformed encoding – keep raw.
+        }
         if (fileName.isBlank()
                 || fileName.contains("/")
                 || fileName.contains("..")
                 || !fileName.startsWith("assessment-audio-")) {
-            return null;
+            return Optional.empty();
         }
-        return fileName;
+        return Optional.of(fileName);
     }
 
     private String guessExtension(String contentType) {
@@ -176,4 +235,3 @@ public class AssessmentAudioStorageServiceImpl implements AssessmentAudioStorage
         return normalized.isBlank() ? "audio/webm" : normalized;
     }
 }
-

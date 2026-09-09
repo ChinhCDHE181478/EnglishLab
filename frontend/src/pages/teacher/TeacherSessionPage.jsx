@@ -18,6 +18,7 @@ import {
   Plus,
   RefreshCw,
   Download,
+  FileText,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import CoursePageShell from '../../components/course/CoursePageShell';
@@ -57,6 +58,8 @@ export default function TeacherSessionPage() {
   const [meetMessage, setMeetMessage] = useState('');
   const [sessionMeta, setSessionMeta] = useState(null);
   const [records, setRecords] = useState({});
+  const [sessionNote, setSessionNote] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   const loadAttendance = async () => {
     setLoading(true);
@@ -68,6 +71,7 @@ export default function TeacherSessionPage() {
       ]);
       setAttendance(data);
       setSessionMeta(session);
+      setSessionNote(session.note || '');
       const initialRecords = {};
       data.forEach((item) => {
         initialRecords[item.studentId || item.enrollmentId] = item.status || 'PRESENT';
@@ -145,6 +149,33 @@ export default function TeacherSessionPage() {
     });
     setRecords(updated);
     setActionMessage('Đã chuyển đổi nhanh: Tất cả Vắng mặt.');
+  };
+
+  const handleSaveNote = async () => {
+    setActionMessage('');
+    setIsSavingNote(true);
+    try {
+      const payload = {
+        sessionDate: sessionMeta.sessionDate,
+        startTime: sessionMeta.startTime,
+        endTime: sessionMeta.endTime,
+        teacherId: sessionMeta.teacherId || null,
+        status: sessionMeta.status || 'SCHEDULED',
+        deliveryModeOverride: sessionMeta.deliveryModeOverride || null,
+        roomId: sessionMeta.roomId || null,
+        courseLessonId: sessionMeta.courseLessonId || null,
+        sessionContent: sessionMeta.sessionContent || null,
+        note: sessionNote.trim() || null
+      };
+      const updated = await classroomApi.updateTeacherSession(sessionId, payload);
+      setSessionMeta((current) => ({ ...current, ...updated }));
+      setSessionNote(updated.note || '');
+      setActionMessage('Đã lưu ghi chú buổi học thành công.');
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể lưu ghi chú.'));
+    } finally {
+      setIsSavingNote(false);
+    }
   };
 
   // Calculate stats for sticky footer
@@ -489,6 +520,38 @@ export default function TeacherSessionPage() {
                   })}
                 </div>
               )}
+            </section>
+
+            {/* Session Note Tool */}
+            <section className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm md:p-10 space-y-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700 flex-shrink-0">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-base text-[#1a1c1c]">Ghi chú buổi học</h2>
+                  <p className="mt-0.5 text-xs text-[#8b706e]">Ghi lại nhận xét chung về buổi học, các vấn đề phát sinh hoặc tiến độ của lớp.</p>
+                </div>
+              </div>
+              <div className="pt-2">
+                <textarea 
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-700 focus:bg-white min-h-[120px]"
+                  placeholder="Nhập ghi chú tại đây..."
+                  value={sessionNote}
+                  onChange={(e) => setSessionNote(e.target.value)}
+                />
+                <div className="mt-4 flex justify-end">
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-800 active:scale-95 disabled:opacity-50"
+                    onClick={handleSaveNote}
+                    disabled={isSavingNote}
+                    type="button"
+                  >
+                    {isSavingNote ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    Lưu ghi chú
+                  </button>
+                </div>
+              </div>
             </section>
           </>
         ) : null}
