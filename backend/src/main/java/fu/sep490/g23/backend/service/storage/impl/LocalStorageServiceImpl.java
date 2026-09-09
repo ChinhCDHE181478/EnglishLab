@@ -1,10 +1,11 @@
 package fu.sep490.g23.backend.service.storage.impl;
 
 import fu.sep490.g23.backend.config.ObjectStorageProperties;
+import fu.sep490.g23.backend.config.LocalStorageCondition;
 import fu.sep490.g23.backend.service.storage.ObjectStore;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ import java.util.stream.Stream;
  * {@code /api/classroom-homework/attachments/...}, {@code /api/student/assessments/audio/...}).
  */
 @Service
-@ConditionalOnMissingBean(ObjectStore.class)
+@Conditional(LocalStorageCondition.class)
 @Slf4j
 public class LocalStorageServiceImpl implements ObjectStore {
 

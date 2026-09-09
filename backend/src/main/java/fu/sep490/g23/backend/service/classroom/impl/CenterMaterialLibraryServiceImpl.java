@@ -23,6 +23,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Manages the center-wide material library, including search, classification,
+ * authorization, and persistence of URLs returned by object storage.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -32,6 +36,7 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
     private final CourseUnitContentRefRepository courseUnitContentRefRepository;
     private final ClassroomAccessHelper accessHelper;
 
+    /** Returns all materials ordered by most recently updated. */
     @Override
     @Transactional(readOnly = true)
     public List<CenterMaterialLibraryItemResponse> listForContentManager() {
@@ -40,6 +45,7 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
                 .toList();
     }
 
+    /** Searches and paginates materials using the Content Manager filters. */
     @Override
     @Transactional(readOnly = true)
     public Page<CenterMaterialLibraryItemResponse> pageForContentManager(
@@ -70,6 +76,7 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         return repository.findAll(specification, pageable).map(this::toResponse);
     }
 
+    /** Aggregates total, published, IELTS, and TOEIC material counts. */
     @Override
     @Transactional(readOnly = true)
     public Map<String, Long> getStats() {
@@ -81,12 +88,14 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         );
     }
 
+    /** Returns distinct material providers for the dynamic provider filter. */
     @Override
     @Transactional(readOnly = true)
     public List<String> listProviders() {
         return repository.findDistinctProviders();
     }
 
+    /** Adds an exact-match condition when the filter is present and is not ALL. */
     private Specification<CenterMaterialLibraryItem> addExactFilter(
             Specification<CenterMaterialLibraryItem> specification,
             String field,
@@ -97,6 +106,7 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
                 criteriaBuilder.equal(root.get(field), value.trim()));
     }
 
+    /** Authorizes and validates the request before creating a material with audit data. */
     @Override
     public CenterMaterialLibraryItemResponse create(CenterMaterialLibraryUpsertRequest request, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
@@ -111,6 +121,7 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         return toResponse(repository.save(item));
     }
 
+    /** Authorizes and validates the request before updating a material and its audit data. */
     @Override
     public CenterMaterialLibraryItemResponse update(Long materialId, CenterMaterialLibraryUpsertRequest request, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
@@ -123,6 +134,7 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         return toResponse(repository.save(item));
     }
 
+    /** Deletes a material only when no course unit currently references it. */
     @Override
     public void delete(Long materialId, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
@@ -141,6 +153,10 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         repository.delete(item);
     }
 
+    /**
+     * Maps request fields onto the entity. The public Cloudflare R2 URL is trimmed
+     * without transformation so the repository persists it directly to the database.
+     */
     private void applyRequest(CenterMaterialLibraryItem item, CenterMaterialLibraryUpsertRequest request, User actor) {
         item.setTitle(request.getTitle().trim());
         item.setDescription(normalize(request.getDescription()));
@@ -159,6 +175,7 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         item.setUpdatedBy(actor);
     }
 
+    /** Validates the required file URL and IELTS/TOEIC score-range ordering. */
     private void validateRequest(CenterMaterialLibraryUpsertRequest request) {
         if (!StringUtils.hasText(request.getFileUrl())) {
             throw new IllegalArgumentException("Cần cung cấp tệp hoặc liên kết học liệu.");
@@ -173,12 +190,14 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         }
     }
 
+    /** Restricts material-library mutations to users with classroom management access. */
     private void assertMaterialLibraryManagement(User actor) {
         if (!accessHelper.canManageClassroom(actor)) {
             throw new RuntimeException("Bạn không có quyền quản lý thư viện học liệu trung tâm.");
         }
     }
 
+    /** Maps a material entity to the complete management response. */
     private CenterMaterialLibraryItemResponse toResponse(CenterMaterialLibraryItem item) {
         return CenterMaterialLibraryItemResponse.builder()
                 .id(item.getId())
@@ -203,18 +222,22 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
                 .build();
     }
 
+    /** Trims an optional string or normalizes it to null. */
     private String normalize(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
 
+    /** Trims and uppercases an optional string or returns null. */
     private String upperOrNull(String value) {
         return StringUtils.hasText(value) ? value.trim().toUpperCase(Locale.ROOT) : null;
     }
 
+    /** Uppercases a value or uses the fallback when the input is blank. */
     private String upperOrDefault(String value, String fallback) {
         return StringUtils.hasText(value) ? value.trim().toUpperCase(Locale.ROOT) : fallback;
     }
 
+    /** Removes insignificant trailing zeros from an IELTS band before persistence. */
     private BigDecimal normalizeBand(BigDecimal value) {
         return value == null ? null : value.stripTrailingZeros();
     }

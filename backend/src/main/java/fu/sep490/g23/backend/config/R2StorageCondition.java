@@ -9,7 +9,10 @@ public class R2StorageCondition implements Condition {
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        Environment env = context.getEnvironment();
+        return isR2Enabled(context.getEnvironment());
+    }
+
+    static boolean isR2Enabled(Environment env) {
 
         // If local override is explicitly enabled, skip R2
         if (env.getProperty("englishlab.storage.local-enabled", Boolean.class, false)) {
