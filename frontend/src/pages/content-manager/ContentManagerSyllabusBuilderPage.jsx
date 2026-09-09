@@ -305,11 +305,12 @@ export default function ContentManagerInstructorLedCoursesPage() {
         curriculumApi.getAssessmentBank(),
         curriculumApi.getFlashcardSets(),
       ]);
+      const isPublished = (item) => String(item?.status || '').toUpperCase() === 'PUBLISHED';
       setBanks({
-        materials: asList(materials).filter((item) => item.status === 'PUBLISHED'),
-        exercises: asList(exercises).filter((item) => item.status === 'PUBLISHED'),
-        assessments: asList(assessments).filter((item) => item.status === 'PUBLISHED'),
-        flashcards: asList(flashcards).filter((item) => item.status === 'PUBLISHED'),
+        materials: asList(materials).filter(isPublished),
+        exercises: asList(exercises).filter(isPublished),
+        assessments: asList(assessments).filter(isPublished),
+        flashcards: asList(flashcards).filter(isPublished),
       });
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được các kho tài nguyên.');

@@ -278,7 +278,7 @@ function FlashcardBankPage({ editorRoute }) {
   const deferredKeyword = useDeferredValue(keyword);
   const resetKey = `${deferredKeyword}:${filters.examCategory}:${filters.skill}:${filters.status}`;
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
-    pageResult.content,
+    sets,
     8,
     resetKey,
     pageResult,
@@ -610,6 +610,7 @@ function FlashcardBankPage({ editorRoute }) {
       if (String(editingId) === String(set.id)) {
         setForm((current) => ({ ...current, status: 'ARCHIVED' }));
       }
+      await loadSets();
       setSuccess('Đã lưu trữ bộ flashcard.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không lưu trữ được bộ flashcard.');
@@ -637,6 +638,7 @@ function FlashcardBankPage({ editorRoute }) {
       if (String(editingId) === String(set.id)) {
         setForm(toForm(saved));
       }
+      await loadSets();
       setSuccess('Đã khôi phục bộ flashcard về bản nháp.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không khôi phục được bộ flashcard.');
@@ -653,6 +655,7 @@ function FlashcardBankPage({ editorRoute }) {
       const saved = await curriculumApi.updateFlashcardSet(set.id, { ...toForm(set), status: 'PUBLISHED' });
       setSets((current) => current.map((item) => (String(item.id) === String(saved.id) ? saved : item)));
       if (String(editingId) === String(saved.id)) setForm(toForm(saved));
+      await loadSets();
       setSuccess('Đã xuất bản bộ flashcard.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không xuất bản được bộ flashcard.');

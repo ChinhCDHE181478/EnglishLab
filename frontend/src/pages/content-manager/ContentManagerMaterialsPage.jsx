@@ -324,6 +324,7 @@ export default function ContentManagerMaterialsPage() {
       }));
       setItems((current) => current.map((row) => (String(row.id) === String(saved.id) ? saved : row)));
       if (String(editingId) === String(saved.id)) openEdit(saved);
+      await loadItems();
       setMessage(status === 'PUBLISHED' ? 'Đã xuất bản học liệu.' : 'Đã lưu trữ học liệu.');
     } catch (err) {
       setMessage(getClassroomErrorMessage(err, status === 'PUBLISHED' ? 'Không thể xuất bản học liệu.' : 'Không thể lưu trữ học liệu.'));

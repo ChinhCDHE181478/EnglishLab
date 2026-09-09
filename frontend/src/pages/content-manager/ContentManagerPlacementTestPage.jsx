@@ -3,14 +3,12 @@ import { BarChart3, CheckCircle2, Headphones, Layers3, LoaderCircle, RefreshCw, 
 import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import { ManagerFilterBar } from '../../components/content-manager/ManagerListUi';
-import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
-import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import { Panel } from '../../components/content-manager/ContentManagerUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 
 const RECENT_ATTEMPTS_PAGE_SIZE = 10;
 
 const TABS = [
-  { key: 'overview', label: 'Vận hành' },
   { key: 'monitoring', label: 'Kết quả' },
   { key: 'listening', label: 'Nghe', examTypes: ['IELTS', 'SKILL'] },
   { key: 'reading', label: 'Đọc', examTypes: ['IELTS', 'SKILL'] },
@@ -73,7 +71,7 @@ const parseConfig = (value, fallback = {}) => {
 export default function ContentManagerPlacementTestPage() {
   const [definition, setDefinition] = useState(null);
   const [activeExamType, setActiveExamType] = useState('IELTS');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('monitoring');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [monitoring, setMonitoring] = useState(null);
@@ -113,13 +111,13 @@ export default function ContentManagerPlacementTestPage() {
 
   useEffect(() => {
     if (!visibleTabs.some((tab) => tab.key === activeTab)) {
-      setActiveTab('overview');
+      setActiveTab('monitoring');
     }
   }, [activeTab, visibleTabs]);
 
   const selectExamType = (examType) => {
     setActiveExamType(examType);
-    setActiveTab('overview');
+    setActiveTab('monitoring');
     setError('');
     setNotice('');
     if (monitoringExamType !== examType) refreshMonitoring(examType);
@@ -235,11 +233,22 @@ export default function ContentManagerPlacementTestPage() {
           <div className="max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Hệ thống đánh giá đầu vào</p>
             <h1 className="mt-2 font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#0b1c30] sm:text-3xl">Ba dạng bài, ba mục tiêu đánh giá</h1>
-            <p className="mt-2 text-sm leading-relaxed text-[#8b706e]">Chọn dạng bài để biên soạn nội dung, cấu hình vận hành và theo dõi kết quả.</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#8b706e]">Chọn dạng bài để biên soạn nội dung và theo dõi kết quả.</p>
           </div>
-          <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
-            <Save aria-hidden="true" className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#dfbfbd] bg-white/85 px-4 py-3 text-sm font-bold text-[#4b0009]">
+              <input
+                checked={definition.status === 'PUBLISHED'}
+                className="h-4 w-4 accent-[#4b0009]"
+                onChange={(event) => updateDefinition('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')}
+                type="checkbox"
+              />
+              Cho phép học viên làm bài
+            </label>
+            <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
+              <Save aria-hidden="true" className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
+            </button>
+          </div>
         </div>
 
         <div aria-label="Chọn dạng bài đánh giá" className="mt-6 grid gap-3 lg:grid-cols-3" role="tablist">
@@ -286,7 +295,6 @@ export default function ContentManagerPlacementTestPage() {
       {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
       {notice ? <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> {notice}</div> : null}
 
-      {activeTab === 'overview' ? <Overview definition={definition} onChange={updateDefinition} /> : null}
       {activeTab === 'monitoring' ? (
         <Monitoring
           examType={activeExamType}
@@ -433,26 +441,6 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
 }
 
 function MonitorCard({ icon: Icon, label, value }) { return <Panel className="p-5"><div className="flex justify-between gap-3"><div><p className="text-sm text-[#584140]">{label}</p><p className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#4b0009]">{value}</p></div><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Icon className="h-5 w-5" /></span></div></Panel>; }
-
-function Overview({ definition, onChange }) {
-  return <Panel className="p-6"><div className="grid gap-4 lg:grid-cols-2">
-    <TextField label="Tên hệ thống đánh giá" onChange={(event) => onChange('title', event.target.value)} value={definition.title} />
-    <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Số lượt làm tối đa</span>
-      <input className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014] focus:bg-white" min="1" onChange={(event) => onChange('maxAttempts', Number(event.target.value || 1))} type="number" value={definition.maxAttempts || 1} />
-    </label>
-    <div className="lg:col-span-2">
-      <RichTextEditor
-        label="Mô tả"
-        onChange={(html) => onChange('description', html)}
-        placeholder="Mô tả bài đánh giá đầu vào..."
-        size="compact"
-        value={definition.description}
-      />
-    </div>
-  </div><label className="mt-5 flex min-h-12 items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.status === 'PUBLISHED'} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onChange('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
-  </Panel>;
-}
 
 function ToeicEditor({ config, onChangeSection, onReset }) {
   const [sectionTab, setSectionTab] = useState('listening');
