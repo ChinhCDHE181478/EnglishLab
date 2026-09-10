@@ -12,6 +12,7 @@ import fu.sep490.g23.backend.repository.payment.PaymentMonthlyRevenueProjection;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,7 @@ class PaymentServiceImplAnalyticsTest {
     @Mock private OnlineCourseService onlineCourseService;
     @Mock private ClassroomOfferingService classroomOfferingService;
     @Mock private PaymentReceiptPdfService paymentReceiptPdfService;
+    @Mock private StudentCommerceService studentCommerceService;
     @Mock private PaymentMonthlyRevenueProjection monthlyRevenue;
 
     private PaymentServiceImpl paymentService;
@@ -60,7 +62,8 @@ class PaymentServiceImplAnalyticsTest {
                 userRepository,
                 onlineCourseService,
                 classroomOfferingService,
-                paymentReceiptPdfService
+                paymentReceiptPdfService,
+                studentCommerceService
         );
     }
 

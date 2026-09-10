@@ -26,6 +26,7 @@ import lombok.Setter;
         name = "learning_path_courses",
         uniqueConstraints = @UniqueConstraint(columnNames = {"learning_path_id", "online_course_id"})
 )
+/** Join entity that stores a course and its position within a learning path. */
 public class LearningPathCourse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

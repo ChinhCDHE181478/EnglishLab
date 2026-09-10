@@ -22,6 +22,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -63,6 +64,22 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     public void removeFromCart(Long courseId, String studentEmail) {
         User student = requireStudent(studentEmail);
         courseListItemRepository.deleteByStudentAndOnlineCourseIdAndListType(student, courseId, CourseListType.CART);
+    }
+
+    @Override
+    public void removeCoursesFromCart(List<Long> courseIds, String studentEmail) {
+        if (courseIds == null || courseIds.isEmpty()) {
+            return;
+        }
+        User student = requireStudent(studentEmail);
+        List<Long> uniqueCourseIds = courseIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (!uniqueCourseIds.isEmpty()) {
+            courseListItemRepository.deleteByStudentAndOnlineCourseIdInAndListType(
+                    student,
+                    uniqueCourseIds,
+                    CourseListType.CART
+            );
+        }
     }
 
     @Override

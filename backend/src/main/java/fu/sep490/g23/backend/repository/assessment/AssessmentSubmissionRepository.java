@@ -47,4 +47,7 @@ public interface AssessmentSubmissionRepository extends JpaRepository<Assessment
               and submission.status in :completedStatuses
             """)
     long countCompletedAssessments(User student, OnlineCourse course, Set<SubmissionStatus> completedStatuses);
+
+    @Query("select s.submittedAudioUrl from AssessmentSubmission s where s.submittedAudioUrl is not null and s.submittedAudioUrl <> ''")
+    List<String> findAllNonEmptyAudioUrls();
 }

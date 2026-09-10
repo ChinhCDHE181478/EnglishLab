@@ -13,7 +13,6 @@ import fu.sep490.g23.backend.service.classroom.VirtualMeetingRecordingInfo;
 import fu.sep490.g23.backend.service.classroom.VirtualMeetingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -76,10 +75,7 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         return mapper.toManagerSessionResponse(classScheduleRepository.save(schedule));
     }
 
-    @Scheduled(
-            fixedDelayString = "${englishlab.google-meet.recording-sync-delay-ms:60000}",
-            initialDelayString = "${englishlab.google-meet.recording-sync-delay-ms:60000}"
-    )
+    @Override
     public void reconcilePendingRecordings() {
         if (!virtualMeetingService.isEnabled()) return;
         LocalDateTime retryBefore = LocalDateTime.now().minusSeconds(

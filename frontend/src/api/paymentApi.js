@@ -35,13 +35,15 @@ export const paymentApi = {
     return unwrapData(response);
   },
 
-  async getRevenueAnalytics() {
-    const response = await axiosClient.get('/api/content-manager/revenue/analytics');
-    return unwrapData(response);
+  async downloadReceipt(orderCode) {
+    const response = await axiosClient.get(`/api/student/payments/orders/${orderCode}/receipt`, {
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
-  async confirmPayosWebhook() {
-    const response = await axiosClient.post('/api/student/payments/payos/confirm-webhook');
+  async getRevenueAnalytics() {
+    const response = await axiosClient.get('/api/content-manager/revenue/analytics');
     return unwrapData(response);
   },
 };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import paymentApi from '../api/paymentApi';
@@ -24,6 +24,7 @@ const readClassroomTuitionReturn = () => {
 const CheckoutPage = () => {
   const location = useLocation();
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [submitError, setSubmitError] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [quote, setQuote] = useState(null);
@@ -116,7 +117,6 @@ const CheckoutPage = () => {
     }
 
     const orderCode = returnParams.get('orderCode');
-    const code = returnParams.get('code');
     const status = String(returnParams.get('status') || '').toUpperCase();
     const cancelled = isTruthyReturnValue(returnParams.get('cancel')) || status === 'CANCELLED';
 
@@ -197,7 +197,7 @@ const CheckoutPage = () => {
           checked: true,
           loading: false,
           status: 'ERROR',
-          paid: code === '00' && status === 'PAID',
+          paid: false,
           message: serverMessage || 'Không thể xác nhận trạng thái thanh toán. Vui lòng thử lại.',
           orderCode,
           classroomOfferingId: classroomTuitionReturn?.classroomId || null,
@@ -213,8 +213,9 @@ const CheckoutPage = () => {
   }, [checkoutCourses, classroomTuitionReturn, hasPaymentReturn, returnParams]);
 
   const handleConfirmPayment = async () => {
-    if (!selectedCourseIds.length || submitting) return;
+    if (!selectedCourseIds.length || submittingRef.current) return;
 
+    submittingRef.current = true;
     setSubmitting(true);
     setSubmitError('');
 
@@ -263,6 +264,7 @@ const CheckoutPage = () => {
         || error?.response?.data?.data?.message;
       setSubmitError(serverMessage || 'Chưa thể chuyển sang bước thanh toán. Vui lòng thử lại.');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

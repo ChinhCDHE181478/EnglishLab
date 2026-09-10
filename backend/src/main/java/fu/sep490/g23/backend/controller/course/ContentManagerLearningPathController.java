@@ -25,10 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/content-manager/learning-paths")
 @RequiredArgsConstructor
+/** Exposes Content Manager APIs for creating and organizing learning paths. */
 public class ContentManagerLearningPathController {
     private final LearningPathManagementService learningPathManagementService;
 
     @GetMapping
+    /** Returns paginated learning paths for the management screen. */
     public ResponseEntity<Page<LearningPathResponse>> getPaths(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
@@ -38,11 +40,13 @@ public class ContentManagerLearningPathController {
     }
 
     @PostMapping
+    /** Creates the metadata for a new learning path. */
     public ResponseEntity<LearningPathResponse> createPath(@Valid @RequestBody LearningPathRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(learningPathManagementService.createPath(request));
     }
 
     @PutMapping("/{pathId}")
+    /** Updates path metadata, target score, and discount policy. */
     public ResponseEntity<LearningPathResponse> updatePath(
             @PathVariable Long pathId,
             @Valid @RequestBody LearningPathRequest request
@@ -51,6 +55,7 @@ public class ContentManagerLearningPathController {
     }
 
     @PostMapping("/{pathId}/courses")
+    /** Appends courses that are not already part of the path. */
     public ResponseEntity<LearningPathResponse> addCourses(
             @PathVariable Long pathId,
             @Valid @RequestBody LearningPathCoursesRequest request
@@ -59,6 +64,7 @@ public class ContentManagerLearningPathController {
     }
 
     @PutMapping("/{pathId}/courses/order")
+    /** Persists the complete ordering of courses currently in the path. */
     public ResponseEntity<LearningPathResponse> reorderCourses(
             @PathVariable Long pathId,
             @Valid @RequestBody LearningPathCoursesRequest request
@@ -67,6 +73,7 @@ public class ContentManagerLearningPathController {
     }
 
     @DeleteMapping("/{pathId}")
+    /** Deletes the path without deleting referenced courses. */
     public ResponseEntity<Void> deletePath(@PathVariable Long pathId) {
         learningPathManagementService.deletePath(pathId);
         return ResponseEntity.noContent().build();

@@ -1,12 +1,12 @@
-package fu.sep490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.schedule_job.impl;
 
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
-import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentCleanupService;
 import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
+import fu.sep490.g23.backend.service.schedule_job.HomeworkAttachmentCleanupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

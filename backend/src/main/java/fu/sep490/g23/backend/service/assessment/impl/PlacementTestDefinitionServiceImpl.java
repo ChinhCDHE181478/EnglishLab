@@ -84,7 +84,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
     @Override
     @Transactional(readOnly = true)
     public PlacementTestMonitoringResponse getMonitoring(String examType) {
-        String normalizedExamType = "TOEIC".equalsIgnoreCase(String.valueOf(examType)) ? "TOEIC" : "IELTS";
+        String normalizedExamType = normalizeMonitoringExamType(examType);
         List<PlacementTestAttempt> allAttempts = attemptRepository.findByTestCodeOrderBySubmittedAtDesc(TEST_CODE);
         List<PlacementTestAttempt> attempts = allAttempts.stream()
                 .filter(attempt -> normalizedExamType.equals(resolveAttemptExamType(attempt)))
@@ -132,7 +132,14 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
 
     private String resolveAttemptExamType(PlacementTestAttempt attempt) {
         String feedback = String.valueOf(attempt.getAiFeedbackJson());
-        return feedback.contains("\"examType\":\"TOEIC\"") ? "TOEIC" : "IELTS";
+        if (feedback.contains("\"examType\":\"TOEIC\"")) return "TOEIC";
+        if (feedback.contains("\"examType\":\"SKILL\"")) return "SKILL";
+        return "IELTS";
+    }
+
+    private String normalizeMonitoringExamType(String value) {
+        String normalized = String.valueOf(value).trim().toUpperCase(java.util.Locale.ROOT);
+        return List.of("IELTS", "TOEIC", "SKILL").contains(normalized) ? normalized : "IELTS";
     }
 
     @Override

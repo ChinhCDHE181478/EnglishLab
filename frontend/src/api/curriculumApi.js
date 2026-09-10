@@ -10,11 +10,6 @@ export const curriculumApi = {
     return asList(unwrapData(response));
   },
 
-  async getInstructorLedCoursesPage(params = {}) {
-    const response = await axiosClient.get('/api/content-manager/curriculum-programs/page', { params });
-    return normalizePage(unwrapData(response));
-  },
-
   async getInstructorLedCourse(id) {
     const response = await axiosClient.get(`/api/content-manager/curriculum-programs/${id}`);
     return unwrapData(response);

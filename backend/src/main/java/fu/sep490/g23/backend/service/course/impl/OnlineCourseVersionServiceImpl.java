@@ -109,6 +109,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .build();
     }
 
+    /**
+     * Creates a new draft course version cloned from the latest published version.
+     */
     @Override
     public OnlineCourseVersionResponse createDraft(
             Long courseId,
@@ -156,6 +159,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         return toResponse(savedDraft, true);
     }
 
+    /**
+     * Publishes a draft course version and retires the previously active version.
+     */
     @Override
     public OnlineCourseVersionResponse publish(Long courseId, Long versionId, String actorEmail) {
         User publisher = requireEditor(actorEmail);
@@ -185,6 +191,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         return toResponse(version, true);
     }
 
+    /**
+     * Asserts that the course is in an editable draft state, preventing direct modification of published content.
+     */
     @Override
     public void assertEditableDraft(OnlineCourse course, String actorEmail) {
         if (actorEmail != null && !actorEmail.isBlank()) {
@@ -205,6 +214,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         throw new IllegalStateException("Khóa học đã xuất bản. Hãy tạo phiên bản nháp mới trước khi chỉnh sửa.");
     }
 
+    /**
+     * Retrieves the editable DRAFT version of the course or throws an exception.
+     */
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseVersion requireEditableVersion(OnlineCourse course) {
@@ -242,6 +254,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         return any;
     }
 
+    /**
+     * Synchronizes metadata totals (lessons, assessments) for the draft snapshot.
+     */
     @Override
     public void synchronizeDraftSnapshot(OnlineCourse course) {
         OnlineCourseVersion editableVersion = findEditableVersion(course).orElse(null);

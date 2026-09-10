@@ -357,8 +357,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .primaryTeacher(teacher)
                     .room(room)
                     .googleMeetOwner(virtualClass ? teacher : null)
-                    .googleMeetUrl(virtualClass ? "https://meet.google.com/englishlab-sheet-" + slug : null)
-                    .googleMeetStatus(virtualClass ? GoogleMeetStatus.READY : GoogleMeetStatus.NOT_CREATED)
+                    .googleMeetUrl(null)
+                    .googleMeetStatus(GoogleMeetStatus.NOT_CREATED)
                     .build();
             return offeringRepository.save(offering);
         });

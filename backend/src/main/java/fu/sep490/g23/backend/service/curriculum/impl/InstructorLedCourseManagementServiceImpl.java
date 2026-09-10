@@ -68,6 +68,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Handles instructor-led course management, including units, lessons, and the
+ * learning resources attached to each unit.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -100,6 +104,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     private final ClassroomAccessHelper accessHelper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /** Lists courses by most recent update without loading detailed unit structures. */
     @Override
     @Transactional(readOnly = true)
     public List<InstructorLedCourseResponse> listPrograms() {
@@ -107,6 +112,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return programs.stream().map(program -> toProgramResponse(program, false)).toList();
     }
 
+    /** Filters and paginates courses by keyword, exam, entry level, and status. */
     @Override
     @Transactional(readOnly = true)
     public Page<InstructorLedCourseResponse> pagePrograms(
@@ -142,12 +148,16 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .map(program -> toProgramResponse(program, false));
     }
 
+    /** Returns course details with all units, lessons, and linked resources. */
     @Override
     @Transactional(readOnly = true)
     public InstructorLedCourseResponse getProgram(Long id) {
         return toProgramResponse(findProgram(id), true);
     }
 
+    /**
+     * Creates a new instructor-led course in DRAFT status with a unique course code.
+     */
     @Override
     public InstructorLedCourseResponse createProgram(InstructorLedCourseRequest request) {
         String code = resolveNewProgramCode(request);
@@ -165,12 +175,17 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .publicationStatus(parsePublicationStatus(request.getStatus()))
                 .build();
         applyEnglishProfile(program, request);
+
+        // Disallow publishing new courses without units and lessons
         if (program.getPublicationStatus() == PackageStatus.PUBLISHED) {
             throw new RuntimeException("Giáo trình mới tạo chưa có Unit và buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
         }
         return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
+    /**
+     * Updates an existing instructor-led course metadata and publication status.
+     */
     @Override
     public InstructorLedCourseResponse updateProgram(Long id, InstructorLedCourseRequest request) {
         InstructorLedCourse program = findProgram(id);
@@ -182,7 +197,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
         program.setTitle(requireText(request.getTitle(), "Tên giáo trình không được để trống."));
         program.setCode(code);
-        program.setShortDescription(trimOrNull(request.getShortDescription()));
+        program.setShortDescription(trimOrNull(request.getShortDescription())) ;
         program.setDescription(trimOrNull(request.getDescription()));
         program.setDurationLabel(trimOrNull(request.getDurationLabel()));
         program.setLevel(trimOrNull(request.getLevel()));
@@ -195,6 +210,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
         PackageStatus previousStatus = program.getPublicationStatus();
         PackageStatus nextStatus = parsePublicationStatus(request.getStatus());
+
+        // Validate course readiness before publishing
         if (nextStatus == PackageStatus.PUBLISHED && previousStatus != PackageStatus.PUBLISHED) {
             validateReadyForPublish(program);
         }
@@ -202,6 +219,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
+    /** Archives a course when no active classroom is using it. */
     @Override
     public void archiveProgram(Long id) {
         InstructorLedCourse program = findProgram(id);
@@ -215,6 +233,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         saveAndSyncProgram(program);
     }
 
+    /** Clones a course, its units, lessons, and resource links into a new draft. */
     @Override
     public InstructorLedCourseResponse cloneProgram(Long id) {
         InstructorLedCourse source = findProgram(id);
@@ -263,6 +282,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toProgramResponse(saved, true);
     }
 
+    /** Validates course readiness and publishes it under the acting user. */
     @Override
     public InstructorLedCourseResponse publishProgram(Long id, String actorEmail) {
         InstructorLedCourse program = findProgram(id);
@@ -281,6 +301,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toProgramResponse(program, true);
     }
 
+    /**
+     * Creates a new course unit in the instructor-led course.
+     */
     @Override
     public CourseUnitResponse createUnit(Long programId, CourseUnitRequest request) {
         InstructorLedCourse program = findProgram(programId);
@@ -296,6 +319,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(saved);
     }
 
+    /**
+     * Updates an existing course unit.
+     */
     @Override
     public CourseUnitResponse updateUnit(Long unitId, CourseUnitRequest request) {
         CourseUnit unit = findUnit(unitId);
@@ -307,6 +333,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(saved);
     }
 
+    /**
+     * Deletes a course unit and synchronizes total sessions count.
+     */
     @Override
     public void deleteUnit(Long unitId) {
         CourseUnit unit = findUnit(unitId);
@@ -316,6 +345,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         synchronizeTotalSessions(program);
     }
 
+    /**
+     * Creates a new lesson/session plan under a specified course unit.
+     */
     @Override
     public CourseLessonResponse createSessionPlan(
             Long unitId,
@@ -337,6 +369,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toSessionPlanResponse(sessionPlan);
     }
 
+    /**
+     * Updates an existing lesson/session plan.
+     */
     @Override
     public CourseLessonResponse updateSessionPlan(
             Long sessionPlanId,
@@ -358,6 +393,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toSessionPlanResponse(sessionPlan);
     }
 
+    /**
+     * Deletes a lesson/session plan and recalculates course totals.
+     */
     @Override
     public void deleteSessionPlan(Long sessionPlanId) {
         CourseLesson sessionPlan = findSessionPlan(sessionPlanId);
@@ -367,11 +405,13 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         synchronizeTotalSessions(program);
     }
 
+    /** Attaches a published material to a unit while preventing duplicate links. */
     @Override
     public CourseUnitResponse attachMaterial(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
         CenterMaterialLibraryItem material = materialRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trong kho."));
+        requirePublishedResource(material.getStatus(), "Học liệu");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndLearningResourceId(
                 unitId, CourseUnitContentType.MATERIAL, material.getId())) {
             throw new IllegalArgumentException("Học liệu này đã tồn tại trong Unit.");
@@ -385,12 +425,16 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(findUnit(unitId));
     }
 
+    /**
+     * Attaches a practice exercise from the Content Bank to a course unit.
+     */
     @Override
     public CourseUnitResponse attachExercise(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
         Long resolvedId = request.getResourceId();
         ContentBankItem exercise = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.EXERCISE)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
+        requirePublishedResource(exercise.getStatus(), "Bài tập");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.EXERCISE, exercise.getId())) {
             throw new IllegalArgumentException("Bài tập này đã tồn tại trong Unit.");
@@ -404,12 +448,16 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(findUnit(unitId));
     }
 
+    /**
+     * Attaches an assessment item from the Content Bank to a course unit.
+     */
     @Override
     public CourseUnitResponse attachAssessment(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
         Long resolvedId = request.getResourceId();
         ContentBankItem assessment = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.ASSESSMENT)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
+        requirePublishedResource(assessment.getStatus(), "Đề đánh giá");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.ASSESSMENT, assessment.getId())) {
             throw new IllegalArgumentException("Đề đánh giá này đã tồn tại trong Unit.");
@@ -423,12 +471,16 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(findUnit(unitId));
     }
 
+    /**
+     * Attaches a flashcard set from the Content Bank to a course unit.
+     */
     @Override
     public CourseUnitResponse attachFlashcard(Long unitId, CourseUnitContentRefRequest request) {
         CourseUnit unit = findUnit(unitId);
         Long resolvedId = request.getResourceId();
         ContentBankItem flashcardSet = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.FLASHCARD)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
+        requirePublishedResource(flashcardSet.getStatus(), "Bộ flashcard");
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.FLASHCARD, flashcardSet.getId())) {
             throw new IllegalArgumentException("Bộ flashcard này đã tồn tại trong Unit.");
@@ -442,6 +494,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toUnitResponse(findUnit(unitId));
     }
 
+    /** Detaches a unit resource by reference type and reference ID. */
     @Override
     public void detachReference(String type, Long referenceId) {
         CourseUnitContentRef ref = contentRefRepository.findById(referenceId)
@@ -452,6 +505,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         contentRefRepository.delete(ref);
     }
 
+    /** Lists assessment-bank items by skill and assessment type. */
     @Override
     @Transactional(readOnly = true)
     public List<AssessmentBankItemResponse> listAssessmentBank(AssessmentSkill skill, AssessmentType type) {
@@ -466,6 +520,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return items.stream().map(this::toAssessmentResponse).toList();
     }
 
+    /** Filters and paginates assessment-bank items for content management. */
     @Override
     @Transactional(readOnly = true)
     public Page<AssessmentBankItemResponse> pageAssessmentBank(
@@ -496,6 +551,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .map(this::toAssessmentResponse);
     }
 
+    /** Aggregates assessment counts by status after applying the current filters. */
     @Override
     @Transactional(readOnly = true)
     public Map<String, Long> getAssessmentBankStats(AssessmentSkill skill, AssessmentType type) {
@@ -511,12 +567,14 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         );
     }
 
+    /** Returns one assessment-bank item by ID. */
     @Override
     @Transactional(readOnly = true)
     public AssessmentBankItemResponse getAssessmentBankItem(Long id) {
         return toAssessmentResponse(findAssessment(id));
     }
 
+    /** Lists published mock tests available to learners. */
     @Override
     @Transactional(readOnly = true)
     public List<AssessmentBankItemResponse> listPublishedMockTests() {
@@ -530,6 +588,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .toList();
     }
 
+    /** Returns a published mock test and rejects non-public content. */
     @Override
     @Transactional(readOnly = true)
     public AssessmentBankItemResponse getPublishedMockTest(Long id) {
@@ -539,6 +598,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toAssessmentResponse(item);
     }
 
+    /** Validates and creates an assessment-bank item. */
     @Override
     public AssessmentBankItemResponse createAssessmentBankItem(AssessmentBankItemRequest request) {
         validateAssessmentBankRequest(request);
@@ -561,6 +621,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
 
+    /** Updates an assessment item, its grading configuration, and rubric. */
     @Override
     public AssessmentBankItemResponse updateAssessmentBankItem(Long id, AssessmentBankItemRequest request) {
         validateAssessmentBankRequest(request);
@@ -582,6 +643,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
 
+    /** Archives an assessment item instead of deleting it physically. */
     @Override
     public void archiveAssessmentBankItem(Long id) {
         AssessmentBankItem item = findAssessment(id);
@@ -589,6 +651,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         assessmentBankRepository.save(item);
     }
 
+    /** Lists flashcard sets by most recent update. */
     @Override
     @Transactional(readOnly = true)
     public List<FlashcardSetResponse> listFlashcardSets() {
@@ -598,6 +661,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .toList();
     }
 
+    /** Filters and paginates flashcard sets by keyword, exam, skill, and status. */
     @Override
     @Transactional(readOnly = true)
     public Page<FlashcardSetResponse> pageFlashcardSets(
@@ -632,6 +696,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return flashcardSetRepository.findAll(specification, pageable).map(this::toFlashcardSetResponse);
     }
 
+    /** Aggregates set and card counts after applying the current filters. */
     @Override
     @Transactional(readOnly = true)
     public Map<String, Long> getFlashcardSetStats(String examCategory, String skill) {
@@ -648,6 +713,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         );
     }
 
+    /** Counts cards from JSON and returns zero when legacy data cannot be parsed. */
     private long countFlashcards(String cardsJson) {
         if (!StringUtils.hasText(cardsJson)) {
             return 0;
@@ -660,12 +726,14 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Returns one flashcard set by ID. */
     @Override
     @Transactional(readOnly = true)
     public FlashcardSetResponse getFlashcardSet(Long id) {
         return toFlashcardSetResponse(findFlashcardSet(id));
     }
 
+    /** Creates a flashcard set after normalizing its input. */
     @Override
     public FlashcardSetResponse createFlashcardSet(FlashcardSetRequest request) {
         FlashcardSet set = FlashcardSet.builder()
@@ -680,6 +748,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toFlashcardSetResponse(flashcardSetRepository.save(set));
     }
 
+    /** Updates flashcard content and classification metadata. */
     @Override
     public FlashcardSetResponse updateFlashcardSet(Long id, FlashcardSetRequest request) {
         FlashcardSet set = findFlashcardSet(id);
@@ -693,6 +762,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return toFlashcardSetResponse(flashcardSetRepository.save(set));
     }
 
+    /** Archives a flashcard set instead of deleting it physically. */
     @Override
     public void archiveFlashcardSet(Long id) {
         FlashcardSet set = findFlashcardSet(id);
@@ -700,36 +770,43 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         flashcardSetRepository.save(set);
     }
 
+    /** Synchronizes derived values before persisting a course. */
     private InstructorLedCourse saveAndSyncProgram(InstructorLedCourse program) {
         InstructorLedCourse saved = programRepository.save(program);
         return saved;
     }
 
+    /** Finds a course or raises a domain-friendly error. */
     private InstructorLedCourse findProgram(Long id) {
         return programRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo trình."));
     }
 
+    /** Finds a unit by ID or stops when it does not exist. */
     private CourseUnit findUnit(Long id) {
         return unitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Unit trong giáo trình."));
     }
 
+    /** Finds a lesson by ID or stops when it does not exist. */
     private CourseLesson findSessionPlan(Long id) {
         return sessionPlanRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong giáo trình."));
     }
 
+    /** Finds an assessment-bank item by ID. */
     private AssessmentBankItem findAssessment(Long id) {
         return assessmentBankRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
     }
 
+    /** Finds a flashcard set by ID. */
     private FlashcardSet findFlashcardSet(Long id) {
         return flashcardSetRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
     }
 
+    /** Maps a course to a response and includes units only for detail views. */
     private InstructorLedCourseResponse toProgramResponse(InstructorLedCourse program, boolean includeUnits) {
         return InstructorLedCourseResponse.builder()
                 .id(program.getId())
@@ -768,10 +845,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .build();
     }
 
+    /** Describes classrooms using the course for archive-safety checks. */
     private List<InstructorLedCourseResponse.ClassroomUsage> toClassroomUsages(InstructorLedCourse program) {
         return List.of();
     }
 
+    /** Validates the English profile, lesson structure, and assessments before publication. */
     private void validateReadyForPublish(InstructorLedCourse program) {
         if (("IELTS".equals(program.getExamType()) || "TOEIC".equals(program.getExamType()))
                 && program.getEntryPlacementLevel() == null) {
@@ -803,6 +882,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         validateFocusedSkillAssessments(program);
     }
 
+    /** Ensures unit and lesson ordering is valid and contains no duplicates. */
     private void validateStructuredLessons(InstructorLedCourse program) {
         List<CourseLesson> courseLessons = program.getUnits().stream()
                 .flatMap(unit -> unit.getLessons().stream())
@@ -846,6 +926,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     }
 
+    /** Validates required lesson fields and numeric limits. */
     private void validateSessionPlanRequest(CourseLessonRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu bài học không được để trống.");
@@ -862,6 +943,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         requireText(request.getTitle(), "Tiêu đề bài học không được để trống.");
     }
 
+    /** Prevents lessons in the same course from sharing a session number. */
     private void assertSessionNumberAvailable(Long programId, Integer sessionNumber, Long excludeId) {
         if (sessionPlanRepository.existsDuplicateSequenceNumber(programId, sessionNumber, excludeId)) {
             throw new IllegalArgumentException(
@@ -870,10 +952,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Keeps the synchronization hook even though totals are currently derived from lessons. */
     private void synchronizeTotalSessions(InstructorLedCourse program) {
         // Session count is derived from CourseLesson and is not persisted on the course aggregate.
     }
 
+    /** Sums planned sessions across every lesson in the course. */
     private int resolveTotalSessions(InstructorLedCourse program) {
         if (program != null && program.getUnits() != null) {
             return program.getUnits().stream()
@@ -885,6 +969,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return 0;
     }
 
+    /** Counts all lessons across the course units. */
     private int resolveTotalLessons(InstructorLedCourse program) {
         if (program != null && program.getUnits() != null) {
             return program.getUnits().stream()
@@ -895,6 +980,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return 0;
     }
 
+    /**
+     * Applies and validates standardized English exam profile (IELTS, TOEIC, General English).
+     */
     private void applyEnglishProfile(InstructorLedCourse program, InstructorLedCourseRequest request) {
         String examCategory = normalizeExamCategory(request.getExamCategory());
         String focusSkills = normalizeFocusSkills(request.getFocusSkills());
@@ -913,6 +1001,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         program.setEntryPlacementLevel(request.getEntryPlacementLevel());
     }
 
+    /** Normalizes and validates the supported exam category. */
     private String normalizeExamCategory(String value) {
         String normalized = defaultText(value, "IELTS").trim().toUpperCase(Locale.ROOT);
         if ("GENERAL".equals(normalized) || "COMMUNICATION".equals(normalized) || "FOUNDATION".equals(normalized)) {
@@ -924,6 +1013,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return normalized;
     }
 
+    /** Normalizes focus skills, removes duplicates, and preserves domain ordering. */
     private String normalizeFocusSkills(String value) {
         LinkedHashSet<String> selected = new LinkedHashSet<>();
         if (StringUtils.hasText(value)) {
@@ -941,6 +1031,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return SKILL_ORDER.stream().filter(selected::contains).collect(java.util.stream.Collectors.joining(","));
     }
 
+    /** Validates entry and target levels against the selected exam scale. */
     private void validateEnglishProfile(
             String examCategory,
             String focusSkills,
@@ -989,6 +1080,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Parses an IELTS band and validates its range immediately. */
     private BigDecimal parseBand(String value, String label) {
         try {
             BigDecimal band = new BigDecimal(value.trim());
@@ -999,6 +1091,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Ensures an IELTS band is between 0 and 9 in 0.5 increments. */
     private void validateBand(BigDecimal band, String label) {
         if (band.compareTo(BigDecimal.ZERO) < 0
                 || band.compareTo(BigDecimal.valueOf(9)) > 0
@@ -1007,6 +1100,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Parses a TOEIC score between 10 and 990 in increments of 5. */
     private int parseToeicScore(String value, String label) {
         try {
             int score = Integer.parseInt(value.trim());
@@ -1019,10 +1113,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Converts an exam code into a user-friendly label. */
     private String examCategoryLabel(String examCategory) {
         return "GENERAL_ENGLISH".equals(examCategory) ? "General English" : examCategory;
     }
 
+    /** Ensures IELTS and TOEIC courses assess every configured focus skill. */
     private void validateFocusedSkillAssessments(InstructorLedCourse program) {
         if ("GENERAL_ENGLISH".equals(program.getExamType())) {
             return;
@@ -1053,6 +1149,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Converts a skill enum into a label used in validation messages. */
     private String skillLabel(AssessmentSkill skill) {
         return switch (skill) {
             case LISTENING -> "Listening";
@@ -1065,6 +1162,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         };
     }
 
+    /** Converts a publication status into its Vietnamese UI label. */
     private String programStatusLabel(String status) {
         if (!StringUtils.hasText(status)) {
             return null;
@@ -1079,6 +1177,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         };
     }
 
+    /** Normalizes legacy status values into the current publication enum. */
     private PackageStatus parsePublicationStatus(String status) {
         String normalized = defaultText(status, "DRAFT").trim().toUpperCase(Locale.ROOT);
         return switch (normalized) {
@@ -1088,6 +1187,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         };
     }
 
+    /** Converts a classroom offering status into its Vietnamese UI label. */
     private String offeringStatusLabel(ClassroomOfferingStatus status) {
         if (status == null) {
             return null;
@@ -1102,10 +1202,14 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         };
     }
 
+    /** Integration point for classroom usage checks; currently returns zero until a query is connected. */
     private long countActiveClassrooms(InstructorLedCourse program) {
         return 0L;
     }
 
+    /**
+     * Resolves course code from request or generates a unique slug based on title.
+     */
     private String resolveNewProgramCode(InstructorLedCourseRequest request) {
         if (StringUtils.hasText(request.getCode())) {
             String requestedCode = normalizeProgramCode(request.getCode());
@@ -1117,6 +1221,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return uniqueCode(makeProgramCode(request.getTitle()));
     }
 
+    /**
+     * Generates a slugified uppercase code prefixed with ILC-.
+     */
     private String makeProgramCode(String title) {
         String normalizedTitle = Normalizer.normalize(defaultText(title, "CURRICULUM"), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
@@ -1128,6 +1235,9 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return normalizeProgramCode("ILC-" + defaultText(normalizedTitle, "COURSE"));
     }
 
+    /**
+     * Trims and normalizes course code within length limits.
+     */
     private String normalizeProgramCode(String sourceCode) {
         String normalized = sourceCode.trim().toUpperCase(Locale.ROOT);
         return normalized.length() <= PROGRAM_CODE_MAX_LENGTH
@@ -1135,10 +1245,14 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 : normalized.substring(0, PROGRAM_CODE_MAX_LENGTH);
     }
 
+    /** Creates a unique copy code from the source course code. */
     private String uniqueProgramCode(String sourceCode) {
         return uniqueCode(sourceCode + "-COPY");
     }
 
+    /**
+     * Ensures code uniqueness by appending incremental numerical suffixes if duplicated.
+     */
     private String uniqueCode(String sourceCode) {
         String base = normalizeProgramCode(sourceCode);
         String code = base;
@@ -1151,6 +1265,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return code;
     }
 
+    /** Maps a unit with its lessons and four resource groups for the editor. */
     private CourseUnitResponse toUnitResponse(CourseUnit unit) {
         List<CourseUnitContentRef> refs = unit.getContentRefs() == null ? List.of() : unit.getContentRefs();
         return CourseUnitResponse.builder()
@@ -1174,6 +1289,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .build();
     }
 
+    /** Maps a lesson and includes its unit and course context. */
     private CourseLessonResponse toSessionPlanResponse(CourseLesson sessionPlan) {
         CourseUnit unit = sessionPlan.getCourseUnit();
         return CourseLessonResponse.builder()
@@ -1192,6 +1308,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .build();
     }
 
+    /** Filters unit references by type and maps them to responses. */
     private List<CourseUnitContentRefResponse> toContentRefResponses(
             List<CourseUnitContentRef> refs,
             CourseUnitContentType type
@@ -1202,6 +1319,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .toList();
     }
 
+    /** Normalizes materials and bank items into one resource-reference response. */
     private CourseUnitContentRefResponse toContentRefResponse(CourseUnitContentRef ref) {
         CenterMaterialLibraryItem material = ref.getLearningResource();
         ContentBankItem item = ref.getContentBankItem();
@@ -1219,6 +1337,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .build();
     }
 
+    /** Maps an assessment-bank item and its grading configuration. */
     private AssessmentBankItemResponse toAssessmentResponse(AssessmentBankItem item) {
         return AssessmentBankItemResponse.builder()
                 .id(item.getId())
@@ -1240,6 +1359,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .build();
     }
 
+    /** Maps a rubric and its criteria, allowing assessments without a rubric. */
     private AssessmentRubricResponse toRubricResponse(AssessmentRubric rubric) {
         if (rubric == null) {
             return null;
@@ -1266,6 +1386,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .build();
     }
 
+    /** Maps a flashcard-set entity to its management response. */
     private FlashcardSetResponse toFlashcardSetResponse(FlashcardSet set) {
         return FlashcardSetResponse.builder()
                 .id(set.getId())
@@ -1281,6 +1402,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .build();
     }
 
+    /** Validates answers, test configuration, and skill-specific AI grading requirements. */
     private void validateAssessmentBankRequest(AssessmentBankItemRequest request) {
         if ((request.getSkill() == AssessmentSkill.LISTENING || request.getSkill() == AssessmentSkill.READING)
                 && !StringUtils.hasText(request.getObjectiveAnswerKey())) {
@@ -1301,6 +1423,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Selects a skill-appropriate default AI mode when none is requested. */
     private AiEvaluationMode resolveAiEvaluationMode(AssessmentBankItemRequest request) {
         if (request.getAiEvaluationMode() != null) return request.getAiEvaluationMode();
         return request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING
@@ -1308,6 +1431,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 : AiEvaluationMode.EXPLAIN_ONLY;
     }
 
+    /** Resolves a published rubric and verifies that it matches the assessment skill. */
     private AssessmentRubric resolveAssessmentRubric(Long rubricId, AssessmentSkill skill) {
         if (rubricId == null) {
             return null;
@@ -1315,18 +1439,20 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         AssessmentRubric rubric = assessmentRubricRepository.findById(rubricId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy rubric."));
         if (!"PUBLISHED".equalsIgnoreCase(rubric.getStatus())) {
-            throw new RuntimeException("Rubric đã tạm ngưng.");
+            throw new RuntimeException("Bộ tiêu chí đã tạm ngưng.");
         }
         if (rubric.getSkill() != null && rubric.getSkill() != skill && rubric.getSkill() != AssessmentSkill.MIXED) {
-            throw new RuntimeException("Rubric không phù hợp với kỹ năng của nội dung.");
+            throw new RuntimeException("Bộ tiêu chí không phù hợp với kỹ năng của nội dung.");
         }
         return rubric;
     }
 
+    /** Normalizes a unit-reference type for detach routing. */
     private String normalizeRefType(String type) {
         return StringUtils.hasText(type) ? type.trim().toUpperCase(Locale.ROOT) : "";
     }
 
+    /** Requires non-blank text and removes surrounding whitespace. */
     private String requireText(String value, String message) {
         if (!StringUtils.hasText(value)) {
             throw new RuntimeException(message);
@@ -1334,14 +1460,24 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         return value.trim();
     }
 
+    /** Uses a fallback when the input text is blank. */
     private String defaultText(String value, String fallback) {
         return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 
+    /** Allows only published resources to be attached to a unit. */
+    private void requirePublishedResource(String status, String resourceLabel) {
+        if (!"PUBLISHED".equalsIgnoreCase(status)) {
+            throw new IllegalArgumentException(resourceLabel + " phải được xuất bản trước khi gắn vào khóa học.");
+        }
+    }
+
+    /** Trims optional text or normalizes it to null. */
     private String trimOrNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
 
+    /** Serializes content configuration and converts JSON failures into domain errors. */
     private String toJson(Map<String, Object> value) {
         try {
             return objectMapper.writeValueAsString(value == null ? Map.of() : value);
@@ -1350,10 +1486,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         }
     }
 
+    /** Trims and uppercases optional text or returns null. */
     private String trimUpperOrNull(String value) {
         return StringUtils.hasText(value) ? value.trim().toUpperCase(Locale.ROOT) : null;
     }
 
+    /** Normalizes a nullable integer to zero. */
     private int defaultInt(Integer value) {
         return value == null ? 0 : value;
     }

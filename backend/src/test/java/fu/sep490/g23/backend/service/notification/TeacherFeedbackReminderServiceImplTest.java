@@ -2,7 +2,7 @@ package fu.sep490.g23.backend.service.notification;
 
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
-import fu.sep490.g23.backend.service.notification.impl.TeacherFeedbackReminderServiceImpl;
+import fu.sep490.g23.backend.service.schedule_job.impl.TeacherFeedbackReminderServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

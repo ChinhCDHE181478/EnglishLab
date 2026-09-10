@@ -22,4 +22,10 @@ public interface CourseListItemRepository extends JpaRepository<CourseListItem, 
             Long onlineCourseId,
             CourseListType listType
     );
+
+    void deleteByStudentAndOnlineCourseIdInAndListType(
+            User student,
+            List<Long> onlineCourseIds,
+            CourseListType listType
+    );
 }

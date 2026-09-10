@@ -1,25 +1,47 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, BookOpen, CheckCircle2, Headphones, LoaderCircle, Mic2, NotebookPen, RefreshCw, Save, Users } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { BarChart3, CheckCircle2, Headphones, Layers3, LoaderCircle, RefreshCw, Save, Target, Users } from 'lucide-react';
 import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
-import { ManagerFilterBar, ManagerStatsGrid } from '../../components/content-manager/ManagerListUi';
-import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
-import RichTextEditor from '../../components/content-manager/RichTextEditor';
-import BrandedSelect from '../../components/ui/BrandedSelect';
+import { ManagerFilterBar } from '../../components/content-manager/ManagerListUi';
+import { Panel } from '../../components/content-manager/ContentManagerUi';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
+
+const RECENT_ATTEMPTS_PAGE_SIZE = 10;
 
 const TABS = [
-  { key: 'overview', label: 'Thiết lập chung' },
-  { key: 'monitoring', label: 'Theo dõi kết quả' },
-  { key: 'listening', label: 'Nghe', examTypes: ['IELTS'] },
-  { key: 'reading', label: 'Đọc', examTypes: ['IELTS'] },
-  { key: 'writing', label: 'Viết', examTypes: ['IELTS'] },
-  { key: 'speaking', label: 'Nói', examTypes: ['IELTS'] },
-  { key: 'toeic', label: 'TOEIC', examTypes: ['TOEIC'] },
+  { key: 'monitoring', label: 'Kết quả' },
+  { key: 'listening', label: 'Nghe', examTypes: ['IELTS', 'SKILL'] },
+  { key: 'reading', label: 'Đọc', examTypes: ['IELTS', 'SKILL'] },
+  { key: 'writing', label: 'Viết', examTypes: ['IELTS', 'SKILL'] },
+  { key: 'speaking', label: 'Nói', examTypes: ['IELTS', 'SKILL'] },
+  { key: 'toeic', label: 'Đề TOEIC', examTypes: ['TOEIC'] },
 ];
 
-const examTypeOptions = [
-  { label: 'IELTS 4 kỹ năng', value: 'IELTS' },
-  { label: 'TOEIC Listening & Reading', value: 'TOEIC' },
+const TEST_TYPES = [
+  {
+    key: 'IELTS',
+    label: 'IELTS Placement',
+    summary: 'Đánh giá đầy đủ Listening, Reading, Writing và Speaking.',
+    icon: Layers3,
+    accent: 'border-[#8a0018] bg-[#fff7f7] text-[#730014]',
+    badge: '4 kỹ năng',
+  },
+  {
+    key: 'TOEIC',
+    label: 'TOEIC Placement',
+    summary: 'Listening và Reading theo cấu trúc 7 part, chấm theo đáp án.',
+    icon: Headphones,
+    accent: 'border-[#21446d] bg-[#f5f9ff] text-[#21446d]',
+    badge: '2 phần · 7 part',
+  },
+  {
+    key: 'SKILL',
+    label: 'Đánh giá kỹ năng',
+    summary: 'Học viên tự chọn một hoặc nhiều kỹ năng cần kiểm tra.',
+    icon: Target,
+    accent: 'border-[#63368f] bg-[#faf7ff] text-[#63368f]',
+    badge: 'Chọn từng kỹ năng',
+  },
 ];
 
 const TOEIC_PARTS = [
@@ -48,7 +70,8 @@ const parseConfig = (value, fallback = {}) => {
 
 export default function ContentManagerPlacementTestPage() {
   const [definition, setDefinition] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeExamType, setActiveExamType] = useState('IELTS');
+  const [activeTab, setActiveTab] = useState('monitoring');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [monitoring, setMonitoring] = useState(null);
@@ -56,6 +79,7 @@ export default function ContentManagerPlacementTestPage() {
   const [monitoringExamType, setMonitoringExamType] = useState('IELTS');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const monitoringRequestRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -82,40 +106,22 @@ export default function ContentManagerPlacementTestPage() {
   }, []);
 
   const visibleTabs = useMemo(() => {
-    const examType = definition?.examType || 'IELTS';
-    return TABS.filter((tab) => !tab.examTypes || tab.examTypes.includes(examType));
-  }, [definition?.examType]);
+    return TABS.filter((tab) => !tab.examTypes || tab.examTypes.includes(activeExamType));
+  }, [activeExamType]);
 
   useEffect(() => {
     if (!visibleTabs.some((tab) => tab.key === activeTab)) {
-      setActiveTab('overview');
+      setActiveTab('monitoring');
     }
   }, [activeTab, visibleTabs]);
 
-  const questionCounts = useMemo(() => ({
-    listening: countQuestions(definition?.listening),
-    reading: countQuestions(definition?.reading),
-    writing: definition?.writing?.tasks?.length || 0,
-    speaking: countSpeakingPrompts(definition?.speaking),
-    toeicListening: countQuestions(definition?.toeic?.listening),
-    toeicReading: countQuestions(definition?.toeic?.reading),
-  }), [definition]);
-  const isToeicExam = (definition?.examType || 'IELTS') === 'TOEIC';
-  const statItems = useMemo(() => (
-    isToeicExam
-      ? [
-        { label: 'Câu Listening', value: questionCounts.toeicListening, icon: Headphones, tone: 'text-[#4b0009]' },
-        { label: 'Câu Reading', value: questionCounts.toeicReading, icon: BookOpen, tone: 'text-[#005236]' },
-        { label: 'Part TOEIC', value: 7, icon: NotebookPen, tone: 'text-amber-700' },
-        { label: 'Đáp án', value: Object.keys(definition?.toeic?.answerKey || {}).length, icon: Mic2, tone: 'text-emerald-700' },
-      ]
-      : [
-        { label: 'Câu nghe', value: questionCounts.listening, icon: Headphones, tone: 'text-[#4b0009]' },
-        { label: 'Câu đọc', value: questionCounts.reading, icon: BookOpen, tone: 'text-[#005236]' },
-        { label: 'Task viết', value: questionCounts.writing, icon: NotebookPen, tone: 'text-amber-700' },
-        { label: 'Prompt nói', value: questionCounts.speaking, icon: Mic2, tone: 'text-emerald-700' },
-      ]
-  ), [definition?.toeic?.answerKey, isToeicExam, questionCounts]);
+  const selectExamType = (examType) => {
+    setActiveExamType(examType);
+    setActiveTab('monitoring');
+    setError('');
+    setNotice('');
+    if (monitoringExamType !== examType) refreshMonitoring(examType);
+  };
 
   const updateDefinition = (field, value) => setDefinition((current) => ({ ...current, [field]: value }));
   const updateConfig = (skill, updater) => setDefinition((current) => ({
@@ -165,14 +171,19 @@ export default function ContentManagerPlacementTestPage() {
   };
 
   const refreshMonitoring = async (examType = monitoringExamType) => {
+    const requestId = monitoringRequestRef.current + 1;
+    monitoringRequestRef.current = requestId;
     setMonitoringLoading(true);
     try {
-      setMonitoring(await placementTestApi.getMonitoring(examType));
+      const response = await placementTestApi.getMonitoring(examType);
+      if (monitoringRequestRef.current !== requestId) return;
+      setMonitoring(response);
       setMonitoringExamType(examType);
     } catch (requestError) {
+      if (monitoringRequestRef.current !== requestId) return;
       setError(requestError?.response?.data?.message || 'Không tải được dữ liệu theo dõi.');
     } finally {
-      setMonitoringLoading(false);
+      if (monitoringRequestRef.current === requestId) setMonitoringLoading(false);
     }
   };
 
@@ -217,7 +228,53 @@ export default function ContentManagerPlacementTestPage() {
 
   return (
     <div className="space-y-6">
-      <ManagerStatsGrid stats={statItems} />
+      <section className="overflow-hidden rounded-[28px] border border-[#eadfdc] bg-[radial-gradient(circle_at_top_right,rgba(138,0,24,0.09),transparent_38%),linear-gradient(135deg,#fffdfb,#f8f2ee)] p-6 lg:p-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Hệ thống đánh giá đầu vào</p>
+            <h1 className="mt-2 font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#0b1c30] sm:text-3xl">Ba dạng bài, ba mục tiêu đánh giá</h1>
+            <p className="mt-2 text-sm leading-relaxed text-[#8b706e]">Chọn dạng bài để biên soạn nội dung và theo dõi kết quả.</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#dfbfbd] bg-white/85 px-4 py-3 text-sm font-bold text-[#4b0009]">
+              <input
+                checked={definition.status === 'PUBLISHED'}
+                className="h-4 w-4 accent-[#4b0009]"
+                onChange={(event) => updateDefinition('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')}
+                type="checkbox"
+              />
+              Cho phép học viên làm bài
+            </label>
+            <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
+              <Save aria-hidden="true" className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
+            </button>
+          </div>
+        </div>
+
+        <div aria-label="Chọn dạng bài đánh giá" className="mt-6 grid gap-3 lg:grid-cols-3" role="tablist">
+          {TEST_TYPES.map((testType) => {
+            const Icon = testType.icon;
+            const selected = activeExamType === testType.key;
+            return (
+              <button
+                aria-selected={selected}
+                className={`min-h-[150px] rounded-2xl border-2 p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#730014] focus-visible:ring-offset-2 ${selected ? testType.accent : 'border-transparent bg-white/80 text-[#0b1c30] hover:border-[#dfcfcb]'}`}
+                key={testType.key}
+                onClick={() => selectExamType(testType.key)}
+                role="tab"
+                type="button"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm"><Icon aria-hidden="true" className="h-5 w-5" /></span>
+                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider">{testType.badge}</span>
+                </div>
+                <h2 className="mt-4 font-['Manrope'] text-lg font-extrabold">{testType.label}</h2>
+                <p className="mt-1 text-sm leading-6 opacity-80">{testType.summary}</p>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <ManagerFilterBar>
         <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
@@ -232,22 +289,18 @@ export default function ContentManagerPlacementTestPage() {
             </button>
           ))}
         </div>
-        <button className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
-          <Save className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-        </button>
+        <span className="shrink-0 rounded-full bg-[#fff1f2] px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-[#730014]">{activeExamType}</span>
       </ManagerFilterBar>
 
       {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
       {notice ? <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> {notice}</div> : null}
 
-      {activeTab === 'overview' ? <Overview definition={definition} onChange={updateDefinition} /> : null}
       {activeTab === 'monitoring' ? (
         <Monitoring
-          examType={monitoringExamType}
+          examType={activeExamType}
           loading={monitoringLoading}
           monitoring={monitoring}
-          onChangeExamType={refreshMonitoring}
-          onRefresh={() => refreshMonitoring(monitoringExamType)}
+          onRefresh={() => refreshMonitoring(activeExamType)}
         />
       ) : null}
       {activeTab === 'listening' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Nghe" skill="LISTENING" config={definition.listening} onChange={(field, value) => applyObjectiveChange('listening', field, value)} /> : null}
@@ -259,9 +312,17 @@ export default function ContentManagerPlacementTestPage() {
   );
 }
 
-function Monitoring({ examType = 'IELTS', loading, monitoring, onChangeExamType, onRefresh }) {
+function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
   const isToeic = examType === 'TOEIC';
   const distribution = monitoring?.bandDistribution || [];
+  const recentAttempts = monitoring?.recentAttempts || [];
+  const {
+    page: attemptsPage,
+    setPage: setAttemptsPage,
+    totalPages: attemptsTotalPages,
+    pageItems: paginatedAttempts,
+    totalItems: attemptsTotalItems,
+  } = usePagination(recentAttempts, RECENT_ATTEMPTS_PAGE_SIZE, examType);
   const maximum = Math.max(...distribution.map((item) => Number(item.count || 0)), 1);
   const scoreLabel = isToeic ? 'Điểm' : 'Band';
   const formatScore = (value) => {
@@ -272,18 +333,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onChangeExamType,
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {['IELTS', 'TOEIC'].map((type) => (
-            <button
-              className={`rounded-lg px-4 py-2.5 text-sm font-bold transition ${examType === type ? 'bg-[#4b0009] text-white' : 'border border-[#dfbfbd] bg-white text-[#4b0009] hover:bg-[#fff7f7]'}`}
-              key={type}
-              onClick={() => onChangeExamType?.(type)}
-              type="button"
-            >
-              {type}
-            </button>
-          ))}
-        </div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Báo cáo</p><h2 className="mt-1 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Kết quả {examType}</h2></div>
         <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={onRefresh} type="button">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới số liệu
         </button>
@@ -348,7 +398,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onChangeExamType,
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0e3e4]">
-              {monitoring?.recentAttempts?.length ? monitoring.recentAttempts.map((attempt) => (
+              {recentAttempts.length ? paginatedAttempts.map((attempt) => (
                 <tr key={attempt.id}>
                   <td className="px-5 py-4">
                     <p className="text-sm font-bold text-[#0b1c30]">{attempt.learnerName || 'Chưa có tên'}</p>
@@ -374,36 +424,23 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onChangeExamType,
             </tbody>
           </table>
         </div>
+        {attemptsTotalPages > 1 ? (
+          <div className="border-t border-[#f0e3e4] px-5 py-4">
+            <Pagination
+              onChange={setAttemptsPage}
+              page={attemptsPage}
+              pageSize={RECENT_ATTEMPTS_PAGE_SIZE}
+              totalItems={attemptsTotalItems}
+              totalPages={attemptsTotalPages}
+            />
+          </div>
+        ) : null}
       </Panel>
     </div>
   );
 }
 
 function MonitorCard({ icon: Icon, label, value }) { return <Panel className="p-5"><div className="flex justify-between gap-3"><div><p className="text-sm text-[#584140]">{label}</p><p className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#4b0009]">{value}</p></div><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Icon className="h-5 w-5" /></span></div></Panel>; }
-
-function Overview({ definition, onChange }) {
-  return <Panel className="p-6"><div className="grid gap-4 lg:grid-cols-2">
-    <TextField label="Tên bài đánh giá" onChange={(event) => onChange('title', event.target.value)} value={definition.title} />
-    <label className="block">
-      <span className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Case đề</span>
-      <BrandedSelect
-        onChange={(event) => onChange('examType', event.target.value)}
-        options={examTypeOptions}
-        value={definition.examType || 'IELTS'}
-      />
-    </label>
-    <div className="lg:col-span-2">
-      <RichTextEditor
-        label="Mô tả"
-        onChange={(html) => onChange('description', html)}
-        placeholder="Mô tả bài đánh giá đầu vào..."
-        size="compact"
-        value={definition.description}
-      />
-    </div>
-  </div><label className="mt-5 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.status === 'PUBLISHED'} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onChange('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
-  </Panel>;
-}
 
 function ToeicEditor({ config, onChangeSection, onReset }) {
   const [sectionTab, setSectionTab] = useState('listening');
@@ -575,17 +612,6 @@ function buildDefaultToeicConfig() {
     },
     answerKey: {},
   };
-}
-
-function countQuestions(config) {
-  return (config?.parts || []).reduce((total, part) => total + (part.questionGroups || []).reduce((groupTotal, group) => groupTotal + (group.questionNumbers?.length || group.questions?.length || 0), 0), 0);
-}
-
-function countSpeakingPrompts(config) {
-  if (Array.isArray(config?.variants)) {
-    return config.variants.reduce((sum, variant) => sum + (variant.parts || []).reduce((partSum, part) => partSum + (part.prompts?.length || 0), 0), 0);
-  }
-  return config?.parts?.reduce((sum, part) => sum + (part.prompts?.length || 0), 0) || 0;
 }
 
 function formatBand(value) { return value == null ? '—' : Number(value).toFixed(1); }

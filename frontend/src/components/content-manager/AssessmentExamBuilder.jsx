@@ -929,7 +929,7 @@ function WritingConfigEditor({ config, onChange }) {
             />
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <TextAreaField label="Rubric" value={task.rubric || ''} onChange={(value) => updateTask(taskIndex, { rubric: value })} />
+            <TextAreaField label="Tiêu chí chấm" value={task.rubric || ''} onChange={(value) => updateTask(taskIndex, { rubric: value })} />
             <TextAreaField label="Sample answer" value={task.sampleAnswer || ''} onChange={(value) => updateTask(taskIndex, { sampleAnswer: value })} />
           </div>
         </section>
@@ -1087,7 +1087,7 @@ function SpeakingConfigEditor({ config, onChange }) {
                   ))}
                 </div>
                 <div className="mt-3">
-                  <TextAreaField label="Rubric" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />
+                  <TextAreaField label="Tiêu chí chấm" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />
                 </div>
               </div>
             ))}

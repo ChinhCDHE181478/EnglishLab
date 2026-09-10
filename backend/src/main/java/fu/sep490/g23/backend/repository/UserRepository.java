@@ -20,4 +20,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     @Query("select distinct user from User user join user.roles role where role.code in :roles")
     List<User> findDistinctByRoles_CodeIn(@Param("roles") Collection<String> roles);
+
+    /**
+     * Streams only the avatar URLs for orphan-cleanup scans, avoiding loading every User row.
+     * Returns URLs that are non-blank; the cleanup service is responsible for filtering nulls.
+     */
+    @Query("select u.avatarUrl from User u where u.avatarUrl is not null and u.avatarUrl <> ''")
+    List<String> findAllNonEmptyAvatarUrls();
 }

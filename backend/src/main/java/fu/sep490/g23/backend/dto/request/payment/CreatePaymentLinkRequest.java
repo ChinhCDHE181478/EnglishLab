@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.request.payment;
 
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -14,7 +13,7 @@ public class CreatePaymentLinkRequest {
 
     private List<@NotNull(message = "Mã khóa học không hợp lệ.") Long> courseIds;
 
-    private List<@NotNull(message = "Mã lớp học không hợp lệ.") Long> classSectionIds;
+    private List<@NotNull(message = "Mã lớp học không hợp lệ.") Long> classroomOfferingIds;
 
     private Long learningPathId;
 
