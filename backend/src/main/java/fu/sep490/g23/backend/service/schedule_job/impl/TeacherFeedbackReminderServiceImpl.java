@@ -1,8 +1,8 @@
-package fu.sep490.g23.backend.service.notification.impl;
+package fu.sep490.g23.backend.service.schedule_job.impl;
 
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.notification.TeacherFeedbackReminderDispatcher;
-import fu.sep490.g23.backend.service.notification.TeacherFeedbackReminderService;
+import fu.sep490.g23.backend.service.schedule_job.TeacherFeedbackReminderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

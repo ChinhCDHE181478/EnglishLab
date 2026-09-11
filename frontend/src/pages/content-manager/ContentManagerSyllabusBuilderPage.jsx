@@ -244,7 +244,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const [lessonEditorOpen, setLessonEditorOpen] = useState(false);
   const [attachForm, setAttachForm] = useState(() => ({ ...emptyAttach, unitId: requestedUnitId || '' }));
   const [resourcePanelOpen, setResourcePanelOpen] = useState(requestedPanel === 'resource');
-  const [collapsedUnitIds, setCollapsedUnitIds] = useState(() => new Set());
+  const [expandedUnitIds, setExpandedUnitIds] = useState(() => new Set());
   const [keyword, setKeyword] = useState('');
   const [banks, setBanks] = useState({
     materials: [],
@@ -305,11 +305,12 @@ export default function ContentManagerInstructorLedCoursesPage() {
         curriculumApi.getAssessmentBank(),
         curriculumApi.getFlashcardSets(),
       ]);
+      const isPublished = (item) => String(item?.status || '').toUpperCase() === 'PUBLISHED';
       setBanks({
-        materials: asList(materials).filter((item) => item.status === 'PUBLISHED'),
-        exercises: asList(exercises).filter((item) => item.status === 'PUBLISHED'),
-        assessments: asList(assessments).filter((item) => item.status === 'PUBLISHED'),
-        flashcards: asList(flashcards).filter((item) => item.status === 'PUBLISHED'),
+        materials: asList(materials).filter(isPublished),
+        exercises: asList(exercises).filter(isPublished),
+        assessments: asList(assessments).filter(isPublished),
+        flashcards: asList(flashcards).filter(isPublished),
       });
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được các kho tài nguyên.');
@@ -341,7 +342,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
   const openProgramWorkspace = (program) => {
     setSelectedProgramId(String(program.id));
-    setExpandedUnitId(null);
+    setExpandedUnitIds(new Set());
     setSearchParams({ programId: String(program.id) }, { replace: true });
     setKeyword('');
     setError('');
@@ -350,7 +351,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
   const closeProgramWorkspace = () => {
     setSelectedProgramId('');
-    setExpandedUnitId(null);
+    setExpandedUnitIds(new Set());
     setSearchParams({}, { replace: true });
     setProgramDetail(null);
     setKeyword('');
@@ -363,7 +364,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
   const selectProgram = (programId) => {
     setSelectedProgramId(programId);
-    setExpandedUnitId(null);
+    setExpandedUnitIds(new Set());
     setSearchParams(programId ? { programId } : {}, { replace: true });
   };
 
@@ -854,7 +855,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const units = useMemo(() => programDetail?.units || [], [programDetail]);
 
   const toggleUnit = (unitId) => {
-    setCollapsedUnitIds((current) => {
+    setExpandedUnitIds((current) => {
       const next = new Set(current);
       if (next.has(unitId)) next.delete(unitId);
       else next.add(unitId);
@@ -1236,7 +1237,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                   <div className="space-y-5 p-5 sm:p-6">
                     {pageItems.map((unit) => {
                       const resourceCount = refGroups.reduce((total, group) => total + (unit[group.key]?.length || 0), 0);
-                      const collapsed = collapsedUnitIds.has(unit.id);
+                      const expanded = expandedUnitIds.has(unit.id);
                       const lessons = [...(unit.lessons || [])].sort((left, right) => (
                         Number(left.sessionNumber || 0) - Number(right.sessionNumber || 0)
                         || Number(left.displayOrder || 0) - Number(right.displayOrder || 0)
@@ -1255,13 +1256,13 @@ export default function ContentManagerInstructorLedCoursesPage() {
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-2">
                               <button
-                                aria-expanded={!collapsed}
+                                aria-expanded={expanded}
                                 className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
                                 onClick={() => toggleUnit(unit.id)}
                                 type="button"
                               >
-                                <ChevronDown aria-hidden="true" className={`h-3.5 w-3.5 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
-                                {collapsed ? 'Mở rộng' : 'Thu gọn'}
+                                <ChevronDown aria-hidden="true" className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : '-rotate-90'}`} />
+                                {expanded ? 'Thu gọn' : 'Mở rộng'}
                               </button>
                               <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95" onClick={() => openEditUnit(unit)} type="button">Sửa Unit</button>
                               <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95" onClick={() => openResourcePanel(unit.id)} type="button">+ Thêm học liệu</button>
@@ -1269,7 +1270,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                             </div>
                           </div>
 
-                          {!collapsed ? <div className="space-y-3 border-t border-[#eef1f6] p-4 sm:p-5">
+                          {expanded ? <div className="space-y-3 border-t border-[#eef1f6] p-4 sm:p-5">
                             {lessons.length ? lessons.map((lesson) => (
                               <div className="ml-2 flex flex-col gap-3 border-l-2 border-[#dfbfbd] bg-[#fffdfd] py-3 pl-4 pr-3 sm:flex-row sm:items-start sm:justify-between" key={lesson.id}>
                                 <div className="min-w-0">

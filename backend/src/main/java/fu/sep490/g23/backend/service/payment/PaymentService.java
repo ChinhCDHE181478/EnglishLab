@@ -26,4 +26,5 @@ public interface PaymentService {
     RevenueAnalyticsResponse getRevenueAnalytics();
     void handlePayosWebhook(Map<String, Object> payload);
     void confirmWebhook();
+    void reconcilePendingPaymentOrders();
 }

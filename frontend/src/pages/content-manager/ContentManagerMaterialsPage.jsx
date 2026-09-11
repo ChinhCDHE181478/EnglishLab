@@ -324,6 +324,7 @@ export default function ContentManagerMaterialsPage() {
       }));
       setItems((current) => current.map((row) => (String(row.id) === String(saved.id) ? saved : row)));
       if (String(editingId) === String(saved.id)) openEdit(saved);
+      await loadItems();
       setMessage(status === 'PUBLISHED' ? 'Đã xuất bản học liệu.' : 'Đã lưu trữ học liệu.');
     } catch (err) {
       setMessage(getClassroomErrorMessage(err, status === 'PUBLISHED' ? 'Không thể xuất bản học liệu.' : 'Không thể lưu trữ học liệu.'));
@@ -494,10 +495,10 @@ export default function ContentManagerMaterialsPage() {
       )}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={FileStack} label="Tổng học liệu" value={stats.total} note="Toàn bộ kho trung tâm" />
-        <StatCard icon={Archive} label="Đã xuất bản" value={stats.published} note="Giáo viên có thể chọn ngay" />
-        <StatCard icon={BookOpen} label="IELTS" value={stats.ielts} note="Theo band mục tiêu" />
-        <StatCard icon={Globe} label="TOEIC" value={stats.toeic} note="Theo dải điểm mục tiêu" />
+        <StatCard icon={FileStack} label="Tổng học liệu" value={stats.total} note="Toàn bộ kho trung tâm" tone="text-[#4b0009]" />
+        <StatCard icon={Archive} label="Đã xuất bản" value={stats.published} note="Giáo viên có thể chọn ngay" tone="text-emerald-700" />
+        <StatCard icon={BookOpen} label="IELTS" value={stats.ielts} note="Theo band mục tiêu" tone="text-amber-700" />
+        <StatCard icon={Globe} label="TOEIC" value={stats.toeic} note="Theo dải điểm mục tiêu" tone="text-[#005236]" />
       </section>
 
       <div className="grid gap-6">
@@ -667,19 +668,17 @@ export default function ContentManagerMaterialsPage() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, note }) {
+function StatCard({ icon: Icon, label, value, note, tone }) {
   return (
-    <Panel className="p-5">
+    <Panel className="rounded-xl border-[#dcc0bf]/30 p-5 shadow-[0_4px_12px_rgba(75,0,9,0.05)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-[#584140]">{label}</p>
-          <p className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#4b0009]">{value}</p>
+          <p className={`text-xs font-bold uppercase tracking-[0.14em] ${tone}`}>{label}</p>
+          <p className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">{value}</p>
         </div>
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]">
-          <Icon className="h-5 w-5" />
-        </span>
+        <Icon aria-hidden="true" className={`h-5 w-5 ${tone}`} />
       </div>
-      <p className="mt-3 text-sm text-[#584140]">{note}</p>
+      <p className="mt-3 text-sm text-slate-500">{note}</p>
     </Panel>
   );
 }

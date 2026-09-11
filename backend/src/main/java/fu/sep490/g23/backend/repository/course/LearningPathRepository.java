@@ -10,10 +10,15 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
+/** Provides persistence access to learning-path metadata. */
 public interface LearningPathRepository extends JpaRepository<LearningPath, Long> {
+    /** Checks whether a path code exists, ignoring case. */
     boolean existsByCodeIgnoreCase(String code);
+
+    /** Finds a path by code, ignoring case. */
     Optional<LearningPath> findByCodeIgnoreCase(String code);
 
+    /** Pages only paths containing at least one published course. */
     @Query(
             value = "select distinct path from LearningPath path join path.courseRefs ref join ref.onlineCourse course where course.status = fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED",
             countQuery = "select count(distinct path.id) from LearningPath path join path.courseRefs ref join ref.onlineCourse course where course.status = fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED"

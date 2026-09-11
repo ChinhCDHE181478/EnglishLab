@@ -296,7 +296,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const deferredKeyword = useDeferredValue(keyword);
   const resetKey = `${pageKey}-${deferredKeyword}-${filters.type}-${filters.status}-${filters.examCategory}`;
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
-    pageResult.content,
+    items,
     8,
     resetKey,
     pageResult,
@@ -529,6 +529,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         String(row.id) === String(item.id) ? { ...row, status: 'ARCHIVED' } : row
       )));
       if (String(editingId) === String(item.id)) updateForm('status', 'ARCHIVED');
+      await loadItems();
       setSuccess(`Đã lưu trữ ${pageConfig.successNoun}.`);
     } catch (err) {
       setError(err?.response?.data?.message || `Không lưu trữ được ${pageConfig.successNoun}.`);
@@ -559,6 +560,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         String(row.id) === String(saved.id) ? saved : row
       )));
       if (String(editingId) === String(item.id)) setForm(lockFormToPage(toForm(saved, pageConfig)));
+      await loadItems();
       setSuccess(`Đã khôi phục ${pageConfig.successNoun} về bản nháp.`);
     } catch (err) {
       setError(err?.response?.data?.message || `Không khôi phục được ${pageConfig.successNoun}.`);
@@ -578,6 +580,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       }));
       setItems((current) => current.map((row) => (String(row.id) === String(saved.id) ? saved : row)));
       if (String(editingId) === String(saved.id)) setForm(lockFormToPage(toForm(saved, pageConfig)));
+      await loadItems();
       setSuccess(`Đã xuất bản ${pageConfig.successNoun}.`);
     } catch (err) {
       setError(err?.response?.data?.message || `Không xuất bản được ${pageConfig.successNoun}.`);
