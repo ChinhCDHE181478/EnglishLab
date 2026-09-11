@@ -2,13 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { BookOpenCheck, CalendarClock, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
-import Header from '../../components/ai-learning/Header';
 import { EnrollmentRequestTimeline, EnrollmentStatusBadge } from '../../components/classroom/EnrollmentRequestUi';
-import CourseFooter from '../../components/course/CourseFooter';
-import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
+import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
-import { PAGE_BODY_CLASS, PAGE_CONTAINER_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 
 const statusOptions = [
   { label: 'Tất cả trạng thái', value: 'ALL' },
@@ -50,22 +47,18 @@ export default function MyEnrollmentRequestsPage() {
   }), [requests, status]);
 
   return (
-    <div className={PAGE_SHELL_CLASS}>
-      <CourseGlobalStyles />
-      <Header />
-      <div className={PAGE_BODY_CLASS}>
-        <main className={`${PAGE_CONTAINER_CLASS} flex-1 py-8 md:py-10`}>
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">Theo dõi tư vấn & xếp lớp</p>
-              <h1 className="mt-2 font-['Manrope'] text-3xl font-black text-[#0b1c30]">Form đăng ký của tôi</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Theo dõi thư mời, lịch đến trung tâm, kết quả test đầu vào và trạng thái xếp lớp của bạn.</p>
-            </div>
-            <div className="flex gap-2">
-              <div className="min-w-[240px]"><BrandedSelect onChange={(event) => setStatus(event.target.value)} options={statusOptions} value={status} /></div>
-              <button aria-label="Tải lại" className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#730014] shadow-sm" disabled={loading} onClick={load} type="button"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
-            </div>
-          </div>
+    <LearnerPageShell
+      actions={(
+        <div className="flex gap-2">
+          <div className="min-w-[240px]"><BrandedSelect onChange={(event) => setStatus(event.target.value)} options={statusOptions} value={status} /></div>
+          <button aria-label="Tải lại" className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#730014] shadow-sm" disabled={loading} onClick={load} type="button"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
+        </div>
+      )}
+      description="Theo dõi thư mời, lịch đến trung tâm, kết quả test đầu vào và trạng thái xếp lớp của bạn."
+      eyebrow="Theo dõi tư vấn & xếp lớp"
+      title="Form đăng ký của tôi"
+    >
+      <div className="flex flex-1 flex-col">
 
           {error ? <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div> : null}
 
@@ -113,10 +106,8 @@ export default function MyEnrollmentRequestsPage() {
               })}
             </div>
           ) : null}
-        </main>
       </div>
-      <CourseFooter />
-    </div>
+    </LearnerPageShell>
   );
 }
 
