@@ -222,21 +222,21 @@ export default function MySchedulePage() {
     [sessions, todayStr],
   );
 
-  const sortedSessions = useMemo(() =>
-    [...sessions].sort((a, b) =>
+  const sortedWeekSessions = useMemo(() =>
+    [...weekSessions].sort((a, b) =>
       `${a.sessionDate}T${a.startTime || '00:00'}`.localeCompare(`${b.sessionDate}T${b.startTime || '00:00'}`),
     ),
-    [sessions],
+    [weekSessions],
   );
 
   const groupedSessions = useMemo(() => {
     const g = {};
-    sortedSessions.forEach((s) => {
+    sortedWeekSessions.forEach((s) => {
       if (!g[s.sessionDate]) g[s.sessionDate] = [];
       g[s.sessionDate].push(s);
     });
     return Object.entries(g);
-  }, [sortedSessions]);
+  }, [sortedWeekSessions]);
 
   const weekStats = useMemo(() => ({
     hours: weekSessions.reduce((acc, s) => {
@@ -244,8 +244,8 @@ export default function MySchedulePage() {
       const eh = parseInt(s.endTime?.split(':')[0] || '0', 10);
       return acc + Math.max(0, eh - sh);
     }, 0),
-    upcoming: sessions.filter((s) => s.sessionDate >= todayStr && s.status !== 'CANCELLED').length,
-  }), [weekSessions, sessions, todayStr]);
+    upcoming: weekSessions.filter((s) => s.sessionDate >= todayStr && s.status !== 'CANCELLED').length,
+  }), [weekSessions, todayStr]);
 
   const prevWeek = () => setWeekMonday((m) => { const d = new Date(m); d.setDate(d.getDate() - 7); return d; });
   const nextWeek = () => setWeekMonday((m) => { const d = new Date(m); d.setDate(d.getDate() + 7); return d; });
@@ -408,8 +408,8 @@ export default function MySchedulePage() {
                     ) : (
                       <ClassroomEmptyState
                         icon={Calendar}
-                        title="Chưa có lịch học"
-                        description="Bạn chưa có buổi học nào được lên lịch."
+                        title="Tuần này chưa có lịch học"
+                        description="Không có buổi học nào trong tuần đang chọn."
                         actionLabel="Xem lớp học"
                         actionTo="/opening-schedule"
                       />
