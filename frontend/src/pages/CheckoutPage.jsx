@@ -6,7 +6,13 @@ import { formatCoursePrice } from '../components/course/courseFormatters';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { readCart, removeCourseFromCart } from '../utils/commerceStore';
-import { buildCourseHomePath, normalizeCourse } from '../utils/courseModels';
+import {
+  buildCourseDetailPath,
+  buildCourseHomePath,
+  getEffectiveCoursePrice,
+  isFreeCourse,
+  normalizeCourse,
+} from '../utils/courseModels';
 import { clearLearningPathCheckout, readLearningPathCheckout } from '../utils/learningPathCheckout';
 
 const isTruthyReturnValue = (value) => String(value || '').toLowerCase() === 'true';
@@ -30,7 +36,6 @@ const CheckoutPage = () => {
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteMessage, setQuoteMessage] = useState('');
-  const [autoFreeEnrollmentAttempted, setAutoFreeEnrollmentAttempted] = useState(false);
   const [classroomTuitionReturn] = useState(() => readClassroomTuitionReturn());
   const [storedLearningPathCheckout] = useState(() => readLearningPathCheckout());
   const [paymentReturn, setPaymentReturn] = useState({
@@ -56,23 +61,31 @@ const CheckoutPage = () => {
     return hasPaymentReturn ? storedLearningPathCheckout : null;
   }, [hasPaymentReturn, returnParams, storedLearningPathCheckout]);
 
-  const checkoutCourses = useMemo(() => {
+  const checkoutSelection = useMemo(() => {
     const rawCourse = location.state?.course;
     if (rawCourse) {
       return [normalizeCourse(rawCourse)];
     }
-    if (learningPathCheckout?.courses?.length) {
-      return learningPathCheckout.courses.map(normalizeCourse);
+    if (learningPathCheckout) {
+      return (learningPathCheckout.courses || []).map(normalizeCourse);
     }
     return readCart().map(normalizeCourse);
   }, [learningPathCheckout, location.state]);
 
+  const freeCheckoutCourses = useMemo(
+    () => checkoutSelection.filter(isFreeCourse),
+    [checkoutSelection],
+  );
+  const checkoutCourses = useMemo(
+    () => checkoutSelection.filter((course) => !isFreeCourse(course)),
+    [checkoutSelection],
+  );
+
   const totalAmount = useMemo(
-    () => checkoutCourses.reduce((sum, course) => sum + Number(course.salePrice || course.price || 0), 0),
+    () => checkoutCourses.reduce((sum, course) => sum + getEffectiveCoursePrice(course), 0),
     [checkoutCourses],
   );
   const payableAmount = Number(quote?.totalAmount ?? totalAmount);
-  const isFreeCourseCheckout = totalAmount <= 0;
   const isZeroAmountCheckout = payableAmount <= 0;
   const systemDiscountAmount = Number(quote?.systemDiscountAmount ?? 0);
   const couponDiscountAmount = Number(quote?.couponDiscountAmount ?? 0);
@@ -83,6 +96,20 @@ const CheckoutPage = () => {
     () => checkoutCourses.map((course) => course.id).filter(Boolean),
     [checkoutCourses],
   );
+  const freeCourseIdsKey = useMemo(
+    () => freeCheckoutCourses.map((course) => course.id).filter(Boolean).join(','),
+    [freeCheckoutCourses],
+  );
+
+  useEffect(() => {
+    if (!freeCourseIdsKey || hasPaymentReturn) return;
+
+    const removeStaleFreeCourses = async () => {
+      await Promise.all(freeCourseIdsKey.split(',').map((courseId) => removeCourseFromCart(courseId)));
+    };
+
+    removeStaleFreeCourses();
+  }, [freeCourseIdsKey, hasPaymentReturn]);
 
   useEffect(() => {
     if (!learningPathCheckout?.learningPathId || !selectedCourseIds.length || hasPaymentReturn) return undefined;
@@ -168,7 +195,7 @@ const CheckoutPage = () => {
         const paid = Boolean(result?.paid) || String(result?.status || '').toUpperCase() === 'PAID';
         const isClassroomTuition = Boolean(result?.classroomOfferingId || result?.enrollmentId || classroomTuitionReturn);
         if (paid && !isClassroomTuition) {
-          checkoutCourses.forEach((course) => removeCourseFromCart(course.id));
+          await Promise.all(checkoutCourses.map((course) => removeCourseFromCart(course.id)));
           clearLearningPathCheckout();
         }
         if (paid && isClassroomTuition) {
@@ -229,7 +256,7 @@ const CheckoutPage = () => {
       const paidDirectly = String(result?.status || '').toUpperCase() === 'PAID';
 
       if (paidDirectly) {
-        checkoutCourses.forEach((course) => removeCourseFromCart(course.id));
+        await Promise.all(checkoutCourses.map((course) => removeCourseFromCart(course.id)));
         clearLearningPathCheckout();
         setPaymentReturn({
           checked: true,
@@ -237,7 +264,7 @@ const CheckoutPage = () => {
           status: 'PAID',
           paid: true,
           message: isZeroAmountCheckout
-            ? 'Ghi danh thành công. Khóa học miễn phí đã sẵn sàng trong tài khoản của bạn.'
+            ? 'Đơn hàng 0 đồng đã hoàn tất. Khóa học đã sẵn sàng trong tài khoản của bạn.'
             : 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.',
           orderCode: result?.orderCode || null,
         });
@@ -268,29 +295,6 @@ const CheckoutPage = () => {
       setSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    if (
-      hasPaymentReturn
-      || !isFreeCourseCheckout
-      || autoFreeEnrollmentAttempted
-      || paymentReturn.checked
-      || submitting
-      || !selectedCourseIds.length
-    ) {
-      return;
-    }
-
-    setAutoFreeEnrollmentAttempted(true);
-    handleConfirmPayment();
-  }, [
-    autoFreeEnrollmentAttempted,
-    hasPaymentReturn,
-    isFreeCourseCheckout,
-    paymentReturn.checked,
-    selectedCourseIds.length,
-    submitting,
-  ]);
 
   const handleApplyCoupon = async () => {
     if (!selectedCourseIds.length || quoteLoading) return;
@@ -406,6 +410,30 @@ const CheckoutPage = () => {
     );
   }
 
+  if (!checkoutCourses.length && freeCheckoutCourses.length) {
+    const freeCourse = freeCheckoutCourses[0];
+    return (
+      <LearnerPageShell
+        title="Khóa học miễn phí"
+        description="Khóa học miễn phí được đăng ký trực tiếp và không đi qua luồng thanh toán."
+      >
+        <section className="flex min-h-[460px] flex-col items-center justify-center rounded-[32px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center shadow-[0_18px_45px_rgba(75,0,9,0.04)]">
+          <h2 className="font-['Manrope'] text-4xl font-extrabold text-[#2b2828]">Khóa học này không cần thanh toán.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-8 text-[#584140]">
+            Hãy quay lại trang khóa học và chọn Đăng ký miễn phí để kích hoạt khóa học trong tài khoản của bạn.
+          </p>
+          <Link
+            className="mt-6 rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[#730014]"
+            state={{ course: freeCourse }}
+            to={buildCourseDetailPath(freeCourse)}
+          >
+            Đăng ký khóa học miễn phí
+          </Link>
+        </section>
+      </LearnerPageShell>
+    );
+  }
+
   if (!checkoutCourses.length) {
     return (
       <LearnerPageShell
@@ -444,6 +472,12 @@ const CheckoutPage = () => {
             <h2 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">{learningPathCheckout?.name || 'Xác nhận thông tin khóa học'}</h2>
           </div>
 
+          {freeCheckoutCourses.length ? (
+            <div className="mb-6 rounded-2xl border border-[#dfbfbd]/45 bg-[#fff8f6] px-4 py-3 text-sm leading-6 text-[#584140]">
+              {freeCheckoutCourses.length} khóa học miễn phí đã được tách khỏi đơn. Bạn có thể đăng ký trực tiếp trên trang khóa học.
+            </div>
+          ) : null}
+
           <div className="space-y-4">
             {checkoutCourses.map((course) => (
               <article key={course.id} className="flex flex-col gap-5 rounded-[28px] border border-[#dfbfbd]/20 bg-[#fcf8f8] p-5 md:flex-row">
@@ -478,15 +512,15 @@ const CheckoutPage = () => {
 
           <div className="mt-6">
             <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
-              {isZeroAmountCheckout ? 'Phương thức ghi danh' : 'Phương thức thanh toán'}
+              {isZeroAmountCheckout ? 'Cách hoàn tất đơn' : 'Phương thức thanh toán'}
             </p>
             <div className="mt-4 rounded-[24px] border border-[#730014]/30 bg-[#fff4f5] px-5 py-4">
               <p className="text-sm font-extrabold text-[#2b2828]">
-                {isZeroAmountCheckout ? 'Ghi danh miễn phí' : 'Thanh toán qua PayOS'}
+                {isZeroAmountCheckout ? 'Đơn hàng 0 đồng' : 'Thanh toán qua PayOS'}
               </p>
               <p className="mt-2 text-sm leading-6 text-[#584140]">
                 {isZeroAmountCheckout
-                  ? 'Khóa học này không cần thanh toán. EnglishLab sẽ kích hoạt khóa học ngay trong tài khoản của bạn.'
+                  ? 'Ưu đãi đã giảm tổng thanh toán về 0 đồng. EnglishLab sẽ hoàn tất đơn mà không chuyển sang PayOS.'
                   : 'Bạn sẽ được chuyển tới cổng thanh toán PayOS để hoàn tất thanh toán an toàn.'}
               </p>
             </div>
@@ -502,7 +536,9 @@ const CheckoutPage = () => {
               <div key={course.id} className="flex items-start justify-between gap-4 text-sm text-[#584140]">
                 <span>{course.title}</span>
                 <strong className="text-right text-[#2b2828]">
-                  {formatCoursePrice(quote ? (course.originalPrice || course.salePrice || course.price) : (course.salePrice || course.price))}
+                  {formatCoursePrice(quote
+                    ? (course.originalPrice ?? course.salePrice ?? course.price)
+                    : getEffectiveCoursePrice(course))}
                 </strong>
               </div>
             ))}
@@ -569,8 +605,8 @@ const CheckoutPage = () => {
               type="button"
             >
               {submitting
-                ? isZeroAmountCheckout ? 'Đang ghi danh...' : 'Đang chuyển tới PayOS...'
-                : isZeroAmountCheckout ? 'Xác nhận ghi danh' : 'Xác nhận thanh toán'}
+                ? isZeroAmountCheckout ? 'Đang hoàn tất đơn...' : 'Đang chuyển tới PayOS...'
+                : isZeroAmountCheckout ? 'Xác nhận đơn hàng' : 'Xác nhận thanh toán'}
             </button>
             <Link
               className="rounded-2xl border border-[#dfbfbd]/30 px-6 py-4 text-center text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fcf8f8]"

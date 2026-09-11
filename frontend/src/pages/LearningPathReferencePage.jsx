@@ -7,6 +7,7 @@ import CourseFooter from '../components/course/CourseFooter';
 import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import { formatCoursePrice } from '../components/course/courseFormatters';
 import { hasAccessToken } from '../utils/auth';
+import { isFreeCourse } from '../utils/courseModels';
 import { saveLearningPathCheckout } from '../utils/learningPathCheckout';
 
 export default function LearningPathReferencePage() {
@@ -15,6 +16,7 @@ export default function LearningPathReferencePage() {
   const [path, setPath] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const availableFreeCourses = (path?.courses || []).filter((course) => !course.owned && isFreeCourse(course));
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -71,7 +73,7 @@ export default function LearningPathReferencePage() {
                 </div>
               </div>
               <p className="mt-4 text-sm leading-relaxed text-[#584140]">
-                Học tuần tự theo chương trình và thanh toán một lần cho những khóa bạn chưa sở hữu.
+                Học tuần tự theo chương trình, thanh toán một lần cho các khóa trả phí và đăng ký riêng các khóa miễn phí.
               </p>
             </section>
 
@@ -79,7 +81,11 @@ export default function LearningPathReferencePage() {
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Gói lộ trình</p>
                 <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
-                  {path.purchaseAvailable ? `${path.remainingCourses} khóa học chưa sở hữu` : 'Bạn đã sở hữu toàn bộ lộ trình'}
+                  {path.purchaseAvailable
+                    ? `${path.remainingCourses} khóa học trả phí chưa sở hữu`
+                    : availableFreeCourses.length
+                      ? `Còn ${availableFreeCourses.length} khóa học miễn phí`
+                      : 'Bạn đã sở hữu toàn bộ lộ trình'}
                 </h2>
                 {path.discountApplied ? (
                   <p className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-emerald-700">
@@ -109,9 +115,21 @@ export default function LearningPathReferencePage() {
                     </button>
                   </>
                 ) : (
-                  <div className="flex items-center gap-2 font-bold text-emerald-700">
-                    <CheckCircle2 className="h-5 w-5" /> Đã sở hữu
-                  </div>
+                  availableFreeCourses.length ? (
+                    <div>
+                      <p className="text-sm font-bold text-[#4b0009]">Không có khóa học trả phí cần thanh toán.</p>
+                      <Link
+                        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014]"
+                        to={`/courses/${availableFreeCourses[0].slug}`}
+                      >
+                        Đăng ký khóa học miễn phí <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 font-bold text-emerald-700">
+                      <CheckCircle2 className="h-5 w-5" /> Đã sở hữu
+                    </div>
+                  )
                 )}
               </div>
             </section>
@@ -164,7 +182,7 @@ export default function LearningPathReferencePage() {
                         className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition-all hover:bg-[#730014] active:scale-95 shadow-sm"
                         to={`/courses/${course.slug}`}
                       >
-                        {course.owned ? 'Vào khóa học' : 'Xem khóa học'}
+                        {course.owned ? 'Vào khóa học' : isFreeCourse(course) ? 'Đăng ký miễn phí' : 'Xem khóa học'}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                     </div>

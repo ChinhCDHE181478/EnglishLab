@@ -2,6 +2,14 @@ const normalizeText = (value, fallback = '') => (typeof value === 'string' && va
 
 export const fallbackCourses = [];
 
+export const getEffectiveCoursePrice = (course = {}) => {
+  const value = course.salePrice ?? course.currentPrice ?? course.price ?? course.tuitionFee ?? 0;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+};
+
+export const isFreeCourse = (course = {}) => getEffectiveCoursePrice(course) <= 0;
+
 export const normalizeCourse = (course = {}) => {
   const id = course.id ?? course.courseId ?? course.packageId ?? course.slug ?? null;
   const slug = course.slug ?? course.courseSlug ?? (id != null ? String(id) : '');

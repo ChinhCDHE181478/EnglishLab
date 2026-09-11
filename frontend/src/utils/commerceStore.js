@@ -1,5 +1,6 @@
 import commerceApi from '../api/commerceApi';
 import { hasAccessToken } from '../utils/auth';
+import { isFreeCourse } from './courseModels';
 
 const storageKeys = {
   cart: 'englishlab_cart',
@@ -78,13 +79,27 @@ export const isCourseInCart = (courseId) => readCart().some((item) => String(ite
 export const isCourseInWishlist = (courseId) => readWishlist().some((item) => String(item.id) === String(courseId));
 
 export const fetchCart = async () => {
-  if (!useServerCommerce()) return readCart();
+  if (!useServerCommerce()) {
+    const items = readCart();
+    const payableItems = items.filter((item) => !isFreeCourse(item));
+    if (payableItems.length !== items.length) {
+      writeCollection(storageKeys.cart, payableItems);
+    }
+    return payableItems;
+  }
   try {
-    const items = (await commerceApi.getCart()).map(normalizeApiItem);
+    const items = (await commerceApi.getCart())
+      .map(normalizeApiItem)
+      .filter((item) => !isFreeCourse(item));
     writeCollection(storageKeys.cart, items);
     return items;
   } catch {
-    return readCart();
+    const items = readCart();
+    const payableItems = items.filter((item) => !isFreeCourse(item));
+    if (payableItems.length !== items.length) {
+      writeCollection(storageKeys.cart, payableItems);
+    }
+    return payableItems;
   }
 };
 
@@ -103,6 +118,9 @@ export const addCourseToCart = async (course) => {
   const normalized = normalizeStoredCourse(course);
   if (normalized.registered) {
     return { ok: false, reason: 'registered' };
+  }
+  if (isFreeCourse(normalized)) {
+    return { ok: false, reason: 'free_course' };
   }
   if (useServerCommerce()) {
     try {
@@ -171,9 +189,13 @@ export const removeCourseFromWishlist = async (courseId) => {
 };
 
 export const moveWishlistCourseToCart = async (course) => {
+  const normalized = normalizeStoredCourse(course);
+  if (isFreeCourse(normalized)) {
+    return { ok: false, reason: 'free_course' };
+  }
   if (useServerCommerce()) {
     try {
-      await commerceApi.moveWishlistToCart(course.id);
+      await commerceApi.moveWishlistToCart(normalized.id);
       await Promise.all([fetchCart(), fetchWishlist()]);
       notifyCommerceUpdated();
       return { ok: true };
@@ -181,23 +203,30 @@ export const moveWishlistCourseToCart = async (course) => {
       return { ok: false, reason: error?.response?.data?.message || 'move_error' };
     }
   }
-  const addResult = await addCourseToCart(course);
+  const addResult = await addCourseToCart(normalized);
   if (addResult.ok) {
-    await removeCourseFromWishlist(course.id);
+    await removeCourseFromWishlist(normalized.id);
   }
   return addResult;
 };
 
 export const syncLocalCartToServer = async () => {
-  if (!useServerCommerce()) return readCart();
-  const localIds = readCart().map((item) => item.id).filter(Boolean);
+  const localItems = readCart();
+  const payableItems = localItems.filter((item) => !isFreeCourse(item));
+  if (payableItems.length !== localItems.length) {
+    writeCollection(storageKeys.cart, payableItems);
+  }
+  if (!useServerCommerce()) return payableItems;
+  const localIds = payableItems.map((item) => item.id).filter(Boolean);
   if (!localIds.length) return fetchCart();
   try {
-    const items = (await commerceApi.syncCart(localIds)).map(normalizeApiItem);
+    const items = (await commerceApi.syncCart(localIds))
+      .map(normalizeApiItem)
+      .filter((item) => !isFreeCourse(item));
     writeCollection(storageKeys.cart, items);
     notifyCommerceUpdated();
     return items;
   } catch {
-    return readCart();
+    return payableItems;
   }
 };
