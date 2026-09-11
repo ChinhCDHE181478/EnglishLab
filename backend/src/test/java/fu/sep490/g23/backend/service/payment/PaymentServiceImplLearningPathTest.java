@@ -8,8 +8,10 @@ import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.payment.DiscountCode;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
+import fu.sep490.g23.backend.entity.payment.enums.DiscountType;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -40,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,7 +97,11 @@ class PaymentServiceImplLearningPathTest {
     }
 
     @Test
-    void quoteLearningPath_appliesConfiguredDiscountWhenTwoCoursesRemain() {
+    void quoteLearningPath_ignoresFreeCoursesAndDiscountsTwoPaidCourses() {
+        LearningPathCourse freeCourseRef = courseRef(4L, 104L, 4);
+        freeCourseRef.getOnlineCourse().setPrice(BigDecimal.ZERO);
+        when(learningPathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(9L))
+                .thenReturn(List.of(courseRefs.get(0), courseRefs.get(1), courseRefs.get(2), freeCourseRef));
         when(onlineCourseService.getMyEnrollments("learner@example.com"))
                 .thenReturn(List.of(OnlineCourseEnrollmentResponse.builder().courseId(1L).build()));
 
@@ -105,6 +112,23 @@ class PaymentServiceImplLearningPathTest {
         assertEquals(200_000L, quote.getLearningPathDiscountAmount());
         assertEquals(1_800_000L, quote.getTotalAmount());
         assertEquals(9L, quote.getLearningPathId());
+    }
+
+    @Test
+    void quoteLearningPath_rejectsWhenOnlyFreeCoursesRemain() {
+        LearningPathCourse freeCourseRef = courseRef(4L, 104L, 1);
+        freeCourseRef.getOnlineCourse().setPrice(BigDecimal.ZERO);
+        when(learningPathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(9L))
+                .thenReturn(List.of(freeCourseRef));
+        when(onlineCourseService.getMyEnrollments("learner@example.com")).thenReturn(List.of());
+
+        RuntimeException error = assertThrows(RuntimeException.class, () -> paymentService.quotePayment(
+                List.of(), List.of(), 9L, null, "learner@example.com"));
+
+        assertEquals(
+                "Lộ trình không còn khóa học trả phí. Vui lòng đăng ký các khóa học miễn phí trực tiếp.",
+                error.getMessage()
+        );
     }
 
     @Test
@@ -139,7 +163,7 @@ class PaymentServiceImplLearningPathTest {
     }
 
     @Test
-    void createPaymentLink_zeroAmount_persistsPaidOrderAndItems() {
+    void createPaymentLink_rejectsCourseThatIsFreeBeforeDiscounts() {
         OnlineCourse freeCourse = OnlineCourse.builder()
                 .id(44L)
                 .title("Free Starter Course")
@@ -148,7 +172,40 @@ class PaymentServiceImplLearningPathTest {
                 .status(PackageStatus.PUBLISHED)
                 .build();
         when(onlineCourseRepository.findById(44L)).thenReturn(Optional.of(freeCourse));
+
+        RuntimeException error = assertThrows(RuntimeException.class, () -> paymentService.createPaymentLink(
+                List.of(44L), List.of(), null, "learner@example.com"));
+
+        assertEquals(
+                "Khóa học miễn phí phải được đăng ký trực tiếp, không thể thanh toán qua Checkout.",
+                error.getMessage()
+        );
+        verify(paymentOrderRepository, never()).save(any(PaymentOrder.class));
+    }
+
+    @Test
+    void createPaymentLink_keepsZeroAmountOrderWhenCouponMakesPaidCourseFree() {
+        OnlineCourse paidCourse = OnlineCourse.builder()
+                .id(44L)
+                .title("Paid Starter Course")
+                .slug("paid-starter-course")
+                .price(new BigDecimal("1000000"))
+                .status(PackageStatus.PUBLISHED)
+                .build();
+        DiscountCode coupon = DiscountCode.builder()
+                .code("FREE100")
+                .name("Full discount")
+                .type(DiscountType.PERCENTAGE)
+                .value(new BigDecimal("100"))
+                .usageLimit(10)
+                .usedCount(0)
+                .reservedCount(0)
+                .active(true)
+                .build();
+        when(onlineCourseRepository.findById(44L)).thenReturn(Optional.of(paidCourse));
         when(onlineCourseService.getMyEnrollments("learner@example.com")).thenReturn(List.of());
+        when(discountCodeRepository.findByCodeIgnoreCase("FREE100")).thenReturn(Optional.of(coupon));
+        when(discountCodeRepository.findByCodeIgnoreCaseForUpdate("FREE100")).thenReturn(Optional.of(coupon));
         when(paymentOrderRepository.save(any(PaymentOrder.class))).thenAnswer(invocation -> {
             PaymentOrder order = invocation.getArgument(0);
             order.setId(77L);
@@ -157,16 +214,19 @@ class PaymentServiceImplLearningPathTest {
         when(paymentOrderItemRepository.findByPaymentOrderIdOrderById(77L)).thenReturn(List.of(
                 PaymentOrderItem.builder()
                         .itemType(PaymentOrderItemType.ONLINE_COURSE)
-                        .onlineCourse(freeCourse)
-                        .titleSnapshot(freeCourse.getTitle())
+                        .onlineCourse(paidCourse)
+                        .titleSnapshot(paidCourse.getTitle())
                         .build()
         ));
 
         PaymentLinkResponse response = paymentService.createPaymentLink(
-                List.of(44L), List.of(), null, "learner@example.com");
+                List.of(44L), List.of(), "FREE100", "learner@example.com");
 
         assertEquals(PaymentOrderStatus.PAID.name(), response.getStatus());
         assertEquals(0L, response.getTotalAmount());
+        assertEquals(1_000_000L, response.getCouponDiscountAmount());
+        assertEquals(1, coupon.getUsedCount());
+        assertEquals(0, coupon.getReservedCount());
         assertNotNull(response.getOrderCode());
         verify(paymentOrderItemRepository).saveAll(any());
         verify(onlineCourseService).activatePaidCourse(44L, "learner@example.com");

@@ -33,6 +33,7 @@ import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.OnlineCoursePricing;
 import fu.sep490.g23.backend.service.payment.PaymentReceiptPdfService;
 import fu.sep490.g23.backend.service.payment.PaymentService;
 import fu.sep490.g23.backend.service.payment.PayosProperties;
@@ -490,7 +491,13 @@ public class PaymentServiceImpl implements PaymentService {
         if (remainingCourses.isEmpty()) {
             throw new RuntimeException("Bạn đã sở hữu toàn bộ khóa học trong lộ trình này.");
         }
-        return new PayableBundle(remainingCourses, List.of(), path);
+        List<OnlineCourse> payableCourses = remainingCourses.stream()
+                .filter(course -> !OnlineCoursePricing.isFree(course))
+                .toList();
+        if (payableCourses.isEmpty()) {
+            throw new RuntimeException("Lộ trình không còn khóa học trả phí. Vui lòng đăng ký các khóa học miễn phí trực tiếp.");
+        }
+        return new PayableBundle(payableCourses, List.of(), path);
     }
 
     private List<PayableClassroomTuition> resolvePayableClassroomTuitions(List<Long> classroomOfferingIds, User student) {
@@ -548,6 +555,9 @@ public class PaymentServiceImpl implements PaymentService {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học có mã " + courseId + "."));
             if (course.getStatus() != PackageStatus.PUBLISHED) {
                 throw new RuntimeException("Có khóa học hiện không còn khả dụng để thanh toán.");
+            }
+            if (OnlineCoursePricing.isFree(course)) {
+                throw new RuntimeException("Khóa học miễn phí phải được đăng ký trực tiếp, không thể thanh toán qua Checkout.");
             }
 
             boolean enrolled = onlineCourseService.getMyEnrollments(student.getEmail()).stream()
@@ -707,16 +717,11 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private BigDecimal resolveOriginalPrice(OnlineCourse course) {
-        return course == null || course.getPrice() == null ? BigDecimal.ZERO : course.getPrice();
+        return OnlineCoursePricing.originalPrice(course);
     }
 
     private BigDecimal resolveSystemPrice(OnlineCourse course) {
-        BigDecimal originalPrice = resolveOriginalPrice(course);
-        BigDecimal salePrice = course == null ? null : course.getSalePrice();
-        if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
-            return originalPrice;
-        }
-        return salePrice;
+        return OnlineCoursePricing.effectivePrice(course);
     }
 
     private long toVnd(BigDecimal value) {

@@ -23,6 +23,7 @@ import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.OnlineCoursePricing;
 import fu.sep490.g23.backend.service.course.BalancedCourseRecommendationSelector;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
@@ -2445,8 +2446,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private boolean isFreeCourse(OnlineCourse course) {
-        BigDecimal price = defaultBigDecimal(course.getPrice());
-        BigDecimal salePrice = resolveSalePrice(price, course.getSalePrice());
-        return (salePrice == null ? price : salePrice).compareTo(BigDecimal.ZERO) <= 0;
+        return OnlineCoursePricing.isFree(course);
     }
 }

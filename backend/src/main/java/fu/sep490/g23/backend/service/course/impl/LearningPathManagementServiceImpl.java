@@ -284,8 +284,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
     }
 
     /**
-     * Builds a public bundle offer, excludes owned courses from the payable amount,
-     * and applies the path discount only when enough courses remain.
+     * Builds a public bundle offer and includes only unowned paid courses in its payable amount.
      */
     private LearningPathOfferResponse toOfferResponse(LearningPath path, User student) {
         Set<Long> ownedPackageIds = student == null
@@ -316,14 +315,18 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                             .build();
                 })
                 .toList();
-        List<LearningPathOfferCourseResponse> remaining = courses.stream()
+        List<LearningPathOfferCourseResponse> unowned = courses.stream()
                 .filter(course -> !course.isOwned())
                 .toList();
-        long originalAmount = remaining.stream().mapToLong(course -> toVnd(course.getOriginalPrice())).sum();
-        long subtotalAmount = remaining.stream().mapToLong(course -> toVnd(course.getCurrentPrice())).sum();
+        List<LearningPathOfferCourseResponse> payable = unowned.stream()
+                .filter(course -> course.getCurrentPrice() != null
+                        && course.getCurrentPrice().compareTo(BigDecimal.ZERO) > 0)
+                .toList();
+        long originalAmount = payable.stream().mapToLong(course -> toVnd(course.getOriginalPrice())).sum();
+        long subtotalAmount = payable.stream().mapToLong(course -> toVnd(course.getCurrentPrice())).sum();
         int discountPercent = defaultDiscountPercent(path.getDiscountPercent());
         int minimumCourses = defaultMinimumCourses(path.getMinimumCoursesForDiscount());
-        boolean discountApplied = discountPercent > 0 && remaining.size() >= minimumCourses;
+        boolean discountApplied = discountPercent > 0 && payable.size() >= minimumCourses;
         long pathDiscount = discountApplied
                 ? BigDecimal.valueOf(subtotalAmount)
                         .multiply(BigDecimal.valueOf(discountPercent))
@@ -340,14 +343,14 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .discountPercent(discountPercent)
                 .minimumCoursesForDiscount(minimumCourses)
                 .totalCourses(courses.size())
-                .ownedCourses(courses.size() - remaining.size())
-                .remainingCourses(remaining.size())
+                .ownedCourses((int) courses.stream().filter(LearningPathOfferCourseResponse::isOwned).count())
+                .remainingCourses(payable.size())
                 .originalAmount(originalAmount)
                 .subtotalAmount(subtotalAmount)
                 .learningPathDiscountAmount(pathDiscount)
                 .totalAmount(Math.max(0L, subtotalAmount - pathDiscount))
                 .discountApplied(discountApplied)
-                .purchaseAvailable(!remaining.isEmpty())
+                .purchaseAvailable(!payable.isEmpty())
                 .courses(courses)
                 .build();
     }

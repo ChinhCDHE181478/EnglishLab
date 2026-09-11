@@ -13,6 +13,7 @@ import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
+import fu.sep490.g23.backend.service.course.OnlineCoursePricing;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,10 +37,18 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
     public List<CommerceCourseItemResponse> getCart(String studentEmail) {
         User student = requireStudent(studentEmail);
-        return courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.CART).stream()
+        List<CourseListItem> cartItems = courseListItemRepository
+                .findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.CART);
+        List<CourseListItem> freeItems = cartItems.stream()
+                .filter(item -> OnlineCoursePricing.isFree(item.getOnlineCourse()))
+                .toList();
+        if (!freeItems.isEmpty()) {
+            courseListItemRepository.deleteAll(freeItems);
+        }
+        return cartItems.stream()
+                .filter(item -> !OnlineCoursePricing.isFree(item.getOnlineCourse()))
                 .map(this::toCommerceItem)
                 .toList();
     }
@@ -122,7 +131,6 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
 
     @Override
     public CommerceCourseItemResponse moveWishlistToCart(Long courseId, String studentEmail) {
-        removeFromWishlist(courseId, studentEmail);
         return addToCart(courseId, studentEmail);
     }
 
@@ -169,6 +177,9 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
 
     private OnlineCourse requirePurchasableCourse(Long courseId, User student) {
         OnlineCourse course = requireVisibleCourse(courseId);
+        if (OnlineCoursePricing.isFree(course)) {
+            throw new RuntimeException("Khóa học miễn phí phải được đăng ký trực tiếp, không thể thêm vào giỏ hàng.");
+        }
         assertNotEnrolled(student, course);
         return course;
     }
@@ -224,10 +235,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     }
 
     private BigDecimal resolveSalePrice(OnlineCourse course) {
-        if (course.getSalePrice() != null && course.getSalePrice().compareTo(BigDecimal.ZERO) >= 0) {
-            return course.getSalePrice();
-        }
-        return safePrice(course.getPrice());
+        return OnlineCoursePricing.effectivePrice(course);
     }
 
     private Integer computeDiscountPercent(BigDecimal originalPrice, BigDecimal salePrice) {
