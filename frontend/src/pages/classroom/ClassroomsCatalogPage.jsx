@@ -530,7 +530,7 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
                 <th className="w-28 px-4 py-3 text-center">Đăng ký</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {programs.map((program) => {
                 const selected = String(program.id) === String(selectedProgramId);
                 const expanded = expandedProgramIds.has(String(program.id));
@@ -571,7 +571,7 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
 function ProgramTableRow({ expanded, onSelect, onToggle, program, registered, selected }) {
   return (
     <Fragment>
-      <tr className={`text-sm transition ${selected ? 'bg-[#fff3f4]' : 'bg-white hover:bg-[#fff8f8]'}`}>
+      <tr className={`border-t border-slate-100 text-sm transition first:border-t-0 ${selected ? 'bg-[#fff3f4]' : 'bg-white hover:bg-[#fff8f8]'}`}>
         <td className="px-4 py-3 align-middle">
           <span className="font-extrabold text-[#a0001c]">{program.code}</span>
         </td>
@@ -623,7 +623,7 @@ function ProgramMobileRow({ expanded, onSelect, onToggle, program, registered, s
       <div className="mt-4">
         <DetailsToggleButton className="w-full" expanded={expanded} onToggle={onToggle} />
       </div>
-      {expanded ? <div className="mt-4 border-t border-slate-100 pt-4"><ProgramExpandedDetails program={program} /></div> : null}
+      {expanded ? <div className="mt-4"><ProgramExpandedDetails program={program} /></div> : null}
       <SelectProgramButton className="mt-4 w-full" onSelect={onSelect} registered={registered} selected={selected} />
     </article>
   );
@@ -653,7 +653,7 @@ function ProgramExpandedDetails({ program }) {
         <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
         <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
         <ProgramDetail label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
-        <div className="grid grid-cols-2 gap-4 sm:col-span-2 lg:col-span-2">
+        <div className="col-span-full grid max-w-lg grid-cols-2 gap-4">
           <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
           <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
         </div>
