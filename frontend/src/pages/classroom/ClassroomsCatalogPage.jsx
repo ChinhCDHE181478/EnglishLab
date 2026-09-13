@@ -498,12 +498,19 @@ export default function ClassroomsCatalogPage() {
 }
 
 function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgramId }) {
-  const [expandedProgramId, setExpandedProgramId] = useState(null);
+  const [expandedProgramIds, setExpandedProgramIds] = useState(() => new Set());
 
   const toggleExpanded = (programId) => {
-    setExpandedProgramId((current) => (
-      String(current) === String(programId) ? null : programId
-    ));
+    setExpandedProgramIds((current) => {
+      const next = new Set(current);
+      const key = String(programId);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   };
 
   return (
@@ -526,7 +533,7 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
             <tbody className="divide-y divide-slate-100">
               {programs.map((program) => {
                 const selected = String(program.id) === String(selectedProgramId);
-                const expanded = String(program.id) === String(expandedProgramId);
+                const expanded = expandedProgramIds.has(String(program.id));
                 return (
                   <ProgramTableRow
                     expanded={expanded}
@@ -553,7 +560,7 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
             program={program}
             registered={registeredProgramIds.has(String(program.id))}
             selected={String(program.id) === String(selectedProgramId)}
-            expanded={String(program.id) === String(expandedProgramId)}
+            expanded={expandedProgramIds.has(String(program.id))}
           />
         ))}
       </div>
@@ -642,12 +649,14 @@ function ProgramRichDetail({ label, value }) {
 function ProgramExpandedDetails({ program }) {
   return (
     <div>
-      <dl className="grid gap-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-4 text-xs sm:grid-cols-2 lg:grid-cols-5">
         <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
         <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
         <ProgramDetail label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
-        <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
-        <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
+        <div className="grid grid-cols-2 gap-4 sm:col-span-2 lg:col-span-2">
+          <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
+          <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
+        </div>
       </dl>
       <div className="mt-4 grid gap-4 text-xs lg:grid-cols-2">
         <ProgramRichDetail label="Mô tả ngắn" value={program.shortDescription} />
