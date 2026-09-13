@@ -629,13 +629,18 @@ function ProgramMobileRow({ expanded, onSelect, onToggle, program, registered, s
   );
 }
 
-function ProgramDetail({ label, value }) {
-  return <div><dt className="font-bold uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-0.5 font-semibold text-slate-700">{value}</dd></div>;
+function ProgramDetail({ className = '', label, value }) {
+  return (
+    <div className={className}>
+      <dt className="font-bold uppercase tracking-wide text-slate-400">{label}</dt>
+      <dd className="mt-0.5 font-semibold text-slate-700">{value}</dd>
+    </div>
+  );
 }
 
-function ProgramRichDetail({ label, value }) {
+function ProgramRichDetail({ className = '', label, value }) {
   return (
-    <div>
+    <div className={className}>
       <p className="font-bold uppercase tracking-wide text-slate-400">{label}</p>
       <RichTextHtml
         asPlain
@@ -648,23 +653,15 @@ function ProgramRichDetail({ label, value }) {
 
 function ProgramExpandedDetails({ program }) {
   return (
-    <div>
-      <dl className="grid gap-4 text-xs sm:grid-cols-2 lg:grid-cols-5">
-        <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
-        <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
-        <ProgramDetail label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
-        <div className="col-span-full grid max-w-lg grid-cols-2 gap-4">
-          <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
-          <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
-        </div>
-      </dl>
-      <div className="mt-4 grid gap-4 text-xs lg:grid-cols-2">
-        <ProgramRichDetail label="Mô tả ngắn" value={program.shortDescription} />
-        <ProgramRichDetail label="Mục tiêu đầu ra" value={program.targetOutcome} />
-        <div className="lg:col-span-2">
-          <ProgramRichDetail label="Mô tả chi tiết" value={program.description} />
-        </div>
-      </div>
+    <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs lg:grid-cols-4">
+      <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
+      <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
+      <ProgramDetail className="col-span-2" label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
+      <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
+      <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
+      <ProgramRichDetail className="col-span-2 col-start-1" label="Mô tả ngắn" value={program.shortDescription} />
+      <ProgramRichDetail className="col-span-2" label="Mục tiêu đầu ra" value={program.targetOutcome} />
+      <ProgramRichDetail className="col-span-2 lg:col-span-4" label="Mô tả chi tiết" value={program.description} />
     </div>
   );
 }
