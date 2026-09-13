@@ -71,7 +71,6 @@ import {
   importCourseUnitsWithLessons,
   parseCurriculumExcelFile,
 } from '../../utils/curriculumExcel';
-import { PLACEMENT_LEVEL_OPTIONS } from '../../utils/placementRecommendation';
 
 const emptyUnit = {
   title: '',
@@ -94,27 +93,17 @@ const emptyAttach = {
   resourceId: '',
 };
 
-const COURSE_LEVEL_OPTIONS = [
-  { label: 'Căn bản / Sơ cấp (Beginner / Foundation)', value: 'BEGINNER' },
-  { label: 'Tiền trung cấp (Pre-Intermediate)', value: 'PRE_INTERMEDIATE' },
-  { label: 'Trung cấp (Intermediate)', value: 'INTERMEDIATE' },
-  { label: 'Trên trung cấp (Upper-Intermediate)', value: 'UPPER_INTERMEDIATE' },
-  { label: 'Nâng cao / Chuyên sâu (Advanced / Master)', value: 'ADVANCED' },
-];
-
 const emptyProgramForm = {
   title: '',
   code: '',
   shortDescription: '',
   description: '',
   durationLabel: '',
-  level: 'INTERMEDIATE',
   examCategory: 'IELTS',
   focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
   targetBand: 6.5,
   targetScore: '',
   entryLevel: '4.0',
-  entryPlacementLevel: 'BEGINNER',
   outcomes: '',
   status: 'DRAFT',
 };
@@ -195,13 +184,11 @@ const toProgramForm = (program) => {
     shortDescription: program?.shortDescription || '',
     description: program?.description || '',
     durationLabel: program?.durationLabel || '',
-    level: program?.level || 'INTERMEDIATE',
     examCategory,
     focusSkills: readEnglishFocusSkills(program?.focusSkills, examCategory),
     targetBand: examCategory === 'IELTS' ? (program?.targetBand ?? defaults.targetBand) : '',
     targetScore: examCategory === 'TOEIC' ? (program?.targetScore ?? defaults.targetScore) : '',
     entryLevel: normalizeEnglishEntryLevel(program?.entryLevel, examCategory),
-    entryPlacementLevel: program?.entryPlacementLevel || (examCategory === 'GENERAL_ENGLISH' ? '' : 'BEGINNER'),
     outcomes: program?.outcomes || program?.learningOutcomes || '',
   };
 };
@@ -212,13 +199,11 @@ const toProgramPayload = (form, forceDraft = false) => ({
   shortDescription: form.shortDescription?.trim() || null,
   description: form.description?.trim() || null,
   durationLabel: form.durationLabel?.trim() || null,
-  level: form.level?.trim() || null,
   examCategory: form.examCategory,
   focusSkills: form.focusSkills.join(','),
   targetBand: form.targetBand === '' ? null : Number(form.targetBand),
   targetScore: form.targetScore === '' ? null : Number(form.targetScore),
   entryLevel: form.entryLevel?.trim() || null,
-  entryPlacementLevel: form.entryPlacementLevel || null,
   outcomes: form.outcomes?.trim() || null,
   status: forceDraft ? 'DRAFT' : (form.status || 'DRAFT'),
 });
@@ -1064,7 +1049,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <InfoTile label="Nhóm thi" value={programDetail?.examCategory || '-'} />
               <InfoTile label="Target đầu ra" value={programDetail?.targetBand ? `Band ${programDetail.targetBand}` : (programDetail?.targetScore ? `${programDetail.targetScore} điểm` : '-')} />
-              <InfoTile label="Trình độ đầu vào" value={programDetail?.entryLevel || programDetail?.entryPlacementLevel || '-'} />
+              <InfoTile label="Điểm đầu vào" value={programDetail?.entryLevel || '-'} />
               <InfoTile label="Số Unit" value={units.length} />
               <InfoTile label="Tổng bài học" value={`${countStructuredLessons(programDetail?.units || units)} bài`} />
               <InfoTile label="Thời lượng" value={programDetail?.durationLabel || '-'} />
@@ -1464,13 +1449,6 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
                 />
 
                 <FieldSelect
-                  label="Trình độ / Cấp độ"
-                  onChange={(value) => onChange({ level: value })}
-                  options={COURSE_LEVEL_OPTIONS}
-                  value={form.level || 'INTERMEDIATE'}
-                />
-
-                <FieldSelect
                   label="Trạng thái khóa học"
                   onChange={(value) => onChange({ status: value })}
                   options={[
@@ -1536,14 +1514,6 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
                   />
                 ) : null}
 
-                {form.examCategory !== 'GENERAL_ENGLISH' ? (
-                  <FieldSelect
-                    label="Trình độ Placement đầu vào"
-                    onChange={(value) => onChange({ entryPlacementLevel: value })}
-                    options={PLACEMENT_LEVEL_OPTIONS}
-                    value={form.entryPlacementLevel}
-                  />
-                ) : null}
               </div>
 
               <div className="mt-4">
@@ -1785,11 +1755,6 @@ function InstructorLedCourseListPanel({
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#8b706e]">
                           <span className="font-semibold text-[#584140]">{program.code || '-'}</span>
-                          {program.level ? (
-                            <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-bold text-slate-700">
-                              {formatLevel(program.level)}
-                            </span>
-                          ) : null}
                           {program.durationLabel ? (
                             <span className="text-[11px] text-slate-500">
                               · {program.durationLabel}
@@ -1978,12 +1943,6 @@ function formatExamCategory(value) {
     GENERAL_ENGLISH: 'General English',
   };
   return labels[String(value || '').toUpperCase()] || value || 'IELTS';
-}
-
-function formatLevel(value) {
-  if (!value) return '-';
-  const found = COURSE_LEVEL_OPTIONS.find((opt) => opt.value === value);
-  return found ? found.label.split('(')[0].trim() : value;
 }
 
 function formatCurrency(amount) {

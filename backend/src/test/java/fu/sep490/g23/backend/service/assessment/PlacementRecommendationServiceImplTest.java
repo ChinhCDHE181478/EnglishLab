@@ -6,6 +6,8 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
@@ -92,6 +94,44 @@ class PlacementRecommendationServiceImplTest {
         assertThat(result.getOverallScore()).isEqualByComparingTo("5.5");
         assertThat(result.getOverallScore()).isNotEqualByComparingTo("4.0");
         assertThat(result.getWeakSkills()).contains("WRITING");
+    }
+
+    @Test
+    void instructorLedRecommendationsUseNumericEntryAndTargetRange() {
+        InstructorLedCourse closestFit = instructorLedCourse(1L, "5.5", BigDecimal.valueOf(6.5));
+        InstructorLedCourse broaderFit = instructorLedCourse(2L, "IELTS 4.0", BigDecimal.valueOf(7));
+        InstructorLedCourse entryTooHigh = instructorLedCourse(3L, "6.0", BigDecimal.valueOf(7));
+        InstructorLedCourse targetAlreadyReached = instructorLedCourse(4L, "4.0", BigDecimal.valueOf(5.5));
+
+        when(eligibilityService.evaluateEligibility(1L, 10L))
+                .thenReturn(eligibility(true, PlacementEvaluationStatus.ELIGIBLE));
+        when(onlineCourseService.recommendCourses(
+                org.mockito.ArgumentMatchers.eq(learner),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(List.of());
+        when(instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc())
+                .thenReturn(List.of(broaderFit, entryTooHigh, targetAlreadyReached, closestFit));
+
+        PlacementRecommendationResponse result = service.getRecommendations(10L, learner.getEmail());
+
+        assertThat(result.getRecommendedInstructorLedCourses())
+                .extracting("id")
+                .containsExactly(1L, 2L);
+        assertThat(result.getRecommendedInstructorLedCourses().get(0).getEntryLevel()).isEqualTo("5.5");
+        assertThat(result.getRecommendedInstructorLedCourses().get(0).getRecommendationReason())
+                .contains("Band hiện tại 5.5", "đầu vào 5.5", "hướng tới 6.5");
+    }
+
+    private InstructorLedCourse instructorLedCourse(Long id, String entryLevel, BigDecimal targetBand) {
+        return InstructorLedCourse.builder()
+                .id(id)
+                .title("IELTS " + id)
+                .code("IELTS-" + id)
+                .examType("IELTS")
+                .entryLevel(entryLevel)
+                .targetBand(targetBand)
+                .publicationStatus(PackageStatus.PUBLISHED)
+                .build();
     }
 
     private PlacementEligibilityResult eligibility(boolean eligible, PlacementEvaluationStatus status) {

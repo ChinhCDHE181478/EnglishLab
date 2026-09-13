@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.request.curriculum;
 
-import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -30,9 +29,6 @@ public class InstructorLedCourseRequest {
     @Size(max = 80)
     private String durationLabel;
 
-    @Size(max = 120)
-    private String level;
-
     @DecimalMin(value = "0.0", message = "Học phí gốc không được âm.")
     private BigDecimal baseTuitionFeeVnd;
 
@@ -54,8 +50,6 @@ public class InstructorLedCourseRequest {
 
     @Size(max = 120)
     private String entryLevel;
-
-    private PlacementLevel entryPlacementLevel;
 
     private String outcomes;
     private String teacherGuide;

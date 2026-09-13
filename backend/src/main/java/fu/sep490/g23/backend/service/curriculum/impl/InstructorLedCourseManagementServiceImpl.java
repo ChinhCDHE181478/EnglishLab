@@ -167,7 +167,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .shortDescription(trimOrNull(request.getShortDescription()))
                 .description(trimOrNull(request.getDescription()))
                 .durationLabel(trimOrNull(request.getDurationLabel()))
-                .level(trimOrNull(request.getLevel()))
                 .baseTuitionFeeVnd(request.getBaseTuitionFeeVnd() != null ? request.getBaseTuitionFeeVnd() : BigDecimal.ZERO)
                 .saleTuitionFeeVnd(request.getSaleTuitionFeeVnd())
                 .learningOutcomes(trimOrNull(request.getOutcomes()))
@@ -200,7 +199,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         program.setShortDescription(trimOrNull(request.getShortDescription())) ;
         program.setDescription(trimOrNull(request.getDescription()));
         program.setDurationLabel(trimOrNull(request.getDurationLabel()));
-        program.setLevel(trimOrNull(request.getLevel()));
         if (request.getBaseTuitionFeeVnd() != null) {
             program.setBaseTuitionFeeVnd(request.getBaseTuitionFeeVnd());
         }
@@ -243,7 +241,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .shortDescription(source.getShortDescription())
                 .description(source.getDescription())
                 .durationLabel(source.getDurationLabel())
-                .level(source.getLevel())
                 .baseTuitionFeeVnd(source.getBaseTuitionFeeVnd())
                 .saleTuitionFeeVnd(source.getSaleTuitionFeeVnd())
                 .examType(source.getExamType())
@@ -251,7 +248,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .targetBand(source.getTargetBand())
                 .targetScore(source.getTargetScore())
                 .entryLevel(source.getEntryLevel())
-                .entryPlacementLevel(source.getEntryPlacementLevel())
                 .learningOutcomes(source.getLearningOutcomes())
                 .teacherGuide(source.getTeacherGuide())
                 .publicationStatus(PackageStatus.DRAFT)
@@ -815,7 +811,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .shortDescription(program.getShortDescription())
                 .description(program.getDescription())
                 .durationLabel(program.getDurationLabel())
-                .level(program.getLevel())
                 .baseTuitionFeeVnd(program.getBaseTuitionFeeVnd())
                 .saleTuitionFeeVnd(program.getSaleTuitionFeeVnd())
                 .examCategory(program.getExamType())
@@ -823,7 +818,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .targetBand(program.getTargetBand())
                 .targetScore(program.getTargetScore())
                 .entryLevel(program.getEntryLevel())
-                .entryPlacementLevel(program.getEntryPlacementLevel())
                 .outcomes(program.getLearningOutcomes())
                 .teacherGuide(program.getTeacherGuide())
                 .totalSessions(resolveTotalSessions(program))
@@ -852,10 +846,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     /** Validates the English profile, lesson structure, and assessments before publication. */
     private void validateReadyForPublish(InstructorLedCourse program) {
-        if (("IELTS".equals(program.getExamType()) || "TOEIC".equals(program.getExamType()))
-                && program.getEntryPlacementLevel() == null) {
-            throw new IllegalArgumentException("Hãy chọn trình độ Placement đầu vào trước khi xuất bản giáo trình.");
-        }
         validateEnglishProfile(
                 program.getExamType(),
                 program.getFocusSkills(),
@@ -998,7 +988,6 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         program.setTargetBand(request.getTargetBand());
         program.setTargetScore(request.getTargetScore());
         program.setEntryLevel(request.getEntryLevel().trim());
-        program.setEntryPlacementLevel(request.getEntryPlacementLevel());
     }
 
     /** Normalizes and validates the supported exam category. */
