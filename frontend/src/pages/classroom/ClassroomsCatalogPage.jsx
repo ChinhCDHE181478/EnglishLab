@@ -653,15 +653,21 @@ function ProgramRichDetail({ className = '', label, value }) {
 
 function ProgramExpandedDetails({ program }) {
   return (
-    <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs lg:grid-cols-4">
-      <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
-      <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
-      <ProgramDetail className="col-span-2" label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
-      <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
-      <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
-      <ProgramRichDetail className="col-span-2 col-start-1" label="Mô tả ngắn" value={program.shortDescription} />
-      <ProgramRichDetail className="col-span-2" label="Mục tiêu đầu ra" value={program.targetOutcome} />
-      <ProgramRichDetail className="col-span-2 lg:col-span-4" label="Mô tả chi tiết" value={program.description} />
+    <div className="space-y-4 text-xs">
+      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
+        <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
+        <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
+        <ProgramDetail label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
+      </dl>
+      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
+        <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
+      </dl>
+      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        <ProgramRichDetail label="Mô tả ngắn" value={program.shortDescription} />
+        <ProgramRichDetail label="Mục tiêu đầu ra" value={program.targetOutcome} />
+      </div>
+      <ProgramRichDetail label="Mô tả chi tiết" value={program.description} />
     </div>
   );
 }
