@@ -95,7 +95,7 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/discount-codes': {
     title: 'Quản lý mã giảm giá',
-    subtitle: 'Tạo mã ưu đãi, đặt giới hạn sử dụng và theo dõi hiệu quả của từng chương trình.',
+    subtitle: 'Tạo mã ưu đãi, đặt giới hạn sử dụng và theo dõi hiệu quả của từng khóa học.',
     searchPlaceholder: 'Tìm mã giảm giá...',
   },
   '/content-manager/materials': {
@@ -105,7 +105,7 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/flashcards': {
     title: 'Quản lý thẻ ghi nhớ',
-    subtitle: 'Tạo và quản lý bộ flashcard dùng chung để curriculum/course tham chiếu lại.',
+    subtitle: 'Tạo và quản lý bộ flashcard dùng chung để các khóa học tham chiếu lại.',
     searchPlaceholder: 'Tìm bộ thẻ hoặc chủ đề...',
   },
   '/content-manager/listening': {

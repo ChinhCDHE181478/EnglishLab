@@ -1392,7 +1392,7 @@ function LegacyFlashcardSetEditor({
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-[#f0e3e4] bg-[#fffafb] px-6 py-4">
-          <p className="text-sm text-[#584140]">Toàn bộ thay đổi sẽ được cập nhật cho mọi khóa học và giáo trình đang dùng bộ thẻ này.</p>
+          <p className="text-sm text-[#584140]">Toàn bộ thay đổi sẽ được cập nhật cho mọi khóa học đang dùng bộ thẻ này.</p>
           <button className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={loading} onClick={onSave} type="button">
             {loading ? 'Đang lưu...' : 'Lưu bộ thẻ'}
           </button>

@@ -229,7 +229,7 @@ export default function ContentManagerExerciseBankPage() {
               <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">
                 {editingId ? 'Chỉnh sửa bài tập' : 'Thêm bài tập mới'}
               </h3>
-              <p className="mt-1 text-sm text-slate-600">Nội dung ở đây dùng chung cho giáo trình, lớp học và hoạt động luyện tập.</p>
+              <p className="mt-1 text-sm text-slate-600">Nội dung ở đây dùng chung cho khóa học, lớp học và hoạt động luyện tập.</p>
             </div>
             <button type="button" onClick={() => resetForm(false)} className={SECONDARY_BUTTON_CLASS}>
               <X className="h-4 w-4" /> Đóng

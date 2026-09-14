@@ -786,7 +786,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
               <p className="mt-1 text-xs text-[#8b706e]">
                 {isSkillLocked
                   ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
-                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.'}
+                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học.'}
               </p>
             </div>
             <button className="rounded-2xl border border-[#dfbfbd]/65 p-2.5 text-[#730014] transition hover:bg-[#fff2f3]" onClick={closeEditor} type="button">

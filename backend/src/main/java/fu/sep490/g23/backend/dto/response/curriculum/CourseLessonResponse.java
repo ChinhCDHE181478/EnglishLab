@@ -12,6 +12,7 @@ public class CourseLessonResponse {
     private Long unitId;
     private String unitTitle;
     private Long programId;
+    private Long instructorLedCourseId;
     private Integer sessionNumber;
     private Integer displayOrder;
     private Integer plannedSessionCount;

@@ -37,15 +37,15 @@ public class InstructorLedCourseResponse {
     private LocalDateTime submittedAt;
     private String reviewedByName;
     private LocalDateTime reviewedAt;
-    /** Tổng số lớp học đã từng gắn giáo trình này. */
+    /** Tổng số lớp học đã từng gắn khóa học này. */
     private Integer classroomUsageCount;
-    /** Số lớp sắp khai giảng / đang diễn ra dùng giáo trình này. */
+    /** Số lớp sắp khai giảng / đang diễn ra dùng khóa học này. */
     private Integer activeClassroomCount;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CourseUnitResponse> units;
-    /** Danh sách lớp đang gắn giáo trình (chỉ trả về ở API chi tiết). */
+    /** Danh sách lớp đang gắn khóa học (chỉ trả về ở API chi tiết). */
     private List<ClassroomUsage> usingClassrooms;
 
     @Data

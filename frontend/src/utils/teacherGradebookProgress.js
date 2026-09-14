@@ -130,7 +130,7 @@ export const buildGradebookLessons = ({
       curriculumUnitId: null,
       displayOrder: null,
       title: 'Bài tập chưa xếp bài học',
-      description: 'Các bài tập này chưa được gắn với một bài trong giáo trình.',
+      description: 'Các bài tập này chưa được gắn với một bài học trong khóa học.',
       assignments: unassignedHomeworks,
       stats,
       positionStatus: LESSON_POSITION_STATUS.UNASSIGNED,

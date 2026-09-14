@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 public class InstructorLedCourseRequest {
-    @NotBlank(message = "Tên giáo trình không được để trống.")
+    @NotBlank(message = "Tên khóa học không được để trống.")
     @Size(max = 180)
     private String title;
 
