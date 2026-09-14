@@ -39,9 +39,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class InstructorLedCourseManagementServiceImplTest {
 
-    @Mock private InstructorLedCourseRepository programRepository;
+    @Mock private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock private CourseUnitRepository unitRepository;
-    @Mock private CourseLessonRepository sessionPlanRepository;
+    @Mock private CourseLessonRepository courseLessonRepository;
     @Mock private fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository contentRefRepository;
     @Mock private CenterMaterialLibraryItemRepository materialRepository;
     @Mock private ExerciseBankItemRepository exerciseRepository;
@@ -54,17 +54,17 @@ class InstructorLedCourseManagementServiceImplTest {
     private InstructorLedCourseManagementServiceImpl service;
 
     @Test
-    void createProgramPersistsCanonicalIeltsProfile() {
+    void createInstructorLedCoursePersistsCanonicalIeltsProfile() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setFocusSkills("SPEAKING,LISTENING,READING,WRITING,LISTENING");
-        when(programRepository.existsByCodeIgnoreCase("IELTS-65")).thenReturn(false);
-        when(programRepository.save(any(InstructorLedCourse.class)))
+        when(instructorLedCourseRepository.existsByCodeIgnoreCase("IELTS-65")).thenReturn(false);
+        when(instructorLedCourseRepository.save(any(InstructorLedCourse.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.createProgram(request);
+        service.createInstructorLedCourse(request);
 
         ArgumentCaptor<InstructorLedCourse> captor = ArgumentCaptor.forClass(InstructorLedCourse.class);
-        verify(programRepository).save(captor.capture());
+        verify(instructorLedCourseRepository).save(captor.capture());
         InstructorLedCourse saved = captor.getValue();
         assertThat(saved.getExamType()).isEqualTo("IELTS");
         assertThat(saved.getFocusSkills()).isEqualTo("LISTENING,READING,WRITING,SPEAKING");
@@ -73,23 +73,23 @@ class InstructorLedCourseManagementServiceImplTest {
     }
 
     @Test
-    void createProgramGeneratesUniqueCodeWhenCodeIsMissing() {
+    void createInstructorLedCourseGeneratesUniqueCodeWhenCodeIsMissing() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setCode(null);
-        when(programRepository.existsByCodeIgnoreCase("ILC-IELTS-ACADEMIC-6-5")).thenReturn(true);
-        when(programRepository.existsByCodeIgnoreCase("ILC-IELTS-ACADEMIC-6-5-2")).thenReturn(false);
-        when(programRepository.save(any(InstructorLedCourse.class)))
+        when(instructorLedCourseRepository.existsByCodeIgnoreCase("ILC-IELTS-ACADEMIC-6-5")).thenReturn(true);
+        when(instructorLedCourseRepository.existsByCodeIgnoreCase("ILC-IELTS-ACADEMIC-6-5-2")).thenReturn(false);
+        when(instructorLedCourseRepository.save(any(InstructorLedCourse.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.createProgram(request);
+        service.createInstructorLedCourse(request);
 
         ArgumentCaptor<InstructorLedCourse> captor = ArgumentCaptor.forClass(InstructorLedCourse.class);
-        verify(programRepository).save(captor.capture());
+        verify(instructorLedCourseRepository).save(captor.capture());
         assertThat(captor.getValue().getCode()).isEqualTo("ILC-IELTS-ACADEMIC-6-5-2");
     }
 
     @Test
-    void updateProgramKeepsExistingCodeWhenCodeIsMissing() {
+    void updateInstructorLedCourseKeepsExistingCodeWhenCodeIsMissing() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setCode(null);
         InstructorLedCourse existing = InstructorLedCourse.builder()
@@ -99,76 +99,76 @@ class InstructorLedCourseManagementServiceImplTest {
                 .examType("IELTS")
                 .publicationStatus(PackageStatus.DRAFT)
                 .build();
-        when(programRepository.findById(9L)).thenReturn(Optional.of(existing));
-        when(programRepository.save(any(InstructorLedCourse.class)))
+        when(instructorLedCourseRepository.findById(9L)).thenReturn(Optional.of(existing));
+        when(instructorLedCourseRepository.save(any(InstructorLedCourse.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.updateProgram(9L, request);
+        service.updateInstructorLedCourse(9L, request);
 
         assertThat(existing.getCode()).isEqualTo("OFFLINE-IELTS-CU");
     }
 
     @Test
-    void createProgramRejectsToeicUsingIeltsBand() {
+    void createInstructorLedCourseRejectsToeicUsingIeltsBand() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setExamCategory("TOEIC");
         request.setEntryLevel("450");
         request.setTargetScore(650);
 
-        assertThatThrownBy(() -> service.createProgram(request))
+        assertThatThrownBy(() -> service.createInstructorLedCourse(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("không sử dụng band IELTS");
-        verify(programRepository, never()).save(any());
+        verify(instructorLedCourseRepository, never()).save(any());
     }
 
     @Test
-    void createProgramRejectsEntryBandHigherThanTargetBand() {
+    void createInstructorLedCourseRejectsEntryBandHigherThanTargetBand() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setEntryLevel("7.0");
 
-        assertThatThrownBy(() -> service.createProgram(request))
+        assertThatThrownBy(() -> service.createInstructorLedCourse(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("đầu vào không thể cao hơn band mục tiêu");
-        verify(programRepository, never()).save(any());
+        verify(instructorLedCourseRepository, never()).save(any());
     }
 
     @Test
-    void createProgramRejectsInvalidGeneralEnglishCefrLevel() {
+    void createInstructorLedCourseRejectsInvalidGeneralEnglishCefrLevel() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setExamCategory("GENERAL_ENGLISH");
         request.setEntryLevel("Sơ cấp");
         request.setTargetBand(null);
 
-        assertThatThrownBy(() -> service.createProgram(request))
+        assertThatThrownBy(() -> service.createInstructorLedCourse(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("CEFR");
-        verify(programRepository, never()).save(any());
+        verify(instructorLedCourseRepository, never()).save(any());
     }
 
     @Test
-    void createProgramRejectsCategoryOutsideEnglishTraining() {
+    void createInstructorLedCourseRejectsCategoryOutsideEnglishTraining() {
         InstructorLedCourseRequest request = validIeltsRequest();
         request.setExamCategory("PROGRAMMING");
 
-        assertThatThrownBy(() -> service.createProgram(request))
+        assertThatThrownBy(() -> service.createInstructorLedCourse(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("IELTS, TOEIC hoặc General English");
-        verify(programRepository, never()).save(any());
+        verify(instructorLedCourseRepository, never()).save(any());
     }
 
     @Test
-    void createSessionPlanPersistsAndSynchronizesTotalSessions() {
+    void createCourseLessonPersistsAndSynchronizesTotalSessions() {
         CourseUnit unit = unit(10L, program(1L));
         CourseLessonRequest request = sessionPlanRequest(1, "Reading Overview");
         when(unitRepository.findById(10L)).thenReturn(Optional.of(unit));
-        when(sessionPlanRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(false);
-        when(sessionPlanRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> {
+        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(false);
+        when(courseLessonRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> {
             CourseLesson saved = invocation.getArgument(0);
             saved.setId(101L);
             return saved;
         });
 
-        var response = service.createSessionPlan(10L, request);
+        var response = service.createCourseLesson(10L, request);
 
         assertThat(response.getSessionNumber()).isEqualTo(1);
         assertThat(response.getTitle()).isEqualTo("Reading Overview");
@@ -176,87 +176,87 @@ class InstructorLedCourseManagementServiceImplTest {
     }
 
     @Test
-    void updateSessionPlanPersistsChanges() {
+    void updateCourseLessonPersistsChanges() {
         CourseLesson plan = plan(101L, unit(10L, program(1L)), 1, "Cũ");
-        when(sessionPlanRepository.findById(101L)).thenReturn(Optional.of(plan));
-        when(sessionPlanRepository.existsDuplicateSequenceNumber(1L, 2, 101L)).thenReturn(false);
-        when(sessionPlanRepository.save(plan)).thenReturn(plan);
+        when(courseLessonRepository.findById(101L)).thenReturn(Optional.of(plan));
+        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 2, 101L)).thenReturn(false);
+        when(courseLessonRepository.save(plan)).thenReturn(plan);
 
-        var response = service.updateSessionPlan(101L, sessionPlanRequest(2, "Scanning + Keywords"));
+        var response = service.updateCourseLesson(101L, sessionPlanRequest(2, "Scanning + Keywords"));
 
         assertThat(response.getSessionNumber()).isEqualTo(2);
         assertThat(response.getTitle()).isEqualTo("Scanning + Keywords");
     }
 
     @Test
-    void createSessionPlanRejectsNumberBelowOne() {
+    void createCourseLessonRejectsNumberBelowOne() {
         when(unitRepository.findById(10L)).thenReturn(Optional.of(unit(10L, program(1L))));
 
-        assertThatThrownBy(() -> service.createSessionPlan(10L, sessionPlanRequest(0, "Sai")))
+        assertThatThrownBy(() -> service.createCourseLesson(10L, sessionPlanRequest(0, "Sai")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("bắt đầu từ 1");
-        verify(sessionPlanRepository, never()).save(any());
+        verify(courseLessonRepository, never()).save(any());
     }
 
     @Test
-    void createSessionPlanRejectsDuplicateNumberInsideProgram() {
+    void createCourseLessonRejectsDuplicateNumberInsideCourse() {
         when(unitRepository.findById(10L)).thenReturn(Optional.of(unit(10L, program(1L))));
-        when(sessionPlanRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(true);
+        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(true);
 
-        assertThatThrownBy(() -> service.createSessionPlan(10L, sessionPlanRequest(1, "Trùng")))
+        assertThatThrownBy(() -> service.createCourseLesson(10L, sessionPlanRequest(1, "Trùng")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Bài học số 1 đã tồn tại");
     }
 
     @Test
-    void differentProgramsMayBothUseSessionNumberOne() {
+    void differentCoursesMayBothUseLessonNumberOne() {
         CourseUnit firstUnit = unit(10L, program(1L));
         CourseUnit secondUnit = unit(20L, program(2L));
         when(unitRepository.findById(10L)).thenReturn(Optional.of(firstUnit));
         when(unitRepository.findById(20L)).thenReturn(Optional.of(secondUnit));
-        when(sessionPlanRepository.existsDuplicateSequenceNumber(any(), any(), any())).thenReturn(false);
-        when(sessionPlanRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(courseLessonRepository.existsDuplicateSequenceNumber(any(), any(), any())).thenReturn(false);
+        when(courseLessonRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.createSessionPlan(10L, sessionPlanRequest(1, "Program A"));
-        service.createSessionPlan(20L, sessionPlanRequest(1, "Program B"));
+        service.createCourseLesson(10L, sessionPlanRequest(1, "Course A"));
+        service.createCourseLesson(20L, sessionPlanRequest(1, "Course B"));
 
-        verify(sessionPlanRepository).existsDuplicateSequenceNumber(1L, 1, null);
-        verify(sessionPlanRepository).existsDuplicateSequenceNumber(2L, 1, null);
+        verify(courseLessonRepository).existsDuplicateSequenceNumber(1L, 1, null);
+        verify(courseLessonRepository).existsDuplicateSequenceNumber(2L, 1, null);
     }
 
     @Test
-    void deleteUnusedSessionPlanSucceedsAndSynchronizesTotal() {
+    void deleteUnusedCourseLessonSucceedsAndSynchronizesTotal() {
         InstructorLedCourse program = program(1L);
         CourseLesson plan = plan(101L, unit(10L, program), 1, "Reading");
-        when(sessionPlanRepository.findById(101L)).thenReturn(Optional.of(plan));
+        when(courseLessonRepository.findById(101L)).thenReturn(Optional.of(plan));
 
-        service.deleteSessionPlan(101L);
+        service.deleteCourseLesson(101L);
 
-        verify(sessionPlanRepository).delete(plan);
-        verify(sessionPlanRepository).flush();
+        verify(courseLessonRepository).delete(plan);
+        verify(courseLessonRepository).flush();
     }
 
     @Test
     void deleteCourseLessonUsedByScheduleIsRejectedByRelationalIntegrity() {
         CourseLesson lesson = plan(101L, unit(10L, program(1L)), 5, "Multiple Choice");
-        when(sessionPlanRepository.findById(101L)).thenReturn(Optional.of(lesson));
+        when(courseLessonRepository.findById(101L)).thenReturn(Optional.of(lesson));
         doThrow(new DataIntegrityViolationException("course lesson is referenced by class schedule"))
-                .when(sessionPlanRepository).flush();
+                .when(courseLessonRepository).flush();
 
-        assertThatThrownBy(() -> service.deleteSessionPlan(101L))
+        assertThatThrownBy(() -> service.deleteCourseLesson(101L))
                 .isInstanceOf(DataIntegrityViolationException.class);
-        verify(sessionPlanRepository).delete(lesson);
-        verify(sessionPlanRepository).flush();
+        verify(courseLessonRepository).delete(lesson);
+        verify(courseLessonRepository).flush();
     }
 
     @Test
     void publishStructuredCurriculumWithContinuousSessionsSucceeds() {
         InstructorLedCourse program = publishableProgram(1, 2, 3);
-        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(1L)).thenReturn(Optional.of(program));
         when(accessHelper.requireUser("manager@englishlab.vn")).thenReturn(User.builder().id(99L).build());
-        when(programRepository.save(program)).thenReturn(program);
+        when(instructorLedCourseRepository.save(program)).thenReturn(program);
 
-        service.publishProgram(1L, "manager@englishlab.vn");
+        service.publishInstructorLedCourse(1L, "manager@englishlab.vn");
 
         assertThat(program.getPublicationStatus()).isEqualTo(PackageStatus.PUBLISHED);
     }
@@ -264,11 +264,11 @@ class InstructorLedCourseManagementServiceImplTest {
     @Test
     void publishResponseDerivesTotalSessionsFromCanonicalCourseLessons() {
         InstructorLedCourse program = publishableProgram(1, 2, 3);
-        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(1L)).thenReturn(Optional.of(program));
         when(accessHelper.requireUser("manager@englishlab.vn")).thenReturn(User.builder().id(99L).build());
-        when(programRepository.save(program)).thenReturn(program);
+        when(instructorLedCourseRepository.save(program)).thenReturn(program);
 
-        var response = service.publishProgram(1L, "manager@englishlab.vn");
+        var response = service.publishInstructorLedCourse(1L, "manager@englishlab.vn");
 
         assertThat(response.getTotalSessions()).isEqualTo(3);
     }
@@ -276,9 +276,9 @@ class InstructorLedCourseManagementServiceImplTest {
     @Test
     void publishStructuredCurriculumRejectsMissingSessionNumber() {
         InstructorLedCourse program = publishableProgram(1, 2, 4);
-        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(1L)).thenReturn(Optional.of(program));
 
-        assertThatThrownBy(() -> service.publishProgram(1L, "manager@englishlab.vn"))
+        assertThatThrownBy(() -> service.publishInstructorLedCourse(1L, "manager@englishlab.vn"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("thiếu buổi 3");
     }

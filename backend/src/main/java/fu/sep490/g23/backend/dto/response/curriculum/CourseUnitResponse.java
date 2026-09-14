@@ -11,6 +11,7 @@ import java.util.List;
 public class CourseUnitResponse {
     private Long id;
     private Long programId;
+    private Long instructorLedCourseId;
     private Integer displayOrder;
     private String title;
     private String description;

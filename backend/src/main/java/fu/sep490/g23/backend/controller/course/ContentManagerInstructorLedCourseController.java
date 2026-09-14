@@ -41,83 +41,83 @@ public class ContentManagerInstructorLedCourseController {
 
     private final InstructorLedCourseManagementService instructorLedCourseManagementService;
 
-    @GetMapping("/curriculum-programs")
-    public ResponseEntity<List<InstructorLedCourseResponse>> listPrograms() {
-        return ResponseEntity.ok(instructorLedCourseManagementService.listPrograms());
+    @GetMapping({"/instructor-led-courses", "/curriculum-programs"})
+    public ResponseEntity<List<InstructorLedCourseResponse>> listInstructorLedCourses() {
+        return ResponseEntity.ok(instructorLedCourseManagementService.listInstructorLedCourses());
     }
 
-    @GetMapping("/curriculum-programs/page")
-    public ResponseEntity<Page<InstructorLedCourseResponse>> pagePrograms(
+    @GetMapping({"/instructor-led-courses/page", "/curriculum-programs/page"})
+    public ResponseEntity<Page<InstructorLedCourseResponse>> pageInstructorLedCourses(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String examCategory,
             @RequestParam(required = false) String entryLevel,
             @RequestParam(required = false) String status,
             @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.pagePrograms(
+        return ResponseEntity.ok(instructorLedCourseManagementService.pageInstructorLedCourses(
                 keyword, examCategory, entryLevel, status, pageable));
     }
 
     /**
      * Retrieves the full instructor-led course structure, including units, lessons, and resource references.
      */
-    @GetMapping("/curriculum-programs/{id}")
-    public ResponseEntity<InstructorLedCourseResponse> getProgram(@PathVariable Long id) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));
+    @GetMapping({"/instructor-led-courses/{id}", "/curriculum-programs/{id}"})
+    public ResponseEntity<InstructorLedCourseResponse> getInstructorLedCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(instructorLedCourseManagementService.getInstructorLedCourse(id));
     }
 
     /**
      * Creates an instructor-led course with a unique code and validated English-learning profile.
      */
-    @PostMapping("/curriculum-programs")
-    public ResponseEntity<InstructorLedCourseResponse> createProgram(
+    @PostMapping({"/instructor-led-courses", "/curriculum-programs"})
+    public ResponseEntity<InstructorLedCourseResponse> createInstructorLedCourse(
             @Valid @RequestBody InstructorLedCourseRequest request
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.createProgram(request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createInstructorLedCourse(request));
     }
 
     /**
      * Updates course blueprint metadata, fee structure, and English learning outcomes.
      */
-    @PutMapping("/curriculum-programs/{id}")
-    public ResponseEntity<InstructorLedCourseResponse> updateProgram(
+    @PutMapping({"/instructor-led-courses/{id}", "/curriculum-programs/{id}"})
+    public ResponseEntity<InstructorLedCourseResponse> updateInstructorLedCourse(
             @PathVariable Long id,
             @Valid @RequestBody InstructorLedCourseRequest request
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.updateProgram(id, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.updateInstructorLedCourse(id, request));
     }
 
     /**
      * Archives an instructor-led course template, removing it from active proposal creation.
      */
-    @DeleteMapping("/curriculum-programs/{id}")
-    public ResponseEntity<Void> archiveProgram(@PathVariable Long id) {
-        instructorLedCourseManagementService.archiveProgram(id);
+    @DeleteMapping({"/instructor-led-courses/{id}", "/curriculum-programs/{id}"})
+    public ResponseEntity<Void> archiveInstructorLedCourse(@PathVariable Long id) {
+        instructorLedCourseManagementService.archiveInstructorLedCourse(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/curriculum-programs/{id}/clone")
-    public ResponseEntity<InstructorLedCourseResponse> cloneProgram(@PathVariable Long id) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.cloneProgram(id));
+    @PostMapping({"/instructor-led-courses/{id}/clone", "/curriculum-programs/{id}/clone"})
+    public ResponseEntity<InstructorLedCourseResponse> cloneInstructorLedCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(instructorLedCourseManagementService.cloneInstructorLedCourse(id));
     }
 
-    @PostMapping("/curriculum-programs/{id}/publish")
-    public ResponseEntity<InstructorLedCourseResponse> publishProgram(
+    @PostMapping({"/instructor-led-courses/{id}/publish", "/curriculum-programs/{id}/publish"})
+    public ResponseEntity<InstructorLedCourseResponse> publishInstructorLedCourse(
             @PathVariable Long id,
             org.springframework.security.core.Authentication authentication
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.publishProgram(id, authentication.getName()));
+        return ResponseEntity.ok(instructorLedCourseManagementService.publishInstructorLedCourse(id, authentication.getName()));
     }
 
-    @PostMapping("/curriculum-programs/{programId}/units")
+    @PostMapping({"/instructor-led-courses/{instructorLedCourseId}/units", "/curriculum-programs/{instructorLedCourseId}/units"})
     public ResponseEntity<CourseUnitResponse> createUnit(
-            @PathVariable Long programId,
+            @PathVariable Long instructorLedCourseId,
             @Valid @RequestBody CourseUnitRequest request
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.createUnit(programId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createUnit(instructorLedCourseId, request));
     }
 
-    @PutMapping("/curriculum-units/{unitId}")
+    @PutMapping({"/course-units/{unitId}", "/curriculum-units/{unitId}"})
     public ResponseEntity<CourseUnitResponse> updateUnit(
             @PathVariable Long unitId,
             @Valid @RequestBody CourseUnitRequest request
@@ -125,35 +125,35 @@ public class ContentManagerInstructorLedCourseController {
         return ResponseEntity.ok(instructorLedCourseManagementService.updateUnit(unitId, request));
     }
 
-    @DeleteMapping("/curriculum-units/{unitId}")
+    @DeleteMapping({"/course-units/{unitId}", "/curriculum-units/{unitId}"})
     public ResponseEntity<Void> deleteUnit(@PathVariable Long unitId) {
         instructorLedCourseManagementService.deleteUnit(unitId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/curriculum-units/{unitId}/session-plans")
-    public ResponseEntity<CourseLessonResponse> createSessionPlan(
+    @PostMapping({"/course-units/{unitId}/lessons", "/curriculum-units/{unitId}/session-plans"})
+    public ResponseEntity<CourseLessonResponse> createCourseLesson(
             @PathVariable Long unitId,
             @Valid @RequestBody CourseLessonRequest request
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.createSessionPlan(unitId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.createCourseLesson(unitId, request));
     }
 
-    @PutMapping("/curriculum-session-plans/{sessionPlanId}")
-    public ResponseEntity<CourseLessonResponse> updateSessionPlan(
-            @PathVariable Long sessionPlanId,
+    @PutMapping({"/course-lessons/{lessonId}", "/curriculum-session-plans/{lessonId}"})
+    public ResponseEntity<CourseLessonResponse> updateCourseLesson(
+            @PathVariable Long lessonId,
             @Valid @RequestBody CourseLessonRequest request
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.updateSessionPlan(sessionPlanId, request));
+        return ResponseEntity.ok(instructorLedCourseManagementService.updateCourseLesson(lessonId, request));
     }
 
-    @DeleteMapping("/curriculum-session-plans/{sessionPlanId}")
-    public ResponseEntity<Void> deleteSessionPlan(@PathVariable Long sessionPlanId) {
-        instructorLedCourseManagementService.deleteSessionPlan(sessionPlanId);
+    @DeleteMapping({"/course-lessons/{lessonId}", "/curriculum-session-plans/{lessonId}"})
+    public ResponseEntity<Void> deleteCourseLesson(@PathVariable Long lessonId) {
+        instructorLedCourseManagementService.deleteCourseLesson(lessonId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/curriculum-units/{unitId}/materials")
+    @PostMapping({"/course-units/{unitId}/materials", "/curriculum-units/{unitId}/materials"})
     public ResponseEntity<CourseUnitResponse> attachMaterial(
             @PathVariable Long unitId,
             @Valid @RequestBody CourseUnitContentRefRequest request
@@ -164,7 +164,7 @@ public class ContentManagerInstructorLedCourseController {
     /**
      * Links a practice exercise from the unified Content Bank into a specific course unit.
      */
-    @PostMapping("/curriculum-units/{unitId}/exercises")
+    @PostMapping({"/course-units/{unitId}/exercises", "/curriculum-units/{unitId}/exercises"})
     public ResponseEntity<CourseUnitResponse> attachExercise(
             @PathVariable Long unitId,
             @Valid @RequestBody CourseUnitContentRefRequest request
@@ -172,7 +172,7 @@ public class ContentManagerInstructorLedCourseController {
         return ResponseEntity.ok(instructorLedCourseManagementService.attachExercise(unitId, request));
     }
 
-    @PostMapping("/curriculum-units/{unitId}/assessments")
+    @PostMapping({"/course-units/{unitId}/assessments", "/curriculum-units/{unitId}/assessments"})
     public ResponseEntity<CourseUnitResponse> attachAssessment(
             @PathVariable Long unitId,
             @Valid @RequestBody CourseUnitContentRefRequest request
@@ -183,7 +183,7 @@ public class ContentManagerInstructorLedCourseController {
     /**
      * Links a flashcard vocabulary set from the Content Bank into a course unit.
      */
-    @PostMapping("/curriculum-units/{unitId}/flashcards")
+    @PostMapping({"/course-units/{unitId}/flashcards", "/curriculum-units/{unitId}/flashcards"})
     public ResponseEntity<CourseUnitResponse> attachFlashcard(
             @PathVariable Long unitId,
             @Valid @RequestBody CourseUnitContentRefRequest request
@@ -191,7 +191,7 @@ public class ContentManagerInstructorLedCourseController {
         return ResponseEntity.ok(instructorLedCourseManagementService.attachFlashcard(unitId, request));
     }
 
-    @DeleteMapping("/curriculum-refs/{type}/{referenceId}")
+    @DeleteMapping({"/course-content-references/{type}/{referenceId}", "/curriculum-refs/{type}/{referenceId}"})
     public ResponseEntity<Void> detachReference(
             @PathVariable String type,
             @PathVariable Long referenceId

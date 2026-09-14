@@ -6,92 +6,92 @@ const asList = (data) => (Array.isArray(data) ? data : data?.content || data?.it
 
 export const curriculumApi = {
   async getInstructorLedCourses(params = {}) {
-    const response = await axiosClient.get('/api/content-manager/curriculum-programs', { params });
+    const response = await axiosClient.get('/api/content-manager/instructor-led-courses', { params });
     return asList(unwrapData(response));
   },
 
   async getInstructorLedCourse(id) {
-    const response = await axiosClient.get(`/api/content-manager/curriculum-programs/${id}`);
+    const response = await axiosClient.get(`/api/content-manager/instructor-led-courses/${id}`);
     return unwrapData(response);
   },
 
   async createInstructorLedCourse(payload) {
-    const response = await axiosClient.post('/api/content-manager/curriculum-programs', payload);
+    const response = await axiosClient.post('/api/content-manager/instructor-led-courses', payload);
     return unwrapData(response);
   },
 
   async updateInstructorLedCourse(id, payload) {
-    const response = await axiosClient.put(`/api/content-manager/curriculum-programs/${id}`, payload);
+    const response = await axiosClient.put(`/api/content-manager/instructor-led-courses/${id}`, payload);
     return unwrapData(response);
   },
 
   async archiveInstructorLedCourse(id) {
-    const response = await axiosClient.delete(`/api/content-manager/curriculum-programs/${id}`);
+    const response = await axiosClient.delete(`/api/content-manager/instructor-led-courses/${id}`);
     return unwrapData(response);
   },
 
   async cloneInstructorLedCourse(id) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${id}/clone`);
+    const response = await axiosClient.post(`/api/content-manager/instructor-led-courses/${id}/clone`);
     return unwrapData(response);
   },
 
   async publishInstructorLedCourse(id) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${id}/publish`);
+    const response = await axiosClient.post(`/api/content-manager/instructor-led-courses/${id}/publish`);
     return unwrapData(response);
   },
 
-  async createCourseUnit(programId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${programId}/units`, payload);
+  async createCourseUnit(instructorLedCourseId, payload) {
+    const response = await axiosClient.post(`/api/content-manager/instructor-led-courses/${instructorLedCourseId}/units`, payload);
     return unwrapData(response);
   },
 
   async updateCourseUnit(unitId, payload) {
-    const response = await axiosClient.put(`/api/content-manager/curriculum-units/${unitId}`, payload);
+    const response = await axiosClient.put(`/api/content-manager/course-units/${unitId}`, payload);
     return unwrapData(response);
   },
 
   async deleteCourseUnit(unitId) {
-    const response = await axiosClient.delete(`/api/content-manager/curriculum-units/${unitId}`);
+    const response = await axiosClient.delete(`/api/content-manager/course-units/${unitId}`);
     return unwrapData(response);
   },
 
   async createCourseLesson(unitId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-units/${unitId}/session-plans`, payload);
+    const response = await axiosClient.post(`/api/content-manager/course-units/${unitId}/lessons`, payload);
     return unwrapData(response);
   },
 
   async updateCourseLesson(lessonId, payload) {
-    const response = await axiosClient.put(`/api/content-manager/curriculum-session-plans/${lessonId}`, payload);
+    const response = await axiosClient.put(`/api/content-manager/course-lessons/${lessonId}`, payload);
     return unwrapData(response);
   },
 
   async deleteCourseLesson(lessonId) {
-    const response = await axiosClient.delete(`/api/content-manager/curriculum-session-plans/${lessonId}`);
+    const response = await axiosClient.delete(`/api/content-manager/course-lessons/${lessonId}`);
     return unwrapData(response);
   },
 
   async attachUnitMaterial(unitId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-units/${unitId}/materials`, payload);
+    const response = await axiosClient.post(`/api/content-manager/course-units/${unitId}/materials`, payload);
     return unwrapData(response);
   },
 
   async attachUnitExercise(unitId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-units/${unitId}/exercises`, payload);
+    const response = await axiosClient.post(`/api/content-manager/course-units/${unitId}/exercises`, payload);
     return unwrapData(response);
   },
 
   async attachUnitAssessment(unitId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-units/${unitId}/assessments`, payload);
+    const response = await axiosClient.post(`/api/content-manager/course-units/${unitId}/assessments`, payload);
     return unwrapData(response);
   },
 
   async attachUnitFlashcard(unitId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-units/${unitId}/flashcards`, payload);
+    const response = await axiosClient.post(`/api/content-manager/course-units/${unitId}/flashcards`, payload);
     return unwrapData(response);
   },
 
   async detachReference(type, referenceId) {
-    const response = await axiosClient.delete(`/api/content-manager/curriculum-refs/${type}/${referenceId}`);
+    const response = await axiosClient.delete(`/api/content-manager/course-content-references/${type}/${referenceId}`);
     return unwrapData(response);
   },
 

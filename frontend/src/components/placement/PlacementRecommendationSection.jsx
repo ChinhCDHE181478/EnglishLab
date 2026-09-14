@@ -27,6 +27,14 @@ const skillLabels = {
   SPEAKING: 'Speaking',
 };
 
+const getTrainingEntryLabel = (item) => {
+  const entry = String(item?.entryLevel || '').replace(/^(IELTS|TOEIC)\s*/i, '').trim();
+  if (!entry) return 'Chưa cập nhật';
+  return String(item?.examCategory || '').toUpperCase() === 'IELTS'
+    ? `Band ${entry}`
+    : `${entry} điểm`;
+};
+
 export default function PlacementRecommendationSection({ error, loading, onRetry, recommendation }) {
   if (loading) {
     return (
@@ -212,7 +220,7 @@ function TrainingCard({ item }) {
           Khóa học có giảng viên
         </span>
         <span className="text-[11px] font-semibold text-slate-500">
-          Đầu vào: {getPlacementLevelLabel(item.entryPlacementLevel)}
+          Đầu vào: {getTrainingEntryLabel(item)}
         </span>
       </div>
 

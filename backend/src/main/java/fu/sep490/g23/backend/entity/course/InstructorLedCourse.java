@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.entity.course;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.CascadeType;
@@ -67,15 +66,8 @@ public class InstructorLedCourse {
     @Builder.Default
     private String examType = "IELTS";
 
-    @Column(length = 120)
-    private String level;
-
     @Column(name = "entry_level", length = 120)
     private String entryLevel;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "entry_placement_level", length = 30)
-    private PlacementLevel entryPlacementLevel;
 
     @Column(name = "focus_skills", length = 240)
     private String focusSkills;

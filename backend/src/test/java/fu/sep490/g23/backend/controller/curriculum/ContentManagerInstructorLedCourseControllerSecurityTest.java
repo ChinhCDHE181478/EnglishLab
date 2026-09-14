@@ -61,7 +61,7 @@ class ContentManagerInstructorLedCourseControllerSecurityTest {
 
     @Test
     void staffCannotCreateCourseLesson() throws Exception {
-        mockMvc.perform(post("/api/content-manager/curriculum-units/10/session-plans")
+        mockMvc.perform(post("/api/content-manager/course-units/10/lessons")
                         .with(user("staff@englishlab.vn").roles("STAFF"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validPayload()))
@@ -72,7 +72,7 @@ class ContentManagerInstructorLedCourseControllerSecurityTest {
 
     @Test
     void contentManagerCanCreateCourseLesson() throws Exception {
-        when(instructorLedCourseManagementService.createSessionPlan(any(), any()))
+        when(instructorLedCourseManagementService.createCourseLesson(any(), any()))
                 .thenReturn(CourseLessonResponse.builder()
                         .id(101L)
                         .unitId(10L)
@@ -90,7 +90,7 @@ class ContentManagerInstructorLedCourseControllerSecurityTest {
                 .andExpect(jsonPath("$.id").value(101L))
                 .andExpect(jsonPath("$.sessionNumber").value(1));
 
-        verify(instructorLedCourseManagementService).createSessionPlan(any(), any());
+        verify(instructorLedCourseManagementService).createCourseLesson(any(), any());
     }
 
     private String validPayload() {

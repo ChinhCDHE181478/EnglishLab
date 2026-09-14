@@ -20,19 +20,19 @@ import static org.mockito.Mockito.when;
 class InstructorLedCourseCatalogServiceImplTest {
 
     @Mock
-    private InstructorLedCourseRepository programRepository;
+    private InstructorLedCourseRepository instructorLedCourseRepository;
 
 
     private InstructorLedCourseCatalogServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new InstructorLedCourseCatalogServiceImpl(programRepository);
+        service = new InstructorLedCourseCatalogServiceImpl(instructorLedCourseRepository);
     }
 
     @Test
     void returnsCanonicalInstructorLedCourseSummary() {
-        InstructorLedCourse program = InstructorLedCourse.builder()
+        InstructorLedCourse course = InstructorLedCourse.builder()
                 .id(21L)
                 .title("TOEIC 650")
                 .code("TOEIC-650")
@@ -42,9 +42,9 @@ class InstructorLedCourseCatalogServiceImplTest {
                 .learningOutcomes("Hoàn thành đủ 7 Part TOEIC.")
                 .publicationStatus(PackageStatus.DRAFT)
                 .build();
-        when(programRepository.findById(21L)).thenReturn(Optional.of(program));
+        when(instructorLedCourseRepository.findById(21L)).thenReturn(Optional.of(course));
 
-        InstructorLedCourseResponse response = service.getProgram(21L);
+        InstructorLedCourseResponse response = service.getInstructorLedCourse(21L);
 
         assertThat(response.getEntryLevel()).isEqualTo("TOEIC 350+");
         assertThat(response.getTargetScore()).isEqualTo("650");
