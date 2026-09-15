@@ -2,12 +2,11 @@ package fu.sep490.g23.backend.ut.teacherOperationService;
 
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.classroom.enums.GoogleMeetStatus;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,40 +34,33 @@ class JoinOnlineMeetingTest {
     private ClassroomOfferingService classroomOfferingService;
 
     private User teacher;
-    private ClassroomOffering offering;
-    private ClassroomSession session;
+    private ClassSection offering;
+    private ClassSchedule session;
 
     @BeforeEach
     void setUp() {
         teacher = User.builder()
                 .id(teacherId)
                 .email(teacherEmail)
-                .fullName("Gi├ío vi├¬n 1")
+                .fullName("Giáo viên 1")
                 .build();
 
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(1L)
-                .title("Tiß║┐ng Anh Giao Tiß║┐p")
-                .build();
-
-        offering = ClassroomOffering.builder()
+        offering = ClassSection.builder()
                 .id(offeringId)
-                .learningPackage(learningPackage)
                 .primaryTeacher(teacher)
+                .googleMeetUrl(meetLink)
+                .googleMeetStatus(GoogleMeetStatus.READY)
                 .build();
 
-        session = ClassroomSession.builder()
+        session = ClassSchedule.builder()
                 .id(sessionId)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .sessionDate(LocalDate.now())
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(11, 0))
                 .teacher(teacher)
                 .status(ClassroomSessionStatus.SCHEDULED)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(meetLink)
-                .larkMeetingStatus(LarkMeetingStatus.SCHEDULED)
-                .larkSyncStatus("SYNCED")
+                .deliveryModeOverride(ClassroomDeliveryMode.VIRTUAL)
                 .build();
     }
 
@@ -76,7 +68,7 @@ class JoinOnlineMeetingTest {
     void teacherOpensVirtualSessionFirstTime() {
         ClassroomSessionResponse expectedResponse = ClassroomSessionResponse.builder()
                 .id(sessionId)
-                .classroomOfferingId(offeringId)
+                .classSectionId(offeringId)
                 .classroomTitle("Teachers can only manage attendance, homework, and practice contents for the classrooms they are explicitly assigned to.")
                 .sessionDate(session.getSessionDate())
                 .startTime(session.getStartTime())
@@ -84,10 +76,9 @@ class JoinOnlineMeetingTest {
                 .teacherId(teacherId)
                 .teacherName(teacher.getFullName())
                 .status(ClassroomSessionStatus.OPEN)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(meetLink)
-                .larkMeetingStatus(LarkMeetingStatus.OPEN)
-                .larkSyncStatus("SYNCED")
+                .effectiveDeliveryMode(ClassroomDeliveryMode.VIRTUAL)
+                .googleMeetUrl(meetLink)
+                .googleMeetStatus(GoogleMeetStatus.READY)
                 .build();
 
         when(classroomOfferingService.openVirtualSession(sessionId, teacherEmail))
@@ -97,55 +88,47 @@ class JoinOnlineMeetingTest {
 
         assertThat(result.getId()).isEqualTo(sessionId);
         assertThat(result.getStatus()).isEqualTo(ClassroomSessionStatus.OPEN);
-        assertThat(result.getLarkMeetingStatus()).isEqualTo(LarkMeetingStatus.OPEN);
-        assertThat(result.getLarkMeetingUrl()).isEqualTo(meetLink);
+        assertThat(result.getGoogleMeetStatus()).isEqualTo(GoogleMeetStatus.READY);
+        assertThat(result.getGoogleMeetUrl()).isEqualTo(meetLink);
         assertThat(result.getTeacherId()).isEqualTo(teacherId);
     }
 
     @Test
     void teacherRejoinsActiveSession() {
-        ClassroomSession activeSession = ClassroomSession.builder()
+        ClassSchedule activeSession = ClassSchedule.builder()
                 .id(sessionId)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .sessionDate(LocalDate.now())
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(11, 0))
                 .teacher(teacher)
                 .status(ClassroomSessionStatus.IN_PROGRESS)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(meetLink)
-                .larkMeetingStatus(LarkMeetingStatus.IN_PROGRESS)
-                .larkSyncStatus("SYNCED")
+                .deliveryModeOverride(ClassroomDeliveryMode.VIRTUAL)
                 .build();
 
         when(classroomOfferingService.openVirtualSession(sessionId, teacherEmail))
-                .thenAnswer(invocation -> {
-                    return ClassroomSessionResponse.builder()
-                            .id(sessionId)
-                            .classroomOfferingId(offeringId)
-                            .classroomTitle("Teachers can only manage attendance, homework, and practice contents for the classrooms they are explicitly assigned to.")
-                            .sessionDate(activeSession.getSessionDate())
-                            .startTime(activeSession.getStartTime())
-                            .endTime(activeSession.getEndTime())
-                            .teacherId(teacherId)
-                            .teacherName(teacher.getFullName())
-                            .status(ClassroomSessionStatus.IN_PROGRESS)
-                            .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                            .larkMeetingUrl(meetLink)
-                            .larkMeetingStatus(LarkMeetingStatus.IN_PROGRESS)
-                            .larkJoinable(true)
-                            .larkPlatformName("Google Meet")
-                            .larkSyncStatus("SYNCED")
-                            .build();
-                });
+                .thenAnswer(invocation -> ClassroomSessionResponse.builder()
+                        .id(sessionId)
+                        .classSectionId(offeringId)
+                        .classroomTitle("Teachers can only manage attendance, homework, and practice contents for the classrooms they are explicitly assigned to.")
+                        .sessionDate(activeSession.getSessionDate())
+                        .startTime(activeSession.getStartTime())
+                        .endTime(activeSession.getEndTime())
+                        .teacherId(teacherId)
+                        .teacherName(teacher.getFullName())
+                        .status(ClassroomSessionStatus.IN_PROGRESS)
+                        .effectiveDeliveryMode(ClassroomDeliveryMode.VIRTUAL)
+                        .googleMeetUrl(meetLink)
+                        .googleMeetStatus(GoogleMeetStatus.READY)
+                        .googleMeetJoinable(true)
+                        .build());
 
         ClassroomSessionResponse response = classroomOfferingService.openVirtualSession(sessionId, teacherEmail);
 
         assertThat(response.getId()).isEqualTo(sessionId);
         assertThat(response.getStatus()).isEqualTo(ClassroomSessionStatus.IN_PROGRESS);
-        assertThat(response.getLarkMeetingUrl()).isEqualTo(meetLink);
-        assertThat(response.isLarkJoinable()).isTrue();
-        assertThat(response.getLarkPlatformName()).isEqualTo("Google Meet");
+        assertThat(response.getGoogleMeetUrl()).isEqualTo(meetLink);
+        assertThat(response.isGoogleMeetJoinable()).isTrue();
     }
 
     @Test
@@ -157,7 +140,6 @@ class JoinOnlineMeetingTest {
                 .thenThrow(new RuntimeException(
                         "Access Denied. You are not assigned to manage this classroom."));
 
-
         assertThatThrownBy(() -> classroomOfferingService.openVirtualSession(sessionId, unauthorizedEmail))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Access Denied. You are not assigned to manage this classroom.");
@@ -165,29 +147,13 @@ class JoinOnlineMeetingTest {
 
     @Test
     void sessionWithNoValidMeetLink() {
-        ClassroomSessionResponse errorResponse = ClassroomSessionResponse.builder()
-                .id(sessionId)
-                .classroomOfferingId(offeringId)
-                .classroomTitle("BR-11")
-                .sessionDate(LocalDate.now())
-                .startTime(LocalTime.of(9, 0))
-                .endTime(LocalTime.of(11, 0))
-                .teacherId(teacherId)
-                .teacherName(teacher.getFullName())
-                .status(ClassroomSessionStatus.SCHEDULED)
-                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(null)
-                .larkSyncStatus("SYNCED")
-                .build();
-
         when(classroomOfferingService.openVirtualSession(sessionId, teacherEmail))
                 .thenThrow(new RuntimeException(
-                        "Ch╞░a thß╗â tß║ío ph├▓ng Google Meet cho buß╗òi hß╗ìc n├áy."));
-
+                        "Chưa thể tạo phòng Google Meet cho buổi học này."));
 
         assertThatThrownBy(() -> classroomOfferingService.openVirtualSession(sessionId, teacherEmail))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessage("Ch╞░a thß╗â tß║ío ph├▓ng Google Meet cho buß╗òi hß╗ìc n├áy.");
+                .hasMessage("Chưa thể tạo phòng Google Meet cho buổi học này.");
     }
 
     @Test
@@ -196,22 +162,22 @@ class JoinOnlineMeetingTest {
 
         when(classroomOfferingService.openVirtualSession(invalidSessionId, teacherEmail))
                 .thenThrow(new RuntimeException(
-                        "Kh├┤ng t├¼m thß║Ñy buß╗òi hß╗ìc vß╗¢i ID: " + invalidSessionId));
+                        "Không tìm thấy buổi học với ID: " + invalidSessionId));
 
         assertThatThrownBy(() -> classroomOfferingService.openVirtualSession(invalidSessionId, teacherEmail))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessage("Kh├┤ng t├¼m thß║Ñy buß╗òi hß╗ìc vß╗¢i ID: " + invalidSessionId);
+                .hasMessage("Không tìm thấy buổi học với ID: " + invalidSessionId);
     }
 
     @Test
     void endedOrCancelledSession() {
         when(classroomOfferingService.openVirtualSession(sessionId, teacherEmail))
                 .thenThrow(new RuntimeException(
-                        "Kh├┤ng thß╗â tham gia buß╗òi hß╗ìc ─æ├ú kß║┐t th├║c hoß║╖c bß╗ï hß╗ºy."));
+                        "Không thể tham gia buổi học đã kết thúc hoặc bị hủy."));
 
         // Act & Assert
         assertThatThrownBy(() -> classroomOfferingService.openVirtualSession(sessionId, teacherEmail))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessage("Kh├┤ng thß╗â tham gia buß╗òi hß╗ìc ─æ├ú kß║┐t th├║c hoß║╖c bß╗ï hß╗ºy.");
+                .hasMessage("Không thể tham gia buổi học đã kết thúc hoặc bị hủy.");
     }
 }

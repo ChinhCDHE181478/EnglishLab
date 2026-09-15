@@ -1,0 +1,657 @@
+﻿mvn : WARNING: A restricted method in java.lang.System has been called
+At C:\Users\Asus\AppData\Local\Temp\ps-script-e10d4513-8c01-4886-b612-62ffca7c4a7c.ps1:105 char:32
++ cd d:\Ky_9\EnglishLab\backend; mvn test-compile -o 2>&1 | Out-File -F ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING: A rest...has been called:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module 
+(file:/C:/tools/maven/lib/jansi-2.4.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by 
+com.google.common.util.concurrent.AbstractFuture$UnsafeAtomicHelper (file:/C:/tools/maven/lib/guava-32.0.1-jre.jar)
+WARNING: Please consider reporting this to the maintainers of class 
+com.google.common.util.concurrent.AbstractFuture$UnsafeAtomicHelper
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< fu.sep490.g23:backend >------------------------
+[INFO] Building backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 93 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ backend ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ backend ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 123 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[3,52] cannot find symbol
+  symbol:   class CurriculumProgramRequest
+  location: package fu.sep490.g23.backend.dto.request.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[4,53] cannot find symbol
+  symbol:   class CurriculumProgramResponse
+  location: package fu.sep490.g23.backend.dto.response.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[6,47] cannot find symbol
+  symbol:   class CurriculumProgram
+  location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[11,51] cannot find symbol
+  symbol:   class CurriculumAssessmentRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[12,51] cannot find symbol
+  symbol:   class CurriculumExerciseRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[13,51] cannot find symbol
+  symbol:   class CurriculumFlashcardRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[14,51] cannot find symbol
+  symbol:   class CurriculumMaterialRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[15,51] cannot find symbol
+  symbol:   class CurriculumProgramRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[16,51] cannot find symbol
+  symbol:   class CurriculumUnitRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[19,53] cannot find symbol
+  symbol:   class CurriculumProgramServiceImpl
+  location: package fu.sep490.g23.backend.service.curriculum.impl
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[37,13] cannot find symbol
+  symbol:   class CurriculumProgramRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[39,13] cannot find symbol
+  symbol:   class CurriculumUnitRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[41,13] cannot find symbol
+  symbol:   class CurriculumMaterialRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[43,13] cannot find symbol
+  symbol:   class CurriculumExerciseRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[45,13] cannot find symbol
+  symbol:   class CurriculumAssessmentRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[47,13] cannot find symbol
+  symbol:   class CurriculumFlashcardRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[62,13] cannot find symbol
+  symbol:   class CurriculumProgramServiceImpl
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[64,13] cannot find symbol
+  symbol:   class CurriculumProgramRequest
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[3,53] cannot find symbol
+  symbol:   class CurriculumProgramResponse
+  location: package fu.sep490.g23.backend.dto.response.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[4,53] cannot find symbol
+  symbol:   class CurriculumUnitResponse
+  location: package fu.sep490.g23.backend.dto.response.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[6,47] cannot find symbol
+  symbol:   class CurriculumProgram
+  location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[7,47] cannot find symbol
+  symbol:   class CurriculumUnit
+  location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[11,50] cannot find symbol
+  symbol:   class ClassroomSessionRepository
+  location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[13,51] cannot find symbol
+  symbol:   class CurriculumAssessmentRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[14,51] cannot find symbol
+  symbol:   class CurriculumExerciseRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[15,51] cannot find symbol
+  symbol:   class CurriculumFlashcardRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[16,51] cannot find symbol
+  symbol:   class CurriculumMaterialRefRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[17,51] cannot find symbol
+  symbol:   class CurriculumProgramRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[18,51] cannot find symbol
+  symbol:   class CurriculumSessionPlanRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[19,51] cannot find symbol
+  symbol:   class CurriculumUnitRepository
+  location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[22,53] cannot find symbol
+  symbol:   class CurriculumProgramServiceImpl
+  location: package fu.sep490.g23.backend.service.curriculum.impl
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[39,13] cannot find symbol
+  symbol:   class CurriculumProgramRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[41,13] cannot find symbol
+  symbol:   class CurriculumUnitRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[43,13] cannot find symbol
+  symbol:   class CurriculumMaterialRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[45,13] cannot find symbol
+  symbol:   class CurriculumExerciseRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[47,13] cannot find symbol
+  symbol:   class CurriculumAssessmentRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[49,13] cannot find symbol
+  symbol:   class CurriculumFlashcardRefRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[63,13] cannot find symbol
+  symbol:   class ClassroomSessionRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[65,13] cannot find symbol
+  symbol:   class CurriculumSessionPlanRepository
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[68,13] cannot find symbol
+  symbol:   class CurriculumProgramServiceImpl
+  location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[9,45] cannot find symbol
+  symbol:   class CartItem
+  location: package fu.sep490.g23.backend.entity.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[10,45] cannot find symbol
+  symbol:   class WishlistItem
+  location: package fu.sep490.g23.backend.entity.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[11,43] cannot find symbol
+  symbol:   class LearningPackage
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[13,43] cannot find symbol
+  symbol:   class PackageEnrollment
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[19,49] cannot find symbol
+  symbol:   class CartItemRepository
+  location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[20,49] cannot find symbol
+  symbol:   class WishlistItemRepository
+  location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[22,47] cannot find symbol
+  symbol:   class PackageEnrollmentRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[389,17] cannot find symbol
+  symbol:   class CartItemRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[392,17] cannot find symbol
+  symbol:   class WishlistItemRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[398,17] cannot find symbol
+  symbol:   class PackageEnrollmentRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[408,17] cannot find symbol
+  symbol:   class LearningPackage
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/VIewPublicCourseTest.java:[5,43] cannot find symbol
+  symbol:   class LearningPackage
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[5,45] cannot find symbol
+  symbol:   class WishlistItem
+  location: package fu.sep490.g23.backend.entity.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[6,43] cannot find symbol
+  symbol:   class LearningPackage
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[11,49] cannot find symbol
+  symbol:   class CartItemRepository
+  location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[12,49] cannot find symbol
+  symbol:   class WishlistItemRepository
+  location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[14,47] cannot find symbol
+  symbol:   class PackageEnrollmentRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[41,13] cannot find symbol
+  symbol:   class CartItemRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[44,13] cannot find symbol
+  symbol:   class WishlistItemRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[50,13] cannot find symbol
+  symbol:   class PackageEnrollmentRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[59,13] cannot find symbol
+  symbol:   class WishlistItem
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[63,13] cannot find symbol
+  symbol:   class WishlistItem
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[12,46] cannot find symbol
+  symbol:   class ClassroomOffering
+  location: package fu.sep490.g23.backend.entity.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[13,43] cannot find symbol
+  symbol:   class CourseModule
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[14,43] cannot find symbol
+  symbol:   class LearningPackage
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[15,43] cannot find symbol
+  symbol:   class Lesson
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[19,47] cannot find symbol
+  symbol:   class CurriculumExerciseRef
+  location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[20,47] cannot find symbol
+  symbol:   class CurriculumProgram
+  location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[21,47] cannot find symbol
+  symbol:   class CurriculumUnit
+  location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[24,50] cannot find symbol
+  symbol:   class ClassroomEnrollmentRepository
+  location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[25,50] cannot find symbol
+  symbol:   class ClassroomOfferingRepository
+  location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[27,50] cannot find symbol
+  symbol:   class ClassroomPracticeAttemptRepository
+  location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[55,19] cannot find symbol
+  symbol:   class ClassroomOfferingRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[56,19] cannot find symbol
+  symbol:   class ClassroomEnrollmentRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[57,19] cannot find symbol
+  symbol:   class ClassroomPracticeAttemptRepository
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[74,13] cannot find symbol
+  symbol:   class ClassroomOffering
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[75,13] cannot find symbol
+  symbol:   class CurriculumUnit
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[76,13] cannot find symbol
+  symbol:   class CurriculumExerciseRef
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[83,13] cannot find symbol
+  symbol:   class CourseModule
+  location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[7,43] cannot find symbol
+  symbol:   class PackageType
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[10,49] cannot find symbol
+  symbol:   class PackageTypeCode
+  location: package fu.sep490.g23.backend.entity.course.enums
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[15,47] cannot find symbol
+  symbol:   class LearningPackageRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[18,47] cannot find symbol
+  symbol:   class PackageTypeRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[49,13] cannot find symbol
+  symbol:   class LearningPackageRepository
+  location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.CreateOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[52,13] cannot find symbol
+  symbol:   class PackageTypeRepository
+  location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.CreateOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[4,43] cannot find symbol
+  symbol:   class LearningPackage
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[15,47] cannot find symbol
+  symbol:   class LearningPackageRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[17,47] cannot find symbol
+  symbol:   class LessonRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[20,47] cannot find symbol
+  symbol:   class PackageEnrollmentRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[21,47] cannot find symbol
+  symbol:   class PackageTypeRepository
+  location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[51,19] cannot find symbol
+  symbol:   class LearningPackageRepository
+  location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[52,19] cannot find symbol
+  symbol:   class PackageTypeRepository
+  location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[54,19] cannot find symbol
+  symbol:   class PackageEnrollmentRepository
+  location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[55,19] cannot find symbol
+  symbol:   class LessonRepository
+  location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/paymentService/PayForCourseInCartTest.java:[5,43] cannot find symbol
+  symbol:   class LearningPackage
+  location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/paymentService/PayForCourseInCartTest.java:[13,50] cannot find symbol
+  symbol:   class ClassroomEnrollmentRepository
+  location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/paymentService/PayForCourseInCartTest.java:[53,19] cannot find symbol
+  symbol:   class ClassroomEnrollmentRepository
+  location: class fu.sep490.g23.backend.ut.paymentService.PayForCourseInCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/teacherOperationService/JoinOnlineMeetingTest.java:[5,46] cannot find symbol
+  symbol:   class ClassroomOffering
+  location: package fu.sep490.g23.backend.entity.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/teacherOperationService/JoinOnlineMeetingTest.java:[6,46] cannot find symbol
+  symbol:   class ClassroomSession
+  location: package fu.sep490.g23.backend.entity.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/teacherOperationService/JoinOnlineMeetingTest.java:[9,52] cannot find symbol
+  symbol:   class LarkMeetingStatus
+  location: package fu.sep490.g23.backend.entity.classroom.enums
+[INFO] 100 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.766 s
+[INFO] Finished at: 2026-09-15T12:44:42+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:testCompile (default-testCompile) on project backend: Compilation failure: Compilation failure: 
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[3,52] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramRequest
+[ERROR]   location: package fu.sep490.g23.backend.dto.request.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[4,53] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramResponse
+[ERROR]   location: package fu.sep490.g23.backend.dto.response.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[6,47] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgram
+[ERROR]   location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[11,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumAssessmentRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[12,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumExerciseRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[13,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumFlashcardRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[14,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumMaterialRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[15,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[16,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnitRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[19,53] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramServiceImpl
+[ERROR]   location: package fu.sep490.g23.backend.service.curriculum.impl
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[37,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[39,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnitRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[41,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumMaterialRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[43,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumExerciseRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[45,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumAssessmentRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[47,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumFlashcardRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[62,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramServiceImpl
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/CreateCurriculumTest.java:[64,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramRequest
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.CreateCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[3,53] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramResponse
+[ERROR]   location: package fu.sep490.g23.backend.dto.response.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[4,53] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnitResponse
+[ERROR]   location: package fu.sep490.g23.backend.dto.response.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[6,47] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgram
+[ERROR]   location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[7,47] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnit
+[ERROR]   location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[11,50] cannot find symbol
+[ERROR]   symbol:   class ClassroomSessionRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[13,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumAssessmentRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[14,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumExerciseRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[15,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumFlashcardRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[16,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumMaterialRefRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[17,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[18,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumSessionPlanRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[19,51] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnitRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[22,53] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramServiceImpl
+[ERROR]   location: package fu.sep490.g23.backend.service.curriculum.impl
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[39,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[41,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnitRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[43,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumMaterialRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[45,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumExerciseRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[47,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumAssessmentRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[49,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumFlashcardRefRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[63,13] cannot find symbol
+[ERROR]   symbol:   class ClassroomSessionRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[65,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumSessionPlanRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/contentsCreationService/ViewCurriculumTest.java:[68,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgramServiceImpl
+[ERROR]   location: class fu.sep490.g23.backend.ut.contentsCreationService.ViewCurriculumTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[9,45] cannot find symbol
+[ERROR]   symbol:   class CartItem
+[ERROR]   location: package fu.sep490.g23.backend.entity.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[10,45] cannot find symbol
+[ERROR]   symbol:   class WishlistItem
+[ERROR]   location: package fu.sep490.g23.backend.entity.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[11,43] cannot find symbol
+[ERROR]   symbol:   class LearningPackage
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[13,43] cannot find symbol
+[ERROR]   symbol:   class PackageEnrollment
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[19,49] cannot find symbol
+[ERROR]   symbol:   class CartItemRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[20,49] cannot find symbol
+[ERROR]   symbol:   class WishlistItemRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[22,47] cannot find symbol
+[ERROR]   symbol:   class PackageEnrollmentRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[389,17] cannot find symbol
+[ERROR]   symbol:   class CartItemRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[392,17] cannot find symbol
+[ERROR]   symbol:   class WishlistItemRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[398,17] cannot find symbol
+[ERROR]   symbol:   class PackageEnrollmentRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/TakePlacementTestTest.java:[408,17] cannot find symbol
+[ERROR]   symbol:   class LearningPackage
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.TakePlacementTestTest.AddCourseToCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/VIewPublicCourseTest.java:[5,43] cannot find symbol
+[ERROR]   symbol:   class LearningPackage
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[5,45] cannot find symbol
+[ERROR]   symbol:   class WishlistItem
+[ERROR]   location: package fu.sep490.g23.backend.entity.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[6,43] cannot find symbol
+[ERROR]   symbol:   class LearningPackage
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[11,49] cannot find symbol
+[ERROR]   symbol:   class CartItemRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[12,49] cannot find symbol
+[ERROR]   symbol:   class WishlistItemRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.commerce
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[14,47] cannot find symbol
+[ERROR]   symbol:   class PackageEnrollmentRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[41,13] cannot find symbol
+[ERROR]   symbol:   class CartItemRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[44,13] cannot find symbol
+[ERROR]   symbol:   class WishlistItemRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[50,13] cannot find symbol
+[ERROR]   symbol:   class PackageEnrollmentRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[59,13] cannot find symbol
+[ERROR]   symbol:   class WishlistItem
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewMyWishlistTest.java:[63,13] cannot find symbol
+[ERROR]   symbol:   class WishlistItem
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewMyWishlistTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[12,46] cannot find symbol
+[ERROR]   symbol:   class ClassroomOffering
+[ERROR]   location: package fu.sep490.g23.backend.entity.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[13,43] cannot find symbol
+[ERROR]   symbol:   class CourseModule
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[14,43] cannot find symbol
+[ERROR]   symbol:   class LearningPackage
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[15,43] cannot find symbol
+[ERROR]   symbol:   class Lesson
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[19,47] cannot find symbol
+[ERROR]   symbol:   class CurriculumExerciseRef
+[ERROR]   location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[20,47] cannot find symbol
+[ERROR]   symbol:   class CurriculumProgram
+[ERROR]   location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[21,47] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnit
+[ERROR]   location: package fu.sep490.g23.backend.entity.curriculum
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[24,50] cannot find symbol
+[ERROR]   symbol:   class ClassroomEnrollmentRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[25,50] cannot find symbol
+[ERROR]   symbol:   class ClassroomOfferingRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[27,50] cannot find symbol
+[ERROR]   symbol:   class ClassroomPracticeAttemptRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[55,19] cannot find symbol
+[ERROR]   symbol:   class ClassroomOfferingRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[56,19] cannot find symbol
+[ERROR]   symbol:   class ClassroomEnrollmentRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[57,19] cannot find symbol
+[ERROR]   symbol:   class ClassroomPracticeAttemptRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[74,13] cannot find symbol
+[ERROR]   symbol:   class ClassroomOffering
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[75,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumUnit
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[76,13] cannot find symbol
+[ERROR]   symbol:   class CurriculumExerciseRef
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/learningExperienceService/ViewPracticeInOnlineCourseTest.java:[83,13] cannot find symbol
+[ERROR]   symbol:   class CourseModule
+[ERROR]   location: class fu.sep490.g23.backend.ut.learningExperienceService.ViewPracticeInOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[7,43] cannot find symbol
+[ERROR]   symbol:   class PackageType
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[10,49] cannot find symbol
+[ERROR]   symbol:   class PackageTypeCode
+[ERROR]   location: package fu.sep490.g23.backend.entity.course.enums
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[15,47] cannot find symbol
+[ERROR]   symbol:   class LearningPackageRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[18,47] cannot find symbol
+[ERROR]   symbol:   class PackageTypeRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[49,13] cannot find symbol
+[ERROR]   symbol:   class LearningPackageRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.CreateOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/CreateOnlineCourseTest.java:[52,13] cannot find symbol
+[ERROR]   symbol:   class PackageTypeRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.CreateOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[4,43] cannot find symbol
+[ERROR]   symbol:   class LearningPackage
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[15,47] cannot find symbol
+[ERROR]   symbol:   class LearningPackageRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[17,47] cannot find symbol
+[ERROR]   symbol:   class LessonRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[20,47] cannot find symbol
+[ERROR]   symbol:   class PackageEnrollmentRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[21,47] cannot find symbol
+[ERROR]   symbol:   class PackageTypeRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[51,19] cannot find symbol
+[ERROR]   symbol:   class LearningPackageRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[52,19] cannot find symbol
+[ERROR]   symbol:   class PackageTypeRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[54,19] cannot find symbol
+[ERROR]   symbol:   class PackageEnrollmentRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/onlineCourseManagementService/DeactiveOnlineCourseTest.java:[55,19] cannot find symbol
+[ERROR]   symbol:   class LessonRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.onlineCourseManagementService.DeactiveOnlineCourseTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/paymentService/PayForCourseInCartTest.java:[5,43] cannot find symbol
+[ERROR]   symbol:   class LearningPackage
+[ERROR]   location: package fu.sep490.g23.backend.entity.course
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/paymentService/PayForCourseInCartTest.java:[13,50] cannot find symbol
+[ERROR]   symbol:   class ClassroomEnrollmentRepository
+[ERROR]   location: package fu.sep490.g23.backend.repository.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/paymentService/PayForCourseInCartTest.java:[53,19] cannot find symbol
+[ERROR]   symbol:   class ClassroomEnrollmentRepository
+[ERROR]   location: class fu.sep490.g23.backend.ut.paymentService.PayForCourseInCartTest
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/teacherOperationService/JoinOnlineMeetingTest.java:[5,46] cannot find symbol
+[ERROR]   symbol:   class ClassroomOffering
+[ERROR]   location: package fu.sep490.g23.backend.entity.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/teacherOperationService/JoinOnlineMeetingTest.java:[6,46] cannot find symbol
+[ERROR]   symbol:   class ClassroomSession
+[ERROR]   location: package fu.sep490.g23.backend.entity.classroom
+[ERROR] /D:/Ky_9/EnglishLab/backend/src/test/java/fu/sep490/g23/backend/ut/teacherOperationService/JoinOnlineMeetingTest.java:[9,52] cannot find symbol
+[ERROR]   symbol:   class LarkMeetingStatus
+[ERROR]   location: package fu.sep490.g23.backend.entity.classroom.enums
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

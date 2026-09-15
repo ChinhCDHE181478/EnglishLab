@@ -198,7 +198,7 @@ public class VerifyEmailTest {
                     .email("test@example.com")
                     .password("old_password")
                     .emailVerified(true)
-                    .role(RoleEnum.LEARNER)
+                    .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
                     .build();
 
             validToken = new AuthToken();

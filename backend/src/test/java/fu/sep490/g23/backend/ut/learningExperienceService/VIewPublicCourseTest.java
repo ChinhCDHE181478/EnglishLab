@@ -2,15 +2,16 @@ package fu.sep490.g23.backend.ut.learningExperienceService;
 
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
-import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
+import fu.sep490.g23.backend.repository.course.OnlineLessonRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseMapper;
 import fu.sep490.g23.backend.service.course.OnlineCoursePreviewValidator;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
@@ -22,12 +23,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -43,7 +45,13 @@ public class VIewPublicCourseTest {
     private CourseAssessmentRepository courseAssessmentRepository;
 
     @Mock
+    private AssessmentSubmissionRepository assessmentSubmissionRepository;
+
+    @Mock
     private LessonProgressRepository lessonProgressRepository;
+
+    @Mock
+    private OnlineLessonRepository lessonRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -60,36 +68,25 @@ public class VIewPublicCourseTest {
     private OnlineCourse course;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         CourseCategory ieltsCategory = new CourseCategory();
         ieltsCategory.setId(1L);
         ieltsCategory.setCode("IELTS");
         ieltsCategory.setName("IELTS");
 
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(1L)
+        course = OnlineCourse.builder()
+                .id(100L)
                 .title("IELTS Foundation Course")
                 .slug("ielts-foundation")
                 .price(BigDecimal.valueOf(990000))
-                .status(PackageStatus.PUBLISHED)
-                .deleted(false)
-                .build();
-
-        course = OnlineCourse.builder()
-                .id(100L)
-                .learningPackage(learningPackage)
                 .category(ieltsCategory)
                 .level(CourseLevel.BEGINNER)
-                .modules(new ArrayList<>())
+                .status(PackageStatus.PUBLISHED)
                 .build();
     }
 
     @Test
     void viewPublicCourse_Success() {
-        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
-                course, fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus.PUBLISHED))
-                .thenReturn(Optional.empty());
-
         OnlineCourseResponse mockResponse = OnlineCourseResponse.builder()
                 .id(100L)
                 .status(PackageStatus.PUBLISHED)
@@ -97,7 +94,8 @@ public class VIewPublicCourseTest {
 
         OnlineCourseVersionServiceImpl service = new OnlineCourseVersionServiceImpl(
                 onlineCourseRepository, versionRepository, courseAssessmentRepository,
-                lessonProgressRepository, userRepository, mapper, previewValidator
+                assessmentSubmissionRepository, lessonProgressRepository, lessonRepository,
+                userRepository, mapper, previewValidator
         );
 
         when(mapper.toResponse(course)).thenReturn(mockResponse);
@@ -113,11 +111,11 @@ public class VIewPublicCourseTest {
     void searchCoursesByKeyword_Success() {
         OnlineCourse course2 = OnlineCourse.builder()
                 .id(101L)
-                .learningPackage(LearningPackage.builder()
-                        .id(101L).title("IELTS Advanced").status(PackageStatus.PUBLISHED).deleted(false).build())
+                .title("IELTS Advanced")
+                .price(BigDecimal.valueOf(990000))
                 .category(course.getCategory())
                 .level(CourseLevel.INTERMEDIATE)
-                .modules(new ArrayList<>())
+                .status(PackageStatus.PUBLISHED)
                 .build();
 
         OnlineCourseResponse resp1 = OnlineCourseResponse.builder().id(100L).title("IELTS Foundation Course").status(PackageStatus.PUBLISHED).build();
@@ -145,20 +143,20 @@ public class VIewPublicCourseTest {
 
         OnlineCourse ieltsIntermediate = OnlineCourse.builder()
                 .id(101L)
-                .learningPackage(LearningPackage.builder()
-                        .id(101L).title("IELTS Intermediate").status(PackageStatus.PUBLISHED).deleted(false).build())
+                .title("IELTS Intermediate")
+                .price(BigDecimal.valueOf(990000))
                 .category(course.getCategory())
                 .level(CourseLevel.INTERMEDIATE)
-                .modules(new ArrayList<>())
+                .status(PackageStatus.PUBLISHED)
                 .build();
 
         OnlineCourse toeicBeginner = OnlineCourse.builder()
                 .id(102L)
-                .learningPackage(LearningPackage.builder()
-                        .id(102L).title("TOEIC Beginner").status(PackageStatus.PUBLISHED).deleted(false).build())
+                .title("TOEIC Beginner")
+                .price(BigDecimal.valueOf(990000))
                 .category(toeicCategory)
                 .level(CourseLevel.BEGINNER)
-                .modules(new ArrayList<>())
+                .status(PackageStatus.PUBLISHED)
                 .build();
 
         List<OnlineCourse> allCourses = List.of(course, ieltsIntermediate, toeicBeginner);
@@ -185,7 +183,6 @@ public class VIewPublicCourseTest {
 
     @Test
     void searchCourses_NoResultsFound() {
-        //tß║ío courses kh├┤ng khß╗¢p vß╗¢i filter
         CourseCategory toeicCategory = new CourseCategory();
         toeicCategory.setId(2L);
         toeicCategory.setCode("TOEIC");
@@ -193,11 +190,11 @@ public class VIewPublicCourseTest {
 
         OnlineCourse toeicCourse = OnlineCourse.builder()
                 .id(201L)
-                .learningPackage(LearningPackage.builder()
-                        .id(201L).title("TOEIC 450").status(PackageStatus.PUBLISHED).deleted(false).build())
+                .title("TOEIC 450")
+                .price(BigDecimal.valueOf(990000))
                 .category(toeicCategory)
                 .level(CourseLevel.ADVANCED)
-                .modules(new ArrayList<>())
+                .status(PackageStatus.PUBLISHED)
                 .build();
 
         List<OnlineCourse> allCourses = List.of(toeicCourse);

@@ -41,33 +41,33 @@ class ViewMyTeachingScheduleTest {
                 .id(classBId).title("Lß╗¢p B").build();
 
         List<ClassroomSessionResponse> sessionsA = List.of(
-                ClassroomSessionResponse.builder().id(1L).classroomOfferingId(classAId)
+                ClassroomSessionResponse.builder().id(1L).classSectionId(classAId)
                         .classroomTitle("Lß╗¢p A").sessionDate(LocalDate.of(2026, 8, 5))
                         .startTime(LocalTime.of(9, 0)).endTime(LocalTime.of(11, 0))
                         .teacherId(teacherId).teacherName("GV A")
                         .status(ClassroomSessionStatus.SCHEDULED)
-                        .deliveryMode(ClassroomDeliveryMode.VIRTUAL).build(),
-                ClassroomSessionResponse.builder().id(2L).classroomOfferingId(classAId)
+                        .effectiveDeliveryMode(ClassroomDeliveryMode.VIRTUAL).build(),
+                ClassroomSessionResponse.builder().id(2L).classSectionId(classAId)
                         .classroomTitle("Lß╗¢p A").sessionDate(LocalDate.of(2026, 8, 12))
                         .startTime(LocalTime.of(14, 0)).endTime(LocalTime.of(16, 0))
                         .teacherId(teacherId).teacherName("GV A")
                         .status(ClassroomSessionStatus.SCHEDULED)
-                        .deliveryMode(ClassroomDeliveryMode.VIRTUAL).build()
+                        .effectiveDeliveryMode(ClassroomDeliveryMode.VIRTUAL).build()
         );
 
         List<ClassroomSessionResponse> sessionsB = List.of(
-                ClassroomSessionResponse.builder().id(3L).classroomOfferingId(classBId)
+                ClassroomSessionResponse.builder().id(3L).classSectionId(classBId)
                         .classroomTitle("Lß╗¢p B").sessionDate(LocalDate.of(2026, 8, 7))
                         .startTime(LocalTime.of(8, 0)).endTime(LocalTime.of(10, 0))
                         .teacherId(teacherId).teacherName("GV A")
                         .status(ClassroomSessionStatus.SCHEDULED)
-                        .deliveryMode(ClassroomDeliveryMode.OFFLINE).build(),
-                ClassroomSessionResponse.builder().id(4L).classroomOfferingId(classBId)
+                        .effectiveDeliveryMode(ClassroomDeliveryMode.OFFLINE).build(),
+                ClassroomSessionResponse.builder().id(4L).classSectionId(classBId)
                         .classroomTitle("Lß╗¢p B").sessionDate(LocalDate.of(2026, 8, 21))
                         .startTime(LocalTime.of(8, 0)).endTime(LocalTime.of(10, 0))
                         .teacherId(teacherId).teacherName("GV A")
                         .status(ClassroomSessionStatus.SCHEDULED)
-                        .deliveryMode(ClassroomDeliveryMode.OFFLINE).build()
+                        .effectiveDeliveryMode(ClassroomDeliveryMode.OFFLINE).build()
         );
 
         when(classroomOfferingService.getAssignedClasses(teacherEmail))
