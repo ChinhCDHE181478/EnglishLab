@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { Check, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
@@ -9,12 +10,12 @@ import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 
 const emptyForm = {
   code: '',
   name: '',
   description: '',
-  displayOrder: '0',
   active: 'true',
 };
 
@@ -44,7 +45,7 @@ export default function ContentManagerCategoriesPage() {
       setPageResult(result);
       setCategories(result.content);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được danh mục khóa học.');
+      setError(getContentManagerError(err, 'Không tải được danh mục khóa học.'));
     } finally {
       setLoading(false);
     }
@@ -68,7 +69,6 @@ export default function ContentManagerCategoriesPage() {
       code: category.code,
       name: category.name || '',
       description: category.description || '',
-      displayOrder: String(category.displayOrder ?? 0),
       active: String(category.active !== false),
     });
     setEditorOpen(true);
@@ -99,7 +99,6 @@ export default function ContentManagerCategoriesPage() {
       code: form.code.trim().toUpperCase(),
       name: form.name.trim(),
       description: form.description.trim() || null,
-      displayOrder: Number(form.displayOrder || 0),
       active: form.active === 'true',
     };
 
@@ -114,7 +113,7 @@ export default function ContentManagerCategoriesPage() {
       closeEditor();
       await loadCategories();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được danh mục khóa học.');
+      setError(getContentManagerError(err, 'Không lưu được danh mục khóa học.'));
     } finally {
       setSaving(false);
     }
@@ -133,7 +132,7 @@ export default function ContentManagerCategoriesPage() {
       setSuccess('Đã xóa danh mục khóa học.');
       await loadCategories();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể xóa danh mục này.');
+      setError(getContentManagerError(err, 'Không thể xóa danh mục này.'));
     }
   };
 
@@ -154,7 +153,7 @@ export default function ContentManagerCategoriesPage() {
         </button>
       </HeaderActions>
 
-      {!editorOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
       <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật danh mục" />
 
       {editorOpen ? (
@@ -167,7 +166,6 @@ export default function ContentManagerCategoriesPage() {
               <X className="h-5 w-5" />
             </button>
           </div>
-          {error ? <div className="mb-4"><Notice tone="error">{error}</Notice></div> : null}
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Mã danh mục">
               <input
@@ -190,11 +188,6 @@ export default function ContentManagerCategoriesPage() {
               label="Tên hiển thị"
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
               value={form.name}
-            />
-            <TextField
-              label="Thứ tự hiển thị"
-              onChange={(event) => setForm((current) => ({ ...current, displayOrder: event.target.value }))}
-              value={form.displayOrder}
             />
             <Field label="Trạng thái">
               <BrandedSelect
@@ -238,7 +231,7 @@ export default function ContentManagerCategoriesPage() {
           <table className="min-w-full text-left">
             <thead className="bg-[#fbf3f4] text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">
               <tr>
-                {['Thứ tự', 'Mã', 'Tên hiển thị', 'Mô tả', 'Khóa học', 'Trạng thái', 'Thao tác'].map((heading) => (
+                {['Mã', 'Tên hiển thị', 'Mô tả', 'Khóa học', 'Trạng thái', 'Thao tác'].map((heading) => (
                   <th key={heading} className="px-5 py-4">{heading}</th>
                 ))}
               </tr>
@@ -246,7 +239,6 @@ export default function ContentManagerCategoriesPage() {
             <tbody className="divide-y divide-[#f0e3e4]">
               {paginatedCategories.length ? paginatedCategories.map((category) => (
                 <tr key={category.id}>
-                  <td className="px-5 py-4 text-sm">{category.displayOrder}</td>
                   <td className="px-5 py-4 text-sm font-bold text-[#4b0009]">{category.code}</td>
                   <td className="px-5 py-4 font-semibold">{category.name}</td>
                   <td className="max-w-md px-5 py-4 text-sm text-[#584140]">{stripRichTextToPlain(category.description) || 'Chưa có mô tả'}</td>
@@ -306,13 +298,6 @@ function Field({ label, children }) {
   );
 }
 
-function Notice({ children, tone }) {
-  const className = tone === 'error'
-    ? 'border-[#ba1a1a]/20 bg-[#ffdad6] text-[#93000a]'
-    : 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return <div className={`rounded-2xl border px-5 py-4 text-sm font-semibold ${className}`}>{children}</div>;
-}
-
 function normalizeCategoryCodePreview(value) {
   return String(value || '')
     .trim()
@@ -330,7 +315,7 @@ function CategoryModal({ children, onClose }) {
     };
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4 sm:p-6 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
@@ -343,6 +328,7 @@ function CategoryModal({ children, onClose }) {
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -41,7 +41,7 @@ public class ContentManagerCourseCategoryController {
             @RequestParam(defaultValue = "8") int size
     ) {
         return ResponseEntity.ok(categoryService.getCategories(
-                PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("name").ascending()))
+                PageRequest.of(page, size, Sort.by("name").ascending())
         ));
     }
 

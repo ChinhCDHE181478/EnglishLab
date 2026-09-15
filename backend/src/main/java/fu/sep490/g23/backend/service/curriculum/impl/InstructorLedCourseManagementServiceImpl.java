@@ -1403,23 +1403,24 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 && !StringUtils.hasText(request.getUiConfigJson())) {
             throw new RuntimeException("Đề Writing/Speaking cần có nội dung đề trong cấu hình.");
         }
-        if (request.getType() == AssessmentType.MODULE_TEST
-                && (request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING)) {
-            if (resolveAiEvaluationMode(request) == AiEvaluationMode.NONE) {
-                throw new RuntimeException("Module Test Writing/Speaking phải bật chấm bằng AI.");
-            }
+        if (request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING) {
             if (request.getRubricId() == null) {
-                throw new RuntimeException("Module Test Writing/Speaking phải có bộ tiêu chí chấm.");
+                throw new RuntimeException("Bài Writing/Speaking phải có bộ tiêu chí chấm.");
             }
         }
     }
 
-    /** Selects a skill-appropriate default AI mode when none is requested. */
+    /** Derives grading behavior from skill so clients cannot persist incompatible modes. */
     private AiEvaluationMode resolveAiEvaluationMode(AssessmentBankItemRequest request) {
-        if (request.getAiEvaluationMode() != null) return request.getAiEvaluationMode();
-        return request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING
-                ? AiEvaluationMode.RUBRIC_FEEDBACK
-                : AiEvaluationMode.EXPLAIN_ONLY;
+        if (request.getSkill() == AssessmentSkill.LISTENING
+                || request.getSkill() == AssessmentSkill.READING
+                || request.getSkill() == AssessmentSkill.WRITING
+                || request.getSkill() == AssessmentSkill.SPEAKING) {
+            return AiEvaluationMode.ESTIMATED_BAND;
+        }
+        return request.getAiEvaluationMode() == null
+                ? AiEvaluationMode.EXPLAIN_ONLY
+                : request.getAiEvaluationMode();
     }
 
     /** Resolves a published rubric and verifies that it matches the assessment skill. */
@@ -1432,7 +1433,10 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         if (!"PUBLISHED".equalsIgnoreCase(rubric.getStatus())) {
             throw new RuntimeException("Bộ tiêu chí đã tạm ngưng.");
         }
-        if (rubric.getSkill() != null && rubric.getSkill() != skill && rubric.getSkill() != AssessmentSkill.MIXED) {
+        boolean requiresExactRubric = skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING;
+        if (rubric.getSkill() != null
+                && rubric.getSkill() != skill
+                && (requiresExactRubric || rubric.getSkill() != AssessmentSkill.MIXED)) {
             throw new RuntimeException("Bộ tiêu chí không phù hợp với kỹ năng của nội dung.");
         }
         return rubric;

@@ -41,6 +41,7 @@ import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import {
   EnglishEntryLevelField,
   IeltsBandSelect,
@@ -49,12 +50,12 @@ import {
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { HeaderActions, Panel } from '../../components/content-manager/ContentManagerUi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 import {
-  ERROR_NOTICE_CLASS,
   FIELD_CLASS,
-  SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 import {
@@ -258,7 +259,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
         current && courseData.some((course) => String(course.id) === current) ? current : ''
       ));
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được danh sách khóa học.');
+      setError(getContentManagerError(err, 'Không tải được danh sách khóa học.'));
     } finally {
       setLoading(false);
     }
@@ -278,7 +279,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
         unitId: current.unitId || (data?.units?.[0]?.id ? String(data.units[0].id) : ''),
       }));
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được nội dung khóa học.');
+      setError(getContentManagerError(err, 'Không tải được nội dung khóa học.'));
     }
   };
 
@@ -298,7 +299,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
         flashcards: asList(flashcards).filter(isPublished),
       });
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được các kho tài nguyên.');
+      setError(getContentManagerError(err, 'Không tải được các kho tài nguyên.'));
     }
   };
 
@@ -421,7 +422,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       closeInstructorLedCourseCreator();
       setSuccess('Đã tạo khóa học. Bắt đầu thêm Unit và bài học.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tạo được khóa học.');
+      setError(getContentManagerError(err, 'Không tạo được khóa học.'));
     } finally {
       setWorking(false);
     }
@@ -454,7 +455,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       closeInstructorLedCourseEditor();
       setSuccess('Đã cập nhật thông tin khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không cập nhật được khóa học.');
+      setError(getContentManagerError(err, 'Không cập nhật được khóa học.'));
     } finally {
       setWorking(false);
     }
@@ -474,7 +475,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       setInstructorLedCourses((current) => [cloned, ...current]);
       setSuccess(`Đã nhân bản khóa học thành “${cloned.title}”.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không nhân bản được khóa học.');
+      setError(getContentManagerError(err, 'Không nhân bản được khóa học.'));
     } finally {
       setWorking(false);
     }
@@ -498,7 +499,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       }
       setSuccess(`Đã xuất bản thành công khóa học “${published.title}”.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể xuất bản khóa học. Vui lòng kiểm tra lại cấu trúc bài học và chuẩn đầu ra.');
+      setError(getContentManagerError(err, 'Không thể xuất bản khóa học. Vui lòng kiểm tra lại cấu trúc bài học và chuẩn đầu ra.'));
     } finally {
       setWorking(false);
     }
@@ -522,7 +523,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       }
       setSuccess('Đã lưu trữ khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu trữ được khóa học.');
+      setError(getContentManagerError(err, 'Không lưu trữ được khóa học.'));
     } finally {
       setWorking(false);
     }
@@ -580,7 +581,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       closeExcelImport();
       setSuccess(`Đã import thành công khóa học “${parsedExcel.title}” (${importResult.createdUnits} Unit, ${importResult.createdLessons} bài học).`);
     } catch (err) {
-      setExcelError(err?.response?.data?.message || err?.message || 'Không import được tệp Excel.');
+      setExcelError(getContentManagerError(err, 'Không import được tệp Excel.'));
     } finally {
       setExcelImporting(false);
     }
@@ -645,7 +646,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       closeUnitEditor();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được Unit.');
+      setError(getContentManagerError(err, 'Không lưu được Unit.'));
     } finally {
       setWorking(false);
     }
@@ -666,7 +667,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       setSuccess(`Đã xóa Unit “${unit.title}”.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không xóa được Unit.');
+      setError(getContentManagerError(err, 'Không xóa được Unit.'));
     } finally {
       setWorking(false);
     }
@@ -745,7 +746,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       closeLessonEditor();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được bài học.');
+      setError(getContentManagerError(err, 'Không lưu được bài học.'));
     } finally {
       setWorking(false);
     }
@@ -766,7 +767,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       setSuccess(`Đã xóa Bài ${lesson.sessionNumber}.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không xóa được bài học.');
+      setError(getContentManagerError(err, 'Không xóa được bài học.'));
     } finally {
       setWorking(false);
     }
@@ -810,7 +811,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       closeResourcePanel();
       setSuccess('Đã gắn tài nguyên vào Unit.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không gắn được tài nguyên.');
+      setError(getContentManagerError(err, 'Không gắn được tài nguyên.'));
     } finally {
       setWorking(false);
     }
@@ -831,7 +832,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       setSuccess('Đã gỡ tài nguyên khỏi Unit.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không gỡ được tài nguyên.');
+      setError(getContentManagerError(err, 'Không gỡ được tài nguyên.'));
     } finally {
       setWorking(false);
     }
@@ -918,24 +919,12 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
   return (
     <div className="space-y-5">
-      {error && !instructorLedCourseCreatorOpen && !instructorLedCourseEditorOpen ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-          <span>{error}</span>
-          <button
-            className="inline-flex items-center gap-2 rounded-xl border border-[#93000a]/25 bg-white/70 px-3 py-2"
-            onClick={() => reloadAll()}
-            type="button"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Thử lại
-          </button>
-        </div>
-      ) : null}
-      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{success}</div> : null}
+      <ManagementToast actionLabel="Thử lại" message={error} onAction={() => reloadAll()} onClose={() => setError('')} />
+      <ManagementToast message={excelError} onClose={() => setExcelError('')} />
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật khóa học" />
 
       {excelImportOpen ? (
         <InstructorLedCourseExcelImportModal
-          error={excelError}
           examCategory={excelExamCategory}
           importing={excelImporting}
           onClose={closeExcelImport}
@@ -950,7 +939,6 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
       {instructorLedCourseCreatorOpen ? (
         <InstructorLedCourseModal
-          error={error}
           form={instructorLedCourseForm}
           onChange={updateInstructorLedCourseForm}
           onClose={closeInstructorLedCourseCreator}
@@ -961,7 +949,6 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
       {instructorLedCourseEditorOpen ? (
         <InstructorLedCourseModal
-          error={error}
           form={instructorLedCourseForm}
           mode="edit"
           onChange={updateInstructorLedCourseForm}
@@ -998,9 +985,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                   Quay lại danh sách khóa học
                 </button>
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
-                    {instructorLedCourseDetail?.examCategory || 'IELTS'}
-                  </span>
+                  <ManagerTaxonomyBadge kind="exam" value={instructorLedCourseDetail?.examCategory || 'IELTS'} />
                   <StatusPill status={instructorLedCourseDetail?.status} />
                 </div>
                 <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#26364a] sm:text-3xl">
@@ -1047,7 +1032,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
             </div>
 
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-              <InfoTile label="Nhóm thi" value={instructorLedCourseDetail?.examCategory || '-'} />
+              <InfoTile label="Nhóm thi" value={<ManagerTaxonomyBadge kind="exam" value={instructorLedCourseDetail?.examCategory} />} />
               <InfoTile label="Target đầu ra" value={instructorLedCourseDetail?.targetBand ? `Band ${instructorLedCourseDetail.targetBand}` : (instructorLedCourseDetail?.targetScore ? `${instructorLedCourseDetail.targetScore} điểm` : '-')} />
               <InfoTile label="Điểm đầu vào" value={instructorLedCourseDetail?.entryLevel || '-'} />
               <InfoTile label="Số Unit" value={units.length} />
@@ -1354,7 +1339,7 @@ function FormSection({ children, number, title }) {
   );
 }
 
-function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onClose, onSubmit, saving }) {
+function InstructorLedCourseModal({ form, mode = 'create', onChange, onClose, onSubmit, saving }) {
   const editing = mode === 'edit';
 
   useEffect(() => {
@@ -1409,7 +1394,6 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
 
           {/* Form Body - Scrollable Sections */}
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5 sm:p-6">
-            {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
 
             {/* Section 01: Thông tin khóa học */}
             <FormSection number="01" title="Thông tin khóa học">
@@ -1763,9 +1747,8 @@ function InstructorLedCourseListPanel({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5 text-sm font-semibold text-[#26364a] whitespace-nowrap">
-                      <span className="font-bold text-[#730014]">{formatExamCategory(course.examCategory)}</span>
-                      {course.targetBand ? ` · Band ${course.targetBand}` : (course.targetScore ? ` · ${course.targetScore} điểm` : (course.entryLevel ? ` · ${course.entryLevel}` : ''))}
+                    <td className="whitespace-nowrap px-6 py-5">
+                      <ManagerTaxonomyBadge kind="level" value={formatInstructorLedCourseExam(course)} />
                     </td>
                     <td className="px-6 py-5 text-center text-xs font-semibold text-[#0b1c30] whitespace-nowrap">
                       <span className="rounded-md bg-slate-100 px-2.5 py-1 font-bold text-[#0b1c30]">
@@ -1936,13 +1919,12 @@ function formatLabel(value) {
   return labels[normalized] || (String(value).charAt(0) + String(value).slice(1).toLowerCase());
 }
 
-function formatExamCategory(value) {
-  const labels = {
-    IELTS: 'IELTS',
-    TOEIC: 'TOEIC',
-    GENERAL_ENGLISH: 'General English',
-  };
-  return labels[String(value || '').toUpperCase()] || value || 'IELTS';
+function formatInstructorLedCourseExam(course) {
+  const examCategory = String(course?.examCategory || 'IELTS').toUpperCase();
+  if (examCategory === 'IELTS' && course?.targetBand) return `IELTS ${course.targetBand}`;
+  if (examCategory === 'TOEIC' && course?.targetScore) return `TOEIC ${course.targetScore}`;
+  if (examCategory === 'GENERAL_ENGLISH') return course?.entryLevel ? `General English · ${course.entryLevel}` : 'General English';
+  return course?.entryLevel ? `${examCategory} · ${course.entryLevel}` : examCategory;
 }
 
 function formatCurrency(amount) {
@@ -2013,7 +1995,6 @@ function ResourceAttachModal({ children, onClose }) {
 }
 
 function InstructorLedCourseExcelImportModal({
-  error,
   examCategory,
   importing,
   onClose,
@@ -2060,7 +2041,6 @@ function InstructorLedCourseExcelImportModal({
           <Download className="h-3.5 w-3.5" /> Tải bản mẫu Excel chuẩn (Mau_Import_Khoa_Hoc.xlsx)
         </button>
         {reading ? <div className="mt-4 flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-600"><LoaderCircle className="h-4 w-4 animate-spin text-[#8a0018]" /> Đang đọc tệp Excel...</div> : null}
-        {error ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">{error}</div> : null}
         {parsed ? (
           <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-xs text-slate-700">
             <div className="flex items-center gap-2 font-extrabold text-emerald-800"><Check className="h-4 w-4 text-emerald-600" /> Đã đọc tệp: {parsed.fileName}</div>

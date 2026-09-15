@@ -3,10 +3,13 @@ import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Eye, Filter
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 
 const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const statusOptions = ['Tất cả', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -27,7 +30,9 @@ export default function ContentManagerCoursesPage() {
   const [courses, setCourses] = useState([]);
   const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [categories, setCategories] = useState([]);
-  const [filters, setFilters] = useState({ category: 'Tất cả', level: 'Tất cả', status: 'Tất cả', sort: 'newest' });
+  const requestedStatus = searchParams.get('status');
+  const initialStatus = statusOptions.includes(requestedStatus) ? requestedStatus : 'Tất cả';
+  const [filters, setFilters] = useState({ category: 'Tất cả', level: 'Tất cả', status: initialStatus, sort: 'newest' });
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,6 +59,12 @@ export default function ContentManagerCoursesPage() {
     }
   }, [navigate, searchParams]);
 
+  useEffect(() => {
+    const nextStatus = searchParams.get('status');
+    if (!statusOptions.includes(nextStatus)) return;
+    setFilters((current) => (current.status === nextStatus ? current : { ...current, status: nextStatus }));
+  }, [searchParams]);
+
   const loadCourses = async (activeRef = { current: true }) => {
     setLoading(true);
     setError('');
@@ -68,11 +79,11 @@ export default function ContentManagerCoursesPage() {
       if (!activeRef.current) return;
       setCourses(coursePage.content || []);
       setPageResult(coursePage);
-    } catch {
+    } catch (err) {
       if (activeRef.current) {
         setCourses([]);
         setPageResult(EMPTY_PAGE);
-        setError('Không tải được danh sách khóa học từ backend.');
+        setError(getContentManagerError(err, 'Không tải được danh sách khóa học từ backend.'));
       }
     } finally {
       if (activeRef.current) setLoading(false);
@@ -94,8 +105,11 @@ export default function ContentManagerCoursesPage() {
       try {
         const items = await courseApi.getManagedCourseCategories();
         if (active) setCategories(items);
-      } catch {
-        if (active) setCategories([]);
+      } catch (err) {
+        if (active) {
+          setCategories([]);
+          setError(getContentManagerError(err, 'Không tải được danh mục khóa học.'));
+        }
       }
     };
     loadCategories();
@@ -139,7 +153,7 @@ export default function ContentManagerCoursesPage() {
       }));
       setSuccess(publishing ? 'Đã xuất bản khóa học.' : 'Đã lưu trữ khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || (publishing ? 'Không thể xuất bản khóa học.' : 'Không thể lưu trữ khóa học.'));
+      setError(getContentManagerError(err, publishing ? 'Không thể xuất bản khóa học.' : 'Không thể lưu trữ khóa học.'));
     } finally {
       setWorkingId(null);
     }
@@ -147,20 +161,8 @@ export default function ContentManagerCoursesPage() {
 
   return (
     <div className="space-y-5">
-      {error ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-          <span>{error}</span>
-          <button
-            className="inline-flex items-center gap-2 rounded-xl border border-[#93000a]/25 bg-white/70 px-3 py-2"
-            onClick={() => loadCourses()}
-            type="button"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Thử lại
-          </button>
-        </div>
-      ) : null}
-      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{success}</div> : null}
+      <ManagementToast actionLabel="Thử lại" message={error} onAction={() => loadCourses()} onClose={() => setError('')} />
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật khóa học" />
 
       <Panel className="rounded-xl border-[#e9d7d6]/80 bg-white p-4 shadow-sm">
         <div className="grid gap-3 xl:grid-cols-[minmax(320px,1fr)_170px_160px_160px_160px_44px]">
@@ -224,7 +226,7 @@ export default function ContentManagerCoursesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-5 text-sm text-[#26364a]">{formatCategory(course.categoryName || course.category)}</td>
+                    <td className="px-5 py-5"><ManagerTaxonomyBadge kind="exam" value={formatCategory(course.categoryName || course.category)} /></td>
                     <td className="px-5 py-5 text-sm"><LevelBadge level={course.level} /></td>
                     <td className="px-5 py-5 text-center text-sm font-bold text-[#26364a]">{formatLessonCount(course)}</td>
                     <td className="px-5 py-5 text-sm font-bold text-[#26364a]">{course.totalHours ?? 0}h</td>

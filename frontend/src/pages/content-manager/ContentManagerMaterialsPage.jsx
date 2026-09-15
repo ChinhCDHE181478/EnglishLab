@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import { ContentManagerLoadingState, HeaderActions, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import ManagementToast from '../../components/ui/ManagementToast';
@@ -29,8 +30,8 @@ import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { ClassroomEmptyState, ClassroomErrorState } from '../../components/classroom/ClassroomUi';
 import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
-import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { downloadClassroomMaterial } from '../../utils/classroomHelpers';
+import { createContentManagerError, getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
 import { EMPTY_PAGE, normalizePage, pageParams } from '../../utils/pagination';
 
@@ -179,7 +180,7 @@ export default function ContentManagerMaterialsPage() {
       setProviders(providerItems);
     } catch (err) {
       setItems([]);
-      setError(getClassroomErrorMessage(err, 'Không thể tải kho học liệu trung tâm.'));
+      setError(getContentManagerError(err, 'Không thể tải kho học liệu trung tâm.'));
     } finally {
       setLoading(false);
     }
@@ -242,7 +243,7 @@ export default function ContentManagerMaterialsPage() {
       setMessage('Đã tải tệp lên kho học liệu. Bạn có thể lưu ngay hoặc chỉnh thêm mô tả.');
       setComposerOpen(true);
     } catch (err) {
-      setEditorError(getClassroomErrorMessage(err, 'Không thể tải tệp học liệu lên.'));
+      setEditorError(getContentManagerError(err, 'Không thể tải tệp học liệu lên.'));
     } finally {
       setUploading(false);
     }
@@ -281,7 +282,7 @@ export default function ContentManagerMaterialsPage() {
       resetForm(false);
       await loadItems();
     } catch (err) {
-      setEditorError(getClassroomErrorMessage(err, 'Không thể lưu học liệu trung tâm.'));
+      setEditorError(getContentManagerError(err, 'Không thể lưu học liệu trung tâm.'));
       setComposerOpen(true);
     } finally {
       setSaving(false);
@@ -305,7 +306,7 @@ export default function ContentManagerMaterialsPage() {
       setMessage('Đã xóa học liệu khỏi thư viện trung tâm.');
       await loadItems();
     } catch (err) {
-      setMessage(getClassroomErrorMessage(err, 'Không thể xóa học liệu trung tâm.'));
+      setError(getContentManagerError(err, 'Không thể xóa học liệu trung tâm.'));
     }
   };
 
@@ -327,7 +328,7 @@ export default function ContentManagerMaterialsPage() {
       await loadItems();
       setMessage(status === 'PUBLISHED' ? 'Đã xuất bản học liệu.' : 'Đã lưu trữ học liệu.');
     } catch (err) {
-      setMessage(getClassroomErrorMessage(err, status === 'PUBLISHED' ? 'Không thể xuất bản học liệu.' : 'Không thể lưu trữ học liệu.'));
+      setError(getContentManagerError(err, status === 'PUBLISHED' ? 'Không thể xuất bản học liệu.' : 'Không thể lưu trữ học liệu.'));
     }
   };
 
@@ -337,8 +338,13 @@ export default function ContentManagerMaterialsPage() {
     try {
       const downloaded = await downloadClassroomMaterial(item, { openOnFailure: false });
       if (!downloaded) {
-        setMessage('Nguồn học liệu không cho phép tải trực tiếp. Bạn vẫn có thể dùng nút Mở để xem tài liệu.');
+        setError(createContentManagerError(
+          'Nguồn học liệu không cho phép tải trực tiếp. Bạn vẫn có thể dùng nút Mở để xem tài liệu.',
+          'MATERIAL_DOWNLOAD_UNAVAILABLE',
+        ));
       }
+    } catch (err) {
+      setError(getContentManagerError(err, 'Không thể tải học liệu này.'));
     } finally {
       setDownloadingId(null);
     }
@@ -348,8 +354,13 @@ export default function ContentManagerMaterialsPage() {
     return <ContentManagerLoadingState message="Đang tải kho học liệu trung tâm..." />;
   }
 
-  if (error) {
-    return <ClassroomErrorState message={error} onRetry={loadItems} />;
+  if (error && !items.length) {
+    return (
+      <>
+        <ManagementToast actionLabel="Thử lại" message={error} onAction={loadItems} onClose={() => setError('')} />
+        <ClassroomErrorState message={getContentManagerFeedbackMessage(error)} onRetry={loadItems} />
+      </>
+    );
   }
 
   return (
@@ -359,12 +370,8 @@ export default function ContentManagerMaterialsPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: 'easeOut' }}
     >
-      <ManagementToast
-        message={message}
-        onClose={() => setMessage('')}
-        tone={/^Đã /.test(message) ? 'success' : 'error'}
-        title={/^Đã /.test(message) ? 'Đã cập nhật học liệu' : undefined}
-      />
+      <ManagementToast message={error || editorError} onClose={() => { setError(''); setEditorError(''); }} />
+      <ManagementToast message={message} onClose={() => setMessage('')} tone="success" title="Đã cập nhật học liệu" />
 
       <HeaderActions>
         <button
@@ -394,7 +401,6 @@ export default function ContentManagerMaterialsPage() {
           </div>
 
           <div className="space-y-4">
-            {editorError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{editorError}</div> : null}
             <TextInput
               label="Tên học liệu *"
               value={form.title}
@@ -497,8 +503,8 @@ export default function ContentManagerMaterialsPage() {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={FileStack} label="Tổng học liệu" value={stats.total} note="Toàn bộ kho trung tâm" tone="text-[#4b0009]" />
         <StatCard icon={Archive} label="Đã xuất bản" value={stats.published} note="Giáo viên có thể chọn ngay" tone="text-emerald-700" />
-        <StatCard icon={BookOpen} label="IELTS" value={stats.ielts} note="Theo band mục tiêu" tone="text-amber-700" />
-        <StatCard icon={Globe} label="TOEIC" value={stats.toeic} note="Theo dải điểm mục tiêu" tone="text-[#005236]" />
+        <StatCard icon={BookOpen} label="IELTS" value={stats.ielts} note="Theo band mục tiêu" tone="text-[#8a0018]" />
+        <StatCard icon={Globe} label="TOEIC" value={stats.toeic} note="Theo dải điểm mục tiêu" tone="text-[#1d4ed8]" />
       </section>
 
       <div className="grid gap-6">
@@ -539,12 +545,12 @@ export default function ContentManagerMaterialsPage() {
               <table className="w-full min-w-[1180px] table-fixed border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
-                    <th className="sticky left-0 z-10 w-[28%] bg-[#fbf3f4] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371] shadow-[1px_0_0_rgba(220,192,191,0.3)]">Học liệu</th>
-                    <th className="w-[11%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Loại</th>
+                    <th className="sticky left-0 z-10 w-[25%] bg-[#fbf3f4] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371] shadow-[1px_0_0_rgba(220,192,191,0.3)]">Học liệu</th>
+                    <th className="w-[10%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Loại</th>
                     <th className="w-[9%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Kỹ năng</th>
-                    <th className="w-[10%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Kỳ thi / mức</th>
-                    <th className="w-[9%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Nguồn</th>
-                    <th className="w-[10%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Trạng thái</th>
+                    <th className="w-[16%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Kỳ thi / mức</th>
+                    <th className="w-[8%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Nguồn</th>
+                    <th className="w-[9%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Trạng thái</th>
                     <th className="w-[7%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Cập nhật</th>
                     <th className="w-[16%] px-3 py-3 text-right text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Thao tác</th>
                   </tr>
@@ -554,7 +560,7 @@ export default function ContentManagerMaterialsPage() {
                     const plainDesc = stripRichTextToPlain(item.description) || item.tags || 'Chưa có mô tả';
                     return (
                       <tr className="group transition hover:bg-[#eff4ff]/40" key={item.id}>
-                        <td className="sticky left-0 z-[5] w-[28%] overflow-hidden bg-white px-3 py-3 shadow-[1px_0_0_rgba(220,192,191,0.2)] transition group-hover:bg-[#f8faff]">
+                        <td className="sticky left-0 z-[5] w-[25%] overflow-hidden bg-white px-3 py-3 shadow-[1px_0_0_rgba(220,192,191,0.2)] transition group-hover:bg-[#f8faff]">
                           <p className="truncate text-sm font-bold text-[#4b0009]" title={item.title}>{item.title}</p>
                           <p className="mt-0.5 truncate text-xs text-[#584140]" title={plainDesc}>
                             {plainDesc}
@@ -562,7 +568,7 @@ export default function ContentManagerMaterialsPage() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
                         <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{item.skill || 'Mixed'}</td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{formatTargetRange(item)}</td>
+                        <td className="whitespace-nowrap px-3 py-3"><ManagerTaxonomyBadge kind="level" value={formatTargetRange(item)} /></td>
                         <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{item.provider || 'EnglishLab'}</td>
                         <td className="whitespace-nowrap px-3 py-3"><StatusBadge label={labelStatus(item.status || 'PUBLISHED')} /></td>
                         <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{formatDate(item.updatedAt)}</td>
@@ -717,13 +723,13 @@ function TextInput({ label, value, onChange, placeholder }) {
 function formatTargetRange(item) {
   if ((item.examCategory || 'GENERAL') === 'TOEIC') {
     if (item.toeicScoreMin != null || item.toeicScoreMax != null) {
-      return `${item.toeicScoreMin ?? '?'} - ${item.toeicScoreMax ?? '?'}`;
+      return `TOEIC ${item.toeicScoreMin ?? '?'} - ${item.toeicScoreMax ?? '?'}`;
     }
-    return 'TOEIC chung';
+    return 'TOEIC';
   }
 
   if (item.ieltsBandMin != null || item.ieltsBandMax != null) {
-    return `Band ${item.ieltsBandMin ?? '?'} - ${item.ieltsBandMax ?? '?'}`;
+    return `IELTS ${item.ieltsBandMin ?? '?'} - ${item.ieltsBandMax ?? '?'}`;
   }
   return item.examCategory || 'Tổng quát';
 }

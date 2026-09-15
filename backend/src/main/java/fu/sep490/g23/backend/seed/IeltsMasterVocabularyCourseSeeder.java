@@ -76,7 +76,6 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
                         .code(CourseCategoryCode.IELTS.name())
                         .name("IELTS")
                         .description("IELTS exam preparation courses")
-                        .displayOrder(1)
                         .active(true)
                         .build()));
 

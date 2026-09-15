@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, CheckCircle2, Headphones, Layers3, LoaderCircle, RefreshCw, Save, Target, Users } from 'lucide-react';
 import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
-import { ManagerFilterBar } from '../../components/content-manager/ManagerListUi';
+import { ManagerFilterBar, ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
+import ManagementToast from '../../components/ui/ManagementToast';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import { getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 
 const RECENT_ATTEMPTS_PAGE_SIZE = 10;
 
@@ -93,7 +95,7 @@ export default function ContentManagerPlacementTestPage() {
         setDefinition(toDraft(response));
         setMonitoring(monitoringResponse);
       } catch (requestError) {
-        if (active) setError(requestError?.response?.data?.message || 'Không tải được dữ liệu bài đánh giá đầu vào.');
+        if (active) setError(getContentManagerError(requestError, 'Không tải được dữ liệu bài đánh giá đầu vào.'));
       } finally {
         if (!active) return;
         setLoading(false);
@@ -164,7 +166,7 @@ export default function ContentManagerPlacementTestPage() {
       setDefinition(toDraft(response));
       setNotice('Đã lưu cấu hình bài đánh giá đầu vào.');
     } catch (requestError) {
-      setError(requestError?.response?.data?.message || 'Không thể lưu cấu hình bài đánh giá đầu vào.');
+      setError(getContentManagerError(requestError, 'Không thể lưu cấu hình bài đánh giá đầu vào.'));
     } finally {
       setSaving(false);
     }
@@ -181,7 +183,7 @@ export default function ContentManagerPlacementTestPage() {
       setMonitoringExamType(examType);
     } catch (requestError) {
       if (monitoringRequestRef.current !== requestId) return;
-      setError(requestError?.response?.data?.message || 'Không tải được dữ liệu theo dõi.');
+      setError(getContentManagerError(requestError, 'Không tải được dữ liệu theo dõi.'));
     } finally {
       if (monitoringRequestRef.current === requestId) setMonitoringLoading(false);
     }
@@ -223,7 +225,14 @@ export default function ContentManagerPlacementTestPage() {
     return <Panel className="flex min-h-[420px] items-center justify-center gap-3 text-sm font-semibold text-[#584140]"><LoaderCircle className="h-5 w-5 animate-spin text-[#730014]" /> Đang tải bài đánh giá đầu vào...</Panel>;
   }
   if (!definition) {
-    return <Panel className="min-h-[320px] p-6 text-sm font-semibold text-[#93000a]">{error || 'Không có dữ liệu để quản lý.'}</Panel>;
+    return (
+      <>
+        <ManagementToast message={error} onClose={() => setError('')} />
+        <Panel className="min-h-[320px] p-6 text-sm font-semibold text-[#93000a]">
+          {getContentManagerFeedbackMessage(error) || 'Không có dữ liệu để quản lý.'}
+        </Panel>
+      </>
+    );
   }
 
   return (
@@ -289,11 +298,11 @@ export default function ContentManagerPlacementTestPage() {
             </button>
           ))}
         </div>
-        <span className="shrink-0 rounded-full bg-[#fff1f2] px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-[#730014]">{activeExamType}</span>
+        <span className="shrink-0 rounded-full border border-[#eadfdc] bg-white px-4 py-2"><ManagerTaxonomyBadge kind="exam" value={activeExamType} /></span>
       </ManagerFilterBar>
 
-      {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
-      {notice ? <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> {notice}</div> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast message={notice} onClose={() => setNotice('')} tone="success" title="Đã lưu bài đánh giá" />
 
       {activeTab === 'monitoring' ? (
         <Monitoring
@@ -333,7 +342,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Báo cáo</p><h2 className="mt-1 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Kết quả {examType}</h2></div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Báo cáo</p><h2 className="mt-1 flex items-baseline gap-1.5 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Kết quả <ManagerTaxonomyBadge kind="exam" value={examType} /></h2></div>
         <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={onRefresh} type="button">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới số liệu
         </button>
@@ -385,7 +394,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
 
       <Panel className="overflow-hidden">
         <div className="border-b border-[#f0e3e4] px-6 py-5">
-          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây · {examType}</h3>
+          <h3 className="flex items-baseline gap-1.5 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây · <ManagerTaxonomyBadge kind="exam" value={examType} /></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left">
@@ -424,9 +433,10 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
             </tbody>
           </table>
         </div>
-        {attemptsTotalPages > 1 ? (
+        {recentAttempts.length ? (
           <div className="border-t border-[#f0e3e4] px-5 py-4">
             <Pagination
+              alwaysVisible
               onChange={setAttemptsPage}
               page={attemptsPage}
               pageSize={RECENT_ATTEMPTS_PAGE_SIZE}

@@ -2,10 +2,15 @@ package fu.sep490.g23.backend.service.curriculum.impl;
 
 import fu.sep490.g23.backend.dto.request.curriculum.InstructorLedCourseRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CourseLessonRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.course.CourseUnit;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
@@ -52,6 +57,37 @@ class InstructorLedCourseManagementServiceImplTest {
 
     @InjectMocks
     private InstructorLedCourseManagementServiceImpl service;
+
+    @Test
+    void createAssessmentBankItemRejectsWritingWithoutRubric() {
+        AssessmentBankItemRequest request = new AssessmentBankItemRequest();
+        request.setTitle("IELTS Writing Task 2");
+        request.setType(AssessmentType.LESSON_PRACTICE);
+        request.setSkill(AssessmentSkill.WRITING);
+        request.setUiConfigJson("{}");
+
+        assertThatThrownBy(() -> service.createAssessmentBankItem(request))
+                .hasMessage("Bài Writing/Speaking phải có bộ tiêu chí chấm.");
+        verify(assessmentBankRepository, never()).save(any());
+    }
+
+    @Test
+    void createAssessmentBankItemUsesAutomaticBandModeForObjectiveSkill() {
+        AssessmentBankItemRequest request = new AssessmentBankItemRequest();
+        request.setTitle("IELTS Listening");
+        request.setType(AssessmentType.LESSON_PRACTICE);
+        request.setSkill(AssessmentSkill.LISTENING);
+        request.setAiEvaluationMode(AiEvaluationMode.NONE);
+        request.setObjectiveAnswerKey("{}");
+        when(assessmentBankRepository.save(any(AssessmentBankItem.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.createAssessmentBankItem(request);
+
+        ArgumentCaptor<AssessmentBankItem> captor = ArgumentCaptor.forClass(AssessmentBankItem.class);
+        verify(assessmentBankRepository).save(captor.capture());
+        assertThat(captor.getValue().getAiEvaluationMode()).isEqualTo(AiEvaluationMode.ESTIMATED_BAND);
+    }
 
     @Test
     void createInstructorLedCoursePersistsCanonicalIeltsProfile() {

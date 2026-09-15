@@ -89,7 +89,6 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
                     .code(code.name())
                     .name(name)
                     .description(description)
-                    .displayOrder(order)
                     .build()));
     }
 

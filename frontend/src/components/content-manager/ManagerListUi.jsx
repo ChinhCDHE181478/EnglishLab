@@ -1,4 +1,45 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Headphones,
+  Languages,
+  Layers3,
+  Mic2,
+  NotebookPen,
+} from 'lucide-react';
+
+const TAXONOMY_META = {
+  skill: {
+    LISTENING: { label: 'Nghe', icon: Headphones, className: 'border-sky-200 bg-sky-50 text-sky-800', iconClassName: 'bg-sky-100 text-sky-700' },
+    READING: { label: 'Đọc', icon: BookOpen, className: 'border-emerald-200 bg-emerald-50 text-emerald-800', iconClassName: 'bg-emerald-100 text-emerald-700' },
+    WRITING: { label: 'Viết', icon: NotebookPen, className: 'border-amber-200 bg-amber-50 text-amber-900', iconClassName: 'bg-amber-100 text-amber-700' },
+    SPEAKING: { label: 'Nói', icon: Mic2, className: 'border-rose-200 bg-rose-50 text-rose-800', iconClassName: 'bg-rose-100 text-rose-700' },
+    VOCABULARY: { label: 'Từ vựng', icon: Languages, className: 'border-cyan-200 bg-cyan-50 text-cyan-900', iconClassName: 'bg-cyan-100 text-cyan-700' },
+    GRAMMAR: { label: 'Ngữ pháp', icon: Languages, className: 'border-orange-200 bg-orange-50 text-orange-900', iconClassName: 'bg-orange-100 text-orange-700' },
+    MIXED: { label: 'Tổng hợp', icon: Layers3, className: 'border-[#dfbfbd] bg-[#fff1f2] text-[#730014]', iconClassName: 'bg-[#f8dfe2] text-[#730014]' },
+  },
+};
+
+const DEFAULT_TAXONOMY_META = {
+  skill: { label: 'Chưa xác định', icon: Layers3, className: 'border-slate-200 bg-slate-50 text-slate-700', iconClassName: 'bg-slate-100 text-slate-600' },
+};
+
+const splitExamLevel = (value) => {
+  const text = String(value || '').trim();
+  const match = text.match(/^(IELTS|TOEIC)\b/i);
+  if (!match) return { exam: '', detail: text };
+
+  const exam = match[1].toUpperCase();
+  let detail = text.slice(match[0].length).replace(/^\s*[·:–—-]\s*/, '').trim();
+  if (exam === 'IELTS') {
+    detail = detail.replace(/^band\s*/i, '').trim();
+    return { exam, detail: detail ? `Band ${detail}` : '' };
+  }
+
+  detail = detail.replace(/^điểm\s*/i, '').replace(/\s*điểm$/i, '').trim();
+  return { exam, detail: detail ? `${detail} điểm` : '' };
+};
 
 export function ManagerStatsGrid({ stats }) {
   if (!stats?.length) return null;
@@ -113,6 +154,39 @@ export function ManagerStatusBadge({ children, tone = 'neutral' }) {
   return (
     <span className={`inline-flex whitespace-nowrap rounded-lg border px-2.5 py-1 text-[11px] font-bold ${toneClass}`}>
       {children}
+    </span>
+  );
+}
+
+export function ManagerTaxonomyBadge({ kind = 'skill', value }) {
+  const normalizedValue = String(value || '').trim();
+  if (kind === 'exam' || kind === 'level') {
+    const { exam, detail } = splitExamLevel(normalizedValue);
+    if (!exam) {
+      const unavailable = !detail || detail === '-' || /^Chưa\b/i.test(detail);
+      return <span className={`text-sm font-extrabold ${unavailable ? 'text-[#735b59]' : 'text-[#6d28d9]'}`}>{detail || 'Chưa xác định'}</span>;
+    }
+    const examClassName = exam === 'TOEIC' ? 'text-[#1d4ed8]' : 'text-[#8a0018]';
+    return (
+      <span className="inline-flex max-w-full items-baseline gap-1.5 whitespace-nowrap text-sm" title={[exam, detail].filter(Boolean).join(' · ')}>
+        <span className={`font-extrabold ${examClassName}`}>{exam}</span>
+        {detail ? <span aria-hidden="true" className="font-bold text-[#a38986]">·</span> : null}
+        {detail ? <span className="sr-only">, </span> : null}
+        {detail ? <span className="min-w-0 truncate font-bold text-[#0b1c30]">{detail}</span> : null}
+      </span>
+    );
+  }
+
+  const meta = TAXONOMY_META[kind]?.[normalizedValue.toUpperCase()] || DEFAULT_TAXONOMY_META[kind] || DEFAULT_TAXONOMY_META.skill;
+  const Icon = meta.icon;
+  const label = normalizedValue ? (TAXONOMY_META[kind]?.[normalizedValue.toUpperCase()]?.label || normalizedValue) : meta.label;
+
+  return (
+    <span className={`inline-flex min-h-8 max-w-full items-center gap-2 whitespace-nowrap rounded-full border py-1 pl-1 pr-3 text-xs font-extrabold shadow-[0_1px_2px_rgba(11,28,48,0.05)] ${meta.className}`} title={label}>
+      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${meta.iconClassName}`}>
+        <Icon aria-hidden="true" className="h-3.5 w-3.5" />
+      </span>
+      <span className="truncate">{label}</span>
     </span>
   );
 }

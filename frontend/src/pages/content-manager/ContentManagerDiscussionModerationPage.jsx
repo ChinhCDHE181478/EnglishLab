@@ -7,6 +7,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 
 const STATUS_FILTERS = [
   { value: 'PENDING', label: 'Đang chờ' },
@@ -70,7 +71,7 @@ export default function ContentManagerDiscussionModerationPage() {
       );
       setPageResult(data);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Không thể tải hàng chờ kiểm duyệt.');
+      setError(getContentManagerError(requestError, 'Không thể tải hàng chờ kiểm duyệt.'));
       setPageResult(EMPTY_PAGE);
       return false;
     } finally {
@@ -114,7 +115,7 @@ export default function ContentManagerDiscussionModerationPage() {
             : 'Báo cáo đã được bỏ qua và nội dung vẫn được giữ nguyên.');
       }
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Không thể xử lý báo cáo. Vui lòng thử lại.');
+      setError(getContentManagerError(requestError, 'Không thể xử lý báo cáo. Vui lòng thử lại.'));
     } finally {
       setProcessingId(null);
     }
