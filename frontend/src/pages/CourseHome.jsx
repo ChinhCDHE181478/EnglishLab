@@ -137,7 +137,10 @@ const CourseHome = () => {
         const savedLessonId = localStorage.getItem(`englishlab.activeLesson.${normalizedCourse.slug}`);
         if (savedLessonId) {
           const foundModule = (normalizedCourse.modules || []).find((m) =>
-            (m.lessons || []).some((l) => String(getLessonId(m, l, 0)) === String(savedLessonId)) ||
+            (m.lessons || []).some((l, li) =>
+              getLessonId(m, l, li) === savedLessonId ||
+              (l.id && String(l.id) === savedLessonId)
+            ) ||
             String(getAssessmentStepId(m.id)) === String(savedLessonId)
           );
           setOpenModuleId(foundModule ? (foundModule.id ?? foundModule.title) : (normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null));
