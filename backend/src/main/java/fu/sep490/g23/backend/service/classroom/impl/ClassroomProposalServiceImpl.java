@@ -659,7 +659,14 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         return Arrays.stream(value.split(","))
                 .map(String::trim)
                 .filter(StringUtils::hasText)
-                .map(DayOfWeek::valueOf)
+                .map(raw -> {
+                    try {
+                        return DayOfWeek.valueOf(raw);
+                    } catch (IllegalArgumentException _) {
+                        // Old data stores day-of-week as integer (e.g. "1" for MONDAY)
+                        return DayOfWeek.of(Integer.parseInt(raw));
+                    }
+                })
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(DayOfWeek.class)));
     }
 

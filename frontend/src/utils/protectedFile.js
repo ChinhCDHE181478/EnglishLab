@@ -1,11 +1,21 @@
 import axiosClient from '../api/axiosClient';
 
 const PROTECTED_ATTACHMENT_PATH = '/api/classroom-homework/attachments/';
+const LOCAL_FILES_PATH = '/local-files/';
 
 export const isProtectedAttachmentUrl = (url = '') => String(url).includes(PROTECTED_ATTACHMENT_PATH);
 
+export const isLocalFileUrl = (url = '') => String(url).includes(LOCAL_FILES_PATH);
+
 export const fetchProtectedFileBlob = async (url) => {
-  const response = await axiosClient.get(url, { responseType: 'blob' });
+  // Convert local file URL to authenticated API endpoint
+  let apiUrl = url;
+  if (url.includes(LOCAL_FILES_PATH)) {
+    // /local-files/classroom-attachments/homework-uuid.pdf -> /api/classroom-homework/attachments/local-files/classroom-attachments/homework-uuid.pdf
+    const objectKey = url.replace(LOCAL_FILES_PATH, '');
+    apiUrl = PROTECTED_ATTACHMENT_PATH + 'local-files/' + objectKey;
+  }
+  const response = await axiosClient.get(apiUrl, { responseType: 'blob' });
   return response.data;
 };
 
