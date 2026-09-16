@@ -3,10 +3,13 @@ import { Archive, CheckCircle2, Pencil, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { ContentManagerLoadingState, Panel, StatusBadge } from '../../components/content-manager/ContentManagerUi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { getCourseVersionLabel } from '../../utils/courseVersionUi';
+import { createContentManagerError, getContentManagerError } from '../../utils/contentManagerFeedback';
 
 const pageSize = 10;
 
@@ -39,10 +42,13 @@ export default function ContentManagerPublicationPage() {
       }));
       setCourses(rows);
       if (failedVersionLoads.length) {
-        setError(`Chưa tải được phiên bản của ${failedVersionLoads.length} khóa học. Hãy bấm Làm mới để thử lại.`);
+        setError(createContentManagerError(
+          `Chưa tải được phiên bản của ${failedVersionLoads.length} khóa học. Hãy bấm Làm mới để thử lại.`,
+          'PARTIAL_DATA_LOAD',
+        ));
       }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được hàng chờ xuất bản.');
+      setError(getContentManagerError(err, 'Không tải được hàng chờ xuất bản.'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +88,7 @@ export default function ContentManagerPublicationPage() {
       if (action === 'PUBLISH') await loadCourses();
       else setCourses((current) => current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không cập nhật được trạng thái xuất bản.');
+      setError(getContentManagerError(err, 'Không cập nhật được trạng thái xuất bản.'));
     } finally {
       setWorkingId(null);
     }
@@ -114,8 +120,8 @@ export default function ContentManagerPublicationPage() {
         </button>
       </div>
 
-      {error ? <Notice tone="error">{error}</Notice> : null}
-      {success ? <Notice tone="success">{success}</Notice> : null}
+      <ManagementToast actionLabel="Làm mới" message={error} onAction={loadCourses} onClose={() => setError('')} />
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật xuất bản" />
 
       <Panel className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -134,7 +140,7 @@ export default function ContentManagerPublicationPage() {
                     <p className="font-bold text-[#1a1c1c]">{course.title}</p>
                     <p className="mt-1 text-xs text-[#8b706e]">{course.slug}</p>
                   </td>
-                  <td className="px-5 py-4 text-sm">{course.categoryName || course.category}</td>
+                  <td className="px-5 py-4"><ManagerTaxonomyBadge kind="exam" value={course.categoryName || course.category} /></td>
                   <td className="px-5 py-4 text-sm">{course.modules?.length || 0} mô-đun · {course.totalLessons || 0} bài học</td>
                   <td className="px-5 py-4">
                     {course.publishableVersion
@@ -183,11 +189,4 @@ function resolvePublicationStatus(course) {
 function formatDate(value) {
   if (!value) return 'Chưa có';
   return new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function Notice({ children, tone }) {
-  const className = tone === 'error'
-    ? 'border-[#ba1a1a]/20 bg-[#ffdad6] text-[#93000a]'
-    : 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return <div className={`rounded-2xl border px-5 py-4 text-sm font-semibold ${className}`}>{children}</div>;
 }

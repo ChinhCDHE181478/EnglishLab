@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.response.assessment;
 
-import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,7 +12,7 @@ public class RecommendedInstructorLedCourseResponse {
     private Long id;
     private String title;
     private String shortDescription;
-    private PlacementLevel entryPlacementLevel;
+    private String entryLevel;
     private String examCategory;
     private List<String> focusSkills;
     private BigDecimal targetBand;

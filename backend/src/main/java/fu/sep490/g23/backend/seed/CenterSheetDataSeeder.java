@@ -88,6 +88,7 @@ import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -177,6 +178,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final FlashcardSetRepository flashcardSetRepository;
     private final CenterSheetCourseCatalog courseCatalog;
     private final DemoLearnerOnboardingSupport onboardingSupport;
+    private final MasterSeedGate masterSeedGate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.seed.sheet.enabled:false}")
@@ -184,6 +186,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         if (!sheetEnabled) {
             return;
         }
@@ -449,7 +454,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .deliveryModeOverride(null)
                         .room(room)
                         .recordingStatus(RecordingSyncStatus.NOT_AVAILABLE)
-                        .sessionContent("Buổi " + index + ": luyện 4 kỹ năng")
+                        .sessionContent("Luyện 4 kỹ năng")
                         .build());
                 index++;
             }
@@ -1024,9 +1029,11 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .learningObjectives("Warm-up 10 phút; chiến thuật 25 phút; luyện có hướng dẫn 40 phút; chốt bài về nhà 15 phút.")
                         .build();
                 for (int session = 1; session <= 4; session++) {
+                    String[] focuses = {"Warm-up & input", "Guided practice", "Skill drill", "Review & homework"};
+                    String baseSkill = units[i][0].replaceFirst("^Unit \\d+ · ", "");
                     unit.addLesson(CourseLesson.builder()
-                            .sequenceNumber(i * 4 + session)
-                            .title("Buổi " + (i * 4 + session) + " · " + units[i][0])
+                            .sequenceNumber(session)
+                            .title(baseSkill + " · " + focuses[session - 1])
                             .description(units[i][1])
                             .learningObjectives(units[i][2])
                             .build());

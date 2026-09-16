@@ -26,6 +26,7 @@ import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import fu.sep490.g23.backend.service.course.CourseProgressService;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -71,6 +73,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
     private final CourseProgressService courseProgressService;
     private final AiEvaluationClient aiEvaluationClient;
     private final PlatformTransactionManager transactionManager;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.sheet.enabled:false}")
     private boolean seedEnabled;
@@ -80,6 +83,17 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
 
     @Override
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
+        if (!seedEnabled) {
+            return;
+        }
+        if (preservedLearnerHasE2EnrollmentProgress()) {
+            log.info("[ShowcaseCompletion] Bỏ qua — học viên {} đã có tiến độ trên khóa {}.",
+                    LEARNER_EMAIL, COURSE_SLUG);
+            return;
+        }
         log.info("[ShowcaseCompletion] Bat dau seed tien do hoc tap cho cac hoc vien demo...");
         TransactionTemplate tx = new TransactionTemplate(transactionManager);
         List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
@@ -98,6 +112,28 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
                 }
             });
         }
+    }
+
+    private boolean preservedLearnerHasE2EnrollmentProgress() {
+        Optional<User> learner = userRepository.findByEmail(LEARNER_EMAIL);
+        if (learner.isEmpty()) {
+            return false;
+        }
+        Optional<OnlineCourse> course = onlineCourseRepository.findBySlug(COURSE_SLUG);
+        if (course.isEmpty()) {
+            return false;
+        }
+        return enrollmentRepository.findByStudentAndOnlineCourse(learner.get(), course.get())
+                .filter(this::enrollmentHasRecordedProgress)
+                .isPresent();
+    }
+
+    private boolean enrollmentHasRecordedProgress(OnlineCourseEnrollment enrollment) {
+        Integer progressPercent = enrollment.getProgressPercent();
+        if (progressPercent != null && progressPercent > 0) {
+            return true;
+        }
+        return !lessonProgressRepository.findByEnrollment(enrollment).isEmpty();
     }
 
     @Transactional

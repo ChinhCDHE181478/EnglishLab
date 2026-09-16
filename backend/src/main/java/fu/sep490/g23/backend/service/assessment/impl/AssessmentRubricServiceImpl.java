@@ -33,6 +33,7 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
     public List<AssessmentRubricResponse> list(String status, AssessmentSkill skill) {
         String normalizedStatus = normalizeOptionalStatus(status);
         return rubricRepository.findAll().stream()
+                .filter(rubric -> isSupportedRubricSkill(rubric.getSkill()))
                 .filter(rubric -> normalizedStatus == null || normalizedStatus.equalsIgnoreCase(rubric.getStatus()))
                 .filter(rubric -> skill == null || rubric.getSkill() == skill)
                 .sorted(Comparator
@@ -51,7 +52,7 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
             Pageable pageable
     ) {
         Specification<AssessmentRubric> specification = (root, query, criteriaBuilder) ->
-                criteriaBuilder.conjunction();
+                root.get("skill").in(AssessmentSkill.WRITING, AssessmentSkill.SPEAKING);
         String normalizedStatus = normalizeOptionalStatus(status);
         if (normalizedStatus != null) {
             specification = specification.and((root, query, criteriaBuilder) ->
@@ -77,6 +78,7 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
     @Transactional(readOnly = true)
     public Map<String, Long> stats(AssessmentSkill skill) {
         List<AssessmentRubric> rubrics = rubricRepository.findAll().stream()
+                .filter(rubric -> isSupportedRubricSkill(rubric.getSkill()))
                 .filter(rubric -> skill == null || rubric.getSkill() == skill)
                 .toList();
         return Map.of(
@@ -129,6 +131,9 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
     }
 
     private void validateRequest(AssessmentRubricRequest request) {
+        if (!isSupportedRubricSkill(request.getSkill())) {
+            throw new IllegalArgumentException("Bộ tiêu chí chỉ áp dụng cho kỹ năng Writing hoặc Speaking.");
+        }
         if (request.getCriteria() == null || request.getCriteria().isEmpty()) {
             throw new IllegalArgumentException("Bộ tiêu chí cần có ít nhất một tiêu chí chấm điểm.");
         }
@@ -144,6 +149,10 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
         if (hasBlankCriterion) {
             throw new IllegalArgumentException("Tên tiêu chí không được để trống.");
         }
+    }
+
+    private boolean isSupportedRubricSkill(AssessmentSkill skill) {
+        return skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING;
     }
 
     private void applyRequest(AssessmentRubric rubric, AssessmentRubricRequest request) {

@@ -19,6 +19,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import FlashcardDictionaryAssistant from '../../components/flashcard/FlashcardDictionaryAssistant';
 import FlashcardImportDialog from '../../components/flashcard/FlashcardImportDialog';
 
 const HEADING_REGEX = /^###\s+\d+\.\s+(.+)$/gm;
@@ -968,20 +969,16 @@ export function InlineFlashcardSetEditor({
                   onChange={(event) => onChangeCard(index, { term: event.target.value })}
                   value={card.term}
                 />
-                <TextField
-                  label="Nghĩa"
-                  onChange={(event) => onChangeCard(index, { meaning: event.target.value })}
-                  value={card.meaning}
+                <FlashcardDictionaryAssistant
+                  example={card.example}
+                  exampleContainerClassName="md:col-span-2"
+                  meaning={card.meaning}
+                  meaningLabel="Nghĩa tiếng Việt"
+                  onExampleChange={(example) => onChangeCard(index, { example })}
+                  onMeaningChange={(meaning) => onChangeCard(index, { meaning })}
+                  showLabels
+                  term={card.term}
                 />
-                <div className="md:col-span-2">
-                  <TextField
-                    label="Ví dụ"
-                    onChange={(event) => onChangeCard(index, { example: event.target.value })}
-                    rows={4}
-                    textarea
-                    value={card.example}
-                  />
-                </div>
                 <div className="md:col-span-2">
                   <TextField
                     label="Lỗi thường gặp"

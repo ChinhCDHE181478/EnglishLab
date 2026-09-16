@@ -3,7 +3,7 @@ import {
   CEFR_LEVEL_OPTIONS,
   IELTS_BAND_OPTIONS,
   TOEIC_SCORE_PRESETS,
-} from '../../utils/englishProgramProfile';
+} from '../../utils/englishCourseProfile';
 import { FIELD_CLASS } from '../../utils/formStyles';
 
 const LABEL_CLASS = 'mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]';
@@ -90,7 +90,7 @@ export function EnglishEntryLevelField({ examCategory, value, onChange }) {
   if (examCategory === 'TOEIC') {
     return (
       <ToeicScoreField
-        helperText="Điểm TOEIC hiện tại tối thiểu phù hợp với chương trình."
+        helperText="Điểm TOEIC hiện tại tối thiểu phù hợp với khóa học."
         label="Điểm TOEIC đầu vào"
         onChange={onChange}
         value={value}

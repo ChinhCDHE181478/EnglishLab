@@ -7,10 +7,13 @@ import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.service.storage.ObjectStore;
+import fu.sep490.g23.backend.service.user.event.AvatarDeletedEvent;
+import fu.sep490.g23.backend.service.user.event.AvatarUpdatedEvent;
 import fu.sep490.g23.backend.service.user.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -120,6 +124,7 @@ class UserServiceImplTest {
         user.setAvatarUrl("http://localhost:8080/api/user/avatars/avatar-old.png");
         MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[]{1});
         when(avatarStorageService.store(file)).thenReturn("avatar-new.png");
+        when(objectStore.objectKey("avatars", "avatar-old.png")).thenReturn("avatars/avatar-old.png");
         when(userRepository.save(user)).thenReturn(user);
 
         UserResponse response = service.updateAvatar(
@@ -129,19 +134,26 @@ class UserServiceImplTest {
         );
 
         assertEquals("http://localhost:8080/api/user/avatars/avatar-new.png", response.getAvatarUrl());
-        verify(avatarStorageService).deleteByUrl("http://localhost:8080/api/user/avatars/avatar-old.png");
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        AvatarUpdatedEvent event = assertInstanceOf(AvatarUpdatedEvent.class, eventCaptor.getValue());
+        assertEquals("avatars/avatar-old.png", event.getPreviousAvatarKey());
     }
 
     @Test
     void deleteAvatar_ClearsDatabaseValueAndDeletesStoredFile() {
         String oldUrl = "http://localhost:8080/api/user/avatars/avatar-old.png";
         user.setAvatarUrl(oldUrl);
+        when(objectStore.objectKey("avatars", "avatar-old.png")).thenReturn("avatars/avatar-old.png");
         when(userRepository.save(user)).thenReturn(user);
 
         UserResponse response = service.deleteAvatar(user.getEmail());
 
         assertNull(response.getAvatarUrl());
-        verify(avatarStorageService).deleteByUrl(oldUrl);
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        AvatarDeletedEvent event = assertInstanceOf(AvatarDeletedEvent.class, eventCaptor.getValue());
+        assertEquals("avatars/avatar-old.png", event.getAvatarKey());
     }
 
     private ChangePasswordRequest passwordRequest(String currentPassword, String newPassword, String confirmPassword) {

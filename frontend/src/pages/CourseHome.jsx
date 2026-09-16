@@ -15,6 +15,7 @@ import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
 import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 import { resolveScoreCap } from '../utils/ieltsBandScale';
 import { findFurthestReachedModuleIndex, isReachedModuleUnlocked } from '../utils/courseProgressAccess';
+import { buildLessonWorkspacePath } from '../utils/courseWorkspaceNavigation';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -133,7 +134,19 @@ const CourseHome = () => {
 
         setCourse({ ...normalizedCourse, registered: Boolean(matchedEnrollment) });
         setEnrollment(matchedEnrollment || null);
-        setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
+        const savedLessonId = localStorage.getItem(`englishlab.activeLesson.${normalizedCourse.slug}`);
+        if (savedLessonId) {
+          const foundModule = (normalizedCourse.modules || []).find((m) =>
+            (m.lessons || []).some((l, li) =>
+              getLessonId(m, l, li) === savedLessonId ||
+              (l.id && String(l.id) === savedLessonId)
+            ) ||
+            String(getAssessmentStepId(m.id)) === String(savedLessonId)
+          );
+          setOpenModuleId(foundModule ? (foundModule.id ?? foundModule.title) : (normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null));
+        } else {
+          setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
+        }
         if (hasAccessToken()) {
           const [assessmentItems, completionResponse, certificateResponse, ratingResponse] = await Promise.all([
             loadOptionalCourseData(() => courseApi.getCourseAssessments(normalizedCourse.id), []),
@@ -241,7 +254,9 @@ const CourseHome = () => {
     if (!course?.slug) return;
     const lessonId = getLessonId(module, lesson, lessonIndex);
     localStorage.setItem(`englishlab.activeLesson.${course.slug}`, String(lessonId));
-    navigate(`/courses/${course.slug}/learn`, { state: { course, enrollment, workspaceMode: 'learn' } });
+    navigate(buildLessonWorkspacePath(course.slug, lessonId), {
+      state: { course, enrollment, workspaceMode: 'learn' },
+    });
   };
 
   const openAssessment = (module) => {

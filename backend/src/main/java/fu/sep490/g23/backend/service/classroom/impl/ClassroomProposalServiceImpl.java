@@ -249,6 +249,9 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         if (payload.getWeekdays() == null || payload.getWeekdays().isEmpty()) {
             throw new IllegalArgumentException("Hãy chọn ít nhất một thứ học trong tuần.");
         }
+        if (!payload.getWeekdays().contains(payload.getPlannedStartDate().getDayOfWeek())) {
+            throw new IllegalArgumentException("Ngày bắt đầu phải trùng với một ngày học trong tuần.");
+        }
         if (payload.getSessionStartTime() == null || payload.getSessionEndTime() == null) {
             throw new IllegalArgumentException("Hãy chọn giờ học hợp lệ.");
         }
@@ -478,6 +481,9 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         }
         if (payload.getWeekdays() == null || payload.getWeekdays().isEmpty()) {
             throw new IllegalArgumentException("Cần chọn ít nhất một ngày học trong tuần.");
+        }
+        if (!payload.getWeekdays().contains(payload.getPlannedStartDate().getDayOfWeek())) {
+            throw new IllegalArgumentException("Ngày bắt đầu phải trùng với một ngày học trong tuần.");
         }
         if (payload.getSessionStartTime() == null || payload.getSessionEndTime() == null) {
             throw new IllegalArgumentException("Giờ bắt đầu và giờ kết thúc không được để trống.");

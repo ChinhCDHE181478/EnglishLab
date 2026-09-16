@@ -14,7 +14,6 @@ public class CourseCategoryResponse {
     private String code;
     private String name;
     private String description;
-    private Integer displayOrder;
     private boolean active;
     private long courseCount;
 }

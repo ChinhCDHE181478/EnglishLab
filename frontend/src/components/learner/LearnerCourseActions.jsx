@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
-import { buildCourseDetailPath, buildCourseHomePath, normalizeCourse } from '../../utils/courseModels';
-import { removeCourseFromCart } from '../../utils/commerceStore';
+import { buildCourseDetailPath, buildCourseHomePath, isFreeCourse, normalizeCourse } from '../../utils/courseModels';
+import { removeCourseFromCart, removeCourseFromWishlist } from '../../utils/commerceStore';
 import { detailCourseButtonClassName } from '../course/CourseActionButton';
 
 const baseButtonClassName =
@@ -15,7 +15,7 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
   const [registering, setRegistering] = useState(false);
   const sizeClassName = compact ? 'px-3 py-2 text-xs' : '';
   const completed = Number(course?.progressPercent || 0) >= 100 || course?.enrollmentStatus === 'COMPLETED';
-  const isFreeCourse = Number(course?.salePrice ?? course?.price ?? 0) <= 0;
+  const freeCourse = isFreeCourse(course);
 
   const handleFreeRegistration = async () => {
     if (!course?.id || registering) return;
@@ -23,7 +23,10 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
     try {
       const result = await courseApi.registerOnlineCourse(course.id);
       const registeredCourse = normalizeCourse({ ...course, ...result, registered: true });
-      await removeCourseFromCart(course.id);
+      await Promise.all([
+        removeCourseFromCart(course.id),
+        removeCourseFromWishlist(course.id),
+      ]);
       addNotification({
         title: 'Đăng ký thành công',
         message: `Khóa học ${registeredCourse.title} đã được thêm vào tài khoản của bạn.`,
@@ -65,7 +68,7 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
   }
 
   if (onDetailPage) {
-    if (isFreeCourse) {
+    if (freeCourse) {
       return (
         <button
           className={`${baseButtonClassName} bg-[#4b0009] text-white hover:-translate-y-0.5 hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-60 ${sizeClassName} ${className}`}

@@ -4,12 +4,12 @@ import fu.sep490.g23.backend.dto.response.classroom.InstructorLedCourseResponse;
 import java.util.List;
 
 public interface InstructorLedCourseCatalogService {
-    List<InstructorLedCourseResponse> listPrograms();
+    List<InstructorLedCourseResponse> listInstructorLedCourses();
 
-    List<InstructorLedCourseResponse> listPublishedPrograms();
+    List<InstructorLedCourseResponse> listPublishedInstructorLedCourses();
 
-    InstructorLedCourseResponse getPublishedProgram(String idOrCode);
+    InstructorLedCourseResponse getPublishedInstructorLedCourse(String idOrCode);
 
-    InstructorLedCourseResponse getProgram(Long id);
+    InstructorLedCourseResponse getInstructorLedCourse(Long id);
 
 }

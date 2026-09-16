@@ -7,6 +7,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 
 const STATUS_FILTERS = [
   { value: 'PENDING', label: 'Đang chờ' },
@@ -17,7 +18,7 @@ const STATUS_FILTERS = [
 const CATEGORY_FILTERS = [
   { value: '', label: 'Tất cả' },
   { value: 'SPAM', label: 'Spam' },
-  { value: 'INAPPROPRIATE_LANGUAGE', label: 'Ngôn ngữ...' },
+  { value: 'INAPPROPRIATE_LANGUAGE', label: 'Ngôn ngữ không phù hợp' },
   { value: 'OFF_TOPIC', label: 'Sai chủ đề' },
   { value: 'HARASSMENT', label: 'Quấy rối' },
   { value: 'OTHER', label: 'Khác' },
@@ -70,7 +71,7 @@ export default function ContentManagerDiscussionModerationPage() {
       );
       setPageResult(data);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Không thể tải hàng chờ kiểm duyệt.');
+      setError(getContentManagerError(requestError, 'Không thể tải hàng chờ kiểm duyệt.'));
       setPageResult(EMPTY_PAGE);
       return false;
     } finally {
@@ -114,10 +115,20 @@ export default function ContentManagerDiscussionModerationPage() {
             : 'Báo cáo đã được bỏ qua và nội dung vẫn được giữ nguyên.');
       }
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Không thể xử lý báo cáo. Vui lòng thử lại.');
+      setError(getContentManagerError(requestError, 'Không thể xử lý báo cáo. Vui lòng thử lại.'));
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const changeStatus = (value) => {
+    setPage(1);
+    setStatus(value);
+  };
+
+  const changeCategory = (value) => {
+    setPage(1);
+    setCategory(value);
   };
 
   return (
@@ -140,7 +151,7 @@ export default function ContentManagerDiscussionModerationPage() {
                   : 'border border-[#dcc0bf]/50 bg-white text-[#564241] hover:bg-[#fff6f6]'
               }`}
               key={filter.value}
-              onClick={() => setStatus(filter.value)}
+              onClick={() => changeStatus(filter.value)}
               role="tab"
               type="button"
             >
@@ -153,11 +164,11 @@ export default function ContentManagerDiscussionModerationPage() {
           <label className="text-sm font-bold text-[#564241]" htmlFor="report-category">Loại báo cáo</label>
           <div className="min-w-[190px]">
             <BrandedSelect
-            buttonClassName="rounded-lg border-[#dcc0bf]/50 bg-white py-2 text-sm font-semibold text-[#564241] shadow-none"
-            id="report-category"
-            onChange={(event) => setCategory(event.target.value)}
-            options={CATEGORY_FILTERS}
-            value={category}
+              buttonClassName="rounded-lg border-[#dcc0bf]/50 bg-white py-2 text-sm font-semibold text-[#564241] shadow-none"
+              id="report-category"
+              onChange={(event) => changeCategory(event.target.value)}
+              options={CATEGORY_FILTERS}
+              value={category}
             />
           </div>
         </div>
@@ -184,55 +195,48 @@ export default function ContentManagerDiscussionModerationPage() {
         ) : null}
         {!loading && reports.length > 0 ? (
           <>
-            <ManagerTable columns={COLUMNS} minWidth="1320px">
+            <ManagerTable columns={COLUMNS} minWidth="1440px">
               {reports.map((report) => (
                 <tr className="align-top transition hover:bg-[#eff4ff]/35" key={report.reportId}>
-                  <td className="max-w-[360px] px-6 py-5">
+                  <td className="w-[330px] px-6 py-5">
                     <div className="mb-2 flex items-center gap-2">
                       <Flag className="h-4 w-4 shrink-0 text-rose-600" />
                       <span className="text-xs font-bold uppercase tracking-wide text-rose-700">
                         {report.reportCount} lượt báo cáo
                       </span>
                     </div>
-                    <p className="line-clamp-4 text-sm leading-6 text-[#0b1c30]">{report.contentPreview}</p>
+                    <p className="line-clamp-4 break-words text-sm leading-6 text-[#0b1c30]" title={report.contentPreview}>{report.contentPreview}</p>
                     <p className="mt-2 text-xs text-[#756361]">
                       Tác giả: <span className="font-semibold">{report.targetAuthor}</span>
                     </p>
                     <TargetStatus status={report.currentTargetStatus} />
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="w-[105px] px-6 py-5">
                     <ManagerStatusBadge tone={report.targetType === 'THREAD' ? 'info' : 'neutral'}>
                       {report.targetType === 'THREAD' ? 'Chủ đề' : 'Trả lời'}
                     </ManagerStatusBadge>
                   </td>
-                  <td className="max-w-[230px] px-6 py-5 text-sm">
-                    <p className="font-bold text-[#0b1c30]">{report.courseTitle}</p>
+                  <td className="w-[230px] px-6 py-5 text-sm">
+                    <p className="line-clamp-2 break-words font-bold leading-5 text-[#0b1c30]" title={report.courseTitle}>{report.courseTitle}</p>
                     {report.lessonTitle ? (
                       <p className="mt-1 text-xs leading-5 text-[#756361]">Bài học: {report.lessonTitle}</p>
                     ) : (
                       <p className="mt-1 text-xs text-[#756361]">Thảo luận cấp khóa học</p>
                     )}
                   </td>
-                  <td className="px-6 py-5 text-sm">
+                  <td className="w-[230px] px-6 py-5 text-sm">
                     <p className="font-semibold text-[#0b1c30]">{report.reporterName}</p>
-                    <p className="mt-1 text-xs text-[#756361]">{report.reporterEmail}</p>
+                    <p className="mt-1 break-all text-xs leading-5 text-[#756361]">{report.reporterEmail}</p>
                   </td>
-                  <td className="max-w-[220px] px-6 py-5 text-sm leading-6 text-[#564241]">
-                    {/* Show reasonCategory as badge if present */}
-                    {report.reasonCategory && (
-                      <span className="mb-1.5 inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-100">
-                        {CATEGORY_LABELS[report.reasonCategory] || report.reasonCategory}
-                      </span>
-                    )}
-                    <br />
-                    {report.reason || (report.reasonCategory !== 'OTHER' ? '' : 'Không cung cấp lý do')}
+                  <td className="w-[300px] px-6 py-5">
+                    <ReportReason report={report} />
                   </td>
-                  <td className="whitespace-nowrap px-6 py-5 text-sm text-[#564241]">
+                  <td className="w-[155px] whitespace-nowrap px-6 py-5 text-sm text-[#564241]">
                     {formatDate(report.createdAt)}
                   </td>
-                  <td className="px-6 py-5 text-right">
+                  <td className="w-[190px] px-6 py-5 text-right">
                     {report.status === 'PENDING' ? (
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-col items-end gap-2">
                         <button
                           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#730014] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#4b0009] disabled:opacity-50"
                           disabled={processingId === report.reportId}
@@ -278,20 +282,38 @@ export default function ContentManagerDiscussionModerationPage() {
               ))}
             </ManagerTable>
 
-            {totalPages > 1 && (
-              <div className="border-t border-[#dcc0bf]/20 bg-[#eff4ff]/30 px-6 py-4">
-                <Pagination
-                  page={page}
-                  totalPages={totalPages}
-                  onChange={setPage}
-                  totalItems={totalItems}
-                  pageSize={10}
-                />
-              </div>
-            )}
+            <div className="border-t border-[#dcc0bf]/20 bg-[#eff4ff]/30 px-6 py-4">
+              <Pagination
+                alwaysVisible
+                onChange={setPage}
+                page={page}
+                pageSize={10}
+                totalItems={totalItems}
+                totalPages={totalPages}
+              />
+            </div>
           </>
         ) : null}
       </section>
+    </div>
+  );
+}
+
+function ReportReason({ report }) {
+  const categoryLabel = CATEGORY_LABELS[report.reasonCategory] || report.reasonCategory || 'Chưa phân loại';
+  const reason = String(report.reason || '').trim();
+
+  return (
+    <div className="min-w-[250px] rounded-xl border border-rose-100 bg-rose-50/45 p-3">
+      <span className="inline-flex max-w-full whitespace-nowrap rounded-full border border-rose-200 bg-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-rose-700">
+        {categoryLabel}
+      </span>
+      <p
+        className={`mt-2 line-clamp-3 break-words text-sm leading-6 ${reason ? 'text-[#564241]' : 'italic text-[#8b706e]'}`}
+        title={reason || 'Không có mô tả bổ sung'}
+      >
+        {reason || 'Không có mô tả bổ sung'}
+      </p>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import java.util.List;
 public class ClassroomConflictErrorResponse {
     private int status;
     private String message;
+    private String code;
     private LocalDateTime timestamp;
     private ConflictCheckResultResponse conflicts;
 }

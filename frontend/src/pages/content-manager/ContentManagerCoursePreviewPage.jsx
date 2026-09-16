@@ -14,11 +14,14 @@ import {
 } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { looksLikeRichTextHtml, sanitizeLessonHtml } from '../../utils/lessonRichText';
 import { formatModuleTitle } from '../../utils/courseModuleTitle';
+import { getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 
 const statusMeta = {
   DRAFT: { label: 'Bản nháp', banner: 'border-amber-200 bg-amber-50 text-amber-900', badge: 'bg-amber-100 text-amber-800' },
@@ -56,7 +59,7 @@ export default function ContentManagerCoursePreviewPage() {
       const firstLesson = data?.modules?.flatMap((module) => module.lessons || [])[0];
       setActiveLessonId(firstLesson?.id || null);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể tải bản xem trước khóa học.');
+      setError(getContentManagerError(err, 'Không thể tải bản xem trước khóa học.'));
     } finally {
       setLoading(false);
     }
@@ -83,15 +86,18 @@ export default function ContentManagerCoursePreviewPage() {
 
   if (error || !preview || !course) {
     return (
-      <div className="flex min-h-[520px] flex-col items-center justify-center rounded-[28px] border border-rose-200 bg-white px-6 text-center">
-        <AlertTriangle className="h-14 w-14 text-rose-400" />
-        <h1 className="mt-4 text-2xl font-black text-[#0b1c30]">Không mở được bản xem trước</h1>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">{error || 'Dữ liệu preview không hợp lệ.'}</p>
-        <div className="mt-5 flex gap-2">
-          <Link className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-[#730014]" to="/content-manager/courses">Quay lại danh sách</Link>
-          <button className="rounded-2xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white" onClick={load} type="button">Thử lại</button>
+      <>
+        <ManagementToast actionLabel="Thử lại" message={error} onAction={load} onClose={() => setError('')} />
+        <div className="flex min-h-[520px] flex-col items-center justify-center rounded-[28px] border border-rose-200 bg-white px-6 text-center">
+          <AlertTriangle className="h-14 w-14 text-rose-400" />
+          <h1 className="mt-4 text-2xl font-black text-[#0b1c30]">Không mở được bản xem trước</h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">{getContentManagerFeedbackMessage(error) || 'Dữ liệu preview không hợp lệ.'}</p>
+          <div className="mt-5 flex gap-2">
+            <Link className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-[#730014]" to="/content-manager/courses">Quay lại danh sách</Link>
+            <button className="rounded-2xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white" onClick={load} type="button">Thử lại</button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -185,7 +191,11 @@ function CourseHero({ course, moduleCount, status }) {
             <HeroMetric icon={Clock3} label="Thời lượng" value={course.duration || `${course.totalHours || 0} giờ`} />
             <HeroMetric icon={Tags} label="Học phí" value={formatPrice(course.salePrice ?? course.price)} />
           </div>
-          <p className="mt-5 text-xs font-semibold text-slate-400">Danh mục: {course.categoryName || course.category || 'Chưa phân loại'} · slug: {course.slug}</p>
+          <p className="mt-5 flex flex-wrap items-baseline gap-1.5 text-xs font-semibold text-slate-400">
+            <span>Danh mục:</span>
+            <ManagerTaxonomyBadge kind="exam" value={course.categoryName || course.category || 'Chưa phân loại'} />
+            <span>· slug: {course.slug}</span>
+          </p>
         </div>
       </div>
     </section>

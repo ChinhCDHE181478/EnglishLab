@@ -7,22 +7,22 @@ const normalizeHeader = (value) => String(value || '')
   .toLowerCase();
 
 const headerAliases = {
-  programTitle: ['ten khoa hoc', 'ten chuong trinh'],
+  courseTitle: ['ten khoa hoc', 'ten chuong trinh'],
   unitTitle: ['ten unit'],
   unitDescription: ['mo ta unit'],
-  sessionNumber: ['thu tu bai hoc', 'so bai hoc', 'so buoi'],
-  sessionTitle: ['ten bai hoc', 'ten buoi hoc'],
-  sessionDescription: ['mo ta bai hoc', 'mo ta buoi hoc'],
+  lessonNumber: ['thu tu bai hoc', 'so bai hoc', 'so buoi'],
+  lessonTitle: ['ten bai hoc', 'ten buoi hoc'],
+  lessonDescription: ['mo ta bai hoc', 'mo ta buoi hoc'],
   learningObjectives: ['muc tieu hoc tap'],
 };
 
 const requiredHeaders = {
-  programTitle: 'ten khoa hoc',
+  courseTitle: 'ten khoa hoc',
   unitTitle: 'ten unit',
   unitDescription: 'mo ta unit',
-  sessionNumber: 'thu tu bai hoc',
-  sessionTitle: 'ten bai hoc',
-  sessionDescription: 'mo ta bai hoc',
+  lessonNumber: 'thu tu bai hoc',
+  lessonTitle: 'ten bai hoc',
+  lessonDescription: 'mo ta bai hoc',
   learningObjectives: 'muc tieu hoc tap',
 };
 
@@ -48,18 +48,18 @@ export const parseInstructorLedCourseExcelRows = (rows, fileName = '') => {
   let title = '';
   let currentUnitTitle = '';
   const unitsByTitle = new Map();
-  const sessionNumbers = new Set();
+  const lessonNumbers = new Set();
 
   rows.slice(1).forEach((row, rowIndex) => {
     const excelRow = rowIndex + 2;
     if (!row || row.every((cell) => !String(cell || '').trim())) return;
 
-    const rowProgramTitle = String(row[columns.programTitle] || '').trim();
-    if (rowProgramTitle) {
-      if (title && title.toLowerCase() !== rowProgramTitle.toLowerCase()) {
-        throw new Error(`Dòng ${excelRow}: tệp chỉ được chứa một chương trình.`);
+    const rowCourseTitle = String(row[columns.courseTitle] || '').trim();
+    if (rowCourseTitle) {
+      if (title && title.toLowerCase() !== rowCourseTitle.toLowerCase()) {
+        throw new Error(`Dòng ${excelRow}: tệp chỉ được chứa một khóa học.`);
       }
-      title = rowProgramTitle;
+      title = rowCourseTitle;
     }
 
     const rowUnitTitle = String(row[columns.unitTitle] || '').trim();
@@ -68,20 +68,20 @@ export const parseInstructorLedCourseExcelRows = (rows, fileName = '') => {
       throw new Error(`Dòng ${excelRow}: tên Unit không được để trống.`);
     }
 
-    const rawSessionNumber = String(row[columns.sessionNumber] || '').trim();
-    const sessionNumber = Number(rawSessionNumber);
-    if (!Number.isInteger(sessionNumber) || sessionNumber < 1) {
-      throw new Error(`Dòng ${excelRow}: số buổi phải là số nguyên bắt đầu từ 1.`);
+    const rawLessonNumber = String(row[columns.lessonNumber] || '').trim();
+    const lessonNumber = Number(rawLessonNumber);
+    if (!Number.isInteger(lessonNumber) || lessonNumber < 1) {
+      throw new Error(`Dòng ${excelRow}: thứ tự bài học phải là số nguyên bắt đầu từ 1.`);
     }
-    if (sessionNumbers.has(sessionNumber)) {
-      throw new Error(`Dòng ${excelRow}: buổi ${sessionNumber} bị trùng trong chương trình.`);
+    if (lessonNumbers.has(lessonNumber)) {
+      throw new Error(`Dòng ${excelRow}: bài học ${lessonNumber} bị trùng trong khóa học.`);
     }
 
-    const sessionTitle = String(row[columns.sessionTitle] || '').trim();
-    if (!sessionTitle) {
-      throw new Error(`Dòng ${excelRow}: tên buổi học không được để trống.`);
+    const lessonTitle = String(row[columns.lessonTitle] || '').trim();
+    if (!lessonTitle) {
+      throw new Error(`Dòng ${excelRow}: tên bài học không được để trống.`);
     }
-    sessionNumbers.add(sessionNumber);
+    lessonNumbers.add(lessonNumber);
 
     const unitKey = currentUnitTitle.toLowerCase();
     let unit = unitsByTitle.get(unitKey);
@@ -99,23 +99,23 @@ export const parseInstructorLedCourseExcelRows = (rows, fileName = '') => {
     }
 
     unit.lessons.push({
-      sessionNumber,
+      sessionNumber: lessonNumber,
       displayOrder: unit.lessons.length,
-      title: sessionTitle,
-      description: String(row[columns.sessionDescription] || '').trim() || null,
+      title: lessonTitle,
+      description: String(row[columns.lessonDescription] || '').trim() || null,
       learningObjectives: String(row[columns.learningObjectives] || '').trim() || null,
       sourceRow: excelRow,
     });
   });
 
-  if (!title) throw new Error('Không tìm thấy tên chương trình trong tệp Excel.');
+  if (!title) throw new Error('Không tìm thấy tên khóa học trong tệp Excel.');
   const units = [...unitsByTitle.values()];
   if (!units.length) throw new Error('Tệp Excel chưa có Unit hoặc buổi học nào.');
 
   return { title, units, fileName };
 };
 
-export const parseCurriculumExcelFile = async (file) => {
+export const parseInstructorLedCourseExcelFile = async (file) => {
   const XLSX = await import('@e965/xlsx');
   const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -123,7 +123,7 @@ export const parseCurriculumExcelFile = async (file) => {
   return parseInstructorLedCourseExcelRows(rows, file.name);
 };
 
-export const downloadCurriculumExcelTemplate = async () => {
+export const downloadInstructorLedCourseExcelTemplate = async () => {
   const XLSX = await import('@e965/xlsx');
   const rows = [
     ['Tên khóa học', 'Tên Unit', 'Mô tả Unit', 'Thứ tự bài học', 'Tên bài học', 'Mô tả bài học', 'Mục tiêu học tập'],
@@ -141,12 +141,12 @@ export const downloadCurriculumExcelTemplate = async () => {
   XLSX.writeFile(workbook, 'Mau_Import_Khoa_Hoc.xlsx');
 };
 
-export const importCourseUnitsWithLessons = async (api, programId, units) => {
+export const importCourseUnitsWithLessons = async (api, instructorLedCourseId, units) => {
   const result = { createdUnits: 0, createdLessons: 0, failures: [] };
   for (const unit of units) {
     let savedUnit;
     try {
-      savedUnit = await api.createCourseUnit(programId, {
+      savedUnit = await api.createCourseUnit(instructorLedCourseId, {
         displayOrder: unit.displayOrder,
         title: unit.title,
         description: unit.description,
@@ -168,7 +168,7 @@ export const importCourseUnitsWithLessons = async (api, programId, units) => {
         });
         result.createdLessons += 1;
       } catch (error) {
-        result.failures.push(`Dòng ${lesson.sourceRow}: ${errorMessage(error, `Không tạo được buổi ${lesson.sessionNumber}.`)}`);
+        result.failures.push(`Dòng ${lesson.sourceRow}: ${errorMessage(error, `Không tạo được bài học ${lesson.sessionNumber}.`)}`);
       }
     }
   }

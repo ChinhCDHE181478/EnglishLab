@@ -22,6 +22,7 @@ import fu.sep490.g23.backend.entity.course.LearningPathCourse;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -50,6 +51,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final LearningPathRepository learningPathRepository;
     private final LearningPathCourseRepository learningPathCourseRepository;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -60,6 +62,9 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         AssessmentRubric writingRubric = upsertIeltsWritingRubric();
         AssessmentRubric speakingRubric = upsertIeltsSpeakingRubric();
         AssessmentRubric vocabularyRubric = upsertVocabularyRubric();

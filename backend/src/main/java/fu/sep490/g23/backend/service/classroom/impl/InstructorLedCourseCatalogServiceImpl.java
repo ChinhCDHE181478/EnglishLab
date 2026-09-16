@@ -14,73 +14,73 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class InstructorLedCourseCatalogServiceImpl implements InstructorLedCourseCatalogService {
-    private final InstructorLedCourseRepository programRepository;
+    private final InstructorLedCourseRepository instructorLedCourseRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public List<InstructorLedCourseResponse> listPrograms() {
-        List<InstructorLedCourse> programs = programRepository.findAllByOrderByUpdatedAtDescIdDesc();
-        return programs.stream().map(this::toResponse).toList();
+    public List<InstructorLedCourseResponse> listInstructorLedCourses() {
+        List<InstructorLedCourse> courses = instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc();
+        return courses.stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<InstructorLedCourseResponse> listPublishedPrograms() {
-        return listPrograms().stream()
-                .filter(program -> program.getStatus() == PackageStatus.PUBLISHED)
+    public List<InstructorLedCourseResponse> listPublishedInstructorLedCourses() {
+        return listInstructorLedCourses().stream()
+                .filter(course -> course.getStatus() == PackageStatus.PUBLISHED)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public InstructorLedCourseResponse getPublishedProgram(String idOrCode) {
-        InstructorLedCourse program;
+    public InstructorLedCourseResponse getPublishedInstructorLedCourse(String idOrCode) {
+        InstructorLedCourse course;
         try {
-            program = programRepository.findById(Long.parseLong(idOrCode))
+            course = instructorLedCourseRepository.findById(Long.parseLong(idOrCode))
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
         } catch (NumberFormatException ignored) {
-            program = programRepository.findByCodeIgnoreCase(idOrCode)
+            course = instructorLedCourseRepository.findByCodeIgnoreCase(idOrCode)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
         }
-        if (program.getPublicationStatus() != PackageStatus.PUBLISHED) {
+        if (course.getPublicationStatus() != PackageStatus.PUBLISHED) {
             throw new RuntimeException("Khóa học chưa mở nhận đăng ký.");
         }
-        return toResponse(program);
+        return toResponse(course);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public InstructorLedCourseResponse getProgram(Long id) {
-        return toResponse(findProgram(id));
+    public InstructorLedCourseResponse getInstructorLedCourse(Long id) {
+        return toResponse(findInstructorLedCourse(id));
     }
 
-    private InstructorLedCourseResponse toResponse(InstructorLedCourse program) {
+    private InstructorLedCourseResponse toResponse(InstructorLedCourse course) {
         return InstructorLedCourseResponse.builder()
-                .id(program.getId())
-                .title(program.getTitle())
-                .code(program.getCode())
-                .instructorLedCourseId(program.getId())
-                .instructorLedCourseTitle(program.getTitle())
-                .instructorLedCourseCode(program.getCode())
-                .instructorLedCourseExamType(program.getExamType())
-                .examType(program.getExamType())
-                .examCategory(program.getExamType())
-                .focusSkills(program.getFocusSkills())
-                .instructorLedCourseStatus(program.getPublicationStatus().name())
-                .shortDescription(program.getShortDescription())
-                .description(program.getDescription())
-                .entryLevel(program.getEntryLevel())
-                .targetScore(resolveTargetScore(program))
-                .targetOutcome(program.getLearningOutcomes())
-                .price(program.getBaseTuitionFeeVnd())
-                .salePrice(program.getSaleTuitionFeeVnd())
-                .duration(program.getDurationLabel())
-                .status(program.getPublicationStatus())
-                .statusLabel(statusLabel(program.getPublicationStatus()))
+                .id(course.getId())
+                .title(course.getTitle())
+                .code(course.getCode())
+                .instructorLedCourseId(course.getId())
+                .instructorLedCourseTitle(course.getTitle())
+                .instructorLedCourseCode(course.getCode())
+                .instructorLedCourseExamType(course.getExamType())
+                .examType(course.getExamType())
+                .examCategory(course.getExamType())
+                .focusSkills(course.getFocusSkills())
+                .instructorLedCourseStatus(course.getPublicationStatus().name())
+                .shortDescription(course.getShortDescription())
+                .description(course.getDescription())
+                .entryLevel(course.getEntryLevel())
+                .targetScore(resolveTargetScore(course))
+                .targetOutcome(course.getLearningOutcomes())
+                .price(course.getBaseTuitionFeeVnd())
+                .salePrice(course.getSaleTuitionFeeVnd())
+                .duration(course.getDurationLabel())
+                .status(course.getPublicationStatus())
+                .statusLabel(statusLabel(course.getPublicationStatus()))
                 .classroomCount(0)
                 .activeClassroomCount(0)
-                .createdAt(program.getCreatedAt())
-                .updatedAt(program.getUpdatedAt())
+                .createdAt(course.getCreatedAt())
+                .updatedAt(course.getUpdatedAt())
                 .build();
     }
 
@@ -94,9 +94,9 @@ public class InstructorLedCourseCatalogServiceImpl implements InstructorLedCours
         return curriculum.getTargetScore() == null ? null : String.valueOf(curriculum.getTargetScore());
     }
 
-    private InstructorLedCourse findProgram(Long id) {
-        return programRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học theo lịch."));
+    private InstructorLedCourse findInstructorLedCourse(Long id) {
+        return instructorLedCourseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học có giảng viên."));
     }
 
     private String statusLabel(PackageStatus status) {

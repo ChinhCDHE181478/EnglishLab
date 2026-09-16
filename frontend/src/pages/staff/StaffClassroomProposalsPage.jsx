@@ -28,8 +28,14 @@ import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { ERROR_NOTICE_CLASS, FIELD_CLASS, PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from '../../utils/formStyles';
-import { formatClassroomDate } from '../../utils/classroomHelpers';
+import { formatClassroomDate, getLessonOrderInUnit } from '../../utils/classroomHelpers';
 import { getClassroomErrorMessage, getConflictSummary } from '../../utils/classroomErrorMessages';
+import {
+  alignStartDateToWeekdays,
+  getWeekdayForDate,
+  includeStartDateWeekday,
+  toggleProposalWeekday,
+} from '../../utils/classroomProposalSchedule';
 
 const statusTabs = [
   { label: 'Bản nháp', value: 'DRAFT' },
@@ -160,6 +166,7 @@ export default function StaffClassroomProposalsPage() {
   };
 
   const openEdit = (proposal) => {
+    const weekdays = proposal.weekdays || [];
     setEditingProposal(proposal);
     setForm({
       title: proposal.title,
@@ -167,9 +174,9 @@ export default function StaffClassroomProposalsPage() {
       deliveryType: proposal.deliveryType || 'OFFLINE',
       enrollmentRequestIds: (proposal.members || []).map((item) => item.enrollmentRequestId),
       capacity: String(proposal.capacity || '20'),
-      plannedStartDate: proposal.plannedStartDate,
+      plannedStartDate: alignStartDateToWeekdays(proposal.plannedStartDate, weekdays),
       plannedEndDate: proposal.endDate || proposal.plannedEndDate,
-      weekdays: proposal.weekdays || [],
+      weekdays,
       sessionStartTime: String(proposal.sessionStartTime || '').slice(0, 5) || '18:30',
       sessionEndTime: String(proposal.sessionEndTime || '').slice(0, 5) || '20:30',
       primaryTeacherId: proposal.primaryTeacherId ? String(proposal.primaryTeacherId) : '',
@@ -196,11 +203,15 @@ export default function StaffClassroomProposalsPage() {
 
   const updateForm = (patch) => setForm((current) => ({ ...current, ...patch }));
 
+  const changePlannedStartDate = (plannedStartDate) => setForm((current) => ({
+    ...current,
+    plannedStartDate,
+    weekdays: includeStartDateWeekday(current.weekdays, plannedStartDate),
+  }));
+
   const toggleWeekday = (weekday) => setForm((current) => ({
     ...current,
-    weekdays: current.weekdays.includes(weekday)
-      ? current.weekdays.filter((item) => item !== weekday)
-      : [...current.weekdays, weekday],
+    ...toggleProposalWeekday(current.plannedStartDate, current.weekdays, weekday),
   }));
 
   const save = async () => {
@@ -210,6 +221,10 @@ export default function StaffClassroomProposalsPage() {
     }
     if (!form.plannedStartDate || !form.weekdays.length) {
       setError('Cần nhập ngày bắt đầu và ít nhất một thứ học trong tuần.');
+      return;
+    }
+    if (!form.weekdays.includes(getWeekdayForDate(form.plannedStartDate))) {
+      setError('Ngày bắt đầu phải trùng với một ngày học trong tuần.');
       return;
     }
     if (!Number.isInteger(Number(form.capacity)) || Number(form.capacity) < 1) {
@@ -328,6 +343,7 @@ export default function StaffClassroomProposalsPage() {
           error={error}
           form={form}
           onClose={() => setModalOpen(false)}
+          onStartDateChange={changePlannedStartDate}
           onSave={save}
           onToggleWeekday={toggleWeekday}
           onUpdate={updateForm}
@@ -377,6 +393,7 @@ function ProposalModal({
   error,
   form,
   onClose,
+  onStartDateChange,
   onSave,
   onToggleWeekday,
   onUpdate,
@@ -431,7 +448,7 @@ function ProposalModal({
       lessons.forEach((lesson) => {
         const repeatCount = Math.max(1, Number(lesson.plannedSessionCount || 1));
         options.push({
-          label: `Bài ${lesson.sessionNumber ?? lesson.sequenceNumber}: ${lesson.title} (${repeatCount} buổi)`,
+          label: `Bài ${getLessonOrderInUnit(lesson)}: ${lesson.title} (${repeatCount} buổi)`,
           value: String(lesson.id),
           description: `Unit ${unit.displayOrder ?? unit.sequenceNumber ?? 0}: ${unit.title}`,
         });
@@ -439,7 +456,7 @@ function ProposalModal({
           flat.push({
             lessonId: String(lesson.id),
             lessonTitle: lesson.title,
-            lessonNumber: lesson.sessionNumber ?? lesson.sequenceNumber,
+            lessonNumber: getLessonOrderInUnit(lesson),
             unitId: String(unit.id),
             unitTitle: `Unit ${unit.displayOrder ?? unit.sequenceNumber ?? 0}: ${unit.title}`,
             plannedSessionCount: repeatCount,
@@ -928,7 +945,7 @@ function ProposalModal({
 
           <FormSection number="02" title="Cấu hình lịch học tự động">
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField label="Ngày bắt đầu" min={toLocalDateKey()} onChange={(value) => onUpdate({ plannedStartDate: value })} type="date" value={form.plannedStartDate} />
+              <TextField label="Ngày bắt đầu" min={toLocalDateKey()} onChange={onStartDateChange} type="date" value={form.plannedStartDate} />
               <div>
                 <FieldLabel>Ngày kết thúc dự kiến (Tự động tính)</FieldLabel>
                 <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-bold text-slate-700">
@@ -941,6 +958,7 @@ function ProposalModal({
               <div className="flex flex-wrap gap-2">
                 {weekdayOptions.map(([value, label]) => (
                   <button
+                    aria-pressed={form.weekdays.includes(value)}
                     className={`h-9 min-w-10 rounded-lg px-3 text-xs font-extrabold ${form.weekdays.includes(value) ? 'bg-[#730014] text-white' : 'bg-slate-100 text-slate-600'}`}
                     key={value}
                     onClick={() => onToggleWeekday(value)}

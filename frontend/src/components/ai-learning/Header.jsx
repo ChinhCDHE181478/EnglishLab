@@ -88,7 +88,7 @@ const getProfileItemsByRole = (user) => {
   }
   // Student
   return [
-    { label: 'Khóa học', to: '/my-courses', icon: GraduationCap, group: 'learning' },
+    { label: 'Khóa học của tôi', to: '/my-courses', icon: GraduationCap, group: 'learning' },
     { label: 'Lớp học', to: '/my-classrooms', icon: School, group: 'learning' },
     { label: 'Đăng ký', to: '/my-enrollment-requests', icon: ClipboardList, group: 'learning' },
     { label: 'Lịch học', to: '/my-schedule', icon: CalendarDays, group: 'learning' },

@@ -5,20 +5,21 @@ import CourseModuleFlashcardEditorPage, { InlineFlashcardSetEditor } from './Cou
 import curriculumApi from '../../api/curriculumApi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import FlashcardDictionaryAssistant from '../../components/flashcard/FlashcardDictionaryAssistant';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 import {
   DANGER_BUTTON_CLASS,
   EMPTY_STATE_CLASS,
-  ERROR_NOTICE_CLASS,
   FIELD_CLASS,
   PANEL_CLASS,
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
-  SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
@@ -55,17 +56,6 @@ const examOptions = [
   { label: 'IELTS', value: 'IELTS' },
   { label: 'TOEIC', value: 'TOEIC' },
   { label: 'Tiếng Anh tổng quát', value: 'GENERAL' },
-];
-
-const skillOptions = [
-  { label: 'Từ vựng', value: 'VOCABULARY' },
-  { label: 'Ngữ pháp', value: 'GRAMMAR' },
-  { label: 'Nghe', value: 'LISTENING' },
-  { label: 'Đọc', value: 'READING' },
-  { label: 'Viết', value: 'WRITING' },
-  { label: 'Nói', value: 'SPEAKING' },
-  { label: 'Tổng hợp', value: 'MIXED' },
-  { label: 'Chưa phân kỹ năng', value: '' },
 ];
 
 const statusOptions = [
@@ -256,7 +246,7 @@ function FlashcardBankPage({ editorRoute }) {
   const [editingId, setEditingId] = useState(null);
   const [editorOpen, setEditorOpen] = useState(() => editorRoute);
   const [keyword, setKeyword] = useState('');
-  const [filters, setFilters] = useState({ examCategory: 'ALL', skill: 'ALL', status: 'ALL' });
+  const [filters, setFilters] = useState({ examCategory: 'ALL', status: 'ALL' });
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
@@ -276,7 +266,7 @@ function FlashcardBankPage({ editorRoute }) {
   const [statsData, setStatsData] = useState({ total: 0, published: 0, draft: 0, cards: 0 });
   const editorRef = useRef(null);
   const deferredKeyword = useDeferredValue(keyword);
-  const resetKey = `${deferredKeyword}:${filters.examCategory}:${filters.skill}:${filters.status}`;
+  const resetKey = `${deferredKeyword}:${filters.examCategory}:${filters.status}`;
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
     sets,
     8,
@@ -301,19 +291,18 @@ function FlashcardBankPage({ editorRoute }) {
       const params = {
         keyword: deferredKeyword.trim() || undefined,
         examCategory: filters.examCategory === 'ALL' ? undefined : filters.examCategory,
-        skill: filters.skill === 'ALL' ? undefined : filters.skill,
         status: filters.status === 'ALL' ? undefined : filters.status,
         sort: ['updatedAt,desc', 'title,asc'],
       };
       const [data, summary] = await Promise.all([
         curriculumApi.getFlashcardSetsPage(pageParams(page, 8, params)),
-        curriculumApi.getFlashcardSetStats({ examCategory: params.examCategory, skill: params.skill }),
+        curriculumApi.getFlashcardSetStats({ examCategory: params.examCategory }),
       ]);
       setPageResult(data);
       setSets(data.content);
       setStatsData(summary);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được ngân hàng flashcard.');
+      setError(getContentManagerError(err, 'Không tải được ngân hàng flashcard.'));
     } finally {
       setLoading(false);
     }
@@ -321,7 +310,7 @@ function FlashcardBankPage({ editorRoute }) {
 
   useEffect(() => {
     loadSets();
-  }, [deferredKeyword, editorRoute, filters.examCategory, filters.skill, filters.status, page, searchParams]);
+  }, [deferredKeyword, editorRoute, filters.examCategory, filters.status, page, searchParams]);
 
   useEffect(() => {
     setEditorOpen(editorRoute);
@@ -587,7 +576,7 @@ function FlashcardBankPage({ editorRoute }) {
       }
       setSuccess(editingId ? 'Đã cập nhật bộ flashcard.' : 'Đã tạo bộ flashcard mới.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được bộ flashcard.');
+      setError(getContentManagerError(err, 'Không lưu được bộ flashcard.'));
     } finally {
       setWorking(false);
     }
@@ -613,7 +602,7 @@ function FlashcardBankPage({ editorRoute }) {
       await loadSets();
       setSuccess('Đã lưu trữ bộ flashcard.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu trữ được bộ flashcard.');
+      setError(getContentManagerError(err, 'Không lưu trữ được bộ flashcard.'));
     } finally {
       setWorking(false);
     }
@@ -641,7 +630,7 @@ function FlashcardBankPage({ editorRoute }) {
       await loadSets();
       setSuccess('Đã khôi phục bộ flashcard về bản nháp.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không khôi phục được bộ flashcard.');
+      setError(getContentManagerError(err, 'Không khôi phục được bộ flashcard.'));
     } finally {
       setWorking(false);
     }
@@ -658,7 +647,7 @@ function FlashcardBankPage({ editorRoute }) {
       await loadSets();
       setSuccess('Đã xuất bản bộ flashcard.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không xuất bản được bộ flashcard.');
+      setError(getContentManagerError(err, 'Không xuất bản được bộ flashcard.'));
     } finally {
       setWorking(false);
     }
@@ -666,8 +655,8 @@ function FlashcardBankPage({ editorRoute }) {
 
   return (
     <div className="space-y-6">
-      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
-      {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật bộ thẻ" />
 
       {/* {!editorRoute && (
         <div className="flex justify-end">
@@ -752,9 +741,8 @@ function FlashcardBankPage({ editorRoute }) {
               />
             </div>
           </div>
-          <div className="grid w-full gap-3 sm:grid-cols-3 lg:w-auto">
+          <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
             <FilterSelect label="Danh mục" onChange={(event) => setFilters((current) => ({ ...current, examCategory: event.target.value }))} options={[allOption, ...examOptions]} value={filters.examCategory} />
-            <FilterSelect label="Kỹ năng" onChange={(event) => setFilters((current) => ({ ...current, skill: event.target.value }))} options={[allOption, ...skillOptions]} value={filters.skill} />
             <FilterSelect label="Trạng thái" onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} options={[allOption, ...statusOptions]} value={filters.status} />
           </div>
           <button
@@ -779,7 +767,7 @@ function FlashcardBankPage({ editorRoute }) {
               <table className="w-full min-w-[1040px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
-                    {['Tên bộ thẻ', 'Danh mục', 'Kỹ năng', 'Số thẻ', 'Trạng thái', 'Cập nhật lần cuối', 'Thao tác'].map((heading) => (
+                    {['Tên bộ thẻ', 'Danh mục', 'Số thẻ', 'Trạng thái', 'Cập nhật lần cuối', 'Thao tác'].map((heading) => (
                       <th
                         className={`px-6 py-4 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371] ${heading === 'Số thẻ' ? 'text-center' : ''} ${heading === 'Thao tác' ? 'text-right' : ''}`}
                         key={heading}
@@ -797,11 +785,8 @@ function FlashcardBankPage({ editorRoute }) {
                           <p className="max-w-[300px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{set.title}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatExamCategory(set.examCategory)}</td>
                       <td className="px-6 py-5">
-                        <span className="inline-flex rounded-lg border border-[#dcc0bf]/40 bg-[#dce9ff] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#564241]">
-                          {formatSkill(set.skill)}
-                        </span>
+                        <ManagerTaxonomyBadge kind="exam" value={formatExamCategory(set.examCategory)} />
                       </td>
                       <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{countCards(set.cardsJson)}</td>
                       <td className="px-6 py-5"><StatusPill status={set.status} /></td>
@@ -900,19 +885,6 @@ function FlashcardBankPage({ editorRoute }) {
       ) : null}
     </div>
   );
-}
-
-function formatSkill(value) {
-  const labels = {
-    LISTENING: 'Nghe',
-    READING: 'Đọc',
-    WRITING: 'Viết',
-    SPEAKING: 'Nói',
-    VOCABULARY: 'Từ vựng',
-    GRAMMAR: 'Ngữ pháp',
-    MIXED: 'Tổng hợp',
-  };
-  return labels[String(value || '').toUpperCase()] || 'Chưa có';
 }
 
 function formatExamCategory(value) {
@@ -1392,7 +1364,7 @@ function LegacyFlashcardSetEditor({
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-[#f0e3e4] bg-[#fffafb] px-6 py-4">
-          <p className="text-sm text-[#584140]">Toàn bộ thay đổi sẽ được cập nhật cho mọi khóa học và giáo trình đang dùng bộ thẻ này.</p>
+          <p className="text-sm text-[#584140]">Toàn bộ thay đổi sẽ được cập nhật cho mọi khóa học đang dùng bộ thẻ này.</p>
           <button className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={loading} onClick={onSave} type="button">
             {loading ? 'Đang lưu...' : 'Lưu bộ thẻ'}
           </button>

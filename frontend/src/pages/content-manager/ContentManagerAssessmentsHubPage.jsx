@@ -27,6 +27,7 @@ import {
   ManagerFilterBar,
   ManagerStatsGrid,
   ManagerStatusBadge,
+  ManagerTaxonomyBadge,
   ManagerTable,
   ManagerTablePagination,
 } from '../../components/content-manager/ManagerListUi';
@@ -38,8 +39,8 @@ import ManagementToast from '../../components/ui/ManagementToast';
 import WritingPracticeWorkspace from '../../components/content-manager/skill-practice/WritingPracticeWorkspace';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { usePagination } from '../../components/ui/Pagination';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 import {
-  ERROR_NOTICE_CLASS,
   FIELD_CLASS,
   PANEL_CLASS,
   PRIMARY_BUTTON_CLASS,
@@ -188,14 +189,14 @@ const statusOptions = [
   { label: 'Lưu trữ', value: 'ARCHIVED' },
 ];
 
-const aiOptions = [
-  { label: 'Không dùng AI', value: 'NONE' },
-  { label: 'Giải thích đáp án', value: 'EXPLAIN_ONLY' },
-  { label: 'Phản hồi theo tiêu chí', value: 'RUBRIC_FEEDBACK' },
-  { label: 'Ước lượng band', value: 'ESTIMATED_BAND' },
-];
-
 const allOption = { label: 'Tất cả', value: 'ALL' };
+
+const isProductiveSkill = (skill) => ['WRITING', 'SPEAKING'].includes(String(skill || '').toUpperCase());
+const resolveAutomaticEvaluationMode = (skill) => (
+  ['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(String(skill || '').toUpperCase())
+    ? 'ESTIMATED_BAND'
+    : 'EXPLAIN_ONLY'
+);
 
 const parseUiConfig = (value) => {
   try {
@@ -240,7 +241,7 @@ const emptyForm = (pageConfig) => {
     type: pageConfig?.type || 'LESSON_PRACTICE',
     skill,
     examCategory,
-    aiEvaluationMode: ['WRITING', 'SPEAKING'].includes(skill) ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY',
+    aiEvaluationMode: resolveAutomaticEvaluationMode(skill),
     rubricId: '',
     instructions: '',
     objectiveAnswerKey: '',
@@ -260,7 +261,7 @@ const toForm = (item = {}, pageConfig) => {
     type: item.type || pageConfig?.type || 'LESSON_PRACTICE',
     skill: item.skill || pageConfig?.skill || 'LISTENING',
     examCategory,
-    aiEvaluationMode: item.aiEvaluationMode || (['WRITING', 'SPEAKING'].includes(item.skill) ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY'),
+    aiEvaluationMode: resolveAutomaticEvaluationMode(item.skill || pageConfig?.skill),
     rubricId: item.rubric?.id ? String(item.rubric.id) : '',
     instructions: item.instructions || '',
     objectiveAnswerKey: item.objectiveAnswerKey || '',
@@ -331,7 +332,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       setStatsData(summary);
       setRubrics(rubricItems);
     } catch (err) {
-      setError(err?.response?.data?.message || `Không tải được ${pageConfig.successNoun}.`);
+      setError(getContentManagerError(err, `Không tải được ${pageConfig.successNoun}.`));
     } finally {
       setLoading(false);
     }
@@ -386,7 +387,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       }
       if (field === 'skill') {
         next.rubricId = '';
-        next.aiEvaluationMode = ['WRITING', 'SPEAKING'].includes(value) ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY';
+        next.aiEvaluationMode = resolveAutomaticEvaluationMode(value);
       }
       return next;
     });
@@ -435,6 +436,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     const examCategory = isMockExamsPage ? resolveExamCategory(lockedDraft) : null;
     return {
       ...lockedDraft,
+      aiEvaluationMode: resolveAutomaticEvaluationMode(lockedDraft.skill),
       uiConfigJson: isMockExamsPage
         ? withExamTypeInConfig(lockedDraft.uiConfigJson, examCategory, lockedDraft.skill)
         : lockedDraft.uiConfigJson,
@@ -448,6 +450,13 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     if (!form.title.trim()) {
       setError(isSkillLocked ? `Vui lòng nhập tên ${pageConfig.successNoun}.` : 'Vui lòng nhập tên đề.');
       return;
+    }
+    if (form.timeLimitMinutes !== '') {
+      const durationMinutes = Number(form.timeLimitMinutes);
+      if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
+        setError('Thời lượng phải là số phút nguyên lớn hơn 0.');
+        return;
+      }
     }
     if (form.uiConfigJson) {
       try {
@@ -471,13 +480,9 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       setError('Kỹ năng của payload không khớp trang hiện tại. Vui lòng tải lại trang và thử lại.');
       return;
     }
-    if (payload.type === 'MODULE_TEST' && ['WRITING', 'SPEAKING'].includes(payload.skill)) {
-      if (payload.aiEvaluationMode === 'NONE') {
-        setError('Module Test Viết/Nói phải bật chấm bằng AI.');
-        return;
-      }
+    if (isProductiveSkill(payload.skill)) {
       if (!payload.rubricId) {
-        setError('Module Test Viết/Nói phải chọn bộ tiêu chí chấm.');
+        setError('Bài Viết/Nói phải chọn bộ tiêu chí chấm.');
         return;
       }
     }
@@ -503,7 +508,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       setPage(1);
       setSuccess(editingId ? `Đã cập nhật ${pageConfig.successNoun}.` : `Đã tạo ${pageConfig.successNoun}.`);
     } catch (err) {
-      setError(err?.response?.data?.message || `Không lưu được ${pageConfig.successNoun}.`);
+      setError(getContentManagerError(err, `Không lưu được ${pageConfig.successNoun}.`));
     } finally {
       setWorking(false);
     }
@@ -532,7 +537,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       await loadItems();
       setSuccess(`Đã lưu trữ ${pageConfig.successNoun}.`);
     } catch (err) {
-      setError(err?.response?.data?.message || `Không lưu trữ được ${pageConfig.successNoun}.`);
+      setError(getContentManagerError(err, `Không lưu trữ được ${pageConfig.successNoun}.`));
     } finally {
       setWorking(false);
     }
@@ -563,7 +568,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       await loadItems();
       setSuccess(`Đã khôi phục ${pageConfig.successNoun} về bản nháp.`);
     } catch (err) {
-      setError(err?.response?.data?.message || `Không khôi phục được ${pageConfig.successNoun}.`);
+      setError(getContentManagerError(err, `Không khôi phục được ${pageConfig.successNoun}.`));
     } finally {
       setWorking(false);
     }
@@ -583,7 +588,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       await loadItems();
       setSuccess(`Đã xuất bản ${pageConfig.successNoun}.`);
     } catch (err) {
-      setError(err?.response?.data?.message || `Không xuất bản được ${pageConfig.successNoun}.`);
+      setError(getContentManagerError(err, `Không xuất bản được ${pageConfig.successNoun}.`));
     } finally {
       setWorking(false);
     }
@@ -708,11 +713,11 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
               {!isSkillLocked ? (
                 <>
                   {isMockExamsPage ? (
-                    <td className="px-6 py-5"><ManagerStatusBadge tone="info">{resolveExamCategory(item)}</ManagerStatusBadge></td>
+                    <td className="px-6 py-5"><ManagerTaxonomyBadge kind="exam" value={resolveExamCategory(item)} /></td>
                   ) : (
                     <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatLabel(item.type)}</td>
                   )}
-                  <td className="px-6 py-5"><ManagerStatusBadge tone="info">{formatLabel(item.skill)}</ManagerStatusBadge></td>
+                  <td className="px-6 py-5"><ManagerTaxonomyBadge kind="skill" value={item.skill} /></td>
                 </>
               ) : null}
               <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : '-'}</td>
@@ -770,7 +775,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   return (
     <div className="space-y-6">
-      {!editorOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
       <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật nội dung" />
 
       {editorOpen && (
@@ -786,7 +791,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
               <p className="mt-1 text-xs text-[#8b706e]">
                 {isSkillLocked
                   ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
-                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.'}
+                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học.'}
               </p>
             </div>
             <button className="rounded-2xl border border-[#dfbfbd]/65 p-2.5 text-[#730014] transition hover:bg-[#fff2f3]" onClick={closeEditor} type="button">
@@ -795,7 +800,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6" ref={editorRef}>
-            {error ? <div className={`${ERROR_NOTICE_CLASS} mb-5`} role="alert">{error}</div> : null}
             <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
               <div className="space-y-4">
                 <label className="block">
@@ -840,17 +844,11 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                     </div>
                   </div>
                 )}
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Chấm tự động</span>
-                    <BrandedSelect value={form.aiEvaluationMode} onChange={(event) => updateForm('aiEvaluationMode', event.target.value)} options={aiOptions} />
-                  </div>
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
-                    <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
-                  </div>
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
+                  <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
                 </div>
-                {['WRITING', 'SPEAKING'].includes(form.skill) ? (
+                {isProductiveSkill(form.skill) ? (
                   <div>
                     <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bộ tiêu chí chấm</span>
                     <BrandedSelect
@@ -859,7 +857,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                       options={[
                         { label: 'Chọn bộ tiêu chí', value: '' },
                         ...rubrics
-                          .filter((rubric) => rubric.status === 'PUBLISHED' && (rubric.skill === form.skill || rubric.skill === 'MIXED'))
+                          .filter((rubric) => rubric.status === 'PUBLISHED' && rubric.skill === form.skill)
                           .map((rubric) => ({ label: formatCriteriaSetName(rubric.name), value: String(rubric.id) })),
                       ]}
                     />
@@ -885,8 +883,20 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                     <input type="number" value={form.maxScore} onChange={(event) => updateForm('maxScore', event.target.value)} className={FIELD_CLASS} />
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thời lượng</span>
-                    <input type="number" value={form.timeLimitMinutes} onChange={(event) => updateForm('timeLimitMinutes', event.target.value)} className={FIELD_CLASS} />
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thời lượng (phút)</span>
+                    <div className="relative">
+                      <input
+                        aria-label="Thời lượng làm bài tính bằng phút"
+                        className={`${FIELD_CLASS} appearance-none pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                        min="1"
+                        onChange={(event) => updateForm('timeLimitMinutes', event.target.value)}
+                        placeholder="Ví dụ: 8"
+                        step="1"
+                        type="number"
+                        value={form.timeLimitMinutes}
+                      />
+                      <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-semibold text-slate-500">phút</span>
+                    </div>
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">

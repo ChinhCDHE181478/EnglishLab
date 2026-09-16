@@ -105,7 +105,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .averageWritingBand("TOEIC".equals(normalizedExamType) ? null : average(attempts, PlacementTestAttempt::getWritingScore))
                 .averageSpeakingBand("TOEIC".equals(normalizedExamType) ? null : average(attempts, PlacementTestAttempt::getSpeakingScore))
                 .bandDistribution("TOEIC".equals(normalizedExamType) ? toeicDistribution(attempts) : ieltsDistribution(attempts))
-                .recentAttempts(attempts.stream().limit(20).map(this::toRecentAttempt).toList())
+                .recentAttempts(attempts.stream().map(this::toRecentAttempt).toList())
                 .build();
     }
 

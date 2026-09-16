@@ -1,3 +1,5 @@
+import { getEffectiveCoursePrice } from './courseModels';
+
 const STORAGE_KEY = 'englishlab.learningPathCheckout';
 
 export const buildLearningPathCheckout = (path) => ({
@@ -7,15 +9,15 @@ export const buildLearningPathCheckout = (path) => ({
   discountPercent: Number(path.discountPercent || 0),
   minimumCoursesForDiscount: Number(path.minimumCoursesForDiscount || 2),
   courses: (path.courses || [])
-    .filter((course) => !course.owned)
+    .filter((course) => !course.owned && getEffectiveCoursePrice(course) > 0)
     .map((course) => ({
       id: course.courseId,
       slug: course.slug,
       title: course.title,
       thumbnailUrl: course.thumbnailUrl,
       shortDescription: course.shortDescription || '',
-      price: Number(course.currentPrice || 0),
-      salePrice: Number(course.currentPrice || 0),
+      price: getEffectiveCoursePrice(course),
+      salePrice: getEffectiveCoursePrice(course),
       originalPrice: Number(course.originalPrice ?? course.currentPrice ?? 0),
     })),
 });

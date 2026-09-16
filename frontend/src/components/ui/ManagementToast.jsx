@@ -4,14 +4,18 @@ import { createPortal } from 'react-dom';
 
 const EXIT_DURATION_MS = 260;
 
-export default function ManagementToast({ message, onClose, tone = 'error', title }) {
+export default function ManagementToast({ actionLabel, code, message, onAction, onClose, tone = 'error', title }) {
   const [leaving, setLeaving] = useState(false);
+  const messageText = typeof message === 'object' ? message?.message : message;
+  const messageCode = code
+    || (typeof message === 'object' ? message?.code : null)
+    || (tone === 'error' ? 'CONTENT_MANAGER_ERROR' : null);
 
   useEffect(() => {
     setLeaving(false);
   }, [message, tone]);
 
-  if (!message) return null;
+  if (!messageText) return null;
 
   const isError = tone === 'error';
   const Icon = isError ? AlertCircle : CheckCircle2;
@@ -38,7 +42,25 @@ export default function ManagementToast({ message, onClose, tone = 'error', titl
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-extrabold text-[#0b1c30]">{resolvedTitle}</p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">{message}</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{messageText}</p>
+          {isError && messageCode ? (
+            <p className="mt-2 font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-rose-700">
+              Mã lỗi: {messageCode}
+            </p>
+          ) : null}
+          {actionLabel && onAction ? (
+            <button
+              className={`mt-3 rounded-lg px-3 py-2 text-xs font-extrabold transition ${
+                isError
+                  ? 'bg-rose-50 text-rose-800 hover:bg-rose-100'
+                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+              }`}
+              onClick={onAction}
+              type="button"
+            >
+              {actionLabel}
+            </button>
+          ) : null}
         </div>
         <button
           aria-label="Đóng thông báo"

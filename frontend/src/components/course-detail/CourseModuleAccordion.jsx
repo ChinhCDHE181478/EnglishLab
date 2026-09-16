@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import RichTextHtml from '../content-manager/RichTextHtml';
 
-const CourseModuleAccordion = ({ modules = [] }) => {
-  const [openId, setOpenId] = useState(modules[0]?.id ?? null);
+const CourseModuleAccordion = ({ modules = [], initialOpenModuleId = null }) => {
+  const getInitialOpenId = () => {
+    if (initialOpenModuleId) {
+      const found = modules.find((m) => m.id === initialOpenModuleId);
+      if (found) return found.id;
+    }
+    return modules[0]?.id ?? null;
+  };
+  const [openId, setOpenId] = useState(getInitialOpenId);
 
   return (
     <section id="noi-dung-khoa-hoc" className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">

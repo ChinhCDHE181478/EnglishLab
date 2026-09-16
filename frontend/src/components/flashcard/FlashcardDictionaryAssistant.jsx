@@ -75,6 +75,9 @@ export default function FlashcardDictionaryAssistant({
   onExampleChange,
   meaningInputClassName = DEFAULT_INPUT_CLASS,
   exampleInputClassName = DEFAULT_TEXTAREA_CLASS,
+  meaningContainerClassName = '',
+  exampleContainerClassName = '',
+  meaningLabel = 'Định nghĩa',
   showLabels = false,
 }) {
   const normalizedTerm = term.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -166,8 +169,8 @@ export default function FlashcardDictionaryAssistant({
 
   return (
     <>
-      <label className="block" ref={meaningRef}>
-        {showLabels ? <span className={LABEL_CLASS}>Định nghĩa</span> : null}
+      <label className={`block ${meaningContainerClassName}`} ref={meaningRef}>
+        {showLabels ? <span className={LABEL_CLASS}>{meaningLabel}</span> : null}
         <div className="relative">
           <input
             className={meaningInputClassName}
@@ -192,7 +195,7 @@ export default function FlashcardDictionaryAssistant({
         </div>
       </label>
 
-      <label className="block" ref={exampleRef}>
+      <label className={`block ${exampleContainerClassName}`} ref={exampleRef}>
         {showLabels ? <span className={LABEL_CLASS}>Ví dụ</span> : null}
         <div className="relative">
           <textarea
