@@ -1197,6 +1197,7 @@ export default function PlacementTestPage() {
             : selectedExamType === 'TOEIC' || activeSkills.some((skill) => skill.key === 'listening')
               ? 'Kiểm tra tai nghe trước khi bắt đầu. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'
               : 'Xác nhận để bật chế độ toàn màn hình trước khi vào bài đánh giá.'}
+          onCancel={exitToPlacementTest}
           onComplete={(value) => {
             setDeviceCheck(value);
             setStage('exam');

@@ -1,4 +1,4 @@
-package fu.sep490.g23.backend.service.auth_service;
+package fu.sep490.g23.backend.ut.auth_service;
 
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.AuthToken;

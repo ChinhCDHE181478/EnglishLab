@@ -23,7 +23,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
 import classroomApi from '../../api/classroomApi';
-import { canUseLearnerStudyTools, hasAccessToken, hasAnyUserRole } from '../../utils/auth';
+import { hasAccessToken, hasAnyUserRole } from '../../utils/auth';
 import { commerceEventName, readCart } from '../../utils/commerceStore';
 
 const studentNavItems = [
@@ -118,7 +118,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const { markAllNotificationsRead, unreadNotificationCount } = useLearnerExperience();
+  const { markAllNotificationsRead } = useLearnerExperience();
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -130,8 +130,10 @@ const Header = () => {
   const [popoverLoading, setPopoverLoading] = useState(false);
 
   const shouldReloadWhenLeavingWorkspace = /\/courses\/[^/]+\/learn$/.test(location.pathname);
-  const canUseStudentNotifications = canUseLearnerStudyTools(user);
-  const displayUnreadCount = hasAccessToken() ? apiUnreadCount : unreadNotificationCount;
+  // Mọi user đã đăng nhập đều có thể nhận & đọc thông báo (kể cả teacher/staff/manager/admin/content_manager).
+  // Backend đã lọc theo user nên API trả về đúng danh sách của user hiện tại, bất kể role.
+  const canShowNotifications = hasAccessToken();
+  const displayUnreadCount = apiUnreadCount;
 
   const loadPopoverNotifications = useCallback(async () => {
     setPopoverLoading(true);
@@ -196,7 +198,7 @@ const Header = () => {
   }, [isNotificationMenuOpen]);
 
   useEffect(() => {
-    if (!hasAccessToken() || !canUseStudentNotifications) {
+    if (!canShowNotifications) {
       setApiUnreadCount(0);
       return undefined;
     }
@@ -220,7 +222,7 @@ const Header = () => {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [canUseStudentNotifications, location.pathname, user?.id]);
+  }, [canShowNotifications, location.pathname, user?.id]);
 
   useEffect(() => {
     if (!isProfileMenuOpen) return undefined;
@@ -342,7 +344,7 @@ const Header = () => {
               </>
             )}
 
-            {canUseStudentNotifications ? (
+            {canShowNotifications ? (
             <div className="relative" ref={notificationRef}>
               <button
                 aria-label="Thông báo"
@@ -350,7 +352,7 @@ const Header = () => {
                 onClick={() => {
                   setIsNotificationMenuOpen((current) => {
                     const next = !current;
-                    if (next && hasAccessToken() && canUseStudentNotifications) {
+                    if (next && canShowNotifications) {
                       loadPopoverNotifications();
                     }
                     return next;
@@ -384,9 +386,7 @@ const Header = () => {
                         onClick={async () => {
                           markAllNotificationsRead();
                           setApiUnreadCount(0);
-                          if (canUseStudentNotifications) {
-                            try { await classroomApi.markAllNotificationsRead(); } catch {}
-                          }
+                          try { await classroomApi.markAllNotificationsRead(); } catch {}
                         }}
                         type="button"
                       >

@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react';
-import { ClipboardList, Inbox, MessageSquarePlus, RefreshCw, Search, Send, UserCheck } from 'lucide-react';
+import { ClipboardList, Inbox, MessageSquarePlus, RefreshCw, Search, Send, UserCheck, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import supportApi from '../../api/supportApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
@@ -317,6 +317,17 @@ export default function ManagerSupportTicketsPage() {
                       <UserCheck className="h-4 w-4" /> Nhận xử lý
                     </button>
                   ) : null}
+                  <button
+                    aria-label="Đóng chi tiết yêu cầu"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#8b706e] transition hover:border-[#730014] hover:bg-[#fff1f3] hover:text-[#730014]"
+                    onClick={() => {
+                      setSelectedId(null);
+                      setDetail(null);
+                    }}
+                    type="button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
