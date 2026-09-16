@@ -596,7 +596,7 @@ const CourseHome = () => {
           <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{totalLessons}</p>
         </div>
         <div className="border border-[#e5e7eb] bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Bài đánh giá</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Tổng kết</p>
           <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{assessments.length}</p>
         </div>
       </div>

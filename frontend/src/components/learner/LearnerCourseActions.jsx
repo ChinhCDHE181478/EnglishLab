@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
 import { buildCourseDetailPath, buildCourseHomePath, isFreeCourse, normalizeCourse } from '../../utils/courseModels';
+import { buildLessonWorkspacePath } from '../../utils/courseWorkspaceNavigation';
 import { removeCourseFromCart, removeCourseFromWishlist } from '../../utils/commerceStore';
 import { detailCourseButtonClassName } from '../course/CourseActionButton';
 
@@ -16,6 +17,11 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
   const sizeClassName = compact ? 'px-3 py-2 text-xs' : '';
   const completed = Number(course?.progressPercent || 0) >= 100 || course?.enrollmentStatus === 'COMPLETED';
   const freeCourse = isFreeCourse(course);
+  const courseSlug = course?.slug || course?.id;
+  const activeLessonStorageKey = `englishlab.activeLesson.${courseSlug}`;
+  const lastActiveLessonId = (() => {
+    try { return localStorage.getItem(activeLessonStorageKey); } catch { return null; }
+  })();
 
   const handleFreeRegistration = async () => {
     if (!course?.id || registering) return;
@@ -43,11 +49,15 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
     }
   };
 
+  const learnHref = lastActiveLessonId && !completed
+    ? buildLessonWorkspacePath(courseSlug, lastActiveLessonId)
+    : buildCourseHomePath(course);
+
   if (course?.registered) {
     return (
       <Link
         className={`${baseButtonClassName} bg-[#4b0009] text-white hover:-translate-y-0.5 hover:bg-[#730014] ${sizeClassName} ${className}`}
-        to={buildCourseHomePath(course)}
+        to={learnHref}
         state={{ course }}
       >
         {completed ? 'Xem lại khóa học' : 'Tiếp tục học'}
