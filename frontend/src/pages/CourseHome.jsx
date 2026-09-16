@@ -583,7 +583,6 @@ const CourseHome = () => {
     <div className="flex min-h-[560px] flex-col">
       <div className="mb-14 flex items-center justify-between gap-4">
         <h1 className="font-['Manrope'] text-3xl font-extrabold text-[#730014]">Ghi chú</h1>
-        <button className="rounded border border-[#730014] px-4 py-2 text-sm font-bold text-[#730014]" type="button">Lọc: Tất cả ghi chú</button>
       </div>
       {!courseNotes.length ? (
         <div className="py-16 text-center text-[#1a1c1c]">
@@ -602,7 +601,7 @@ const CourseHome = () => {
                   <div>
                     <p className="font-extrabold text-[#730014]">{lesson?.title ?? 'Bài học'}</p>
                     {lesson?.moduleTitle ? (
-                      <p className="text-xs text-[#8c716f]">{lesson.moduleTitle}</p>
+                      <p className="text-xs text-[#8c716f]">Module {lesson.moduleTitle}</p>
                     ) : null}
                   </div>
                 </div>
