@@ -27,6 +27,7 @@ import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final OnlineCourseVersionService onlineCourseVersionService;
     private final LearningPathRepository learningPathRepository;
     private final LearningPathCourseRepository learningPathCourseRepository;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -70,6 +72,9 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         if (!seedEnabled) return;
 
         normalizePrimaryPathOrder("ielts-master-vocabulary-band-7-plus", 1);

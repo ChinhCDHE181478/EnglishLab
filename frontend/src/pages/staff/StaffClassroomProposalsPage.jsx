@@ -28,7 +28,7 @@ import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { ERROR_NOTICE_CLASS, FIELD_CLASS, PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from '../../utils/formStyles';
-import { formatClassroomDate } from '../../utils/classroomHelpers';
+import { formatClassroomDate, getLessonOrderInUnit } from '../../utils/classroomHelpers';
 import { getClassroomErrorMessage, getConflictSummary } from '../../utils/classroomErrorMessages';
 import {
   alignStartDateToWeekdays,
@@ -448,7 +448,7 @@ function ProposalModal({
       lessons.forEach((lesson) => {
         const repeatCount = Math.max(1, Number(lesson.plannedSessionCount || 1));
         options.push({
-          label: `Bài ${lesson.sessionNumber ?? lesson.sequenceNumber}: ${lesson.title} (${repeatCount} buổi)`,
+          label: `Bài ${getLessonOrderInUnit(lesson)}: ${lesson.title} (${repeatCount} buổi)`,
           value: String(lesson.id),
           description: `Unit ${unit.displayOrder ?? unit.sequenceNumber ?? 0}: ${unit.title}`,
         });
@@ -456,7 +456,7 @@ function ProposalModal({
           flat.push({
             lessonId: String(lesson.id),
             lessonTitle: lesson.title,
-            lessonNumber: lesson.sessionNumber ?? lesson.sequenceNumber,
+            lessonNumber: getLessonOrderInUnit(lesson),
             unitId: String(unit.id),
             unitTitle: `Unit ${unit.displayOrder ?? unit.sequenceNumber ?? 0}: ${unit.title}`,
             plannedSessionCount: repeatCount,

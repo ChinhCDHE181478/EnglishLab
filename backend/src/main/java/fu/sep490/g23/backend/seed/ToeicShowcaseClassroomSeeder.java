@@ -60,6 +60,7 @@ import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
 import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -156,6 +157,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomGradebookEntryRepository gradebookRepository;
     private final InstructorLedCourseManagementService instructorLedCourseManagementService;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean enabled;
@@ -165,6 +167,9 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         if (!enabled || sheetEnabled) {
             return;
         }

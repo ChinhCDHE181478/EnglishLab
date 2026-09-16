@@ -193,6 +193,24 @@ export const getClassroomSessionUnitLabel = (session) => {
     : session.curriculumUnitTitle;
 };
 
+/** Unit display order (1-based) for syllabus numbering. */
+export const getUnitDisplayOrder = (unit) =>
+  Number(unit?.displayOrder ?? unit?.sequenceNumber ?? 0);
+
+/** Lesson order within its unit (1-based). */
+export const getLessonOrderInUnit = (lesson) =>
+  Number(lesson?.sessionNumber ?? lesson?.displayOrder ?? lesson?.sequenceNumber ?? 0);
+
+/** Standard syllabus code: 1.1, 2.3 (unit.lesson). */
+export const formatLessonCode = (unit, lesson) => {
+  if (lesson?.lessonCode) return String(lesson.lessonCode);
+  const unitOrder = getUnitDisplayOrder(unit);
+  const lessonOrder = getLessonOrderInUnit(lesson);
+  if (unitOrder > 0 && lessonOrder > 0) return `${unitOrder}.${lessonOrder}`;
+  if (lessonOrder > 0) return String(lessonOrder);
+  return '';
+};
+
 export const formatAttendanceDisputeStatus = (status) => {
   const labels = {
     PENDING: 'Đang chờ giáo viên xử lý',
