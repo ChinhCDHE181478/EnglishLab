@@ -49,7 +49,8 @@ public class OnlineCourseEnrollmentAdminServiceImpl implements OnlineCourseEnrol
             var course = root.join("onlineCourse", JoinType.INNER);
             var student = root.join("student", JoinType.LEFT);
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
-            predicates.add(criteriaBuilder.isFalse(course.get("deleted")));
+            // Note: OnlineCourse no longer carries a `deleted` flag — soft delete was replaced by
+            // PackageStatus.ARCHIVED, so we no longer filter on deleted here.
             if (status != null) predicates.add(criteriaBuilder.equal(root.get("status"), status));
             if (normalizedKeyword != null) {
                 String pattern = "%" + normalizedKeyword + "%";
