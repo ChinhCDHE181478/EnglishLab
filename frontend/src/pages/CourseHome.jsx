@@ -134,7 +134,16 @@ const CourseHome = () => {
 
         setCourse({ ...normalizedCourse, registered: Boolean(matchedEnrollment) });
         setEnrollment(matchedEnrollment || null);
-        setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
+        const savedLessonId = localStorage.getItem(`englishlab.activeLesson.${normalizedCourse.slug}`);
+        if (savedLessonId) {
+          const foundModule = (normalizedCourse.modules || []).find((m) =>
+            (m.lessons || []).some((l) => String(getLessonId(m, l, 0)) === String(savedLessonId)) ||
+            String(getAssessmentStepId(m.id)) === String(savedLessonId)
+          );
+          setOpenModuleId(foundModule ? (foundModule.id ?? foundModule.title) : (normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null));
+        } else {
+          setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
+        }
         if (hasAccessToken()) {
           const [assessmentItems, completionResponse, certificateResponse, ratingResponse] = await Promise.all([
             loadOptionalCourseData(() => courseApi.getCourseAssessments(normalizedCourse.id), []),
