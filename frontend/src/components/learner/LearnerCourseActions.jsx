@@ -49,9 +49,7 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
     }
   };
 
-  const learnHref = lastActiveLessonId && !completed
-    ? buildLessonWorkspacePath(courseSlug, lastActiveLessonId)
-    : buildCourseHomePath(course);
+  const learnHref = buildCourseHomePath(course);
 
   if (course?.registered) {
     return (
