@@ -197,7 +197,7 @@ class InstructorLedCourseManagementServiceImplTest {
         CourseUnit unit = unit(10L, program(1L));
         CourseLessonRequest request = sessionPlanRequest(1, "Reading Overview");
         when(unitRepository.findById(10L)).thenReturn(Optional.of(unit));
-        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(false);
+        when(courseLessonRepository.existsDuplicateSequenceNumber(10L, 1, null)).thenReturn(false);
         when(courseLessonRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> {
             CourseLesson saved = invocation.getArgument(0);
             saved.setId(101L);
@@ -215,7 +215,7 @@ class InstructorLedCourseManagementServiceImplTest {
     void updateCourseLessonPersistsChanges() {
         CourseLesson plan = plan(101L, unit(10L, program(1L)), 1, "Cũ");
         when(courseLessonRepository.findById(101L)).thenReturn(Optional.of(plan));
-        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 2, 101L)).thenReturn(false);
+        when(courseLessonRepository.existsDuplicateSequenceNumber(10L, 2, 101L)).thenReturn(false);
         when(courseLessonRepository.save(plan)).thenReturn(plan);
 
         var response = service.updateCourseLesson(101L, sessionPlanRequest(2, "Scanning + Keywords"));
@@ -235,9 +235,9 @@ class InstructorLedCourseManagementServiceImplTest {
     }
 
     @Test
-    void createCourseLessonRejectsDuplicateNumberInsideCourse() {
+    void createCourseLessonRejectsDuplicateNumberInsideUnit() {
         when(unitRepository.findById(10L)).thenReturn(Optional.of(unit(10L, program(1L))));
-        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(true);
+        when(courseLessonRepository.existsDuplicateSequenceNumber(10L, 1, null)).thenReturn(true);
 
         assertThatThrownBy(() -> service.createCourseLesson(10L, sessionPlanRequest(1, "Trùng")))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -245,19 +245,19 @@ class InstructorLedCourseManagementServiceImplTest {
     }
 
     @Test
-    void differentCoursesMayBothUseLessonNumberOne() {
+    void differentUnitsMayBothUseLessonNumberOne() {
         CourseUnit firstUnit = unit(10L, program(1L));
-        CourseUnit secondUnit = unit(20L, program(2L));
+        CourseUnit secondUnit = unit(20L, program(1L));
         when(unitRepository.findById(10L)).thenReturn(Optional.of(firstUnit));
         when(unitRepository.findById(20L)).thenReturn(Optional.of(secondUnit));
         when(courseLessonRepository.existsDuplicateSequenceNumber(any(), any(), any())).thenReturn(false);
         when(courseLessonRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.createCourseLesson(10L, sessionPlanRequest(1, "Course A"));
-        service.createCourseLesson(20L, sessionPlanRequest(1, "Course B"));
+        service.createCourseLesson(10L, sessionPlanRequest(1, "Unit A"));
+        service.createCourseLesson(20L, sessionPlanRequest(1, "Unit B"));
 
-        verify(courseLessonRepository).existsDuplicateSequenceNumber(1L, 1, null);
-        verify(courseLessonRepository).existsDuplicateSequenceNumber(2L, 1, null);
+        verify(courseLessonRepository).existsDuplicateSequenceNumber(10L, 1, null);
+        verify(courseLessonRepository).existsDuplicateSequenceNumber(20L, 1, null);
     }
 
     @Test

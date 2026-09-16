@@ -18,6 +18,7 @@ import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,12 +60,16 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     private final PaymentOrderItemRepository paymentOrderItemRepository;
     private final LearningPathRepository learningPathRepository;
     private final PlatformTransactionManager transactionManager;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.sheet.enabled:false}")
     private boolean seedEnabled;
 
     @Override
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         TransactionTemplate tx = new TransactionTemplate(transactionManager);
         List<String> targetEmails = List.of(LEARNER_EMAIL, "chinhcdhe181478@fpt.edu.vn");
         for (String email : targetEmails) {

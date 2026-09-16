@@ -12,7 +12,7 @@ import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { validateClassroomOfferingForm } from '../../utils/classroomFormValidation';
-import { formatClassroomDate, formatClassroomPrice, formatDeliveryMode } from '../../utils/classroomHelpers';
+import { formatClassroomDate, formatClassroomPrice, formatDeliveryMode, getLessonOrderInUnit } from '../../utils/classroomHelpers';
 
 const statusOptions = [
   { label: 'Bản nháp', value: 'DRAFT' },
@@ -479,7 +479,7 @@ function flattenCourseLessons(course) {
       .sort((left, right) => Number(left.sessionNumber ?? left.displayOrder ?? 0) - Number(right.sessionNumber ?? right.displayOrder ?? 0))
       .flatMap((lesson) => Array.from({ length: Math.max(1, Number(lesson.plannedSessionCount || 1)) }, () => ({
         lessonId: lesson.id,
-        lessonNumber: lesson.sessionNumber ?? lesson.displayOrder,
+        lessonNumber: getLessonOrderInUnit(lesson),
         lessonTitle: lesson.title,
         unitTitle: `Unit ${unit.displayOrder ?? unit.sequenceNumber}: ${unit.title}`,
       }))));

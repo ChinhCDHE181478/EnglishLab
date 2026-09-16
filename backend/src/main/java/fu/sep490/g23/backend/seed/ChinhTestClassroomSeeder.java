@@ -63,6 +63,7 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
 import fu.sep490.g23.backend.repository.curriculum.*;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -139,6 +140,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final FlashcardSetRepository flashcardSetRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
     private final InstructorLedCourseManagementService instructorLedCourseManagementService;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -215,6 +217,9 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         if (!seedEnabled || sheetEnabled) {
             return;
         }
@@ -719,21 +724,21 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private List<ClassSchedule> createSessions(ClassSection offering, User teacher) {
         LocalDate today = LocalDate.now();
         ClassSchedule s1 = saveSession(offering, teacher, today.minusWeeks(5), ClassroomSessionStatus.COMPLETED,
-                "Buổi 1: Tổng quan IELTS & Listening Section 1-2");
+                "Tổng quan IELTS & Listening Section 1-2");
         ClassSchedule s2 = saveSession(offering, teacher, today.minusWeeks(4), ClassroomSessionStatus.COMPLETED,
-                "Buổi 2: Listening Section 3-4 & chiến thuật dự đoán đáp án");
+                "Listening Section 3-4 & chiến thuật dự đoán đáp án");
         ClassSchedule s3 = saveSession(offering, teacher, today.minusWeeks(3), ClassroomSessionStatus.COMPLETED,
-                "Buổi 3: Reading – Matching Headings & True/False/Not Given");
+                "Reading – Matching Headings & True/False/Not Given");
         ClassSchedule s4 = saveSession(offering, teacher, today.minusWeeks(2), ClassroomSessionStatus.COMPLETED,
-                "Buổi 4: Writing Task 1 – Bar chart & Line graph");
+                "Writing Task 1 – Bar chart & Line graph");
         ClassSchedule s5 = saveSession(offering, teacher, today, ClassroomSessionStatus.OPEN,
-                "Buổi 5: Writing Task 2 – Opinion essay (Đang diễn ra – có thể Join)");
+                "Writing Task 2 – Opinion essay (Đang diễn ra – có thể Join)");
         ClassSchedule s6 = saveSession(offering, teacher, today.plusDays(1), ClassroomSessionStatus.SCHEDULED,
-                "Buổi 6: Speaking Part 1 & 2 – chiến thuật mở rộng ý");
+                "Speaking Part 1 & 2 – chiến thuật mở rộng ý");
         ClassSchedule s7 = saveSession(offering, teacher, today.plusDays(3), ClassroomSessionStatus.SCHEDULED,
-                "Buổi 7: Speaking Part 3 – thảo luận chủ đề xã hội");
+                "Speaking Part 3 – thảo luận chủ đề xã hội");
         ClassSchedule s8 = saveSession(offering, teacher, today.plusWeeks(1), ClassroomSessionStatus.SCHEDULED,
-                "Buổi 8: Mock test toàn phần & tổng kết khóa học");
+                "Mock test toàn phần & tổng kết khóa học");
 
         return List.of(s1, s2, s3, s4, s5, s6, s7, s8);
     }
@@ -775,14 +780,14 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     private void createSyllabus(ClassSection offering, List<ClassSchedule> schedules) {
         String[][] syllabusData = {
-                {"Buổi 1 – Listening Section 1–2", "Nghe hội thoại ngắn, điền form và ghi chú.", "Warm-up nghe thụ động; chiến thuật đọc câu hỏi trước; guided practice 2 đề; sửa lỗi.", "Luyện thêm 1 đề Section 1-2 tại nhà."},
-                {"Buổi 2 – Listening Section 3–4", "Nghe thảo luận học thuật và bài giảng.", "Phân tích cấu trúc Section 3-4; chiến thuật dự đoán; luyện 2 đề.", "Tóm tắt 5 lỗi phổ biến nhất của cá nhân."},
-                {"Buổi 3 – Reading Matching & T/F/NG", "Chiến thuật làm nhanh dạng Matching Headings và True/False/Not Given.", "Scanning kỹ thuật; không đọc toàn văn; luyện 1 passage dài.", "Hoàn thành bài Reading Section 1 nộp file."},
-                {"Buổi 4 – Writing Task 1", "Viết mô tả biểu đồ Bar chart và Line graph.", "Cấu trúc 4 đoạn; từ vựng mô tả xu hướng; luyện viết tại lớp 20 phút.", "Viết 1 bài Task 1 hoàn chỉnh (150 từ) nộp online."},
-                {"Buổi 5 – Writing Task 2 (Hôm nay)", "Opinion essay – lập luận và ví dụ minh chứng.", "Cấu trúc 5 đoạn; cách mở bài paraphrase; luyện outline 15 phút.", "Viết bài Task 2 hoàn chỉnh (250 từ) – deadline ngày mai."},
-                {"Buổi 6 – Speaking Part 1 & 2", "Mở rộng câu trả lời Part 1; kỹ thuật cue card Part 2.", "Role-play hỏi đáp; chiến thuật PREP; luyện cue card 4 chủ đề.", "Ghi âm 1 cue card và nộp link."},
-                {"Buổi 7 – Speaking Part 3", "Thảo luận chủ đề xã hội – giáo dục, công nghệ, môi trường.", "Cách đưa ra quan điểm có căn cứ; từ nối học thuật; luyện pair speaking.", "Ghi âm trả lời 3 câu Part 3 theo chủ đề môi trường."},
-                {"Buổi 8 – Mock Test & Tổng kết", "Làm toàn bộ 4 phần IELTS trong điều kiện thi thực tế.", "Full test 2h45m; chữa bài; phân tích điểm yếu từng kỹ năng.", "Hoàn thiện error log cá nhân và nộp trước tốt nghiệp."}
+                {"Listening Section 1–2", "Nghe hội thoại ngắn, điền form và ghi chú.", "Warm-up nghe thụ động; chiến thuật đọc câu hỏi trước; guided practice 2 đề; sửa lỗi.", "Luyện thêm 1 đề Section 1-2 tại nhà."},
+                {"Listening Section 3–4", "Nghe thảo luận học thuật và bài giảng.", "Phân tích cấu trúc Section 3-4; chiến thuật dự đoán; luyện 2 đề.", "Tóm tắt 5 lỗi phổ biến nhất của cá nhân."},
+                {"Reading Matching & T/F/NG", "Chiến thuật làm nhanh dạng Matching Headings và True/False/Not Given.", "Scanning kỹ thuật; không đọc toàn văn; luyện 1 passage dài.", "Hoàn thành bài Reading Section 1 nộp file."},
+                {"Writing Task 1", "Viết mô tả biểu đồ Bar chart và Line graph.", "Cấu trúc 4 đoạn; từ vựng mô tả xu hướng; luyện viết tại lớp 20 phút.", "Viết 1 bài Task 1 hoàn chỉnh (150 từ) nộp online."},
+                {"Writing Task 2 (Hôm nay)", "Opinion essay – lập luận và ví dụ minh chứng.", "Cấu trúc 5 đoạn; cách mở bài paraphrase; luyện outline 15 phút.", "Viết bài Task 2 hoàn chỉnh (250 từ) – deadline ngày mai."},
+                {"Speaking Part 1 & 2", "Mở rộng câu trả lời Part 1; kỹ thuật cue card Part 2.", "Role-play hỏi đáp; chiến thuật PREP; luyện cue card 4 chủ đề.", "Ghi âm 1 cue card và nộp link."},
+                {"Speaking Part 3", "Thảo luận chủ đề xã hội – giáo dục, công nghệ, môi trường.", "Cách đưa ra quan điểm có căn cứ; từ nối học thuật; luyện pair speaking.", "Ghi âm trả lời 3 câu Part 3 theo chủ đề môi trường."},
+                {"Mock Test & Tổng kết", "Làm toàn bộ 4 phần IELTS trong điều kiện thi thực tế.", "Full test 2h45m; chữa bài; phân tích điểm yếu từng kỹ năng.", "Hoàn thiện error log cá nhân và nộp trước tốt nghiệp."}
         };
 
         for (int i = 0; i < syllabusData.length; i++) {
