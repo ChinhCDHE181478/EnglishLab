@@ -14,6 +14,9 @@ public class PlacementTestDefinitionResponse {
     String examType;
     Integer maxAttempts;
     String status;
+    Boolean ieltsEnabled;
+    Boolean toeicEnabled;
+    Boolean skillAssessmentEnabled;
     String listeningConfigJson;
     String readingConfigJson;
     String writingConfigJson;

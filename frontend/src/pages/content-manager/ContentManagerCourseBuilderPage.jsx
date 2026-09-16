@@ -964,6 +964,9 @@ export default function ContentManagerCourseBuilderPage() {
     setSaving(true);
 
     try {
+      const normalizedCategory = String(course.category || '').toUpperCase();
+      const isIeltsCourse = normalizedCategory === 'IELTS';
+      const isToeicCourse = normalizedCategory === 'TOEIC';
       const payload = {
         title: course.title,
         shortDescription: course.shortDescription,
@@ -971,9 +974,9 @@ export default function ContentManagerCourseBuilderPage() {
         category: course.category,
         level: course.level,
         status: course.status,
-        targetScore: course.targetScore,
-        recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? null,
-        targetBand: course.targetBand ?? null,
+        targetScore: isToeicCourse ? course.targetScore : null,
+        recommendedCurrentBandMin: isIeltsCourse ? (course.recommendedCurrentBandMin ?? null) : null,
+        targetBand: isIeltsCourse ? (course.targetBand ?? null) : null,
         targetOutcome: course.targetOutcome ?? null,
         duration: course.duration,
         price: Number(course.price || 0),

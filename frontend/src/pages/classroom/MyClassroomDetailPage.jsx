@@ -131,7 +131,7 @@ const canJoinGoogleMeet = (session, classroom) => {
 
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
-  { id: 'curriculum', label: 'Giáo trình' },
+  { id: 'syllabus', label: 'Giáo trình' },
   { id: 'flashcards', label: 'Flashcard' },
   { id: 'practice', label: 'Luyện tập' },
   { id: 'schedule', label: 'Lịch học' },
@@ -171,11 +171,13 @@ export default function MyClassroomDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'overview';
+  const requestedTab = searchParams.get('tab');
+  const activeTab = requestedTab === 'curriculum' ? 'syllabus' : requestedTab || 'overview';
   const setActiveTab = (tab) => {
     setSearchParams((prev) => {
-      prev.set('tab', tab);
-      return prev;
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
     }, { replace: true, preventScrollReset: true });
   };
   const [classroom, setClassroom] = useState(null);
@@ -193,6 +195,15 @@ export default function MyClassroomDetailPage() {
   const [submitAnswers, setSubmitAnswers] = useState({});
   const [submitFiles, setSubmitFiles] = useState({});
   const [actionMessage, setActionMessage] = useState('');
+
+  useEffect(() => {
+    if (requestedTab !== 'curriculum') return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'syllabus');
+      return next;
+    }, { replace: true, preventScrollReset: true });
+  }, [requestedTab, setSearchParams]);
   const [meetMessage, setMeetMessage] = useState('');
   const [disputeForm, setDisputeForm] = useState({ attendanceId: null, reason: '' });
   const [submittingDispute, setSubmittingDispute] = useState(false);
@@ -530,7 +541,7 @@ export default function MyClassroomDetailPage() {
     });
 
     if (matchingUnit) {
-      setActiveTab('curriculum');
+      setActiveTab('syllabus');
       setExpandedUnits(new Set([matchingUnit.id]));
       setTimeout(() => {
         const element = document.getElementById(`curriculum-unit-${matchingUnit.id}`);
@@ -539,7 +550,7 @@ export default function MyClassroomDetailPage() {
         }
       }, 300);
     } else {
-      setActiveTab('curriculum');
+      setActiveTab('syllabus');
     }
   };
 
@@ -547,7 +558,7 @@ export default function MyClassroomDetailPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
 
   const renderTabContent = () => {
-    if (activeTab === 'curriculum') {
+    if (activeTab === 'syllabus') {
       return (
         <LearnerCurriculumPanel
           curriculum={classroom?.instructorLedCourse}

@@ -79,6 +79,15 @@ public class PlacementTestDefinition {
     private Integer maxAttempts;
 
     @Transient
+    private Boolean ieltsEnabled;
+
+    @Transient
+    private Boolean toeicEnabled;
+
+    @Transient
+    private Boolean skillAssessmentEnabled;
+
+    @Transient
     private String listeningConfigJson;
 
     @Transient
@@ -96,7 +105,11 @@ public class PlacementTestDefinition {
     @PostLoad
     private void hydrateFromPayload() {
         Map<String, Object> payload = ContentBankPayloadSupport.ensure(contentData);
+        boolean enabledByDefault = "PUBLISHED".equalsIgnoreCase(status);
         maxAttempts = ContentBankPayloadSupport.getInteger(payload, "maxAttempts");
+        ieltsEnabled = readEnabled(payload, "ieltsEnabled", enabledByDefault);
+        toeicEnabled = readEnabled(payload, "toeicEnabled", enabledByDefault);
+        skillAssessmentEnabled = readEnabled(payload, "skillAssessmentEnabled", enabledByDefault);
         listeningConfigJson = stringifyConfig(payload.get("listeningConfig"));
         readingConfigJson = stringifyConfig(payload.get("readingConfig"));
         writingConfigJson = stringifyConfig(payload.get("writingConfig"));
@@ -121,7 +134,14 @@ public class PlacementTestDefinition {
         if (maxAttempts == null) {
             maxAttempts = 3;
         }
+        boolean enabledByDefault = "PUBLISHED".equalsIgnoreCase(status);
+        if (ieltsEnabled == null) ieltsEnabled = enabledByDefault;
+        if (toeicEnabled == null) toeicEnabled = enabledByDefault;
+        if (skillAssessmentEnabled == null) skillAssessmentEnabled = enabledByDefault;
         ContentBankPayloadSupport.put(contentData, "maxAttempts", maxAttempts);
+        ContentBankPayloadSupport.put(contentData, "ieltsEnabled", Boolean.TRUE.equals(ieltsEnabled));
+        ContentBankPayloadSupport.put(contentData, "toeicEnabled", Boolean.TRUE.equals(toeicEnabled));
+        ContentBankPayloadSupport.put(contentData, "skillAssessmentEnabled", Boolean.TRUE.equals(skillAssessmentEnabled));
         ContentBankPayloadSupport.put(contentData, "listeningConfig", ContentBankPayloadSupport.readJsonNode(listeningConfigJson));
         ContentBankPayloadSupport.put(contentData, "readingConfig", ContentBankPayloadSupport.readJsonNode(readingConfigJson));
         ContentBankPayloadSupport.put(contentData, "writingConfig", ContentBankPayloadSupport.readJsonNode(writingConfigJson));
@@ -137,5 +157,10 @@ public class PlacementTestDefinition {
             return text.isBlank() ? "{}" : text;
         }
         return ContentBankPayloadSupport.writeJson(value);
+    }
+
+    private static boolean readEnabled(Map<String, Object> payload, String key, boolean fallback) {
+        Object value = payload.get(key);
+        return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value));
     }
 }

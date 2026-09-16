@@ -2,6 +2,7 @@ package fu.sep490.g23.backend.service.course;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
@@ -78,7 +79,18 @@ class CourseVersionProgressStabilityTest {
                 .build();
 
         when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(courseWithTwentyLiveLessons)).thenReturn(0L);
-        when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED)).thenReturn(8L);
+        List<LessonProgress> completedProgress = enrollmentVersion.getModules().get(0).getLessons().stream()
+                .limit(8)
+                .map(lesson -> LessonProgress.builder()
+                        .enrollment(enrollment)
+                        .lesson(lesson)
+                        .status(LessonProgressStatus.COMPLETED)
+                        .build())
+                .toList();
+        when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
+                enrollment,
+                LessonProgressStatus.COMPLETED
+        )).thenReturn(completedProgress);
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
 
         OnlineCourseEnrollment refreshed = progressService.refreshEnrollmentProgress(
@@ -122,8 +134,10 @@ class CourseVersionProgressStabilityTest {
                 .build();
 
         when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course)).thenReturn(0L);
-        when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED))
-                .thenReturn(0L);
+        when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
+                enrollment,
+                LessonProgressStatus.COMPLETED
+        )).thenReturn(List.of());
         when(onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)).thenReturn(List.of());
         when(courseAssessmentRepository.findAllById(List.of())).thenReturn(List.of());
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
@@ -165,8 +179,14 @@ class CourseVersionProgressStabilityTest {
                 .build();
 
         when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course)).thenReturn(1L);
-        when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED))
-                .thenReturn(1L);
+        when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
+                enrollment,
+                LessonProgressStatus.COMPLETED
+        )).thenReturn(List.of(LessonProgress.builder()
+                .enrollment(enrollment)
+                .lesson(lesson)
+                .status(LessonProgressStatus.COMPLETED)
+                .build()));
         when(onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)).thenReturn(List.of(100L));
         when(courseAssessmentRepository.findAllById(List.of(100L))).thenReturn(List.of(baselineAssessment));
         when(assessmentSubmissionRepository.existsByAssessmentProgressKeyAndStudentAndStatusIn(
@@ -181,5 +201,58 @@ class CourseVersionProgressStabilityTest {
 
         assertThat(refreshed.getProgressPercent()).isEqualTo(100);
         assertThat(refreshed.getStatus()).isEqualTo(EnrollmentStatus.COMPLETED);
+    }
+
+    @Test
+    void latestVersionLessonsAreAccessibleWithoutChangingVersionOneProgressBaseline() {
+        User learner = User.builder().id(10L).email("versioned@englishlab.vn").build();
+        OnlineCourse course = OnlineCourse.builder().id(4L).build();
+        OnlineLesson baselineLesson = OnlineLesson.builder()
+                .id(1L)
+                .stableLessonKey("shared-lesson")
+                .build();
+        OnlineCourseVersion baselineVersion = OnlineCourseVersion.builder()
+                .id(101L)
+                .onlineCourse(course)
+                .versionNumber(1)
+                .totalRequiredLessons(1)
+                .totalRequiredAssessments(0)
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
+                        .lessons(new ArrayList<>(List.of(baselineLesson)))
+                        .build())))
+                .build();
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
+                .id(58L)
+                .student(learner)
+                .onlineCourse(course)
+                .courseVersion(baselineVersion)
+                .status(EnrollmentStatus.ACTIVE)
+                .build();
+        OnlineLesson latestEquivalent = OnlineLesson.builder()
+                .id(2L)
+                .stableLessonKey("shared-lesson")
+                .build();
+        OnlineLesson versionTwoOnly = OnlineLesson.builder()
+                .id(3L)
+                .stableLessonKey("version-two-only")
+                .build();
+        when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
+                enrollment,
+                LessonProgressStatus.COMPLETED
+        )).thenReturn(List.of(
+                LessonProgress.builder().enrollment(enrollment).lesson(latestEquivalent)
+                        .status(LessonProgressStatus.COMPLETED).build(),
+                LessonProgress.builder().enrollment(enrollment).lesson(versionTwoOnly)
+                        .status(LessonProgressStatus.COMPLETED).build()
+        ));
+        when(onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)).thenReturn(List.of());
+        when(courseAssessmentRepository.findAllById(List.of())).thenReturn(List.of());
+        when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
+        when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
+
+        OnlineCourseEnrollment refreshed = progressService.refreshEnrollmentProgress(enrollment, course, learner);
+
+        assertThat(refreshed.getCourseVersion()).isSameAs(baselineVersion);
+        assertThat(refreshed.getProgressPercent()).isEqualTo(100);
     }
 }

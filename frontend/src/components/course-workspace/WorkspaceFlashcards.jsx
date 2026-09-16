@@ -41,10 +41,11 @@ const extractTermsFromLesson = (lesson, module, moduleIndex) => {
     .filter(Boolean);
 };
 
-const parseFlashcardSetCards = (set) => {
+export const parseFlashcardSetCards = (set) => {
   try {
-    const cards = JSON.parse(set?.cardsJson || '[]');
-    return Array.isArray(cards) ? cards : [];
+    const payload = JSON.parse(set?.cardsJson || '[]');
+    if (Array.isArray(payload)) return payload;
+    return Array.isArray(payload?.cards) ? payload.cards : [];
   } catch {
     return [];
   }

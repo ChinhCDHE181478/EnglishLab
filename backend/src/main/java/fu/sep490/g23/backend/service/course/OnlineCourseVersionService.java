@@ -45,6 +45,9 @@ public interface OnlineCourseVersionService {
 
     OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse);
 
+    /** Maps completed lesson lineage onto the lesson IDs of the latest published version. */
+    List<Long> getCompletedLessonIdsForLatestVersion(OnlineCourseEnrollment enrollment);
+
     OnlineCourseResponse readPublishedSnapshot(OnlineCourse course, boolean includeLessonContent);
 
     List<Long> getLatestPublishedAssessmentIds(OnlineCourseEnrollment enrollment);
