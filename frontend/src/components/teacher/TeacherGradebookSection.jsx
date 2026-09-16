@@ -182,8 +182,8 @@ function AggregateGradebookTable({ gradebook, onOpenStudent }) {
               <th className="px-5 py-4">Học viên</th>
               <th className="px-5 py-4">Điểm TB bài tập</th>
               <th className="px-5 py-4">Chuyên cần</th>
-              <th className="px-5 py-4">Kết quả cuối</th>
-              <th className="px-5 py-4">Công bố</th>
+              <th className="px-5 py-4">Điểm tổng kết</th>
+              <th className="px-5 py-4">Trạng thái</th>
               <th className="px-5 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
