@@ -84,13 +84,19 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         long attemptCount = attemptRepository.countByStudentAndTestCode(student, TEST_CODE);
         response.put("attemptCount", attemptCount);
         response.put("canRetake", true);
+        List<String> availableExamTypes = availableExamTypes(definition);
+        response.put("availableExamTypes", availableExamTypes);
         Map<String, Object> sections = new LinkedHashMap<>();
         // Objective sections: send questions only. Writing/Speaking have no answer key.
-        sections.put("listening", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "listening"))));
-        sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
-        sections.put("writing", toPlainObject(definitionService.getConfig(definition, "writing")));
-        sections.put("speaking", toPlainObject(definitionService.getConfig(definition, "speaking")));
-        sections.put("toeic", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "toeic"))));
+        if (availableExamTypes.contains("IELTS") || availableExamTypes.contains("SKILL")) {
+            sections.put("listening", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "listening"))));
+            sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
+            sections.put("writing", toPlainObject(definitionService.getConfig(definition, "writing")));
+            sections.put("speaking", toPlainObject(definitionService.getConfig(definition, "speaking")));
+        }
+        if (availableExamTypes.contains("TOEIC")) {
+            sections.put("toeic", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "toeic"))));
+        }
         response.put("sections", sections);
         // Let the UI show the last result without a second request.
         attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(student, TEST_CODE)
@@ -110,6 +116,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
         }
         String examType = normalizeExamType(request.getExamType() == null ? definition.getExamType() : request.getExamType());
+        assertExamTypeEnabled(definition, examType);
         if ("TOEIC".equals(examType)) {
             validateToeicSubmission(request);
             return submitToeicPlacement(request, student, definition);
@@ -176,6 +183,21 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         student.setCurrentBand(overall == null ? null : overall.doubleValue()); // Keep learner profile in sync.
         userRepository.save(student);
         return toResponse(savedAttempt);
+    }
+
+    private List<String> availableExamTypes(PlacementTestDefinition definition) {
+        List<String> examTypes = new ArrayList<>();
+        boolean legacyDefault = "PUBLISHED".equalsIgnoreCase(definition.getStatus());
+        if (definition.getIeltsEnabled() == null ? legacyDefault : definition.getIeltsEnabled()) examTypes.add("IELTS");
+        if (definition.getToeicEnabled() == null ? legacyDefault : definition.getToeicEnabled()) examTypes.add("TOEIC");
+        if (definition.getSkillAssessmentEnabled() == null ? legacyDefault : definition.getSkillAssessmentEnabled()) examTypes.add("SKILL");
+        return examTypes;
+    }
+
+    private void assertExamTypeEnabled(PlacementTestDefinition definition, String examType) {
+        if (!availableExamTypes(definition).contains(examType)) {
+            throw new IllegalArgumentException("Dạng bài đánh giá đã tạm dừng.");
+        }
     }
 
     /** Diagnostic mode: score only the skills the student picked. Not used for course placement. */

@@ -217,7 +217,7 @@ class OnlineCourseVersionServiceImplTest {
     }
 
     @Test
-    void publishRetiresOldVersionWhileExistingEnrollmentKeepsPinnedContent() {
+    void publishRetiresOldVersionWhileExistingEnrollmentReadsLatestContentWithPinnedProgressBaseline() {
         User contentManager = User.builder().id(3L).email("content@test.com").fullName("Content Manager").build();
         contentManager.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.CONTENT_MANAGER));
         attachModules(versionOne, ModuleResponse.builder()
@@ -237,10 +237,6 @@ class OnlineCourseVersionServiceImplTest {
         when(mapper.toResponse(course)).thenReturn(
                 OnlineCourseResponse.builder().id(course.getId()).title("Nội dung v2").modules(new ArrayList<>()).build()
         );
-        when(mapper.toResponse(course, versionOne.getModules())).thenReturn(
-                OnlineCourseResponse.builder().id(course.getId()).title("Nội dung v1").modules(new ArrayList<>()).build()
-        );
-
         service.publish(course.getId(), versionTwo.getId(), contentManager.getEmail());
 
         OnlineCourseEnrollment existingEnrollment = OnlineCourseEnrollment.builder()
@@ -248,7 +244,7 @@ class OnlineCourseVersionServiceImplTest {
                 .courseVersion(versionOne)
                 .progressPercent(80)
                 .build();
-        OnlineCourseResponse pinnedContent = service.readLatestPublishedForEnrollment(existingEnrollment, course);
+        OnlineCourseResponse latestContent = service.readLatestPublishedForEnrollment(existingEnrollment, course);
         OnlineCourseEnrollment newEnrollment = OnlineCourseEnrollment.builder()
                 .id(42L)
                 .courseVersion(service.requirePublishedVersion(course))
@@ -259,8 +255,8 @@ class OnlineCourseVersionServiceImplTest {
         assertThat(versionTwo.getStatus()).isEqualTo(CourseVersionStatus.PUBLISHED);
         assertThat(existingEnrollment.getCourseVersion()).isSameAs(versionOne);
         assertThat(newEnrollment.getCourseVersion()).isSameAs(versionTwo);
-        assertThat(pinnedContent.getTitle()).isEqualTo("Nội dung v1");
-        assertThat(pinnedContent.getProgressPercent()).isEqualTo(80);
+        assertThat(latestContent.getTitle()).isEqualTo("Nội dung v2");
+        assertThat(latestContent.getProgressPercent()).isEqualTo(80);
     }
 
     @Test
@@ -643,26 +639,71 @@ class OnlineCourseVersionServiceImplTest {
     }
 
     @Test
-    void assertLessonBelongsToEnrollmentUsesPinnedVersionModules() {
-        OnlineLesson pinnedLesson = OnlineLesson.builder().id(61L).title("Pinned").build();
-        OnlineCourseModule pinnedModule = OnlineCourseModule.builder()
+    void assertLessonBelongsToEnrollmentUsesLatestPublishedVersionModules() {
+        OnlineLesson latestLesson = OnlineLesson.builder().id(62L).title("Latest").build();
+        OnlineCourseModule latestModule = OnlineCourseModule.builder()
                 .id(51L)
-                .lessons(new ArrayList<>(List.of(pinnedLesson)))
+                .lessons(new ArrayList<>(List.of(latestLesson)))
                 .build();
-        pinnedLesson.setModule(pinnedModule);
-        versionOne.setModules(new ArrayList<>(List.of(pinnedModule)));
-        pinnedModule.setOnlineCourseVersion(versionOne);
+        latestLesson.setModule(latestModule);
+        versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
+        versionTwo.setModules(new ArrayList<>(List.of(latestModule)));
+        latestModule.setOnlineCourseVersion(versionTwo);
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .onlineCourse(course)
                 .courseVersion(versionOne)
                 .build();
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PUBLISHED
+        )).thenReturn(Optional.of(versionTwo));
 
-        assertThatCode(() -> service.assertLessonBelongsToEnrollment(enrollment, 61L))
+        assertThatCode(() -> service.assertLessonBelongsToEnrollment(enrollment, 62L))
                 .doesNotThrowAnyException();
-        assertThatThrownBy(() -> service.assertLessonBelongsToEnrollment(enrollment, 999L))
+        assertThatThrownBy(() -> service.assertLessonBelongsToEnrollment(enrollment, 61L))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("phiên bản đã đăng ký");
+                .hasMessageContaining("phiên bản mới nhất");
+    }
+
+    @Test
+    void mapsCompletedLessonFromEnrollmentVersionOntoLatestPublishedLessonId() {
+        OnlineLesson baselineLesson = OnlineLesson.builder()
+                .id(61L)
+                .stableLessonKey("stable-lesson-1")
+                .build();
+        OnlineLesson latestLesson = OnlineLesson.builder()
+                .id(62L)
+                .stableLessonKey("stable-lesson-1")
+                .build();
+        OnlineCourseModule latestModule = OnlineCourseModule.builder()
+                .id(52L)
+                .lessons(new ArrayList<>(List.of(latestLesson)))
+                .build();
+        latestLesson.setModule(latestModule);
+        versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
+        versionTwo.setModules(new ArrayList<>(List.of(latestModule)));
+        latestModule.setOnlineCourseVersion(versionTwo);
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
+                .id(41L)
+                .onlineCourse(course)
+                .courseVersion(versionOne)
+                .build();
+        LessonProgress completed = LessonProgress.builder()
+                .enrollment(enrollment)
+                .lesson(baselineLesson)
+                .status(LessonProgressStatus.COMPLETED)
+                .build();
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PUBLISHED
+        )).thenReturn(Optional.of(versionTwo));
+        when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
+                enrollment,
+                LessonProgressStatus.COMPLETED
+        )).thenReturn(List.of(completed));
+
+        assertThat(service.getCompletedLessonIdsForLatestVersion(enrollment)).containsExactly(62L);
     }
 
     private void attachModules(OnlineCourseVersion version, ModuleResponse... moduleResponses) {

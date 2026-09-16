@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import {
@@ -126,6 +126,7 @@ export default function ContentManagerMaterialsPage() {
   const [stats, setStats] = useState({ total: 0, published: 0, ielts: 0, toeic: 0 });
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [editorError, setEditorError] = useState('');
@@ -136,6 +137,7 @@ export default function ContentManagerMaterialsPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [keyword, setKeyword] = useState('');
+  const loadRequestId = useRef(0);
   const [filters, setFilters] = useState({
     examCategory: 'ALL',
     materialType: 'ALL',
@@ -153,6 +155,8 @@ export default function ContentManagerMaterialsPage() {
   );
 
   const loadItems = async () => {
+    const requestId = loadRequestId.current + 1;
+    loadRequestId.current = requestId;
     setLoading(true);
     setError('');
     try {
@@ -168,6 +172,7 @@ export default function ContentManagerMaterialsPage() {
         classroomApi.getContentManagerMaterialLibraryStats(),
         classroomApi.getContentManagerMaterialLibraryProviders(),
       ]);
+      if (requestId !== loadRequestId.current) return;
       const result = normalizePage(pagePayload);
       setPageResult(result);
       setItems(result.content);
@@ -179,10 +184,13 @@ export default function ContentManagerMaterialsPage() {
       });
       setProviders(providerItems);
     } catch (err) {
-      setItems([]);
+      if (requestId !== loadRequestId.current) return;
       setError(getContentManagerError(err, 'Không thể tải kho học liệu trung tâm.'));
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestId.current) {
+        setLoading(false);
+        setInitialLoading(false);
+      }
     }
   };
 
@@ -350,7 +358,7 @@ export default function ContentManagerMaterialsPage() {
     }
   };
 
-  if (loading) {
+  if (initialLoading) {
     return <ContentManagerLoadingState message="Đang tải kho học liệu trung tâm..." />;
   }
 

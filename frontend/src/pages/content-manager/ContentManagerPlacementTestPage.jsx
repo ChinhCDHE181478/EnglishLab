@@ -22,6 +22,7 @@ const TABS = [
 const TEST_TYPES = [
   {
     key: 'IELTS',
+    enabledField: 'ieltsEnabled',
     label: 'IELTS Placement',
     summary: 'Đánh giá đầy đủ Listening, Reading, Writing và Speaking.',
     icon: Layers3,
@@ -30,6 +31,7 @@ const TEST_TYPES = [
   },
   {
     key: 'TOEIC',
+    enabledField: 'toeicEnabled',
     label: 'TOEIC Placement',
     summary: 'Listening và Reading theo cấu trúc 7 part, chấm theo đáp án.',
     icon: Headphones,
@@ -38,6 +40,7 @@ const TEST_TYPES = [
   },
   {
     key: 'SKILL',
+    enabledField: 'skillAssessmentEnabled',
     label: 'Đánh giá kỹ năng',
     summary: 'Học viên tự chọn một hoặc nhiều kỹ năng cần kiểm tra.',
     icon: Target,
@@ -245,15 +248,6 @@ export default function ContentManagerPlacementTestPage() {
             <p className="mt-2 text-sm leading-relaxed text-[#8b706e]">Chọn dạng bài để biên soạn nội dung và theo dõi kết quả.</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <label className="inline-flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#dfbfbd] bg-white/85 px-4 py-3 text-sm font-bold text-[#4b0009]">
-              <input
-                checked={definition.status === 'PUBLISHED'}
-                className="h-4 w-4 accent-[#4b0009]"
-                onChange={(event) => updateDefinition('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')}
-                type="checkbox"
-              />
-              Cho phép học viên làm bài
-            </label>
             <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
               <Save aria-hidden="true" className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
             </button>
@@ -264,22 +258,41 @@ export default function ContentManagerPlacementTestPage() {
           {TEST_TYPES.map((testType) => {
             const Icon = testType.icon;
             const selected = activeExamType === testType.key;
+            const enabled = Boolean(definition[testType.enabledField]);
             return (
-              <button
-                aria-selected={selected}
-                className={`min-h-[150px] rounded-2xl border-2 p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#730014] focus-visible:ring-offset-2 ${selected ? testType.accent : 'border-transparent bg-white/80 text-[#0b1c30] hover:border-[#dfcfcb]'}`}
+              <section
+                className={`min-h-[168px] rounded-2xl border-2 p-5 transition ${selected ? testType.accent : 'border-transparent bg-white/80 text-[#0b1c30] hover:border-[#dfcfcb]'}`}
                 key={testType.key}
-                onClick={() => selectExamType(testType.key)}
-                role="tab"
-                type="button"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm"><Icon aria-hidden="true" className="h-5 w-5" /></span>
-                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider">{testType.badge}</span>
+                  <button
+                    aria-label={`Mở cấu hình ${testType.label}`}
+                    aria-selected={selected}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#730014]"
+                    onClick={() => selectExamType(testType.key)}
+                    role="tab"
+                    type="button"
+                  >
+                    <Icon aria-hidden="true" className="h-5 w-5" />
+                  </button>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider">
+                    <input
+                      checked={enabled}
+                      className="h-4 w-4 accent-[#4b0009]"
+                      onChange={(event) => updateDefinition(testType.enabledField, event.target.checked)}
+                      type="checkbox"
+                    />
+                    {enabled ? 'Đang bật' : 'Đang tắt'}
+                  </label>
                 </div>
-                <h2 className="mt-4 font-['Manrope'] text-lg font-extrabold">{testType.label}</h2>
-                <p className="mt-1 text-sm leading-6 opacity-80">{testType.summary}</p>
-              </button>
+                <button className="mt-4 block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#730014]" onClick={() => selectExamType(testType.key)} type="button">
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-['Manrope'] text-lg font-extrabold">{testType.label}</span>
+                    <span className="rounded-full bg-white px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider">{testType.badge}</span>
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 opacity-80">{testType.summary}</span>
+                </button>
+              </section>
             );
           })}
         </div>
@@ -535,7 +548,19 @@ function SubjectiveEditor({ config, label, onChange, skill }) {
 }
 
 function toDraft(response) {
-  return { ...response, examType: response.examType || 'IELTS', listening: parseConfig(response.listeningConfigJson), reading: parseConfig(response.readingConfigJson), writing: parseConfig(response.writingConfigJson), speaking: parseConfig(response.speakingConfigJson), toeic: parseConfig(response.toeicConfigJson, buildDefaultToeicConfig()) };
+  const legacyEnabled = response.status === 'PUBLISHED';
+  return {
+    ...response,
+    examType: response.examType || 'IELTS',
+    ieltsEnabled: response.ieltsEnabled ?? legacyEnabled,
+    toeicEnabled: response.toeicEnabled ?? legacyEnabled,
+    skillAssessmentEnabled: response.skillAssessmentEnabled ?? legacyEnabled,
+    listening: parseConfig(response.listeningConfigJson),
+    reading: parseConfig(response.readingConfigJson),
+    writing: parseConfig(response.writingConfigJson),
+    speaking: parseConfig(response.speakingConfigJson),
+    toeic: parseConfig(response.toeicConfigJson, buildDefaultToeicConfig()),
+  };
 }
 
 function toPayload(draft) {
@@ -548,12 +573,16 @@ function toPayload(draft) {
       ...(toeic.answerKey || {}),
     },
   };
+  const anyExamEnabled = draft.ieltsEnabled || draft.toeicEnabled || draft.skillAssessmentEnabled;
   return {
     title: draft.title,
     description: draft.description,
     examType: draft.examType || 'IELTS',
     maxAttempts: Number(draft.maxAttempts),
-    status: draft.status || 'DRAFT',
+    status: anyExamEnabled ? 'PUBLISHED' : 'ARCHIVED',
+    ieltsEnabled: Boolean(draft.ieltsEnabled),
+    toeicEnabled: Boolean(draft.toeicEnabled),
+    skillAssessmentEnabled: Boolean(draft.skillAssessmentEnabled),
     listeningConfigJson: JSON.stringify(draft.listening),
     readingConfigJson: JSON.stringify(draft.reading),
     writingConfigJson: JSON.stringify(draft.writing),

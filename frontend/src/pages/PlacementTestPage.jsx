@@ -682,6 +682,9 @@ export default function PlacementTestPage() {
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [recommendationError, setRecommendationError] = useState('');
   const [pendingSkillAdvance, setPendingSkillAdvance] = useState(null);
+  const availableExamTypes = Array.isArray(test?.availableExamTypes)
+    ? test.availableExamTypes
+    : ['IELTS', 'TOEIC', 'SKILL'];
 
   const activeSkills = selectedExamType === 'TOEIC'
     ? TOEIC_SKILLS
@@ -750,7 +753,8 @@ export default function PlacementTestPage() {
       try {
         const response = await placementTestApi.getCurrent();
         const sections = response?.sections;
-        const missingSkills = SKILLS.filter((skill) => !sections?.[skill.key]);
+        const needsIeltsSections = response?.availableExamTypes?.some((type) => type === 'IELTS' || type === 'SKILL') ?? true;
+        const missingSkills = needsIeltsSections ? SKILLS.filter((skill) => !sections?.[skill.key]) : [];
 
         if (missingSkills.length) {
           throw new Error(`Đề thi đang thiếu dữ liệu: ${missingSkills.map((skill) => skill.label).join(', ')}`);
@@ -984,6 +988,7 @@ export default function PlacementTestPage() {
   ) : null;
 
   const startExamType = (examType, skillKeys = null) => {
+    if (!availableExamTypes.includes(examType)) return;
     const nextSkillKeys = examType === 'SKILL'
       ? SKILLS.filter((skill) => (skillKeys || selectedSkillKeys).includes(skill.key)).map((skill) => skill.key)
       : [];
@@ -1062,8 +1067,8 @@ export default function PlacementTestPage() {
               </button>
             </div>
 
-            <div className="mt-8 grid gap-5 lg:grid-cols-3">
-              <button
+            <div className={`mt-8 grid gap-5 ${availableExamTypes.length >= 3 ? 'lg:grid-cols-3' : availableExamTypes.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1'}`}>
+              {availableExamTypes.includes('IELTS') ? <button
                 className="group rounded-[28px] border border-[#ead7d5] bg-[#fffaf9] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#8a0018]/45 hover:shadow-[0_20px_45px_rgba(86,35,37,0.12)]"
                 onClick={() => startExamType('IELTS')}
                 type="button"
@@ -1087,9 +1092,9 @@ export default function PlacementTestPage() {
                 <span className="mt-6 inline-flex rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
                   Chọn IELTS
                 </span>
-              </button>
+              </button> : null}
 
-              <button
+              {availableExamTypes.includes('TOEIC') ? <button
                 className="group rounded-[28px] border border-[#ead7d5] bg-[#f7fbff] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#21446d]/45 hover:shadow-[0_20px_45px_rgba(33,68,109,0.12)]"
                 onClick={() => startExamType('TOEIC')}
                 type="button"
@@ -1113,9 +1118,9 @@ export default function PlacementTestPage() {
                 <span className="mt-6 inline-flex rounded-2xl bg-[#21446d] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
                   Chọn TOEIC
                 </span>
-              </button>
+              </button> : null}
 
-              <section className="rounded-[28px] border border-[#ead7d5] bg-[#f8f5ff] p-6 text-left">
+              {availableExamTypes.includes('SKILL') ? <section className="rounded-[28px] border border-[#ead7d5] bg-[#f8f5ff] p-6 text-left">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#63368f]">
                   <Target aria-hidden="true" size={22} />
                 </div>
@@ -1150,7 +1155,7 @@ export default function PlacementTestPage() {
                 >
                   {selectedSkillKeys.length ? `Đánh giá ${selectedSkillKeys.length} kỹ năng` : 'Chọn ít nhất 1 kỹ năng'}
                 </button>
-              </section>
+              </section> : null}
             </div>
 
             {test.latestAttempt ? (

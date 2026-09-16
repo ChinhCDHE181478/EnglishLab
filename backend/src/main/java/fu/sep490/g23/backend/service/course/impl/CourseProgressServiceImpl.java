@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Set;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -120,10 +122,20 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         int totalAssessments = enrollment.getCourseVersion() == null
                 ? liveAssessmentCount
                 : enrollment.getCourseVersion().getTotalRequiredAssessments();
-        int completedLessons = Math.min(
-                totalLessons,
-                Math.toIntExact(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED))
-        );
+        List<LessonProgress> completedProgress = lessonProgressRepository
+                .findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED);
+        Set<String> baselineLessonKeys = liveModules.stream()
+                .flatMap(module -> module.getLessons().stream())
+                .map(this::lessonProgressKey)
+                .collect(Collectors.toSet());
+        Set<String> completedLessonKeys = completedProgress.stream()
+                .map(LessonProgress::getLesson)
+                .filter(Objects::nonNull)
+                .map(this::lessonProgressKey)
+                .collect(Collectors.toSet());
+        int completedLessons = Math.min(totalLessons, (int) completedLessonKeys.stream()
+                .filter(baselineLessonKeys::contains)
+                .count());
         List<CourseAssessment> baselineAssessments = courseAssessmentRepository.findAllById(
                 onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)
         );
@@ -173,6 +185,11 @@ public class CourseProgressServiceImpl implements CourseProgressService {
                 student,
                 COMPLETED_ASSESSMENT_STATUSES
         );
+    }
+
+    private String lessonProgressKey(fu.sep490.g23.backend.entity.course.OnlineLesson lesson) {
+        String stableKey = lesson.getStableLessonKey();
+        return stableKey == null || stableKey.isBlank() ? "ID:" + lesson.getId() : "KEY:" + stableKey;
     }
 
     private CourseCompletionStatus resolveStatus(CompletionSnapshot snapshot, OnlineCourseEnrollment enrollment) {
