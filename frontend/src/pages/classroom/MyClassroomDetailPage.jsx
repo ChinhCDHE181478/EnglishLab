@@ -659,7 +659,7 @@ export default function MyClassroomDetailPage() {
             <KpiCard
               label="Bài tập đã nộp"
               value={`${homework.filter((h) => h.mySubmission).length} / ${homework.length}`}
-              sub={pendingHomework.length ? `Còn ${pendingHomework.length} bài chưa nộp` : 'Đã nộp đầy đủ'}
+              sub={pendingHomework.length ? `Còn ${pendingHomework.length} bài chưa nộp` : 'Bài tập đã nộp'}
               icon={<FileText className="h-4.5 w-4.5" />}
             />
             <KpiCard

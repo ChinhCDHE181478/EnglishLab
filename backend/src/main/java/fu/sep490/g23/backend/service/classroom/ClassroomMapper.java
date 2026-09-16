@@ -430,6 +430,7 @@ public class ClassroomMapper {
         return ClassroomHomeworkResponse.builder()
                 .id(homework.getId())
                 .classSectionId(homework.getClassSection().getId())
+                .classroomTitle(homework.getClassSection().getName())
                 .sessionId(homework.getSession() == null ? null : homework.getSession().getId())
                 .courseUnitId(homework.getCourseUnit() == null ? null : homework.getCourseUnit().getId())
                 .courseUnitTitle(homework.getCourseUnit() == null ? null : homework.getCourseUnit().getTitle())

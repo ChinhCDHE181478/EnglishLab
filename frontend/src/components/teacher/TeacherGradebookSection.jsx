@@ -88,7 +88,7 @@ const validateForm = (form, homeworks) => {
   if (form.finalResult !== '') {
     const finalResult = Number(form.finalResult);
     if (!Number.isFinite(finalResult) || finalResult < 0 || finalResult > 10) {
-      return 'Kết quả cuối phải nằm trong khoảng 0–10.';
+      return 'Điểm tổng kết phải nằm trong khoảng 0–10.';
     }
   }
   return '';
@@ -441,7 +441,7 @@ function GradebookStudentModal({
                   )}
                 </label>
                 <label className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">Kết quả cuối</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">Điểm tổng kết</span>
                   {isEditing ? (
                     <div className="relative mt-1.5">
                       <input
@@ -498,7 +498,7 @@ function GradebookStudentModal({
                 type="button"
               >
                 <Pencil className="h-4 w-4" />
-                Sửa tổng kết
+                Sửa điểm
               </button>
             )}
           </div>
