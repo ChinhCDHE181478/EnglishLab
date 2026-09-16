@@ -72,10 +72,6 @@ public class PaymentReceiptPdfService {
             }
 
             document.add(new Paragraph(" "));
-            document.add(new Paragraph(
-                    "Tai lieu nay duoc tao tu he thong EnglishLab. Tien PayOS neu can chuyen lai se xu ly ngoai ung dung.",
-                    bodyFont
-            ));
             document.close();
             return output.toByteArray();
         } catch (DocumentException ex) {

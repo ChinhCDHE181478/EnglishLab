@@ -545,7 +545,7 @@ export default function MyHomeworkPage() {
 
                           {/* Title block */}
                           <div className="space-y-1">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Lớp: #{item.classroomOfferingId}</span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Lớp: {item.classroomTitle || `#${item.classroomOfferingId}`}</span>
                             <h3 className="font-['Manrope'] text-base font-extrabold text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors duration-300 line-clamp-2">
                               {item.title}
                             </h3>

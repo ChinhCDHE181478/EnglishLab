@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -88,6 +89,81 @@ class PlacementTestServiceImplTest {
         assertThat(response.get("attemptCount")).isEqualTo(12L);
         assertThat(response.get("canRetake")).isEqualTo(true);
         assertThat(response).doesNotContainKey("maxAttempts");
+    }
+
+    @Test
+    void getTestOnlyReturnsSectionsForEnabledExamTypes() {
+        UserRepository userRepository = mock(UserRepository.class);
+        PlacementTestAttemptRepository attemptRepository = mock(PlacementTestAttemptRepository.class);
+        PlacementTestDefinitionService definitionService = mock(PlacementTestDefinitionService.class);
+        PlacementTestServiceImpl service = newService(
+                userRepository,
+                attemptRepository,
+                mock(AiEvaluationClient.class),
+                mock(AssessmentAudioStorageService.class),
+                definitionService
+        );
+        User student = User.builder().id(1L).email("learner@example.com").build();
+        PlacementTestDefinition definition = PlacementTestDefinition.builder()
+                .testCode(PlacementTestDefinitionService.TEST_CODE)
+                .title("Placement test")
+                .status("PUBLISHED")
+                .ieltsEnabled(false)
+                .toeicEnabled(true)
+                .skillAssessmentEnabled(false)
+                .build();
+        ObjectNode toeicConfig = new ObjectMapper().createObjectNode();
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(definitionService.getDefinition()).thenReturn(definition);
+        when(definitionService.getConfig(definition, "toeic")).thenReturn(toeicConfig);
+        when(attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(
+                student,
+                PlacementTestDefinitionService.TEST_CODE
+        )).thenReturn(Optional.empty());
+
+        Map<String, Object> response = service.getTest(student.getEmail());
+
+        assertThat(response.get("availableExamTypes")).isEqualTo(List.of("TOEIC"));
+        Map<?, ?> sections = (Map<?, ?>) response.get("sections");
+        assertThat(sections).hasSize(1);
+        assertThat(sections.containsKey("toeic")).isTrue();
+        verify(definitionService, never()).getConfig(definition, "listening");
+        verify(definitionService, never()).getConfig(definition, "reading");
+        verify(definitionService, never()).getConfig(definition, "writing");
+        verify(definitionService, never()).getConfig(definition, "speaking");
+    }
+
+    @Test
+    void submitRejectsAnExamTypeThatHasBeenDisabled() {
+        UserRepository userRepository = mock(UserRepository.class);
+        PlacementTestAttemptRepository attemptRepository = mock(PlacementTestAttemptRepository.class);
+        PlacementTestDefinitionService definitionService = mock(PlacementTestDefinitionService.class);
+        PlacementTestServiceImpl service = newService(
+                userRepository,
+                attemptRepository,
+                mock(AiEvaluationClient.class),
+                mock(AssessmentAudioStorageService.class),
+                definitionService
+        );
+        User student = User.builder().id(1L).email("learner@example.com").build();
+        PlacementTestDefinition definition = PlacementTestDefinition.builder()
+                .testCode(PlacementTestDefinitionService.TEST_CODE)
+                .status("PUBLISHED")
+                .ieltsEnabled(false)
+                .toeicEnabled(true)
+                .skillAssessmentEnabled(false)
+                .build();
+        PlacementTestSubmissionRequest request = new PlacementTestSubmissionRequest();
+        request.setExamType("IELTS");
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(definitionService.getDefinition()).thenReturn(definition);
+
+        assertThatThrownBy(() -> service.submit(request, student.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Dạng bài đánh giá đã tạm dừng.");
+        verify(attemptRepository, never()).save(any());
     }
 
     @Test
