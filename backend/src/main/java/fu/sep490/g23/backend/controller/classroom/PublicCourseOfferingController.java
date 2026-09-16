@@ -19,11 +19,11 @@ public class PublicCourseOfferingController {
 
     @GetMapping
     public ResponseEntity<List<InstructorLedCourseResponse>> list() {
-        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms());
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedInstructorLedCourses());
     }
 
     @GetMapping("/{idOrCode}")
     public ResponseEntity<InstructorLedCourseResponse> get(@PathVariable String idOrCode) {
-        return ResponseEntity.ok(instructorLedCourseCatalogService.getPublishedProgram(idOrCode));
+        return ResponseEntity.ok(instructorLedCourseCatalogService.getPublishedInstructorLedCourse(idOrCode));
     }
 }

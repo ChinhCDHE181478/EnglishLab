@@ -10,7 +10,6 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
@@ -31,6 +30,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Builds course / training-program / learning-path suggestions from a scored attempt.
@@ -40,6 +41,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PlacementRecommendationServiceImpl implements PlacementRecommendationService {
+    private static final Pattern SCORE_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)");
+    private static final Pattern IELTS_SCORE_PATTERN = Pattern.compile("IELTS\\s*(\\d+(?:\\.\\d+)?)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TOEIC_SCORE_PATTERN = Pattern.compile("TOEIC\\s*(\\d+(?:\\.\\d+)?)", Pattern.CASE_INSENSITIVE);
+
     private final UserRepository userRepository;
     private final PlacementTestAttemptRepository attemptRepository;
     private final PlacementEligibilityService eligibilityService;
@@ -142,14 +147,16 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
      * 1. Load active instructor-led courses.
      * 2. Keep PUBLISHED product + PUBLISHED curriculum only.
      * 3. Same exam category as placement (IELTS vs TOEIC) — hard filter, unlike online courses.
-     * 4. instructorLedCourseScore() - numeric match (level, weak skills, target stretch).
-     * 5. Sort by score desc; tie-break by id.
-     * 6. Keep 6; toInstructorLedCourseResponse() adds the Vietnamese reason.
+     * 4. Keep courses whose numeric entry/target range contains the learner's score.
+     * 5. instructorLedCourseScore() - entry proximity, weak skills, and target fit.
+     * 6. Sort by score desc; tie-break by id.
+     * 7. Keep 6; toInstructorLedCourseResponse() adds the Vietnamese reason.
      */
     private List<RecommendedInstructorLedCourseResponse> recommendInstructorLedCourses(PlacementRecommendationContext context) {
         return instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
                 .filter(program -> program.getPublicationStatus() == PackageStatus.PUBLISHED)
                 .filter(program -> context.getExamType().equalsIgnoreCase(program.getExamType()))
+                .filter(program -> isScoreEligible(program, context))
                 .map(program -> new ScoredInstructorLedCourse(program, instructorLedCourseScore(program, context)))
                 .sorted(Comparator.comparingDouble(ScoredInstructorLedCourse::score).reversed()
                         .thenComparing(item -> item.program().getId()))
@@ -161,65 +168,152 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
     /**
      * Score one instructor-led course. Start at 20 so a mild mismatch still ranks above zero.
      *
-     *   +15 / -5  entryPlacementLevel equals / differs from recommendedLevel
+     *   +0..15    learner score is close to the course's numeric entry score
      *   +8 each   focus skill overlaps a placement weak skill
-     *   +5        course target is above current score (room to grow)
+     *   +5        learner is inside the course's entry-to-target growth range
      *   +3        course target still covers the learner's personal goal
      *
      * IELTS uses targetBand; TOEIC uses targetScore.
      */
     private double instructorLedCourseScore(InstructorLedCourse program, PlacementRecommendationContext context) {
-        InstructorLedCourse curriculum = program;
         double score = 20;
-        if (curriculum.getEntryPlacementLevel() != null && context.getRecommendedLevel() != null) {
-            score += curriculum.getEntryPlacementLevel() == context.getRecommendedLevel() ? 15 : -5;
+        BigDecimal entry = entryScore(program);
+        BigDecimal target = targetScore(program);
+        BigDecimal current = context.getOverallScore();
+
+        if (entry != null && target != null && current != null) {
+            BigDecimal range = target.subtract(entry);
+            if (range.compareTo(BigDecimal.ZERO) > 0) {
+                double progress = current.subtract(entry)
+                        .divide(range, 6, java.math.RoundingMode.HALF_UP)
+                        .doubleValue();
+                score += Math.max(0D, 15D * (1D - Math.min(1D, progress)));
+            }
+            score += 5;
         }
-        Set<AssessmentSkill> focusSkills = focusSkills(curriculum.getFocusSkills());
+
+        Set<AssessmentSkill> focusSkills = focusSkills(program.getFocusSkills());
         score += focusSkills.stream().filter(context.getWeakSkills()::contains).count() * 8D;
-        if ("IELTS".equals(context.getExamType()) && context.getOverallScore() != null && curriculum.getTargetBand() != null) {
-            BigDecimal target = context.getTargetScore();
-            if (curriculum.getTargetBand().compareTo(context.getOverallScore()) > 0) score += 5;
-            if (target != null && curriculum.getTargetBand().compareTo(target) <= 0) score += 3;
-        }
-        if ("TOEIC".equals(context.getExamType()) && curriculum.getTargetScore() != null) {
-            if (context.getOverallScore() != null && curriculum.getTargetScore() > context.getOverallScore().intValue()) score += 5;
-            if (context.getTargetScore() != null && curriculum.getTargetScore() <= context.getTargetScore().intValue()) score += 3;
+        if (target != null && context.getTargetScore() != null
+                && target.compareTo(context.getTargetScore()) >= 0) {
+            score += 3;
         }
         return score;
     }
 
     /**
      * Map a ranked program to the API DTO.
-     * Reason priority: covers a weak skill → same placement level → same exam type.
+     * The reason exposes the score range that made the course eligible.
      */
     private RecommendedInstructorLedCourseResponse toInstructorLedCourseResponse(
             InstructorLedCourse program,
             PlacementRecommendationContext context
     ) {
-        InstructorLedCourse curriculum = program;
-        Set<AssessmentSkill> matches = focusSkills(curriculum.getFocusSkills()).stream()
+        Set<AssessmentSkill> matches = focusSkills(program.getFocusSkills()).stream()
                 .filter(context.getWeakSkills()::contains)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-        // Reason priority: covers a weak skill > same placement level > same exam type.
-        String reason = !matches.isEmpty()
-                ? "Tập trung vào " + skillLabel(matches.iterator().next()) + ", kỹ năng bạn đang cần ưu tiên."
-                : curriculum.getEntryPlacementLevel() == context.getRecommendedLevel()
-                    ? "Phù hợp với trình độ " + levelLabel(context.getRecommendedLevel().name()) + " hiện tại của bạn."
-                    : "Phù hợp với mục tiêu " + context.getExamType() + " của bạn.";
+        String reason = scoreFitReason(program, context, matches);
         return RecommendedInstructorLedCourseResponse.builder()
                 .id(program.getId())
                 .title(program.getTitle())
                 .shortDescription(program.getShortDescription())
-                .entryPlacementLevel(curriculum.getEntryPlacementLevel())
-                .examCategory(curriculum.getExamType())
-                .focusSkills(focusSkills(curriculum.getFocusSkills()).stream().map(Enum::name).toList())
-                .targetBand(curriculum.getTargetBand())
-                .targetScore(curriculum.getTargetScore())
-                .totalSessions(curriculum.getUnits().stream().mapToInt(unit -> unit.getLessons().size()).sum())
+                .entryLevel(program.getEntryLevel())
+                .examCategory(program.getExamType())
+                .focusSkills(focusSkills(program.getFocusSkills()).stream().map(Enum::name).toList())
+                .targetBand(program.getTargetBand())
+                .targetScore(program.getTargetScore())
+                .totalSessions(program.getUnits().stream().mapToInt(unit -> unit.getLessons().size()).sum())
                 .price(program.getBaseTuitionFeeVnd())
                 .salePrice(program.getSaleTuitionFeeVnd())
                 .recommendationReason(reason)
                 .build();
+    }
+
+    private boolean isScoreEligible(InstructorLedCourse program, PlacementRecommendationContext context) {
+        BigDecimal current = context.getOverallScore();
+        BigDecimal entry = entryScore(program);
+        BigDecimal target = targetScore(program);
+        return current != null
+                && entry != null
+                && target != null
+                && entry.compareTo(target) < 0
+                && current.compareTo(entry) >= 0
+                && current.compareTo(target) < 0;
+    }
+
+    /** Parse legacy display values such as "IELTS 5.0" and "TOEIC 350+". */
+    private BigDecimal entryScore(InstructorLedCourse program) {
+        if (program == null || program.getEntryLevel() == null || program.getEntryLevel().isBlank()) {
+            return null;
+        }
+        Matcher matcher = labeledEntryScorePattern(program).matcher(program.getEntryLevel());
+        if (!matcher.find()) {
+            matcher = SCORE_PATTERN.matcher(program.getEntryLevel());
+            if (!matcher.find()) {
+                return null;
+            }
+        }
+        try {
+            BigDecimal value = new BigDecimal(matcher.group(1));
+            if ("IELTS".equalsIgnoreCase(program.getExamType())) {
+                return isValidIeltsBand(value) ? value : null;
+            }
+            if ("TOEIC".equalsIgnoreCase(program.getExamType())) {
+                return isValidToeicScore(value) ? value : null;
+            }
+        } catch (NumberFormatException ignored) {
+            // Invalid legacy values are excluded from recommendations instead of breaking the request.
+        }
+        return null;
+    }
+
+    private Pattern labeledEntryScorePattern(InstructorLedCourse program) {
+        return "TOEIC".equalsIgnoreCase(program.getExamType()) ? TOEIC_SCORE_PATTERN : IELTS_SCORE_PATTERN;
+    }
+
+    private BigDecimal targetScore(InstructorLedCourse program) {
+        if ("IELTS".equalsIgnoreCase(program.getExamType())) {
+            return program.getTargetBand();
+        }
+        if ("TOEIC".equalsIgnoreCase(program.getExamType()) && program.getTargetScore() != null) {
+            return BigDecimal.valueOf(program.getTargetScore());
+        }
+        return null;
+    }
+
+    private boolean isValidIeltsBand(BigDecimal value) {
+        return value.compareTo(BigDecimal.ZERO) >= 0
+                && value.compareTo(BigDecimal.valueOf(9)) <= 0
+                && value.multiply(BigDecimal.valueOf(2)).stripTrailingZeros().scale() <= 0;
+    }
+
+    private boolean isValidToeicScore(BigDecimal value) {
+        try {
+            int score = value.intValueExact();
+            return score >= 10 && score <= 990 && score % 5 == 0;
+        } catch (ArithmeticException ignored) {
+            return false;
+        }
+    }
+
+    private String scoreFitReason(
+            InstructorLedCourse program,
+            PlacementRecommendationContext context,
+            Set<AssessmentSkill> matches
+    ) {
+        String scoreLabel = "IELTS".equalsIgnoreCase(program.getExamType()) ? "Band" : "Điểm";
+        String reason = scoreLabel + " hiện tại " + formatScore(context.getOverallScore())
+                + " phù hợp đầu vào " + formatScore(entryScore(program))
+                + "; khóa hướng tới " + formatScore(targetScore(program)) + ".";
+        if (!matches.isEmpty()) {
+            reason += " Đồng thời tập trung vào " + skillLabel(matches.iterator().next())
+                    + ", kỹ năng bạn đang cần ưu tiên.";
+        }
+        return reason;
+    }
+
+    private String formatScore(BigDecimal value) {
+        return value == null ? "chưa xác định" : value.stripTrailingZeros().toPlainString();
     }
 
     /** Split curriculum focusSkills text ("LISTENING,WRITING") into enums; ignore unknown tokens. */
@@ -257,16 +351,6 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
             case WRITING -> "Writing";
             case SPEAKING -> "Speaking";
             default -> skill.name();
-        };
-    }
-
-    /** Vietnamese label for BEGINNER / INTERMEDIATE / ADVANCED. */
-    private String levelLabel(String level) {
-        return switch (level) {
-            case "BEGINNER" -> "Cơ bản";
-            case "INTERMEDIATE" -> "Trung cấp";
-            case "ADVANCED" -> "Nâng cao";
-            default -> level;
         };
     }
 

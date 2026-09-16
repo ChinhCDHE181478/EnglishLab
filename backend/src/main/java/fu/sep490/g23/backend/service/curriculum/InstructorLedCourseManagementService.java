@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface InstructorLedCourseManagementService {
-    List<InstructorLedCourseResponse> listPrograms();
+    List<InstructorLedCourseResponse> listInstructorLedCourses();
 
-    Page<InstructorLedCourseResponse> pagePrograms(
+    Page<InstructorLedCourseResponse> pageInstructorLedCourses(
             String keyword,
             String examCategory,
             String entryLevel,
@@ -30,29 +30,29 @@ public interface InstructorLedCourseManagementService {
             Pageable pageable
     );
 
-    InstructorLedCourseResponse getProgram(Long id);
+    InstructorLedCourseResponse getInstructorLedCourse(Long id);
 
-    InstructorLedCourseResponse createProgram(InstructorLedCourseRequest request);
+    InstructorLedCourseResponse createInstructorLedCourse(InstructorLedCourseRequest request);
 
-    InstructorLedCourseResponse updateProgram(Long id, InstructorLedCourseRequest request);
+    InstructorLedCourseResponse updateInstructorLedCourse(Long id, InstructorLedCourseRequest request);
 
-    void archiveProgram(Long id);
+    void archiveInstructorLedCourse(Long id);
 
-    InstructorLedCourseResponse cloneProgram(Long id);
+    InstructorLedCourseResponse cloneInstructorLedCourse(Long id);
 
-    InstructorLedCourseResponse publishProgram(Long id, String actorEmail);
+    InstructorLedCourseResponse publishInstructorLedCourse(Long id, String actorEmail);
 
-    CourseUnitResponse createUnit(Long programId, CourseUnitRequest request);
+    CourseUnitResponse createUnit(Long instructorLedCourseId, CourseUnitRequest request);
 
     CourseUnitResponse updateUnit(Long unitId, CourseUnitRequest request);
 
     void deleteUnit(Long unitId);
 
-    CourseLessonResponse createSessionPlan(Long unitId, CourseLessonRequest request);
+    CourseLessonResponse createCourseLesson(Long unitId, CourseLessonRequest request);
 
-    CourseLessonResponse updateSessionPlan(Long sessionPlanId, CourseLessonRequest request);
+    CourseLessonResponse updateCourseLesson(Long lessonId, CourseLessonRequest request);
 
-    void deleteSessionPlan(Long sessionPlanId);
+    void deleteCourseLesson(Long lessonId);
 
     CourseUnitResponse attachMaterial(Long unitId, CourseUnitContentRefRequest request);
 

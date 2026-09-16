@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
+/** Summary of a course attached to a managed learning path. */
 public class LearningPathCourseResponse {
     private Long courseId;
     private String slug;

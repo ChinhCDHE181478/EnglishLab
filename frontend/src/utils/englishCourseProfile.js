@@ -87,7 +87,7 @@ export const normalizeEnglishEntryLevel = (value, examCategory) => {
   return cefr || fallback;
 };
 
-export const validateEnglishProgramProfile = (profile) => {
+export const validateEnglishCourseProfile = (profile) => {
   const examCategory = normalizeEnglishExamCategory(profile.examCategory);
   if (!profile.focusSkills?.length) return 'Hãy chọn ít nhất một kỹ năng trọng tâm.';
 
@@ -102,7 +102,7 @@ export const validateEnglishProgramProfile = (profile) => {
     }
     if (entryBand > band) return 'Band IELTS đầu vào không thể cao hơn band mục tiêu.';
     if (profile.targetScore !== '' && profile.targetScore != null) {
-      return 'Chương trình IELTS không sử dụng thang điểm TOEIC.';
+      return 'Khóa học IELTS không sử dụng thang điểm TOEIC.';
     }
   }
   if (examCategory === 'TOEIC') {
@@ -116,7 +116,7 @@ export const validateEnglishProgramProfile = (profile) => {
     }
     if (entryScore > score) return 'Điểm TOEIC đầu vào không thể cao hơn điểm mục tiêu.';
     if (profile.targetBand !== '' && profile.targetBand != null) {
-      return 'Chương trình TOEIC không sử dụng band IELTS.';
+      return 'Khóa học TOEIC không sử dụng band IELTS.';
     }
   }
   if (examCategory === 'GENERAL_ENGLISH' && !CEFR_LEVEL_OPTIONS.some((option) => option.value === profile.entryLevel)) {

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   GraduationCap,
   MapPin,
   MessageSquare,
@@ -16,6 +17,7 @@ import Header from '../../components/ai-learning/Header';
 import CourseFooter from '../../components/course/CourseFooter';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
+import { formatCoursePrice } from '../../components/course/courseFormatters';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
 import {
@@ -101,6 +103,50 @@ const suggestedTrack = (program) => {
   return 'ENGLISH_FOUNDATION';
 };
 
+const getExamTypeLabel = (program) => {
+  const examType = program?.examType || program?.examCategory || program?.instructorLedCourseExamType;
+  return examType === 'GENERAL_ENGLISH' ? 'General English' : examType || 'Đang cập nhật';
+};
+
+const getEffectiveTuition = (program) => {
+  const basePrice = Number(program?.price || 0);
+  const hasSalePrice = program?.salePrice !== null
+    && program?.salePrice !== undefined
+    && program?.salePrice !== '';
+  const salePrice = Number(program?.salePrice);
+  return hasSalePrice && Number.isFinite(salePrice) && salePrice >= 0 && salePrice < basePrice
+    ? salePrice
+    : basePrice;
+};
+
+const hasTuitionDiscount = (program) => {
+  const basePrice = Number(program?.price || 0);
+  const hasSalePrice = program?.salePrice !== null
+    && program?.salePrice !== undefined
+    && program?.salePrice !== '';
+  const salePrice = Number(program?.salePrice);
+  return hasSalePrice && basePrice > 0 && Number.isFinite(salePrice) && salePrice >= 0 && salePrice < basePrice;
+};
+
+const getFocusSkillsLabel = (program) => (
+  program?.focusSkills?.split(',').map((skill) => skill.trim()).filter(Boolean).join(', ')
+  || 'Đang cập nhật'
+);
+
+const getScoreProgressionLabel = (program) => {
+  const prefix = getExamTypeLabel(program).toUpperCase() === 'IELTS' ? 'Band' : 'Điểm';
+  const entry = String(program?.entryLevel || '').replace(/^(IELTS|TOEIC)\s*/i, '').trim();
+  const target = String(program?.targetScore || '').replace(/^(IELTS|TOEIC)\s*/i, '').trim();
+  if (entry && target) return `${prefix} đầu vào ${entry} → ${prefix.toLowerCase()} mục tiêu ${target}`;
+  if (entry) return `${prefix} đầu vào ${entry}`;
+  if (target) return `${prefix} mục tiêu ${target}`;
+  return 'Đang cập nhật';
+};
+
+const getSaleTuitionLabel = (program) => (
+  hasTuitionDiscount(program) ? formatCoursePrice(program.salePrice) : 'Không áp dụng'
+);
+
 export default function ClassroomsCatalogPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -159,8 +205,11 @@ export default function ClassroomsCatalogPage() {
         program.title,
         program.code,
         program.shortDescription,
+        program.description,
+        program.focusSkills,
         program.entryLevel,
         program.targetScore,
+        program.targetOutcome,
       ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(normalized);
     });
   }, [programs, searchQuery]);
@@ -168,6 +217,11 @@ export default function ClassroomsCatalogPage() {
   const activeProgramIds = useMemo(
     () => new Set(activeRequests.map((item) => String(item.courseOfferingId)).filter(Boolean)),
     [activeRequests],
+  );
+
+  const selectedProgram = useMemo(
+    () => programs.find((program) => String(program.id) === String(form.courseOfferingId)) || null,
+    [form.courseOfferingId, programs],
   );
 
   useEffect(() => {
@@ -263,7 +317,6 @@ export default function ClassroomsCatalogPage() {
     const studyWorkGoal = [
       form.schoolOrCompany.trim() ? `Trường/Nơi làm: ${form.schoolOrCompany.trim()}` : '',
       form.scoreGoal.trim() ? `Mục tiêu: ${form.scoreGoal.trim()}` : '',
-      form.notes.trim() ? `Ghi chú: ${form.notes.trim()}` : '',
     ].filter(Boolean).join(' | ');
 
     try {
@@ -276,6 +329,7 @@ export default function ClassroomsCatalogPage() {
         consultationTrack: form.consultationTrack,
         studyWorkGoal: studyWorkGoal || null,
         preferredSchedule: form.preferredSchedule.trim() || null,
+        note: form.notes.trim() || null,
       });
       sessionStorage.removeItem(DRAFT_STORAGE_KEY);
       setActiveRequests((current) => [
@@ -405,6 +459,9 @@ export default function ClassroomsCatalogPage() {
                       value={form.courseOfferingId}
                     />
                   </div>
+                  {selectedProgram ? (
+                    <SelectedProgramSummary program={selectedProgram} />
+                  ) : null}
                   <FormField label="Họ và tên *" maxLength={100} onChange={(value) => updateField('contactName', value)} placeholder="Nguyễn Văn A" required value={form.contactName} />
                   <FormField label="Số điện thoại *" maxLength={30} onChange={(value) => updateField('contactPhone', value)} placeholder="0912 345 678" required type="tel" value={form.contactPhone} />
                   <FormField label="Email liên hệ *" maxLength={150} onChange={(value) => updateField('contactEmail', value)} placeholder="nguyenvana@gmail.com" required type="email" value={form.contactEmail} />
@@ -421,7 +478,7 @@ export default function ClassroomsCatalogPage() {
                   <FormField label="Facebook / Zalo" maxLength={500} onChange={(value) => updateField('facebookUrl', value)} placeholder="https://facebook.com/..." value={form.facebookUrl} />
                   <label className="block md:col-span-2">
                     <FieldLabel>Ghi chú thêm</FieldLabel>
-                    <textarea className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-[#730014]" onChange={(event) => updateField('notes', event.target.value)} placeholder="Nhu cầu tư vấn hoặc lưu ý khác..." rows={3} value={form.notes} />
+                    <textarea className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-[#730014]" maxLength={700} onChange={(event) => updateField('notes', event.target.value)} placeholder="Nhu cầu tư vấn hoặc lưu ý khác..." rows={3} value={form.notes} />
                   </label>
                   {formError ? <div className="md:col-span-2"><FormNotice message={formError} /></div> : null}
                   <div className="flex flex-col items-center pt-2 text-center md:col-span-2">
@@ -441,28 +498,48 @@ export default function ClassroomsCatalogPage() {
 }
 
 function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgramId }) {
+  const [expandedProgramIds, setExpandedProgramIds] = useState(() => new Set());
+
+  const toggleExpanded = (programId) => {
+    setExpandedProgramIds((current) => {
+      const next = new Set(current);
+      const key = String(programId);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   return (
     <>
       <div className="hidden overflow-hidden rounded-2xl border border-[#dcc0bf]/30 bg-white shadow-sm md:block">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse text-left">
+          <table className="w-full min-w-[1120px] border-collapse text-left">
             <thead className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4] text-xs font-bold uppercase tracking-wider text-[#8e7371]">
               <tr>
                 <th className="px-4 py-3">Mã khóa học</th>
-                <th className="px-4 py-3">Khóa học</th>
-                <th className="px-4 py-3">Đầu vào</th>
-                <th className="px-4 py-3">Mục tiêu</th>
+                <th className="px-4 py-3">Tên khóa học</th>
+                <th className="px-4 py-3">Yêu cầu đầu vào</th>
+                <th className="px-4 py-3">Mục tiêu điểm</th>
                 <th className="px-4 py-3">Thời lượng</th>
+                <th className="px-4 py-3">Học phí</th>
+                <th className="w-24 px-4 py-3 text-center">Chi tiết</th>
                 <th className="w-28 px-4 py-3 text-center">Đăng ký</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {programs.map((program) => {
                 const selected = String(program.id) === String(selectedProgramId);
+                const expanded = expandedProgramIds.has(String(program.id));
                 return (
                   <ProgramTableRow
+                    expanded={expanded}
                     key={program.id}
                     onSelect={() => onSelect(program)}
+                    onToggle={() => toggleExpanded(program.id)}
                     program={program}
                     registered={registeredProgramIds.has(String(program.id))}
                     selected={selected}
@@ -479,9 +556,11 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
           <ProgramMobileRow
             key={program.id}
             onSelect={() => onSelect(program)}
+            onToggle={() => toggleExpanded(program.id)}
             program={program}
             registered={registeredProgramIds.has(String(program.id))}
             selected={String(program.id) === String(selectedProgramId)}
+            expanded={expandedProgramIds.has(String(program.id))}
           />
         ))}
       </div>
@@ -489,59 +568,186 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
   );
 }
 
-function ProgramTableRow({ onSelect, program, registered, selected }) {
+function ProgramTableRow({ expanded, onSelect, onToggle, program, registered, selected }) {
   return (
-    <tr className={`text-sm transition ${selected ? 'bg-[#fff3f4]' : 'odd:bg-white even:bg-slate-50/70 hover:bg-[#fff8f8]'}`}>
-      <td className="px-4 py-3 align-top">
-        <span className="font-extrabold text-[#a0001c]">{program.code}</span>
-      </td>
-      <td className="max-w-xs px-4 py-3 align-top">
-        <p className="font-extrabold text-slate-900">{program.title}</p>
-        <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#8a0018]">
-          {(program.examType || program.examCategory || program.instructorLedCourseExamType) === 'GENERAL_ENGLISH' ? 'General English' : (program.examType || program.examCategory || program.instructorLedCourseExamType || 'IELTS')}
-          {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
-        </p>
-        <RichTextHtml
-          asPlain
-          className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500"
-          value={program.shortDescription || program.description || 'Lộ trình được thiết kế theo chuẩn đầu ra EnglishLab.'}
-        />
-      </td>
-      <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.entryLevel || 'Test đầu vào'}</td>
-      <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.targetScore || 'Theo lộ trình'}</td>
-      <td className="px-4 py-3 align-top text-slate-600">{program.duration || 'Đang cập nhật'}</td>
-      <td className="px-4 py-3 text-center align-middle">
-        <SelectProgramButton onSelect={onSelect} registered={registered} selected={selected} />
-      </td>
-    </tr>
+    <Fragment>
+      <tr className={`border-t border-slate-100 text-sm transition first:border-t-0 ${selected ? 'bg-[#fff3f4]' : 'bg-white hover:bg-[#fff8f8]'}`}>
+        <td className="px-4 py-3 align-middle">
+          <span className="font-extrabold text-[#a0001c]">{program.code}</span>
+        </td>
+        <td className="max-w-64 px-4 py-3 align-middle">
+          <p className="font-extrabold text-slate-900">{program.title}</p>
+        </td>
+        <td className="px-4 py-3 align-middle font-semibold text-slate-700">{program.entryLevel || 'Test đầu vào'}</td>
+        <td className="px-4 py-3 align-middle font-semibold text-slate-700">{program.targetScore || 'Theo lộ trình'}</td>
+        <td className="px-4 py-3 align-middle text-slate-600">{program.duration || 'Đang cập nhật'}</td>
+        <td className="px-4 py-3 align-middle">
+          {hasTuitionDiscount(program) ? (
+            <p className="text-xs text-slate-400 line-through">{formatCoursePrice(program.price)}</p>
+          ) : null}
+          <p className="font-extrabold text-[#730014]">{formatCoursePrice(getEffectiveTuition(program))}</p>
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <DetailsToggleButton expanded={expanded} onToggle={onToggle} />
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <SelectProgramButton onSelect={onSelect} registered={registered} selected={selected} />
+        </td>
+      </tr>
+      {expanded ? (
+        <tr className="bg-[#fffafb]">
+          <td className="px-5 py-5" colSpan={8}>
+            <ProgramExpandedDetails program={program} />
+          </td>
+        </tr>
+      ) : null}
+    </Fragment>
   );
 }
 
-function ProgramMobileRow({ onSelect, program, registered, selected }) {
+function ProgramMobileRow({ expanded, onSelect, onToggle, program, registered, selected }) {
   return (
     <article className={selected ? 'bg-[#fff3f4] p-4' : 'bg-white p-4'}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-extrabold text-[#a0001c]">{program.code}</p>
           <h3 className="mt-1 font-['Manrope'] text-base font-black text-slate-900">{program.title}</h3>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a0018]">
-            {(program.examType || program.examCategory || program.instructorLedCourseExamType) === 'GENERAL_ENGLISH' ? 'General English' : (program.examType || program.examCategory || program.instructorLedCourseExamType || 'IELTS')}
-            {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
-          </p>
         </div>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-        <ProgramDetail label="Đầu vào" value={program.entryLevel || 'Test đầu vào'} />
-        <ProgramDetail label="Mục tiêu" value={program.targetScore || 'Theo lộ trình'} />
+        <ProgramDetail label="Yêu cầu đầu vào" value={program.entryLevel || 'Test đầu vào'} />
+        <ProgramDetail label="Mục tiêu điểm" value={program.targetScore || 'Theo lộ trình'} />
         <ProgramDetail label="Thời lượng" value={program.duration || 'Đang cập nhật'} />
+        <ProgramDetail label="Học phí" value={formatCoursePrice(getEffectiveTuition(program))} />
       </dl>
+      <div className="mt-4">
+        <DetailsToggleButton className="w-full" expanded={expanded} onToggle={onToggle} />
+      </div>
+      {expanded ? <div className="mt-4"><ProgramExpandedDetails program={program} /></div> : null}
       <SelectProgramButton className="mt-4 w-full" onSelect={onSelect} registered={registered} selected={selected} />
     </article>
   );
 }
 
-function ProgramDetail({ label, value }) {
-  return <div><dt className="font-bold uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-0.5 font-semibold text-slate-700">{value}</dd></div>;
+function ProgramDetail({ className = '', label, value }) {
+  return (
+    <div className={className}>
+      <dt className="font-bold uppercase tracking-wide text-slate-400">{label}</dt>
+      <dd className="mt-0.5 font-semibold text-slate-700">{value}</dd>
+    </div>
+  );
+}
+
+function ProgramRichDetail({ className = '', label, value }) {
+  return (
+    <div className={className}>
+      <p className="font-bold uppercase tracking-wide text-slate-400">{label}</p>
+      <RichTextHtml
+        asPlain
+        className="mt-0.5 line-clamp-3 leading-5 text-slate-700"
+        value={value || 'Đang cập nhật'}
+      />
+    </div>
+  );
+}
+
+function ProgramExpandedDetails({ program }) {
+  return (
+    <div className="space-y-4 text-xs">
+      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
+        <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
+        <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
+        <ProgramDetail label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
+      </dl>
+      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
+        <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
+      </dl>
+      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        <ProgramRichDetail label="Mô tả ngắn" value={program.shortDescription} />
+        <ProgramRichDetail label="Mục tiêu đầu ra" value={program.targetOutcome} />
+      </div>
+      <ProgramRichDetail label="Mô tả chi tiết" value={program.description} />
+    </div>
+  );
+}
+
+function DetailsToggleButton({ className = '', expanded, onToggle }) {
+  return (
+    <button
+      aria-expanded={expanded}
+      className={`${className} inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd]/60 bg-white px-3 py-2 text-xs font-extrabold text-[#730014] transition hover:bg-[#fff3f4]`}
+      onClick={onToggle}
+      type="button"
+    >
+      {expanded ? 'Thu gọn' : 'Xem thêm'}
+      <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+    </button>
+  );
+}
+
+function SelectedProgramSummary({ program }) {
+  return (
+    <section className="md:col-span-2 rounded-2xl border border-[#dfbfbd]/40 bg-[#fffafb] p-4 md:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">
+            {program.code} · {getExamTypeLabel(program)}
+          </p>
+          <h3 className="mt-1 font-['Manrope'] text-lg font-black text-slate-900">{program.title}</h3>
+        </div>
+        <div className="text-left sm:text-right">
+          {hasTuitionDiscount(program) ? (
+            <p className="text-xs font-semibold text-slate-400 line-through">{formatCoursePrice(program.price)}</p>
+          ) : null}
+          <p className="text-lg font-black text-[#730014]">{formatCoursePrice(getEffectiveTuition(program))}</p>
+          <p className="text-[10px] text-slate-500">Học phí khóa học tham khảo</p>
+        </div>
+      </div>
+
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ProgramDetail label="Loại kỳ thi" value={getExamTypeLabel(program)} />
+        <ProgramDetail label="Kỹ năng trọng tâm" value={getFocusSkillsLabel(program)} />
+        <ProgramDetail label="Lộ trình điểm" value={getScoreProgressionLabel(program)} />
+        <ProgramDetail label="Thời lượng" value={program.duration || 'Đang cập nhật'} />
+        <ProgramDetail label="Học phí gốc" value={formatCoursePrice(program.price)} />
+        <ProgramDetail label="Học phí ưu đãi" value={getSaleTuitionLabel(program)} />
+      </dl>
+
+      {program.shortDescription ? (
+        <div className="mt-4 border-t border-[#dfbfbd]/30 pt-4">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Mô tả ngắn</p>
+          <RichTextHtml
+            asPlain
+            className="mt-1 text-sm leading-6 text-slate-700"
+            value={program.shortDescription}
+          />
+        </div>
+      ) : null}
+
+      {program.description ? (
+        <div className="mt-4 border-t border-[#dfbfbd]/30 pt-4">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Mô tả chi tiết</p>
+          <RichTextHtml
+            asPlain
+            className="mt-1 text-sm leading-6 text-slate-700"
+            value={program.description}
+          />
+        </div>
+      ) : null}
+
+      {program.targetOutcome ? (
+        <div className="mt-3 rounded-xl bg-white px-4 py-3">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Mục tiêu đầu ra</p>
+          <RichTextHtml asPlain className="mt-1 text-sm leading-6 text-slate-700" value={program.targetOutcome} />
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-xs leading-5 text-slate-500">
+        Lớp học, giáo viên, lịch học và cơ sở cụ thể sẽ được đề xuất sau khi trung tâm tư vấn và đánh giá đầu vào.
+      </p>
+    </section>
+  );
 }
 
 function SelectProgramButton({ className = '', onSelect, registered, selected }) {

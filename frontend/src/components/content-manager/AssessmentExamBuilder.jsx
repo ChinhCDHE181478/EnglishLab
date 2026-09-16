@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FileJson, Plus, Trash2, X } from 'lucide-react';
+import { ChevronDown, FileJson, Plus, Trash2, X } from 'lucide-react';
 import BrandedSelect from '../ui/BrandedSelect';
 
 const GROUP_TYPES = [
@@ -297,6 +297,16 @@ const normalizeConfig = (assessment) => {
         }),
       }]
       : fallback.parts;
+  const normalizedObjectiveParts = normalizedParts.map((part) => ({
+    ...part,
+    questionGroups: (part.questionGroups || []).map((group) => {
+      const { description: legacyDescription, ...normalizedGroup } = group;
+      return {
+        ...normalizedGroup,
+        descriptionHtml: group.descriptionHtml ?? legacyDescription ?? '',
+      };
+    }),
+  }));
 
   return {
     ...fallback,
@@ -305,7 +315,7 @@ const normalizeConfig = (assessment) => {
     type: isQuizAssessment(assessment)
       ? 'lesson_quiz'
       : resolveObjectiveExamTypeLabel(resolveObjectiveExamType(assessment, safeConfig), skill),
-    parts: normalizedParts,
+    parts: normalizedObjectiveParts,
   };
 };
 
@@ -697,12 +707,7 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                 <Field label="Mã đề" value={config.key} onChange={(value) => setConfig((current) => ({ ...current, key: value }))} />
                 <Field label="Thời gian (phút)" type="number" value={config.durationMinutes} onChange={(value) => setConfig((current) => ({ ...current, durationMinutes: Number(value) }))} />
                 {skill === 'LISTENING' ? (
-                  <>
-                    <Field label="Audio" value={config.audioUrl || ''} onChange={(value) => setConfig((current) => ({ ...current, audioUrl: value }))} />
-                    <div className="md:col-span-2">
-                      <TextAreaField label="Transcript" value={config.transcript || ''} onChange={(value) => setConfig((current) => ({ ...current, transcript: value }))} />
-                    </div>
-                  </>
+                  <Field label="Audio" value={config.audioUrl || ''} onChange={(value) => setConfig((current) => ({ ...current, audioUrl: value }))} />
                 ) : null}
                 {skill === 'READING' ? (
                   <>
@@ -722,15 +727,29 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                   </>
                 ) : null}
                 <div className="md:col-span-2">
-                  <TextAreaField
-                    label="Quy định trong lúc làm bài"
-                    value={(config.rules || []).join('\n')}
-                    onChange={(value) => setConfig((current) => ({
-                      ...current,
-                      rules: value.split('\n').map((rule) => rule.trim()).filter(Boolean),
-                    }))}
-                  />
-                  <p className="mt-2 text-xs leading-5 text-[#584140]">Mỗi dòng là một hướng dẫn hiển thị cho học viên trước khi làm bài.</p>
+                  <OptionalFieldsSection
+                    defaultExpanded={Boolean(config.transcript || (config.rules || []).length)}
+                    label="Thông tin bổ sung của đề"
+                  >
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {skill === 'LISTENING' ? (
+                        <div className="md:col-span-2">
+                          <TextAreaField label="Transcript" value={config.transcript || ''} onChange={(value) => setConfig((current) => ({ ...current, transcript: value }))} />
+                        </div>
+                      ) : null}
+                      <div className="md:col-span-2">
+                        <TextAreaField
+                          label="Quy định trong lúc làm bài"
+                          value={(config.rules || []).join('\n')}
+                          onChange={(value) => setConfig((current) => ({
+                            ...current,
+                            rules: value.split('\n').map((rule) => rule.trim()).filter(Boolean),
+                          }))}
+                        />
+                        <p className="mt-2 text-xs leading-5 text-[#584140]">Mỗi dòng là một hướng dẫn hiển thị cho học viên trước khi làm bài.</p>
+                      </div>
+                    </div>
+                  </OptionalFieldsSection>
                 </div>
               </section>
 
@@ -760,46 +779,65 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                           <div className="mt-3">
                             <Field label="Hướng dẫn" value={group.instructions || ''} onChange={(value) => updateGroup(partIndex, groupIndex, { instructions: value })} />
                           </div>
-                          <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            <Field
-                              label="Audio nhóm (URL)"
-                              value={group.audioUrl || ''}
-                              onChange={(value) => updateGroup(partIndex, groupIndex, { audioUrl: value })}
-                            />
-                            <div className="flex flex-wrap items-end gap-4 pb-1">
-                              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
-                                <input
-                                  checked={Boolean(group.hideOptionText)}
-                                  className="h-4 w-4 accent-[#4b0009]"
-                                  onChange={(event) => updateGroup(partIndex, groupIndex, { hideOptionText: event.target.checked })}
-                                  type="checkbox"
-                                />
-                                Ẩn chữ lựa chọn (A/B/C/D)
-                              </label>
-                              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
-                                <input
-                                  checked={Boolean(group.perQuestionAudio)}
-                                  className="h-4 w-4 accent-[#4b0009]"
-                                  onChange={(event) => updateGroup(partIndex, groupIndex, { perQuestionAudio: event.target.checked })}
-                                  type="checkbox"
-                                />
-                                Audio từng câu
-                              </label>
-                            </div>
-                          </div>
                           <div className="mt-3">
-                            <TextAreaField
-                              label="Nội dung dẫn nhập hoặc biểu mẫu"
-                              value={group.descriptionHtml || ''}
-                              onChange={(value) => updateGroup(partIndex, groupIndex, { descriptionHtml: value })}
-                            />
-                          </div>
-                          <div className="mt-3">
-                            <TextAreaField
-                              label="Passage HTML (TOEIC Reading Part 6/7)"
-                              value={group.passageHtml || ''}
-                              onChange={(value) => updateGroup(partIndex, groupIndex, { passageHtml: value })}
-                            />
+                            <OptionalFieldsSection
+                              defaultExpanded={Boolean(
+                                group.audioUrl
+                                || group.hideOptionText
+                                || group.perQuestionAudio
+                                || group.descriptionHtml
+                                || group.passageHtml
+                              )}
+                              label="Thông tin bổ sung của nhóm"
+                            >
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {skill === 'LISTENING' ? (
+                                  <Field
+                                    label="Audio nhóm (URL)"
+                                    value={group.audioUrl || ''}
+                                    onChange={(value) => updateGroup(partIndex, groupIndex, { audioUrl: value })}
+                                  />
+                                ) : null}
+                                <div className="flex flex-wrap items-end gap-4 pb-1">
+                                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
+                                    <input
+                                      checked={Boolean(group.hideOptionText)}
+                                      className="h-4 w-4 accent-[#4b0009]"
+                                      onChange={(event) => updateGroup(partIndex, groupIndex, { hideOptionText: event.target.checked })}
+                                      type="checkbox"
+                                    />
+                                    Ẩn chữ lựa chọn (A/B/C/D)
+                                  </label>
+                                  {skill === 'LISTENING' ? (
+                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
+                                      <input
+                                        checked={Boolean(group.perQuestionAudio)}
+                                        className="h-4 w-4 accent-[#4b0009]"
+                                        onChange={(event) => updateGroup(partIndex, groupIndex, { perQuestionAudio: event.target.checked })}
+                                        type="checkbox"
+                                      />
+                                      Audio từng câu
+                                    </label>
+                                  ) : null}
+                                </div>
+                                <div className="md:col-span-2">
+                                  <TextAreaField
+                                    label="Nội dung dẫn nhập hoặc biểu mẫu"
+                                    value={group.descriptionHtml || ''}
+                                    onChange={(value) => updateGroup(partIndex, groupIndex, { descriptionHtml: value })}
+                                  />
+                                </div>
+                                {skill === 'READING' ? (
+                                  <div className="md:col-span-2">
+                                    <TextAreaField
+                                      label="Passage HTML (TOEIC Reading Part 6/7)"
+                                      value={group.passageHtml || ''}
+                                      onChange={(value) => updateGroup(partIndex, groupIndex, { passageHtml: value })}
+                                    />
+                                  </div>
+                                ) : null}
+                              </div>
+                            </OptionalFieldsSection>
                           </div>
 
                           {group.type === 'multi_select_letters' ? (
@@ -914,8 +952,7 @@ function WritingConfigEditor({ config, onChange }) {
             </IconButton>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <Field label="Ảnh minh họa hoặc biểu đồ" value={task.imageUrl || ''} onChange={(value) => updateTask(taskIndex, { imageUrl: value })} />
+          <div className="mt-4">
             <Field label="Tóm tắt yêu cầu" value={task.summary || ''} onChange={(value) => updateTask(taskIndex, { summary: value })} />
           </div>
           <div className="mt-4">
@@ -928,9 +965,19 @@ function WritingConfigEditor({ config, onChange }) {
               })}
             />
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <TextAreaField label="Tiêu chí chấm" value={task.rubric || ''} onChange={(value) => updateTask(taskIndex, { rubric: value })} />
-            <TextAreaField label="Sample answer" value={task.sampleAnswer || ''} onChange={(value) => updateTask(taskIndex, { sampleAnswer: value })} />
+          <div className="mt-4">
+            <OptionalFieldsSection
+              defaultExpanded={Boolean(task.imageUrl || task.rubric || task.sampleAnswer)}
+              label="Thông tin bổ sung của task"
+            >
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Ảnh minh họa hoặc biểu đồ" value={task.imageUrl || ''} onChange={(value) => updateTask(taskIndex, { imageUrl: value })} />
+                <div className="md:col-span-2 grid gap-3 md:grid-cols-2">
+                  <TextAreaField label="Tiêu chí chấm riêng" value={task.rubric || ''} onChange={(value) => updateTask(taskIndex, { rubric: value })} />
+                  <TextAreaField label="Bài mẫu" value={task.sampleAnswer || ''} onChange={(value) => updateTask(taskIndex, { sampleAnswer: value })} />
+                </div>
+              </div>
+            </OptionalFieldsSection>
           </div>
         </section>
       ))}
@@ -1018,16 +1065,6 @@ function SpeakingConfigEditor({ config, onChange }) {
                     <Trash2 className="h-4 w-4" />
                   </IconButton>
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <Field label="Tiêu đề cue card" value={part.cueCardTitle || ''} onChange={(value) => updatePart(variantIndex, partIndex, { cueCardTitle: value })} />
-                  <TextAreaField
-                    label="Cue card bullets"
-                    value={(part.cueCardBullets || []).join('\n')}
-                    onChange={(value) => updatePart(variantIndex, partIndex, {
-                      cueCardBullets: value.split('\n').map((line) => line.trim()).filter(Boolean),
-                    })}
-                  />
-                </div>
                 <div className="mt-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Câu hỏi và media</p>
@@ -1065,29 +1102,55 @@ function SpeakingConfigEditor({ config, onChange }) {
                       >
                         <Trash2 className="h-4 w-4" />
                       </IconButton>
-                      <Field
-                        label="Liên kết video minh họa"
-                        value={prompt.videoUrl || ''}
-                        onChange={(value) => updatePart(variantIndex, partIndex, {
-                          prompts: (part.prompts || []).map((item, index) => (
-                            index === promptIndex ? { ...item, videoUrl: value } : item
-                          )),
-                        })}
-                      />
-                      <Field
-                        label="Liên kết audio câu hỏi"
-                        value={prompt.audioUrl || ''}
-                        onChange={(value) => updatePart(variantIndex, partIndex, {
-                          prompts: (part.prompts || []).map((item, index) => (
-                            index === promptIndex ? { ...item, audioUrl: value } : item
-                          )),
-                        })}
-                      />
+                      <div className="md:col-span-3">
+                        <OptionalFieldsSection
+                          defaultExpanded={Boolean(prompt.videoUrl || prompt.audioUrl)}
+                          label="Media câu hỏi"
+                        >
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <Field
+                              label="Liên kết video minh họa"
+                              value={prompt.videoUrl || ''}
+                              onChange={(value) => updatePart(variantIndex, partIndex, {
+                                prompts: (part.prompts || []).map((item, index) => (
+                                  index === promptIndex ? { ...item, videoUrl: value } : item
+                                )),
+                              })}
+                            />
+                            <Field
+                              label="Liên kết audio câu hỏi"
+                              value={prompt.audioUrl || ''}
+                              onChange={(value) => updatePart(variantIndex, partIndex, {
+                                prompts: (part.prompts || []).map((item, index) => (
+                                  index === promptIndex ? { ...item, audioUrl: value } : item
+                                )),
+                              })}
+                            />
+                          </div>
+                        </OptionalFieldsSection>
+                      </div>
                     </div>
                   ))}
                 </div>
                 <div className="mt-3">
-                  <TextAreaField label="Tiêu chí chấm" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />
+                  <OptionalFieldsSection
+                    defaultExpanded={Boolean(part.cueCardTitle || (part.cueCardBullets || []).length || part.rubric)}
+                    label="Thiết lập bổ sung của phần"
+                  >
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <Field label="Tiêu đề cue card" value={part.cueCardTitle || ''} onChange={(value) => updatePart(variantIndex, partIndex, { cueCardTitle: value })} />
+                      <TextAreaField
+                        label="Các ý gợi ý trên cue card"
+                        value={(part.cueCardBullets || []).join('\n')}
+                        onChange={(value) => updatePart(variantIndex, partIndex, {
+                          cueCardBullets: value.split('\n').map((line) => line.trim()).filter(Boolean),
+                        })}
+                      />
+                      <div className="md:col-span-2">
+                        <TextAreaField label="Tiêu chí chấm riêng" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />
+                      </div>
+                    </div>
+                  </OptionalFieldsSection>
                 </div>
               </div>
             ))}
@@ -1132,6 +1195,13 @@ function buildFooterSummary(config, skill, questionCount) {
 
 function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberChange, onOptionChange, onRemove, question, skill }) {
   const evidenceLabel = skill === 'READING' ? 'Evidence đoạn/dòng' : 'Mốc audio/transcript';
+  const hasOptionalContent = Boolean(
+    question.promptAfter
+    || question.evidence
+    || question.explanation
+    || question.imageUrl
+    || question.audioUrl
+  );
   return (
     <div className="rounded-xl border border-[#eadcdc] bg-white p-4">
       <div className="grid gap-3 md:grid-cols-[110px_1fr_auto]">
@@ -1144,9 +1214,8 @@ function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberC
         <IconButton label="Xóa câu" onClick={onRemove}><Trash2 className="h-4 w-4" /></IconButton>
       </div>
       {groupType === 'text' ? (
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <Field label="Nội dung sau ô trả lời" value={question.promptAfter || ''} onChange={(value) => onChange({ promptAfter: value })} />
-          <div>
+        <div className="mt-3">
+          <div className="md:w-1/2 md:pr-1.5">
             <Field label="Đáp án chấp nhận" value={answerToEditorText(answer)} onChange={onAnswerChange} />
             <p className="mt-1 text-xs leading-5 text-[#584140]">Nếu có nhiều cách trả lời đúng, ngăn cách từng cách bằng dấu <strong>|</strong>.</p>
           </div>
@@ -1159,16 +1228,25 @@ function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberC
           <SelectField label="Đáp án đúng" value={Array.isArray(answer) ? answer[0] || '' : answer || ''} options={(question.options || []).map((option) => ({ label: option.value, value: option.value }))} onChange={onAnswerChange} />
         </div>
       )}
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <Field label={evidenceLabel} value={question.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
-        <TextAreaField label="Giải thích" value={question.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
+      <div className="mt-3">
+        <OptionalFieldsSection defaultExpanded={hasOptionalContent} label="Thông tin bổ sung của câu hỏi">
+          <div className="grid gap-3 md:grid-cols-2">
+            {groupType === 'text' ? (
+              <Field label="Nội dung sau ô trả lời" value={question.promptAfter || ''} onChange={(value) => onChange({ promptAfter: value })} />
+            ) : null}
+            <Field label={evidenceLabel} value={question.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
+            <div className="md:col-span-2">
+              <TextAreaField label="Giải thích" value={question.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
+            </div>
+            {OBJECTIVE_SKILLS.includes(skill) ? (
+              <>
+                <Field label="Ảnh câu hỏi (URL)" value={question.imageUrl || ''} onChange={(value) => onChange({ imageUrl: value })} />
+                <Field label="Audio câu hỏi (URL)" value={question.audioUrl || ''} onChange={(value) => onChange({ audioUrl: value })} />
+              </>
+            ) : null}
+          </div>
+        </OptionalFieldsSection>
       </div>
-      {OBJECTIVE_SKILLS.includes(skill) ? (
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <Field label="Ảnh câu hỏi (URL)" value={question.imageUrl || ''} onChange={(value) => onChange({ imageUrl: value })} />
-          <Field label="Audio câu hỏi (URL)" value={question.audioUrl || ''} onChange={(value) => onChange({ audioUrl: value })} />
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1204,10 +1282,40 @@ function MultiSelectEditor({ answerKey, group, onAnswerKeyChange, onAnswerNumber
           }))}
         />
       </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <Field label={evidenceLabel} value={group.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
-        <TextAreaField label="Giải thích" value={group.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
+      <div className="mt-3">
+        <OptionalFieldsSection
+          defaultExpanded={Boolean(group.evidence || group.explanation)}
+          label="Thông tin bổ sung của nhóm đáp án"
+        >
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label={evidenceLabel} value={group.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
+            <TextAreaField label="Giải thích" value={group.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
+          </div>
+        </OptionalFieldsSection>
       </div>
+    </div>
+  );
+}
+
+function OptionalFieldsSection({ children, defaultExpanded = false, label }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  useEffect(() => {
+    if (defaultExpanded) setExpanded(true);
+  }, [defaultExpanded]);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[#eadcdc] bg-[#fffafb]">
+      <button
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-bold text-[#730014] transition hover:bg-[#fff4f5]"
+        onClick={() => setExpanded((current) => !current)}
+        type="button"
+      >
+        <span>{label}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+      {expanded ? <div className="border-t border-[#eadcdc] bg-white p-4">{children}</div> : null}
     </div>
   );
 }

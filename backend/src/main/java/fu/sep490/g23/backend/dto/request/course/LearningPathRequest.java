@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Min;
 import java.math.BigDecimal;
 
 @Data
+/** Input used by Content Manager to create or update a learning path. */
 public class LearningPathRequest {
     @NotBlank
     @Size(max = 80)

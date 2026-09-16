@@ -1,4 +1,5 @@
-package fu.sep490.g23.backend.service.notification.impl;
+package fu.sep490.g23.backend.service.schedule_job.impl;
+
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
@@ -9,7 +10,7 @@ import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import fu.sep490.g23.backend.service.notification.AppNotificationService;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.service.notification.LearningReminderService;
+import fu.sep490.g23.backend.service.schedule_job.LearningReminderService;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
@@ -114,7 +115,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                     long minutes = Duration.between(now, homework.getDeadline()).toMinutes();
                     String window = minutes <= 120 ? "2H" : "24H";
                     String title = minutes <= 120 ? "Bài tập sắp hết hạn" : "Nhắc hạn nộp bài tập";
-                    String body = "Bài “" + homework.getTitle() + "” hết hạn lúc " + homework.getDeadline().format(DATE_TIME) + ".";
+                    String body = "B\u00e0i \u201c" + homework.getTitle() + "\u201d h\u1ebft h\u1ea1n l\u00fac " + homework.getDeadline().format(DATE_TIME) + ".";
                     for (ClassEnrollment enrollment : enrollmentRepository
                             .findByClassSectionIdAndRegistrationStatusIn(
                                     homework.getClassSection().getId(),
@@ -157,7 +158,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                             + now.toLocalDate().with(DayOfWeek.MONDAY);
                     String courseTitle = enrollment.getOnlineCourse().getTitle();
                     String body = "Bạn đang ở " + enrollment.getProgressPercent()
-                            + "% khóa “" + courseTitle + "”. Hãy tiếp tục từ nội dung gần nhất.";
+                            + "% kh\u00f3a \u201c" + courseTitle + "\u201d. H\u00e3y ti\u1ebfp t\u1ee5c t\u1eeb n\u1ed9i dung g\u1ea7n nh\u1ea5t.";
                     boolean created = notificationService.createForUserOnce(
                             learner,
                             "STUDY_INACTIVITY",

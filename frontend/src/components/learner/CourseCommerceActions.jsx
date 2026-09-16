@@ -9,6 +9,7 @@ import {
   removeCourseFromWishlist,
 } from '../../utils/commerceStore';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
+import { isFreeCourse } from '../../utils/courseModels';
 
 const iconButtonClassName =
   'inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#dfbfbd]/45 bg-white text-[#5a0b12] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/35 hover:bg-[#fff4f5] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0';
@@ -35,7 +36,7 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
   }, [course?.id]);
 
   const isRegistered = Boolean(course?.registered);
-  const isFreeCourse = Number(course?.salePrice ?? course?.price ?? 0) <= 0;
+  const freeCourse = isFreeCourse(course);
   const buttonSizeClassName = compact ? 'h-10 w-10' : '';
   const iconSizeClassName = compact ? 'h-4 w-4' : 'h-[18px] w-[18px]';
 
@@ -54,6 +55,15 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
       addNotification({
         title: 'Khóa học đã được ghi nhận',
         message: 'Bạn đã có khóa học này trong tài khoản học tập.',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (result.reason === 'free_course') {
+      addNotification({
+        title: 'Khóa học không cần thanh toán',
+        message: 'Hãy chọn Đăng ký miễn phí trên trang chi tiết khóa học.',
         type: 'error',
       });
       return;
@@ -96,7 +106,7 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      {!isFreeCourse ? (
+      {!freeCourse ? (
         <button
           aria-label={isRegistered ? 'Khóa học đã được ghi nhận' : cartAdded ? 'Khóa học đã có trong giỏ hàng' : 'Thêm vào giỏ hàng'}
           className={`${iconButtonClassName} ${buttonSizeClassName} ${cartAdded ? 'border-[#730014]/20 bg-[#fff3f4] text-[#730014]' : ''}`}

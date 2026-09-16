@@ -57,6 +57,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -153,6 +154,18 @@ class ClassroomProposalServiceImplTest {
 
         assertThat(response.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.VIRTUAL);
         verify(roomRepository, never()).findById(any());
+    }
+
+    @Test
+    void createDraftRejectsStartDateOutsideSelectedWeekdays() {
+        CreateClassroomProposalRequest payload = proposalPayload();
+        payload.setPlannedStartDate(nextMonday().plusDays(1));
+
+        assertThatThrownBy(() -> service.create(payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Ngày bắt đầu phải trùng với một ngày học trong tuần.");
+
+        verifyNoInteractions(userRepository, proposalRepository);
     }
 
     @Test

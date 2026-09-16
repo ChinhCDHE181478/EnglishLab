@@ -41,6 +41,7 @@ import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import {
   EnglishEntryLevelField,
   IeltsBandSelect,
@@ -49,12 +50,12 @@ import {
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { HeaderActions, Panel } from '../../components/content-manager/ContentManagerUi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 import {
-  ERROR_NOTICE_CLASS,
   FIELD_CLASS,
-  SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 import {
@@ -64,14 +65,13 @@ import {
   normalizeEnglishEntryLevel,
   normalizeEnglishExamCategory,
   readEnglishFocusSkills,
-  validateEnglishProgramProfile,
-} from '../../utils/englishProgramProfile';
+  validateEnglishCourseProfile,
+} from '../../utils/englishCourseProfile';
 import {
-  downloadCurriculumExcelTemplate,
+  downloadInstructorLedCourseExcelTemplate,
   importCourseUnitsWithLessons,
-  parseCurriculumExcelFile,
+  parseInstructorLedCourseExcelFile,
 } from '../../utils/curriculumExcel';
-import { PLACEMENT_LEVEL_OPTIONS } from '../../utils/placementRecommendation';
 
 const emptyUnit = {
   title: '',
@@ -94,27 +94,17 @@ const emptyAttach = {
   resourceId: '',
 };
 
-const COURSE_LEVEL_OPTIONS = [
-  { label: 'Căn bản / Sơ cấp (Beginner / Foundation)', value: 'BEGINNER' },
-  { label: 'Tiền trung cấp (Pre-Intermediate)', value: 'PRE_INTERMEDIATE' },
-  { label: 'Trung cấp (Intermediate)', value: 'INTERMEDIATE' },
-  { label: 'Trên trung cấp (Upper-Intermediate)', value: 'UPPER_INTERMEDIATE' },
-  { label: 'Nâng cao / Chuyên sâu (Advanced / Master)', value: 'ADVANCED' },
-];
-
-const emptyProgramForm = {
+const emptyInstructorLedCourseForm = {
   title: '',
   code: '',
   shortDescription: '',
   description: '',
   durationLabel: '',
-  level: 'INTERMEDIATE',
   examCategory: 'IELTS',
   focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
   targetBand: 6.5,
   targetScore: '',
   entryLevel: '4.0',
-  entryPlacementLevel: 'BEGINNER',
   outcomes: '',
   status: 'DRAFT',
 };
@@ -186,39 +176,35 @@ const makeCode = (title, examCategory) => {
   return [examCategory || 'ILC', ...words].filter(Boolean).join('-');
 };
 
-const toProgramForm = (program) => {
-  const examCategory = normalizeEnglishExamCategory(program?.examCategory);
+const toInstructorLedCourseForm = (course) => {
+  const examCategory = normalizeEnglishExamCategory(course?.examCategory);
   const defaults = getEnglishProfileDefaults(examCategory);
   return {
-    ...emptyProgramForm,
-    ...program,
-    shortDescription: program?.shortDescription || '',
-    description: program?.description || '',
-    durationLabel: program?.durationLabel || '',
-    level: program?.level || 'INTERMEDIATE',
+    ...emptyInstructorLedCourseForm,
+    ...course,
+    shortDescription: course?.shortDescription || '',
+    description: course?.description || '',
+    durationLabel: course?.durationLabel || '',
     examCategory,
-    focusSkills: readEnglishFocusSkills(program?.focusSkills, examCategory),
-    targetBand: examCategory === 'IELTS' ? (program?.targetBand ?? defaults.targetBand) : '',
-    targetScore: examCategory === 'TOEIC' ? (program?.targetScore ?? defaults.targetScore) : '',
-    entryLevel: normalizeEnglishEntryLevel(program?.entryLevel, examCategory),
-    entryPlacementLevel: program?.entryPlacementLevel || (examCategory === 'GENERAL_ENGLISH' ? '' : 'BEGINNER'),
-    outcomes: program?.outcomes || program?.learningOutcomes || '',
+    focusSkills: readEnglishFocusSkills(course?.focusSkills, examCategory),
+    targetBand: examCategory === 'IELTS' ? (course?.targetBand ?? defaults.targetBand) : '',
+    targetScore: examCategory === 'TOEIC' ? (course?.targetScore ?? defaults.targetScore) : '',
+    entryLevel: normalizeEnglishEntryLevel(course?.entryLevel, examCategory),
+    outcomes: course?.outcomes || course?.learningOutcomes || '',
   };
 };
 
-const toProgramPayload = (form, forceDraft = false) => ({
+const toInstructorLedCoursePayload = (form, forceDraft = false) => ({
   title: form.title.trim(),
   code: form.code.trim() || makeCode(form.title, form.examCategory),
   shortDescription: form.shortDescription?.trim() || null,
   description: form.description?.trim() || null,
   durationLabel: form.durationLabel?.trim() || null,
-  level: form.level?.trim() || null,
   examCategory: form.examCategory,
   focusSkills: form.focusSkills.join(','),
   targetBand: form.targetBand === '' ? null : Number(form.targetBand),
   targetScore: form.targetScore === '' ? null : Number(form.targetScore),
   entryLevel: form.entryLevel?.trim() || null,
-  entryPlacementLevel: form.entryPlacementLevel || null,
   outcomes: form.outcomes?.trim() || null,
   status: forceDraft ? 'DRAFT' : (form.status || 'DRAFT'),
 });
@@ -226,15 +212,15 @@ const toProgramPayload = (form, forceDraft = false) => ({
 export default function ContentManagerInstructorLedCoursesPage() {
   const { confirm: confirmDialog } = useAppDialog();
   const [searchParams, setSearchParams] = useSearchParams();
-  const requestedProgramId = searchParams.get('programId') || '';
+  const requestedInstructorLedCourseId = searchParams.get('courseId') || searchParams.get('programId') || '';
   const requestedUnitId = searchParams.get('unitId');
   const requestedPanel = searchParams.get('panel');
-  const [programs, setPrograms] = useState([]);
-  const [selectedProgramId, setSelectedProgramId] = useState(requestedProgramId);
-  const [programDetail, setProgramDetail] = useState(null);
-  const [programForm, setProgramForm] = useState(emptyProgramForm);
-  const [programCreatorOpen, setProgramCreatorOpen] = useState(false);
-  const [programEditorOpen, setProgramEditorOpen] = useState(false);
+  const [instructorLedCourses, setInstructorLedCourses] = useState([]);
+  const [selectedInstructorLedCourseId, setSelectedInstructorLedCourseId] = useState(requestedInstructorLedCourseId);
+  const [instructorLedCourseDetail, setInstructorLedCourseDetail] = useState(null);
+  const [instructorLedCourseForm, setInstructorLedCourseForm] = useState(emptyInstructorLedCourseForm);
+  const [instructorLedCourseCreatorOpen, setInstructorLedCourseCreatorOpen] = useState(false);
+  const [instructorLedCourseEditorOpen, setInstructorLedCourseEditorOpen] = useState(false);
   const [unitForm, setUnitForm] = useState(emptyUnit);
   const [editingUnitId, setEditingUnitId] = useState(null);
   const [unitEditorOpen, setUnitEditorOpen] = useState(requestedPanel === 'unit');
@@ -244,7 +230,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const [lessonEditorOpen, setLessonEditorOpen] = useState(false);
   const [attachForm, setAttachForm] = useState(() => ({ ...emptyAttach, unitId: requestedUnitId || '' }));
   const [resourcePanelOpen, setResourcePanelOpen] = useState(requestedPanel === 'resource');
-  const [collapsedUnitIds, setCollapsedUnitIds] = useState(() => new Set());
+  const [expandedUnitIds, setExpandedUnitIds] = useState(() => new Set());
   const [keyword, setKeyword] = useState('');
   const [banks, setBanks] = useState({
     materials: [],
@@ -263,37 +249,37 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const [excelImporting, setExcelImporting] = useState(false);
   const [excelError, setExcelError] = useState('');
 
-  const loadPrograms = async () => {
+  const loadInstructorLedCourses = async () => {
     setLoading(true);
     setError('');
     try {
-      const programData = await curriculumApi.getInstructorLedCourses();
-      setPrograms(programData);
-      setSelectedProgramId((current) => (
-        current && programData.some((program) => String(program.id) === current) ? current : ''
+      const courseData = await curriculumApi.getInstructorLedCourses();
+      setInstructorLedCourses(courseData);
+      setSelectedInstructorLedCourseId((current) => (
+        current && courseData.some((course) => String(course.id) === current) ? current : ''
       ));
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được danh sách khóa học.');
+      setError(getContentManagerError(err, 'Không tải được danh sách khóa học.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const loadProgramDetail = async (programId) => {
-    if (!programId) {
-      setProgramDetail(null);
+  const loadInstructorLedCourseDetail = async (instructorLedCourseId) => {
+    if (!instructorLedCourseId) {
+      setInstructorLedCourseDetail(null);
       return;
     }
     setError('');
     try {
-      const data = await curriculumApi.getInstructorLedCourse(programId);
-      setProgramDetail(data);
+      const data = await curriculumApi.getInstructorLedCourse(instructorLedCourseId);
+      setInstructorLedCourseDetail(data);
       setAttachForm((current) => ({
         ...current,
         unitId: current.unitId || (data?.units?.[0]?.id ? String(data.units[0].id) : ''),
       }));
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được nội dung khóa học.');
+      setError(getContentManagerError(err, 'Không tải được nội dung khóa học.'));
     }
   };
 
@@ -305,54 +291,55 @@ export default function ContentManagerInstructorLedCoursesPage() {
         curriculumApi.getAssessmentBank(),
         curriculumApi.getFlashcardSets(),
       ]);
+      const isPublished = (item) => String(item?.status || '').toUpperCase() === 'PUBLISHED';
       setBanks({
-        materials: asList(materials).filter((item) => item.status === 'PUBLISHED'),
-        exercises: asList(exercises).filter((item) => item.status === 'PUBLISHED'),
-        assessments: asList(assessments).filter((item) => item.status === 'PUBLISHED'),
-        flashcards: asList(flashcards).filter((item) => item.status === 'PUBLISHED'),
+        materials: asList(materials).filter(isPublished),
+        exercises: asList(exercises).filter(isPublished),
+        assessments: asList(assessments).filter(isPublished),
+        flashcards: asList(flashcards).filter(isPublished),
       });
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được các kho tài nguyên.');
+      setError(getContentManagerError(err, 'Không tải được các kho tài nguyên.'));
     }
   };
 
   const reloadAll = async () => {
-    await Promise.all([loadPrograms(), loadBanks()]);
-    if (selectedProgramId) {
-      await loadProgramDetail(selectedProgramId);
+    await Promise.all([loadInstructorLedCourses(), loadBanks()]);
+    if (selectedInstructorLedCourseId) {
+      await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
     }
   };
 
   useEffect(() => {
-    loadPrograms();
+    loadInstructorLedCourses();
     loadBanks();
   }, []);
 
   useEffect(() => {
-    if (selectedProgramId) {
-      loadProgramDetail(selectedProgramId);
+    if (selectedInstructorLedCourseId) {
+      loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       setEditingUnitId(null);
       setUnitForm(emptyUnit);
       setAttachForm({ ...emptyAttach, unitId: requestedUnitId || '' });
     } else {
-      setProgramDetail(null);
+      setInstructorLedCourseDetail(null);
     }
-  }, [requestedUnitId, selectedProgramId]);
+  }, [requestedUnitId, selectedInstructorLedCourseId]);
 
-  const openProgramWorkspace = (program) => {
-    setSelectedProgramId(String(program.id));
-    setExpandedUnitId(null);
-    setSearchParams({ programId: String(program.id) }, { replace: true });
+  const openInstructorLedCourseWorkspace = (course) => {
+    setSelectedInstructorLedCourseId(String(course.id));
+    setExpandedUnitIds(new Set());
+    setSearchParams({ courseId: String(course.id) }, { replace: true });
     setKeyword('');
     setError('');
     setSuccess('');
   };
 
-  const closeProgramWorkspace = () => {
-    setSelectedProgramId('');
-    setExpandedUnitId(null);
+  const closeInstructorLedCourseWorkspace = () => {
+    setSelectedInstructorLedCourseId('');
+    setExpandedUnitIds(new Set());
     setSearchParams({}, { replace: true });
-    setProgramDetail(null);
+    setInstructorLedCourseDetail(null);
     setKeyword('');
     setEditingUnitId(null);
     setUnitForm(emptyUnit);
@@ -361,14 +348,14 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setSuccess('');
   };
 
-  const selectProgram = (programId) => {
-    setSelectedProgramId(programId);
-    setExpandedUnitId(null);
-    setSearchParams(programId ? { programId } : {}, { replace: true });
+  const selectInstructorLedCourse = (instructorLedCourseId) => {
+    setSelectedInstructorLedCourseId(instructorLedCourseId);
+    setExpandedUnitIds(new Set());
+    setSearchParams(instructorLedCourseId ? { courseId: instructorLedCourseId } : {}, { replace: true });
   };
 
-  const updateProgramForm = (patch) => {
-    setProgramForm((current) => {
+  const updateInstructorLedCourseForm = (patch) => {
+    setInstructorLedCourseForm((current) => {
       const next = { ...current, ...patch };
       if (Object.prototype.hasOwnProperty.call(patch, 'title')) {
         next.code = current.code || makeCode(patch.title, current.examCategory);
@@ -377,44 +364,44 @@ export default function ContentManagerInstructorLedCoursesPage() {
     });
   };
 
-  const openProgramCreator = () => {
-    setProgramForm(emptyProgramForm);
-    setProgramCreatorOpen(true);
+  const openInstructorLedCourseCreator = () => {
+    setInstructorLedCourseForm(emptyInstructorLedCourseForm);
+    setInstructorLedCourseCreatorOpen(true);
     setError('');
     setSuccess('');
   };
 
-  const closeProgramCreator = () => {
-    setProgramCreatorOpen(false);
-    setProgramForm(emptyProgramForm);
+  const closeInstructorLedCourseCreator = () => {
+    setInstructorLedCourseCreatorOpen(false);
+    setInstructorLedCourseForm(emptyInstructorLedCourseForm);
   };
 
-  const openProgramEditor = (program) => {
-    const target = program || programDetail;
+  const openInstructorLedCourseEditor = (course) => {
+    const target = course || instructorLedCourseDetail;
     if (!target) return;
-    setProgramForm(toProgramForm(target));
-    setProgramEditorOpen(true);
+    setInstructorLedCourseForm(toInstructorLedCourseForm(target));
+    setInstructorLedCourseEditorOpen(true);
     setError('');
     setSuccess('');
   };
 
-  const closeProgramEditor = () => {
-    setProgramEditorOpen(false);
-    setProgramForm(emptyProgramForm);
+  const closeInstructorLedCourseEditor = () => {
+    setInstructorLedCourseEditorOpen(false);
+    setInstructorLedCourseForm(emptyInstructorLedCourseForm);
   };
 
-  const createProgram = async (event) => {
+  const createInstructorLedCourse = async (event) => {
     event.preventDefault();
-    if (!programForm.title.trim()) {
+    if (!instructorLedCourseForm.title.trim()) {
       setError('Vui lòng nhập tên khóa học.');
       return;
     }
-    const generatedCode = programForm.code.trim() || makeCode(programForm.title, programForm.examCategory);
+    const generatedCode = instructorLedCourseForm.code.trim() || makeCode(instructorLedCourseForm.title, instructorLedCourseForm.examCategory);
     if (!generatedCode) {
       setError('Vui lòng nhập mã khóa học.');
       return;
     }
-    const profileError = validateEnglishProgramProfile(programForm);
+    const profileError = validateEnglishCourseProfile(instructorLedCourseForm);
     if (profileError) {
       setError(profileError);
       return;
@@ -424,30 +411,30 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setSuccess('');
     try {
       const saved = await curriculumApi.createInstructorLedCourse({
-        ...toProgramPayload(programForm, true),
+        ...toInstructorLedCoursePayload(instructorLedCourseForm, true),
         code: generatedCode,
         displayOrder: 0,
       });
-      setPrograms((current) => [saved, ...current]);
-      setSelectedProgramId(String(saved.id));
-      setSearchParams({ programId: String(saved.id) }, { replace: true });
-      setProgramDetail(saved);
-      closeProgramCreator();
+      setInstructorLedCourses((current) => [saved, ...current]);
+      setSelectedInstructorLedCourseId(String(saved.id));
+      setSearchParams({ courseId: String(saved.id) }, { replace: true });
+      setInstructorLedCourseDetail(saved);
+      closeInstructorLedCourseCreator();
       setSuccess('Đã tạo khóa học. Bắt đầu thêm Unit và bài học.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tạo được khóa học.');
+      setError(getContentManagerError(err, 'Không tạo được khóa học.'));
     } finally {
       setWorking(false);
     }
   };
 
-  const updateProgram = async (event) => {
+  const updateInstructorLedCourse = async (event) => {
     event.preventDefault();
-    if (!programForm.title.trim()) {
+    if (!instructorLedCourseForm.title.trim()) {
       setError('Vui lòng nhập tên khóa học.');
       return;
     }
-    const profileError = validateEnglishProgramProfile(programForm);
+    const profileError = validateEnglishCourseProfile(instructorLedCourseForm);
     if (profileError) {
       setError(profileError);
       return;
@@ -456,48 +443,48 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setError('');
     setSuccess('');
     try {
-      const targetId = programForm.id || selectedProgramId;
+      const targetId = instructorLedCourseForm.id || selectedInstructorLedCourseId;
       const saved = await curriculumApi.updateInstructorLedCourse(
         targetId,
-        toProgramPayload(programForm),
+        toInstructorLedCoursePayload(instructorLedCourseForm),
       );
-      setPrograms((current) => current.map((item) => (String(item.id) === String(targetId) ? saved : item)));
-      if (String(selectedProgramId) === String(targetId)) {
-        setProgramDetail(saved);
+      setInstructorLedCourses((current) => current.map((item) => (String(item.id) === String(targetId) ? saved : item)));
+      if (String(selectedInstructorLedCourseId) === String(targetId)) {
+        setInstructorLedCourseDetail(saved);
       }
-      closeProgramEditor();
+      closeInstructorLedCourseEditor();
       setSuccess('Đã cập nhật thông tin khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không cập nhật được khóa học.');
+      setError(getContentManagerError(err, 'Không cập nhật được khóa học.'));
     } finally {
       setWorking(false);
     }
   };
 
-  const cloneProgram = async (program) => {
+  const cloneInstructorLedCourse = async (course) => {
     if (!await confirmDialog({
       title: 'Nhân bản khóa học',
-      message: `Bạn có chắc muốn nhân bản khóa học “${program.title}”? Bản sao sẽ ở trạng thái Bản nháp.`,
+      message: `Bạn có chắc muốn nhân bản khóa học “${course.title}”? Bản sao sẽ ở trạng thái Bản nháp.`,
       confirmText: 'Nhân bản',
     })) return;
     setWorking(true);
     setError('');
     setSuccess('');
     try {
-      const cloned = await curriculumApi.cloneInstructorLedCourse(program.id);
-      setPrograms((current) => [cloned, ...current]);
+      const cloned = await curriculumApi.cloneInstructorLedCourse(course.id);
+      setInstructorLedCourses((current) => [cloned, ...current]);
       setSuccess(`Đã nhân bản khóa học thành “${cloned.title}”.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không nhân bản được khóa học.');
+      setError(getContentManagerError(err, 'Không nhân bản được khóa học.'));
     } finally {
       setWorking(false);
     }
   };
 
-  const publishProgram = async (program) => {
+  const publishInstructorLedCourse = async (course) => {
     if (!await confirmDialog({
       title: 'Xuất bản khóa học',
-      message: `Xuất bản khóa học “${program.title}”? Sau khi xuất bản, khóa học sẽ sẵn sàng để mở lớp đào tạo.`,
+      message: `Xuất bản khóa học “${course.title}”? Sau khi xuất bản, khóa học sẽ sẵn sàng để mở lớp đào tạo.`,
       confirmText: 'Xuất bản',
       tone: 'primary',
     })) return;
@@ -505,23 +492,23 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setError('');
     setSuccess('');
     try {
-      const published = await curriculumApi.publishInstructorLedCourse(program.id);
-      setPrograms((current) => current.map((item) => (item.id === program.id ? published : item)));
-      if (String(selectedProgramId) === String(program.id)) {
-        setProgramDetail(published);
+      const published = await curriculumApi.publishInstructorLedCourse(course.id);
+      setInstructorLedCourses((current) => current.map((item) => (item.id === course.id ? published : item)));
+      if (String(selectedInstructorLedCourseId) === String(course.id)) {
+        setInstructorLedCourseDetail(published);
       }
       setSuccess(`Đã xuất bản thành công khóa học “${published.title}”.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể xuất bản khóa học. Vui lòng kiểm tra lại cấu trúc bài học và chuẩn đầu ra.');
+      setError(getContentManagerError(err, 'Không thể xuất bản khóa học. Vui lòng kiểm tra lại cấu trúc bài học và chuẩn đầu ra.'));
     } finally {
       setWorking(false);
     }
   };
 
-  const archiveProgram = async (program) => {
+  const archiveInstructorLedCourse = async (course) => {
     if (!await confirmDialog({
       title: 'Lưu trữ khóa học',
-      message: `Bạn có chắc muốn lưu trữ khóa học “${program.title}”? Khóa học sẽ không thể dùng để mở lớp mới.`,
+      message: `Bạn có chắc muốn lưu trữ khóa học “${course.title}”? Khóa học sẽ không thể dùng để mở lớp mới.`,
       confirmText: 'Lưu trữ',
       tone: 'danger',
     })) return;
@@ -529,14 +516,14 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setError('');
     setSuccess('');
     try {
-      await curriculumApi.archiveInstructorLedCourse(program.id);
-      setPrograms((current) => current.filter((item) => item.id !== program.id));
-      if (String(selectedProgramId) === String(program.id)) {
-        closeProgramWorkspace();
+      await curriculumApi.archiveInstructorLedCourse(course.id);
+      setInstructorLedCourses((current) => current.filter((item) => item.id !== course.id));
+      if (String(selectedInstructorLedCourseId) === String(course.id)) {
+        closeInstructorLedCourseWorkspace();
       }
       setSuccess('Đã lưu trữ khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu trữ được khóa học.');
+      setError(getContentManagerError(err, 'Không lưu trữ được khóa học.'));
     } finally {
       setWorking(false);
     }
@@ -548,7 +535,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setExcelError('');
   };
 
-  const readCurriculumExcel = async (file) => {
+  const readInstructorLedCourseExcel = async (file) => {
     if (!file) return;
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
       setExcelError('Chỉ hỗ trợ tệp Excel định dạng .xlsx hoặc .xls.');
@@ -558,7 +545,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setExcelError('');
     setParsedExcel(null);
     try {
-      setParsedExcel(await parseCurriculumExcelFile(file));
+      setParsedExcel(await parseInstructorLedCourseExcelFile(file));
     } catch (err) {
       setExcelError(err.message || 'Không đọc được tệp Excel.');
     } finally {
@@ -566,15 +553,15 @@ export default function ContentManagerInstructorLedCoursesPage() {
     }
   };
 
-  const importCurriculumFromExcel = async () => {
+  const importInstructorLedCourseFromExcel = async () => {
     if (!parsedExcel) return;
     setExcelImporting(true);
     setExcelError('');
     try {
       const profileDefaults = getEnglishProfileDefaults(excelExamCategory);
-      const curriculum = await curriculumApi.createInstructorLedCourse({
-        ...toProgramPayload({
-          ...emptyProgramForm,
+      const course = await curriculumApi.createInstructorLedCourse({
+        ...toInstructorLedCoursePayload({
+          ...emptyInstructorLedCourseForm,
           title: parsedExcel.title,
           code: makeCode(parsedExcel.title, excelExamCategory),
           examCategory: excelExamCategory,
@@ -584,17 +571,17 @@ export default function ContentManagerInstructorLedCoursesPage() {
       });
       const importResult = await importCourseUnitsWithLessons(
         curriculumApi,
-        curriculum.id,
+        course.id,
         parsedExcel.units,
       );
-      setPrograms((current) => [curriculum, ...current]);
-      setSelectedProgramId(String(curriculum.id));
-      setSearchParams({ programId: String(curriculum.id) }, { replace: true });
-      await loadProgramDetail(curriculum.id);
+      setInstructorLedCourses((current) => [course, ...current]);
+      setSelectedInstructorLedCourseId(String(course.id));
+      setSearchParams({ courseId: String(course.id) }, { replace: true });
+      await loadInstructorLedCourseDetail(course.id);
       closeExcelImport();
       setSuccess(`Đã import thành công khóa học “${parsedExcel.title}” (${importResult.createdUnits} Unit, ${importResult.createdLessons} bài học).`);
     } catch (err) {
-      setExcelError(err?.response?.data?.message || err?.message || 'Không import được tệp Excel.');
+      setExcelError(getContentManagerError(err, 'Không import được tệp Excel.'));
     } finally {
       setExcelImporting(false);
     }
@@ -617,7 +604,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setUnitForm({
       title: '',
       description: '',
-      displayOrder: (programDetail?.units?.length || 0) + 1,
+      displayOrder: (instructorLedCourseDetail?.units?.length || 0) + 1,
     });
     setUnitEditorOpen(true);
     setError('');
@@ -632,7 +619,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
   const saveUnit = async (event) => {
     if (event) event.preventDefault();
-    if (!selectedProgramId) {
+    if (!selectedInstructorLedCourseId) {
       setError('Vui lòng chọn khóa học trước khi thêm Unit.');
       return;
     }
@@ -653,13 +640,13 @@ export default function ContentManagerInstructorLedCoursesPage() {
         await curriculumApi.updateCourseUnit(editingUnitId, payload);
         setSuccess('Đã cập nhật Unit.');
       } else {
-        await curriculumApi.createCourseUnit(selectedProgramId, payload);
+        await curriculumApi.createCourseUnit(selectedInstructorLedCourseId, payload);
         setSuccess('Đã thêm Unit mới vào khóa học.');
       }
-      await loadProgramDetail(selectedProgramId);
+      await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       closeUnitEditor();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được Unit.');
+      setError(getContentManagerError(err, 'Không lưu được Unit.'));
     } finally {
       setWorking(false);
     }
@@ -677,10 +664,10 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setSuccess('');
     try {
       await curriculumApi.deleteCourseUnit(unit.id);
-      await loadProgramDetail(selectedProgramId);
+      await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       setSuccess(`Đã xóa Unit “${unit.title}”.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không xóa được Unit.');
+      setError(getContentManagerError(err, 'Không xóa được Unit.'));
     } finally {
       setWorking(false);
     }
@@ -689,7 +676,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const openLessonCreator = (unit) => {
     setLessonUnitId(unit.id);
     setEditingLessonId(null);
-    const existingLessons = (programDetail?.units || []).flatMap((u) => u.lessons || []);
+    const existingLessons = (instructorLedCourseDetail?.units || []).flatMap((u) => u.lessons || []);
     const maxSession = existingLessons.reduce((max, l) => Math.max(max, Number(l.sessionNumber || 0)), 0);
     setLessonForm({
       sessionNumber: maxSession + 1,
@@ -756,10 +743,10 @@ export default function ContentManagerInstructorLedCoursesPage() {
         await curriculumApi.createCourseLesson(lessonUnitId, payload);
         setSuccess('Đã thêm bài học vào Unit.');
       }
-      await loadProgramDetail(selectedProgramId);
+      await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       closeLessonEditor();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được bài học.');
+      setError(getContentManagerError(err, 'Không lưu được bài học.'));
     } finally {
       setWorking(false);
     }
@@ -777,10 +764,10 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setSuccess('');
     try {
       await curriculumApi.deleteCourseLesson(lesson.id);
-      await loadProgramDetail(selectedProgramId);
+      await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       setSuccess(`Đã xóa Bài ${lesson.sessionNumber}.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không xóa được bài học.');
+      setError(getContentManagerError(err, 'Không xóa được bài học.'));
     } finally {
       setWorking(false);
     }
@@ -820,11 +807,11 @@ export default function ContentManagerInstructorLedCoursesPage() {
       else if (attachForm.type === 'EXERCISE') await curriculumApi.attachUnitExercise(attachForm.unitId, payload);
       else if (attachForm.type === 'ASSESSMENT') await curriculumApi.attachUnitAssessment(attachForm.unitId, payload);
       else if (attachForm.type === 'FLASHCARD') await curriculumApi.attachUnitFlashcard(attachForm.unitId, payload);
-      await loadProgramDetail(selectedProgramId);
+      await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       closeResourcePanel();
       setSuccess('Đã gắn tài nguyên vào Unit.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không gắn được tài nguyên.');
+      setError(getContentManagerError(err, 'Không gắn được tài nguyên.'));
     } finally {
       setWorking(false);
     }
@@ -842,19 +829,19 @@ export default function ContentManagerInstructorLedCoursesPage() {
     setSuccess('');
     try {
       await curriculumApi.detachReference(ref.type, ref.id);
-      await loadProgramDetail(selectedProgramId);
+      await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
       setSuccess('Đã gỡ tài nguyên khỏi Unit.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không gỡ được tài nguyên.');
+      setError(getContentManagerError(err, 'Không gỡ được tài nguyên.'));
     } finally {
       setWorking(false);
     }
   };
 
-  const units = useMemo(() => programDetail?.units || [], [programDetail]);
+  const units = useMemo(() => instructorLedCourseDetail?.units || [], [instructorLedCourseDetail]);
 
   const toggleUnit = (unitId) => {
-    setCollapsedUnitIds((current) => {
+    setExpandedUnitIds((current) => {
       const next = new Set(current);
       if (next.has(unitId)) next.delete(unitId);
       else next.add(unitId);
@@ -881,17 +868,17 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const { page, setPage, totalPages, totalItems, pageItems } = usePagination(
     filteredUnits,
     UNIT_PAGE_SIZE,
-    `${selectedProgramId}|${keyword}`,
+    `${selectedInstructorLedCourseId}|${keyword}`,
   );
 
-  const programsOptions = useMemo(() => [
+  const instructorLedCourseOptions = useMemo(() => [
     { label: 'Chọn khóa học...', value: '' },
-    ...programs.map((p) => ({
+    ...instructorLedCourses.map((p) => ({
       label: `${p.title} (${p.code || 'Chưa có mã'})`,
       value: String(p.id),
       description: `${p.examCategory || 'IELTS'} · ${p.units?.length || p.totalUnits || 0} Unit`,
     })),
-  ], [programs]);
+  ], [instructorLedCourses]);
 
   const unitOptions = useMemo(() => [
     { label: 'Chọn Unit nhận tài nguyên', value: '' },
@@ -932,71 +919,57 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
   return (
     <div className="space-y-5">
-      {error && !programCreatorOpen && !programEditorOpen ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-          <span>{error}</span>
-          <button
-            className="inline-flex items-center gap-2 rounded-xl border border-[#93000a]/25 bg-white/70 px-3 py-2"
-            onClick={() => reloadAll()}
-            type="button"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Thử lại
-          </button>
-        </div>
-      ) : null}
-      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{success}</div> : null}
+      <ManagementToast actionLabel="Thử lại" message={error} onAction={() => reloadAll()} onClose={() => setError('')} />
+      <ManagementToast message={excelError} onClose={() => setExcelError('')} />
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật khóa học" />
 
       {excelImportOpen ? (
-        <CurriculumExcelImportModal
-          error={excelError}
+        <InstructorLedCourseExcelImportModal
           examCategory={excelExamCategory}
           importing={excelImporting}
           onClose={closeExcelImport}
-          onDownloadTemplate={downloadCurriculumExcelTemplate}
+          onDownloadTemplate={downloadInstructorLedCourseExcelTemplate}
           onExamCategoryChange={setExcelExamCategory}
-          onFileChange={readCurriculumExcel}
-          onImport={importCurriculumFromExcel}
+          onFileChange={readInstructorLedCourseExcel}
+          onImport={importInstructorLedCourseFromExcel}
           parsed={parsedExcel}
           reading={excelReading}
         />
       ) : null}
 
-      {programCreatorOpen ? (
+      {instructorLedCourseCreatorOpen ? (
         <InstructorLedCourseModal
-          error={error}
-          form={programForm}
-          onChange={updateProgramForm}
-          onClose={closeProgramCreator}
-          onSubmit={createProgram}
+          form={instructorLedCourseForm}
+          onChange={updateInstructorLedCourseForm}
+          onClose={closeInstructorLedCourseCreator}
+          onSubmit={createInstructorLedCourse}
           saving={working}
         />
       ) : null}
 
-      {programEditorOpen ? (
+      {instructorLedCourseEditorOpen ? (
         <InstructorLedCourseModal
-          error={error}
-          form={programForm}
+          form={instructorLedCourseForm}
           mode="edit"
-          onChange={updateProgramForm}
-          onClose={closeProgramEditor}
-          onSubmit={updateProgram}
+          onChange={updateInstructorLedCourseForm}
+          onClose={closeInstructorLedCourseEditor}
+          onSubmit={updateInstructorLedCourse}
           saving={working}
         />
       ) : null}
 
-      {!selectedProgramId ? (
+      {!selectedInstructorLedCourseId ? (
         <InstructorLedCourseListPanel
           loading={loading}
-          onArchive={archiveProgram}
-          onClone={cloneProgram}
-          onCreate={openProgramCreator}
-          onEdit={openProgramEditor}
+          onArchive={archiveInstructorLedCourse}
+          onClone={cloneInstructorLedCourse}
+          onCreate={openInstructorLedCourseCreator}
+          onEdit={openInstructorLedCourseEditor}
           onImport={() => { setExcelImportOpen(true); setExcelError(''); }}
-          onOpen={openProgramWorkspace}
-          onPublish={publishProgram}
-          onRefresh={loadPrograms}
-          programs={programs}
+          onOpen={openInstructorLedCourseWorkspace}
+          onPublish={publishInstructorLedCourse}
+          onRefresh={loadInstructorLedCourses}
+          instructorLedCourses={instructorLedCourses}
         />
       ) : (
         <>
@@ -1005,45 +978,43 @@ export default function ContentManagerInstructorLedCoursesPage() {
               <div className="min-w-0">
                 <button
                   className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[#dfbfbd] bg-white px-3 py-1.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3] cursor-pointer"
-                  onClick={closeProgramWorkspace}
+                  onClick={closeInstructorLedCourseWorkspace}
                   type="button"
                 >
                   <span aria-hidden="true">&larr;</span>
                   Quay lại danh sách khóa học
                 </button>
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
-                    {programDetail?.examCategory || 'IELTS'}
-                  </span>
-                  <StatusPill status={programDetail?.status} />
+                  <ManagerTaxonomyBadge kind="exam" value={instructorLedCourseDetail?.examCategory || 'IELTS'} />
+                  <StatusPill status={instructorLedCourseDetail?.status} />
                 </div>
                 <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#26364a] sm:text-3xl">
-                  {programDetail?.title}
+                  {instructorLedCourseDetail?.title}
                 </h2>
                 <p className="mt-1 text-sm text-[#69778a]">
-                  Mã: <span className="font-semibold text-[#26364a]">{programDetail?.code || '-'}</span>
+                  Mã: <span className="font-semibold text-[#26364a]">{instructorLedCourseDetail?.code || '-'}</span>
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95 cursor-pointer"
-                  onClick={() => openProgramEditor(programDetail)}
+                  onClick={() => openInstructorLedCourseEditor(instructorLedCourseDetail)}
                   type="button"
                 >
                   <Pencil className="h-3.5 w-3.5" /> Sửa thông tin
                 </button>
                 <button
                   className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95 cursor-pointer"
-                  onClick={() => cloneProgram(programDetail)}
+                  onClick={() => cloneInstructorLedCourse(instructorLedCourseDetail)}
                   type="button"
                 >
                   <Copy className="h-3.5 w-3.5" /> Nhân bản
                 </button>
-                {programDetail?.status === 'DRAFT' ? (
+                {instructorLedCourseDetail?.status === 'DRAFT' ? (
                   <button
                     className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95 cursor-pointer"
                     disabled={working}
-                    onClick={() => publishProgram(programDetail)}
+                    onClick={() => publishInstructorLedCourse(instructorLedCourseDetail)}
                     type="button"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
@@ -1061,12 +1032,12 @@ export default function ContentManagerInstructorLedCoursesPage() {
             </div>
 
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-              <InfoTile label="Nhóm thi" value={programDetail?.examCategory || '-'} />
-              <InfoTile label="Target đầu ra" value={programDetail?.targetBand ? `Band ${programDetail.targetBand}` : (programDetail?.targetScore ? `${programDetail.targetScore} điểm` : '-')} />
-              <InfoTile label="Trình độ đầu vào" value={programDetail?.entryLevel || programDetail?.entryPlacementLevel || '-'} />
+              <InfoTile label="Nhóm thi" value={<ManagerTaxonomyBadge kind="exam" value={instructorLedCourseDetail?.examCategory} />} />
+              <InfoTile label="Target đầu ra" value={instructorLedCourseDetail?.targetBand ? `Band ${instructorLedCourseDetail.targetBand}` : (instructorLedCourseDetail?.targetScore ? `${instructorLedCourseDetail.targetScore} điểm` : '-')} />
+              <InfoTile label="Điểm đầu vào" value={instructorLedCourseDetail?.entryLevel || '-'} />
               <InfoTile label="Số Unit" value={units.length} />
-              <InfoTile label="Tổng bài học" value={`${countStructuredLessons(programDetail?.units || units)} bài`} />
-              <InfoTile label="Thời lượng" value={programDetail?.durationLabel || '-'} />
+              <InfoTile label="Tổng bài học" value={`${countStructuredLessons(instructorLedCourseDetail?.units || units)} bài`} />
+              <InfoTile label="Thời lượng" value={instructorLedCourseDetail?.durationLabel || '-'} />
             </div>
           </Panel>
 
@@ -1084,11 +1055,11 @@ export default function ContentManagerInstructorLedCoursesPage() {
                 </div>
                 <BrandedSelect
                   buttonClassName="h-11 rounded-lg border-[#ecdedd] bg-white py-2 text-sm shadow-none"
-                  onChange={(event) => selectProgram(event.target.value)}
-                  options={programsOptions}
+                  onChange={(event) => selectInstructorLedCourse(event.target.value)}
+                  options={instructorLedCourseOptions}
                   placeholder={loading ? 'Đang tải khóa học...' : 'Đổi sang khóa học khác'}
                   searchable={true}
-                  value={selectedProgramId}
+                  value={selectedInstructorLedCourseId}
                 />
               </div>
             </Panel>
@@ -1220,7 +1191,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef1f6] px-6 py-4">
                 <div>
                   <h3 className="font-['Manrope'] text-lg font-extrabold text-[#26364a]">Cấu trúc khóa học</h3>
-                  <p className="mt-0.5 text-xs text-[#8b706e]">{filteredUnits.length} Unit phù hợp trong khung chương trình.</p>
+                  <p className="mt-0.5 text-xs text-[#8b706e]">{filteredUnits.length} Unit trong cấu trúc khóa học.</p>
                 </div>
                 <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#4b0009] px-3.5 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#730014] active:scale-95" onClick={resetUnitForm} type="button">
                   <Plus className="h-3.5 w-3.5" /> Thêm Unit
@@ -1236,7 +1207,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                   <div className="space-y-5 p-5 sm:p-6">
                     {pageItems.map((unit) => {
                       const resourceCount = refGroups.reduce((total, group) => total + (unit[group.key]?.length || 0), 0);
-                      const collapsed = collapsedUnitIds.has(unit.id);
+                      const expanded = expandedUnitIds.has(unit.id);
                       const lessons = [...(unit.lessons || [])].sort((left, right) => (
                         Number(left.sessionNumber || 0) - Number(right.sessionNumber || 0)
                         || Number(left.displayOrder || 0) - Number(right.displayOrder || 0)
@@ -1255,13 +1226,13 @@ export default function ContentManagerInstructorLedCoursesPage() {
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-2">
                               <button
-                                aria-expanded={!collapsed}
+                                aria-expanded={expanded}
                                 className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
                                 onClick={() => toggleUnit(unit.id)}
                                 type="button"
                               >
-                                <ChevronDown aria-hidden="true" className={`h-3.5 w-3.5 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
-                                {collapsed ? 'Mở rộng' : 'Thu gọn'}
+                                <ChevronDown aria-hidden="true" className={`h-3.5 w-3.5 transition-transform ${expanded ? '' : '-rotate-90'}`} />
+                                {expanded ? 'Thu gọn' : 'Mở rộng'}
                               </button>
                               <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95" onClick={() => openEditUnit(unit)} type="button">Sửa Unit</button>
                               <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95" onClick={() => openResourcePanel(unit.id)} type="button">+ Thêm học liệu</button>
@@ -1269,7 +1240,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                             </div>
                           </div>
 
-                          {!collapsed ? <div className="space-y-3 border-t border-[#eef1f6] p-4 sm:p-5">
+                          {expanded ? <div className="space-y-3 border-t border-[#eef1f6] p-4 sm:p-5">
                             {lessons.length ? lessons.map((lesson) => (
                               <div className="ml-2 flex flex-col gap-3 border-l-2 border-[#dfbfbd] bg-[#fffdfd] py-3 pl-4 pr-3 sm:flex-row sm:items-start sm:justify-between" key={lesson.id}>
                                 <div className="min-w-0">
@@ -1368,7 +1339,7 @@ function FormSection({ children, number, title }) {
   );
 }
 
-function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onClose, onSubmit, saving }) {
+function InstructorLedCourseModal({ form, mode = 'create', onChange, onClose, onSubmit, saving }) {
   const editing = mode === 'edit';
 
   useEffect(() => {
@@ -1406,7 +1377,7 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
               </h2>
               <p className="mt-1 text-xs text-[#8b706e]">
                 {editing
-                  ? 'Cập nhật thông tin khóa học, đầu vào, mục tiêu và mô tả chương trình.'
+                  ? 'Cập nhật thông tin, đầu vào, mục tiêu và mô tả khóa học.'
                   : 'Thiết lập khung khóa học để bắt đầu xây dựng Unit, bài học và tài nguyên học tập.'}
               </p>
             </div>
@@ -1423,7 +1394,6 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
 
           {/* Form Body - Scrollable Sections */}
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5 sm:p-6">
-            {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
 
             {/* Section 01: Thông tin khóa học */}
             <FormSection number="01" title="Thông tin khóa học">
@@ -1460,13 +1430,6 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
                   onChange={(value) => onChange({ examCategory: value, ...getEnglishProfileDefaults(value) })}
                   options={ENGLISH_EXAM_OPTIONS}
                   value={form.examCategory}
-                />
-
-                <FieldSelect
-                  label="Trình độ / Cấp độ"
-                  onChange={(value) => onChange({ level: value })}
-                  options={COURSE_LEVEL_OPTIONS}
-                  value={form.level || 'INTERMEDIATE'}
                 />
 
                 <FieldSelect
@@ -1535,14 +1498,6 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
                   />
                 ) : null}
 
-                {form.examCategory !== 'GENERAL_ENGLISH' ? (
-                  <FieldSelect
-                    label="Trình độ Placement đầu vào"
-                    onChange={(value) => onChange({ entryPlacementLevel: value })}
-                    options={PLACEMENT_LEVEL_OPTIONS}
-                    value={form.entryPlacementLevel}
-                  />
-                ) : null}
               </div>
 
               <div className="mt-4">
@@ -1650,7 +1605,7 @@ function InstructorLedCourseModal({ error, form, mode = 'create', onChange, onCl
 }
 
 function InstructorLedCourseListPanel({
-  programs,
+  instructorLedCourses,
   loading,
   onArchive,
   onClone,
@@ -1667,9 +1622,9 @@ function InstructorLedCourseListPanel({
   const [listPage, setListPage] = useState(1);
 
   const statusOptions = useMemo(() => {
-    const values = [...new Set(programs.map((item) => item.status).filter(Boolean))];
+    const values = [...new Set(instructorLedCourses.map((item) => item.status).filter(Boolean))];
     return [{ label: 'Tất cả', value: 'ALL' }, ...values.map((value) => ({ label: formatLabel(value), value }))];
-  }, [programs]);
+  }, [instructorLedCourses]);
 
   const examOptions = useMemo(() => [
     { label: 'Tất cả', value: 'ALL' },
@@ -1678,9 +1633,9 @@ function InstructorLedCourseListPanel({
     { label: 'General English', value: 'GENERAL_ENGLISH' },
   ], []);
 
-  const filteredPrograms = useMemo(() => {
+  const filteredInstructorLedCourses = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
-    return programs.filter((item) => {
+    return instructorLedCourses.filter((item) => {
       const status = item.status || '';
       const examCategory = item.examCategory || '';
       const statusMatched = statusFilter === 'ALL' || status === statusFilter;
@@ -1695,11 +1650,11 @@ function InstructorLedCourseListPanel({
       ].filter(Boolean).join(' ').toLowerCase();
       return statusMatched && examMatched && (!normalizedKeyword || haystack.includes(normalizedKeyword));
     });
-  }, [programs, keyword, examFilter, statusFilter]);
+  }, [instructorLedCourses, keyword, examFilter, statusFilter]);
 
-  const totalItems = filteredPrograms.length;
+  const totalItems = filteredInstructorLedCourses.length;
   const totalListPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-  const visiblePrograms = filteredPrograms.slice((listPage - 1) * PAGE_SIZE, listPage * PAGE_SIZE);
+  const visibleInstructorLedCourses = filteredInstructorLedCourses.slice((listPage - 1) * PAGE_SIZE, listPage * PAGE_SIZE);
 
   useEffect(() => {
     setListPage(1);
@@ -1774,45 +1729,39 @@ function InstructorLedCourseListPanel({
                     ))}
                   </tr>
                 ))
-              ) : visiblePrograms.length ? (
-                visiblePrograms.map((program) => (
-                  <tr key={program.id} className="bg-white transition hover:bg-[#fbfdff]">
+              ) : visibleInstructorLedCourses.length ? (
+                visibleInstructorLedCourses.map((course) => (
+                  <tr key={course.id} className="bg-white transition hover:bg-[#fbfdff]">
                     <td className="px-6 py-5">
                       <div className="min-w-[240px] max-w-[380px]">
                         <p className="overflow-hidden text-sm font-extrabold leading-5 text-[#26364a] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                          {program.title}
+                          {course.title}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#8b706e]">
-                          <span className="font-semibold text-[#584140]">{program.code || '-'}</span>
-                          {program.level ? (
-                            <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-bold text-slate-700">
-                              {formatLevel(program.level)}
-                            </span>
-                          ) : null}
-                          {program.durationLabel ? (
+                          <span className="font-semibold text-[#584140]">{course.code || '-'}</span>
+                          {course.durationLabel ? (
                             <span className="text-[11px] text-slate-500">
-                              · {program.durationLabel}
+                              · {course.durationLabel}
                             </span>
                           ) : null}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5 text-sm font-semibold text-[#26364a] whitespace-nowrap">
-                      <span className="font-bold text-[#730014]">{formatExamCategory(program.examCategory)}</span>
-                      {program.targetBand ? ` · Band ${program.targetBand}` : (program.targetScore ? ` · ${program.targetScore} điểm` : (program.entryLevel ? ` · ${program.entryLevel}` : ''))}
+                    <td className="whitespace-nowrap px-6 py-5">
+                      <ManagerTaxonomyBadge kind="level" value={formatInstructorLedCourseExam(course)} />
                     </td>
                     <td className="px-6 py-5 text-center text-xs font-semibold text-[#0b1c30] whitespace-nowrap">
                       <span className="rounded-md bg-slate-100 px-2.5 py-1 font-bold text-[#0b1c30]">
-                        {Number(program.totalUnits ?? program.units?.length ?? 0)} Unit · {program.totalLessons ?? countStructuredLessons(program.units || [])} bài học
+                        {Number(course.totalUnits ?? course.units?.length ?? 0)} Unit · {course.totalLessons ?? countStructuredLessons(course.units || [])} bài học
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-center whitespace-nowrap"><StatusPill status={program.status} /></td>
-                    <td className="px-6 py-5 text-xs text-[#69778a] whitespace-nowrap">{formatDate(program.updatedAt)}</td>
+                    <td className="px-6 py-5 text-center whitespace-nowrap"><StatusPill status={course.status} /></td>
+                    <td className="px-6 py-5 text-xs text-[#69778a] whitespace-nowrap">{formatDate(course.updatedAt)}</td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <div className="inline-flex items-center justify-end gap-1.5">
                         <button
                           className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#4b0009] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#730014] active:scale-95"
-                          onClick={() => onOpen(program)}
+                          onClick={() => onOpen(course)}
                           type="button"
                         >
                           <BookOpen className="h-3.5 w-3.5" />
@@ -1820,7 +1769,7 @@ function InstructorLedCourseListPanel({
                         </button>
                         <button
                           className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
-                          onClick={() => onEdit(program)}
+                          onClick={() => onEdit(course)}
                           type="button"
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -1828,16 +1777,16 @@ function InstructorLedCourseListPanel({
                         </button>
                         <button
                           className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
-                          onClick={() => onClone(program)}
+                          onClick={() => onClone(course)}
                           type="button"
                         >
                           <Copy className="h-3.5 w-3.5" />
                           Nhân bản
                         </button>
-                        {program.status === 'DRAFT' ? (
+                        {course.status === 'DRAFT' ? (
                           <button
                             className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95"
-                            onClick={() => onPublish(program)}
+                            onClick={() => onPublish(course)}
                             type="button"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" />
@@ -1845,9 +1794,9 @@ function InstructorLedCourseListPanel({
                           </button>
                         ) : null}
                         <button
-                          aria-label={`Lưu trữ ${program.title}`}
+                          aria-label={`Lưu trữ ${course.title}`}
                           className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
-                          onClick={() => onArchive(program)}
+                          onClick={() => onArchive(course)}
                           title="Lưu trữ"
                           type="button"
                         >
@@ -1970,19 +1919,12 @@ function formatLabel(value) {
   return labels[normalized] || (String(value).charAt(0) + String(value).slice(1).toLowerCase());
 }
 
-function formatExamCategory(value) {
-  const labels = {
-    IELTS: 'IELTS',
-    TOEIC: 'TOEIC',
-    GENERAL_ENGLISH: 'General English',
-  };
-  return labels[String(value || '').toUpperCase()] || value || 'IELTS';
-}
-
-function formatLevel(value) {
-  if (!value) return '-';
-  const found = COURSE_LEVEL_OPTIONS.find((opt) => opt.value === value);
-  return found ? found.label.split('(')[0].trim() : value;
+function formatInstructorLedCourseExam(course) {
+  const examCategory = String(course?.examCategory || 'IELTS').toUpperCase();
+  if (examCategory === 'IELTS' && course?.targetBand) return `IELTS ${course.targetBand}`;
+  if (examCategory === 'TOEIC' && course?.targetScore) return `TOEIC ${course.targetScore}`;
+  if (examCategory === 'GENERAL_ENGLISH') return course?.entryLevel ? `General English · ${course.entryLevel}` : 'General English';
+  return course?.entryLevel ? `${examCategory} · ${course.entryLevel}` : examCategory;
 }
 
 function formatCurrency(amount) {
@@ -2052,8 +1994,7 @@ function ResourceAttachModal({ children, onClose }) {
   );
 }
 
-function CurriculumExcelImportModal({
-  error,
+function InstructorLedCourseExcelImportModal({
   examCategory,
   importing,
   onClose,
@@ -2100,7 +2041,6 @@ function CurriculumExcelImportModal({
           <Download className="h-3.5 w-3.5" /> Tải bản mẫu Excel chuẩn (Mau_Import_Khoa_Hoc.xlsx)
         </button>
         {reading ? <div className="mt-4 flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-600"><LoaderCircle className="h-4 w-4 animate-spin text-[#8a0018]" /> Đang đọc tệp Excel...</div> : null}
-        {error ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">{error}</div> : null}
         {parsed ? (
           <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-xs text-slate-700">
             <div className="flex items-center gap-2 font-extrabold text-emerald-800"><Check className="h-4 w-4 text-emerald-600" /> Đã đọc tệp: {parsed.fileName}</div>

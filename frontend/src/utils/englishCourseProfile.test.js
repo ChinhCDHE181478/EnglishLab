@@ -3,10 +3,10 @@ import {
   getEnglishProfileDefaults,
   normalizeEnglishEntryLevel,
   normalizeEnglishExamCategory,
-  validateEnglishProgramProfile,
-} from './englishProgramProfile';
+  validateEnglishCourseProfile,
+} from './englishCourseProfile';
 
-describe('englishProgramProfile', () => {
+describe('englishCourseProfile', () => {
   it('normalizes legacy general-English categories', () => {
     expect(normalizeEnglishExamCategory('GENERAL')).toBe('GENERAL_ENGLISH');
     expect(normalizeEnglishExamCategory('COMMUNICATION')).toBe('GENERAL_ENGLISH');
@@ -32,7 +32,7 @@ describe('englishProgramProfile', () => {
   });
 
   it('rejects a TOEIC score on the wrong scale', () => {
-    expect(validateEnglishProgramProfile({
+    expect(validateEnglishCourseProfile({
       examCategory: 'TOEIC',
       focusSkills: ['LISTENING', 'READING'],
       entryLevel: '450',
@@ -41,7 +41,7 @@ describe('englishProgramProfile', () => {
   });
 
   it('rejects an entry score higher than the target', () => {
-    expect(validateEnglishProgramProfile({
+    expect(validateEnglishCourseProfile({
       examCategory: 'TOEIC',
       focusSkills: ['LISTENING', 'READING'],
       entryLevel: '750',
@@ -50,7 +50,7 @@ describe('englishProgramProfile', () => {
   });
 
   it('requires a valid CEFR level for General English', () => {
-    expect(validateEnglishProgramProfile({
+    expect(validateEnglishCourseProfile({
       examCategory: 'GENERAL_ENGLISH',
       focusSkills: ['LISTENING', 'SPEAKING'],
       entryLevel: 'Sơ cấp',
@@ -58,7 +58,7 @@ describe('englishProgramProfile', () => {
   });
 
   it('rejects a score scale from another exam', () => {
-    expect(validateEnglishProgramProfile({
+    expect(validateEnglishCourseProfile({
       examCategory: 'IELTS',
       focusSkills: ['LISTENING', 'READING'],
       entryLevel: '4.0',
@@ -68,7 +68,7 @@ describe('englishProgramProfile', () => {
   });
 
   it('accepts a complete IELTS profile', () => {
-    expect(validateEnglishProgramProfile({
+    expect(validateEnglishCourseProfile({
       examCategory: 'IELTS',
       focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
       entryLevel: '5.0',

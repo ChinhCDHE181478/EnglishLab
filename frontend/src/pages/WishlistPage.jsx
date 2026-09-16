@@ -2,6 +2,7 @@ import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import LearnerCourseActions from '../components/learner/LearnerCourseActions';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import {
@@ -12,6 +13,7 @@ import {
   removeCourseFromWishlist,
 } from '../utils/commerceStore';
 import { formatCoursePrice } from '../components/course/courseFormatters';
+import { getEffectiveCoursePrice, isFreeCourse } from '../utils/courseModels';
 import { stripRichTextToPlain } from '../utils/lessonRichText';
 
 const WishlistPage = () => {
@@ -122,17 +124,21 @@ const WishlistPage = () => {
                       <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{course.title}</h2>
                       <p className="mt-2 text-sm leading-7 text-[#584140]">{stripRichTextToPlain(course.shortDescription) || 'Khóa học đang được cập nhật mô tả.'}</p>
                     </div>
-                    <p className="text-2xl font-extrabold text-[#4b0009]">{formatCoursePrice(course.salePrice || course.price)}</p>
+                    <p className="text-2xl font-extrabold text-[#4b0009]">{formatCoursePrice(getEffectiveCoursePrice(course))}</p>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-3">
                     <Link className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014]" to={`/courses/${course.slug}`}>
                       Xem khóa học
                     </Link>
-                    <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/30 px-5 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fff4f5]" onClick={() => handleAddToCart(course)} type="button">
-                      <ShoppingCart className="h-4 w-4" />
-                      Thêm vào giỏ hàng
-                    </button>
+                    {isFreeCourse(course) ? (
+                      <LearnerCourseActions course={course} onDetailPage />
+                    ) : (
+                      <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/30 px-5 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fff4f5]" onClick={() => handleAddToCart(course)} type="button">
+                        <ShoppingCart className="h-4 w-4" />
+                        Thêm vào giỏ hàng
+                      </button>
+                    )}
                     <button className="inline-flex items-center gap-2 rounded-2xl border border-[#f0d4d7] px-5 py-3 text-sm font-extrabold text-[#93000a] transition hover:bg-[#fff1f1]" onClick={() => handleRemove(course.id)} type="button">
                       <Trash2 className="h-4 w-4" />
                       Xóa khỏi danh sách yêu thích

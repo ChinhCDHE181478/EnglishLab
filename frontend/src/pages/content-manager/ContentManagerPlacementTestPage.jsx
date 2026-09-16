@@ -2,15 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, CheckCircle2, Headphones, Layers3, LoaderCircle, RefreshCw, Save, Target, Users } from 'lucide-react';
 import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
-import { ManagerFilterBar } from '../../components/content-manager/ManagerListUi';
-import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
-import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import { ManagerFilterBar, ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
+import { Panel } from '../../components/content-manager/ContentManagerUi';
+import ManagementToast from '../../components/ui/ManagementToast';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import { getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 
 const RECENT_ATTEMPTS_PAGE_SIZE = 10;
 
 const TABS = [
-  { key: 'overview', label: 'Vận hành' },
   { key: 'monitoring', label: 'Kết quả' },
   { key: 'listening', label: 'Nghe', examTypes: ['IELTS', 'SKILL'] },
   { key: 'reading', label: 'Đọc', examTypes: ['IELTS', 'SKILL'] },
@@ -73,7 +73,7 @@ const parseConfig = (value, fallback = {}) => {
 export default function ContentManagerPlacementTestPage() {
   const [definition, setDefinition] = useState(null);
   const [activeExamType, setActiveExamType] = useState('IELTS');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('monitoring');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [monitoring, setMonitoring] = useState(null);
@@ -95,7 +95,7 @@ export default function ContentManagerPlacementTestPage() {
         setDefinition(toDraft(response));
         setMonitoring(monitoringResponse);
       } catch (requestError) {
-        if (active) setError(requestError?.response?.data?.message || 'Không tải được dữ liệu bài đánh giá đầu vào.');
+        if (active) setError(getContentManagerError(requestError, 'Không tải được dữ liệu bài đánh giá đầu vào.'));
       } finally {
         if (!active) return;
         setLoading(false);
@@ -113,13 +113,13 @@ export default function ContentManagerPlacementTestPage() {
 
   useEffect(() => {
     if (!visibleTabs.some((tab) => tab.key === activeTab)) {
-      setActiveTab('overview');
+      setActiveTab('monitoring');
     }
   }, [activeTab, visibleTabs]);
 
   const selectExamType = (examType) => {
     setActiveExamType(examType);
-    setActiveTab('overview');
+    setActiveTab('monitoring');
     setError('');
     setNotice('');
     if (monitoringExamType !== examType) refreshMonitoring(examType);
@@ -166,7 +166,7 @@ export default function ContentManagerPlacementTestPage() {
       setDefinition(toDraft(response));
       setNotice('Đã lưu cấu hình bài đánh giá đầu vào.');
     } catch (requestError) {
-      setError(requestError?.response?.data?.message || 'Không thể lưu cấu hình bài đánh giá đầu vào.');
+      setError(getContentManagerError(requestError, 'Không thể lưu cấu hình bài đánh giá đầu vào.'));
     } finally {
       setSaving(false);
     }
@@ -183,7 +183,7 @@ export default function ContentManagerPlacementTestPage() {
       setMonitoringExamType(examType);
     } catch (requestError) {
       if (monitoringRequestRef.current !== requestId) return;
-      setError(requestError?.response?.data?.message || 'Không tải được dữ liệu theo dõi.');
+      setError(getContentManagerError(requestError, 'Không tải được dữ liệu theo dõi.'));
     } finally {
       if (monitoringRequestRef.current === requestId) setMonitoringLoading(false);
     }
@@ -225,7 +225,14 @@ export default function ContentManagerPlacementTestPage() {
     return <Panel className="flex min-h-[420px] items-center justify-center gap-3 text-sm font-semibold text-[#584140]"><LoaderCircle className="h-5 w-5 animate-spin text-[#730014]" /> Đang tải bài đánh giá đầu vào...</Panel>;
   }
   if (!definition) {
-    return <Panel className="min-h-[320px] p-6 text-sm font-semibold text-[#93000a]">{error || 'Không có dữ liệu để quản lý.'}</Panel>;
+    return (
+      <>
+        <ManagementToast message={error} onClose={() => setError('')} />
+        <Panel className="min-h-[320px] p-6 text-sm font-semibold text-[#93000a]">
+          {getContentManagerFeedbackMessage(error) || 'Không có dữ liệu để quản lý.'}
+        </Panel>
+      </>
+    );
   }
 
   return (
@@ -235,11 +242,22 @@ export default function ContentManagerPlacementTestPage() {
           <div className="max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Hệ thống đánh giá đầu vào</p>
             <h1 className="mt-2 font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#0b1c30] sm:text-3xl">Ba dạng bài, ba mục tiêu đánh giá</h1>
-            <p className="mt-2 text-sm leading-relaxed text-[#8b706e]">Chọn dạng bài để biên soạn nội dung, cấu hình vận hành và theo dõi kết quả.</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#8b706e]">Chọn dạng bài để biên soạn nội dung và theo dõi kết quả.</p>
           </div>
-          <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
-            <Save aria-hidden="true" className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#dfbfbd] bg-white/85 px-4 py-3 text-sm font-bold text-[#4b0009]">
+              <input
+                checked={definition.status === 'PUBLISHED'}
+                className="h-4 w-4 accent-[#4b0009]"
+                onChange={(event) => updateDefinition('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')}
+                type="checkbox"
+              />
+              Cho phép học viên làm bài
+            </label>
+            <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
+              <Save aria-hidden="true" className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
+            </button>
+          </div>
         </div>
 
         <div aria-label="Chọn dạng bài đánh giá" className="mt-6 grid gap-3 lg:grid-cols-3" role="tablist">
@@ -280,13 +298,12 @@ export default function ContentManagerPlacementTestPage() {
             </button>
           ))}
         </div>
-        <span className="shrink-0 rounded-full bg-[#fff1f2] px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-[#730014]">{activeExamType}</span>
+        <span className="shrink-0 rounded-full border border-[#eadfdc] bg-white px-4 py-2"><ManagerTaxonomyBadge kind="exam" value={activeExamType} /></span>
       </ManagerFilterBar>
 
-      {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
-      {notice ? <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> {notice}</div> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast message={notice} onClose={() => setNotice('')} tone="success" title="Đã lưu bài đánh giá" />
 
-      {activeTab === 'overview' ? <Overview definition={definition} onChange={updateDefinition} /> : null}
       {activeTab === 'monitoring' ? (
         <Monitoring
           examType={activeExamType}
@@ -325,7 +342,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Báo cáo</p><h2 className="mt-1 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Kết quả {examType}</h2></div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Báo cáo</p><h2 className="mt-1 flex items-baseline gap-1.5 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Kết quả <ManagerTaxonomyBadge kind="exam" value={examType} /></h2></div>
         <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={onRefresh} type="button">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới số liệu
         </button>
@@ -377,7 +394,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
 
       <Panel className="overflow-hidden">
         <div className="border-b border-[#f0e3e4] px-6 py-5">
-          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây · {examType}</h3>
+          <h3 className="flex items-baseline gap-1.5 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây · <ManagerTaxonomyBadge kind="exam" value={examType} /></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left">
@@ -416,9 +433,10 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
             </tbody>
           </table>
         </div>
-        {attemptsTotalPages > 1 ? (
+        {recentAttempts.length ? (
           <div className="border-t border-[#f0e3e4] px-5 py-4">
             <Pagination
+              alwaysVisible
               onChange={setAttemptsPage}
               page={attemptsPage}
               pageSize={RECENT_ATTEMPTS_PAGE_SIZE}
@@ -433,26 +451,6 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
 }
 
 function MonitorCard({ icon: Icon, label, value }) { return <Panel className="p-5"><div className="flex justify-between gap-3"><div><p className="text-sm text-[#584140]">{label}</p><p className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#4b0009]">{value}</p></div><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Icon className="h-5 w-5" /></span></div></Panel>; }
-
-function Overview({ definition, onChange }) {
-  return <Panel className="p-6"><div className="grid gap-4 lg:grid-cols-2">
-    <TextField label="Tên hệ thống đánh giá" onChange={(event) => onChange('title', event.target.value)} value={definition.title} />
-    <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Số lượt làm tối đa</span>
-      <input className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014] focus:bg-white" min="1" onChange={(event) => onChange('maxAttempts', Number(event.target.value || 1))} type="number" value={definition.maxAttempts || 1} />
-    </label>
-    <div className="lg:col-span-2">
-      <RichTextEditor
-        label="Mô tả"
-        onChange={(html) => onChange('description', html)}
-        placeholder="Mô tả bài đánh giá đầu vào..."
-        size="compact"
-        value={definition.description}
-      />
-    </div>
-  </div><label className="mt-5 flex min-h-12 items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.status === 'PUBLISHED'} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onChange('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
-  </Panel>;
-}
 
 function ToeicEditor({ config, onChangeSection, onReset }) {
   const [sectionTab, setSectionTab] = useState('listening');

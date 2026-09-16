@@ -10,6 +10,7 @@ import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   IELTS_MAX_BAND,
@@ -23,6 +24,7 @@ import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
 import { canAutoFetchTranscript, isBunnyVideoUrl, isYouTubeVideoUrl } from '../../utils/youtubeVideoUrl';
 import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
+import { getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
@@ -254,8 +256,8 @@ export default function ContentManagerCourseBuilderPage() {
         setAssessments(normalizedAssessments);
         setVersions(versionItems);
         setSavedBuilderFingerprint(createCourseBuilderFingerprint(normalizedCourse, normalizedAssessments));
-      } catch {
-        if (active) setError('Không tải được dữ liệu builder.');
+      } catch (err) {
+        if (active) setError(getContentManagerError(err, 'Không tải được dữ liệu builder.'));
       }
     };
 
@@ -755,7 +757,7 @@ export default function ContentManagerCourseBuilderPage() {
       setCourse((current) => (current ? { ...current, modules: savedModules } : current));
       pushToast('Đã cập nhật thứ tự mô-đun.');
     } catch (err) {
-      pushToast(err?.response?.data?.message || 'Không thể đổi thứ tự mô-đun. Hệ thống đã khôi phục vị trí cũ.', 'error');
+      pushToast(getContentManagerError(err, 'Không thể đổi thứ tự mô-đun. Hệ thống đã khôi phục vị trí cũ.'), 'error');
     } finally {
       setReordering(false);
     }
@@ -804,7 +806,7 @@ export default function ContentManagerCourseBuilderPage() {
       replaceLessons(savedLessons);
       pushToast('Đã cập nhật thứ tự bài học.');
     } catch (err) {
-      pushToast(err?.response?.data?.message || 'Không thể đổi thứ tự bài học. Hệ thống đã khôi phục vị trí cũ.', 'error');
+      pushToast(getContentManagerError(err, 'Không thể đổi thứ tự bài học. Hệ thống đã khôi phục vị trí cũ.'), 'error');
     } finally {
       setReordering(false);
     }
@@ -878,9 +880,7 @@ export default function ContentManagerCourseBuilderPage() {
       setUploadProgress(100);
       pushToast('Tải video lên thành công.');
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không upload được video lên Bunny.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không upload được video lên Bunny.'));
     } finally {
       setUploadingVideo(false);
     }
@@ -926,9 +926,7 @@ export default function ContentManagerCourseBuilderPage() {
         : 'Video chưa có caption. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
       segmentCount ? 'success' : 'warning');
     } catch (refreshError) {
-      const message = refreshError?.response?.data?.message || 'Không thể lấy bản chép lời từ video lúc này.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(refreshError, 'Không thể lấy bản chép lời từ video lúc này.'));
     } finally {
       setRefreshingTranscript(false);
     }
@@ -1016,9 +1014,7 @@ export default function ContentManagerCourseBuilderPage() {
       pushToast('Đã lưu thay đổi nội dung khóa học.');
       return true;
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không lưu được thay đổi nội dung khóa học.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không lưu được thay đổi nội dung khóa học.'));
       return false;
     } finally {
       setSaving(false);
@@ -1037,9 +1033,7 @@ export default function ContentManagerCourseBuilderPage() {
       setVersions(await courseApi.getOnlineCourseVersions(course.id));
       pushToast('Đã tạo bản nháp mới. Học viên vẫn học bản đang xuất bản cho đến khi bản nháp mới được xuất bản.');
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không thể tạo phiên bản mới.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không thể tạo phiên bản mới.'));
     } finally {
       setVersionBusy(false);
     }
@@ -1070,9 +1064,7 @@ export default function ContentManagerCourseBuilderPage() {
       setLessonModalOpen(false);
       pushToast(`Đã xuất bản phiên bản v${version.versionNumber}.`);
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không thể xuất bản phiên bản.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không thể xuất bản phiên bản.'));
     } finally {
       setVersionBusy(false);
     }
@@ -1120,7 +1112,7 @@ export default function ContentManagerCourseBuilderPage() {
         ) : null}
       </div>
 
-      {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
 
       {course ? (
         <CourseVersionPanel
@@ -2234,6 +2226,8 @@ function ToastStack({ toasts, onDismiss }) {
       {toasts.map((toast) => {
         const tone = toastTone(toast.type);
         const Icon = tone.icon;
+        const message = getContentManagerFeedbackMessage(toast.message);
+        const code = typeof toast.message === 'object' ? toast.message?.code : null;
         return (
           <div
             key={toast.id}
@@ -2242,7 +2236,12 @@ function ToastStack({ toasts, onDismiss }) {
             <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone.iconBg} ${tone.iconText}`}>
               <Icon className="h-4 w-4" />
             </span>
-            <p className="min-w-0 flex-1 pt-1 text-sm font-semibold leading-5 text-[#2b2828]">{toast.message}</p>
+            <div className="min-w-0 flex-1 pt-1">
+              <p className="text-sm font-semibold leading-5 text-[#2b2828]">{message}</p>
+              {toast.type === 'error' && code ? (
+                <p className="mt-1 font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-rose-700">Mã lỗi: {code}</p>
+              ) : null}
+            </div>
             <button
               aria-label="Đóng thông báo"
               className="rounded-lg p-1 text-[#8b706e] transition hover:bg-[#fff2f3] hover:text-[#730014]"

@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 @Builder
 @Entity
 @Table(name = "learning_paths")
+/** Stores the exam target and bundle-purchase policy for a learning path. */
 public class LearningPath {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -169,14 +169,14 @@ public class StaffClassroomController {
 
     @GetMapping({"/instructor-led-courses", "/training-programs"})
     public ResponseEntity<List<InstructorLedCourseResponse>> listPublishedInstructorLedCourses() {
-        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedPrograms());
+        return ResponseEntity.ok(instructorLedCourseCatalogService.listPublishedInstructorLedCourses());
     }
 
     @GetMapping({"/instructor-led-courses/{id}", "/training-programs/{id}"})
     public ResponseEntity<fu.sep490.g23.backend.dto.response.curriculum.InstructorLedCourseResponse> getPublishedInstructorLedCourse(
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(instructorLedCourseManagementService.getProgram(id));
+        return ResponseEntity.ok(instructorLedCourseManagementService.getInstructorLedCourse(id));
     }
 
     @GetMapping("/{id}")

@@ -18,65 +18,64 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration Test – Manage Syllabus
- * Excel sheet: IT_SYLLABUS | SRS: UC-32a Create Syllabus, UC-32b View Syllabus, UC-32c Update Syllabus, UC-32d Delete Syllabus
- * Chạy: mvnw -Dtest=SyllabusIT test
+ * Integration tests for managing instructor-led courses.
+ * Run with: mvnw -Dtest=InstructorLedCourseIT test
  */
 @EnglishLabIT
-public class SyllabusIT {
+public class InstructorLedCourseIT {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Test
-    @DisplayName("IT_SYLLABUS_01")
-    void itSyllabus01() throws Exception {
+    @DisplayName("IT_INSTRUCTOR_LED_COURSE_01")
+    void listsInstructorLedCourses() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        mockMvc.perform(get("/api/content-manager/curriculum-programs")
+        mockMvc.perform(get("/api/content-manager/instructor-led-courses")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("IT_SYLLABUS_02")
-    void itSyllabus02() throws Exception {
+    @DisplayName("IT_INSTRUCTOR_LED_COURSE_02")
+    void createsAndReadsInstructorLedCourse() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        MvcResult created = createProgram(token, "IT syllabus create")
+        MvcResult created = createInstructorLedCourse(token, "IT instructor-led course create")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andReturn();
-        long programId = json(created).path("id").asLong();
-        mockMvc.perform(get("/api/content-manager/curriculum-programs/" + programId)
+        long instructorLedCourseId = json(created).path("id").asLong();
+        mockMvc.perform(get("/api/content-manager/instructor-led-courses/" + instructorLedCourseId)
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("IT syllabus create"));
+                .andExpect(jsonPath("$.title").value("IT instructor-led course create"));
     }
 
     @Test
-    @DisplayName("IT_SYLLABUS_03")
-    void itSyllabus03() throws Exception {
+    @DisplayName("IT_INSTRUCTOR_LED_COURSE_03")
+    void updatesInstructorLedCourse() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        long programId = json(createProgram(token, "IT syllabus before")
+        long instructorLedCourseId = json(createInstructorLedCourse(token, "IT instructor-led course before")
                 .andExpect(status().isOk()).andReturn()).path("id").asLong();
-        mockMvc.perform(put("/api/content-manager/curriculum-programs/" + programId)
+        mockMvc.perform(put("/api/content-manager/instructor-led-courses/" + instructorLedCourseId)
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(programBody("IT syllabus updated")))
+                        .content(courseBody("IT instructor-led course updated")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("IT syllabus updated"));
-        mockMvc.perform(get("/api/content-manager/curriculum-programs/" + programId)
+                .andExpect(jsonPath("$.title").value("IT instructor-led course updated"));
+        mockMvc.perform(get("/api/content-manager/instructor-led-courses/" + instructorLedCourseId)
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("IT syllabus updated"));
+                .andExpect(jsonPath("$.title").value("IT instructor-led course updated"));
     }
 
     @Test
-    @DisplayName("IT_SYLLABUS_04")
-    void itSyllabus04() throws Exception {
+    @DisplayName("IT_INSTRUCTOR_LED_COURSE_04")
+    void createsCourseUnit() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        long programId = json(createProgram(token, "IT syllabus units")
+        long instructorLedCourseId = json(createInstructorLedCourse(token, "IT instructor-led course units")
                 .andExpect(status().isOk()).andReturn()).path("id").asLong();
-        MvcResult unit = mockMvc.perform(post("/api/content-manager/curriculum-programs/" + programId + "/units")
+        MvcResult unit = mockMvc.perform(post("/api/content-manager/instructor-led-courses/" + instructorLedCourseId + "/units")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -86,36 +85,36 @@ public class SyllabusIT {
                 .andExpect(jsonPath("$.title").value("IT Unit 1"))
                 .andReturn();
         long unitId = json(unit).path("id").asLong();
-        mockMvc.perform(get("/api/content-manager/curriculum-programs/" + programId)
+        mockMvc.perform(get("/api/content-manager/instructor-led-courses/" + instructorLedCourseId)
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.units[?(@.id == " + unitId + ")]").exists());
     }
 
     @Test
-    @DisplayName("IT_SYLLABUS_05")
-    void itSyllabus05() throws Exception {
+    @DisplayName("IT_INSTRUCTOR_LED_COURSE_05")
+    void archivesInstructorLedCourse() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        long programId = json(createProgram(token, "IT syllabus archive")
+        long instructorLedCourseId = json(createInstructorLedCourse(token, "IT instructor-led course archive")
                 .andExpect(status().isOk()).andReturn()).path("id").asLong();
-        mockMvc.perform(delete("/api/content-manager/curriculum-programs/" + programId)
+        mockMvc.perform(delete("/api/content-manager/instructor-led-courses/" + instructorLedCourseId)
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/content-manager/curriculum-programs/" + programId)
+        mockMvc.perform(get("/api/content-manager/instructor-led-courses/" + instructorLedCourseId)
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ARCHIVED"));
     }
 
-    private org.springframework.test.web.servlet.ResultActions createProgram(String token, String title)
+    private org.springframework.test.web.servlet.ResultActions createInstructorLedCourse(String token, String title)
             throws Exception {
-        return mockMvc.perform(post("/api/content-manager/curriculum-programs")
+        return mockMvc.perform(post("/api/content-manager/instructor-led-courses")
                 .header("Authorization", bearer(token))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(programBody(title)));
+                .content(courseBody(title)));
     }
 
-    private String programBody(String title) {
+    private String courseBody(String title) {
         return """
                 {
                   "title":"%s",

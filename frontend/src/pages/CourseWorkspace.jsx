@@ -17,6 +17,7 @@ import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
 import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 import { findFurthestReachedModuleIndex, isReachedModuleUnlocked } from '../utils/courseProgressAccess';
+import { getRequestedLessonId } from '../utils/courseWorkspaceNavigation';
 import {
   getAssessmentSubmissionErrorMessage,
   isTemporaryAssessmentSubmissionError,
@@ -31,6 +32,7 @@ const CourseWorkspace = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const activeLessonStorageKey = `englishlab.activeLesson.${slugOrId}`;
+  const requestedLessonId = getRequestedLessonId(location.search);
   const {
     isAuthenticated,
     studyToolsSyncing,
@@ -57,7 +59,7 @@ const CourseWorkspace = () => {
   const [error, setError] = useState('');
   const [activeLessonId, setActiveLessonId] = useState(() => {
     try {
-      return localStorage.getItem(activeLessonStorageKey) || null;
+      return requestedLessonId || localStorage.getItem(activeLessonStorageKey) || null;
     } catch {
       return null;
     }
@@ -346,11 +348,11 @@ const CourseWorkspace = () => {
 
   useEffect(() => {
     try {
-      setActiveLessonId(localStorage.getItem(activeLessonStorageKey) || null);
+      setActiveLessonId(requestedLessonId || localStorage.getItem(activeLessonStorageKey) || null);
     } catch {
-      setActiveLessonId(null);
+      setActiveLessonId(requestedLessonId);
     }
-  }, [activeLessonStorageKey]);
+  }, [activeLessonStorageKey, requestedLessonId]);
 
   useEffect(() => {
     if (!activeLessonId) return;
@@ -365,17 +367,18 @@ const CourseWorkspace = () => {
     if (!workspaceItems.length) return;
     const activeLessonStillExists = workspaceItems.some((item) => String(item.id) === String(activeLessonId));
     const storedLessonId = localStorage.getItem(activeLessonStorageKey);
+    const preferredLessonId = requestedLessonId || storedLessonId;
     const waitingForStoredAssessment = (
       !assessmentsLoaded
-      && isAssessmentStepId(storedLessonId)
-      && String(activeLessonId) === String(storedLessonId)
+      && isAssessmentStepId(preferredLessonId)
+      && String(activeLessonId) === String(preferredLessonId)
       && !activeLessonStillExists
     );
 
     if (waitingForStoredAssessment) return;
 
     if (!activeLessonId || !activeLessonStillExists) {
-      const storedItem = workspaceItems.find((item) => String(item.id) === String(storedLessonId) && !item.isLocked);
+      const storedItem = workspaceItems.find((item) => String(item.id) === String(preferredLessonId) && !item.isLocked);
       const firstUnlockedItem = workspaceItems.find((item) => !item.isLocked) || workspaceItems[0];
       rememberActiveLesson(storedItem?.id || firstUnlockedItem?.id || workspaceItems[0].id);
       return;
@@ -386,7 +389,7 @@ const CourseWorkspace = () => {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
       if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
-  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, workspaceItems]);
+  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, requestedLessonId, workspaceItems]);
 
   useEffect(() => {
     if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {

@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import paymentApi from '../../api/paymentApi';
 import { ContentManagerLoadingState, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
+import { ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
+import ManagementToast from '../../components/ui/ManagementToast';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 
 export default function ContentManagerAnalyticsPage() {
   const [stats, setStats] = useState(null);
@@ -16,10 +19,12 @@ export default function ContentManagerAnalyticsPage() {
     setLoading(true);
     setError('');
     try {
+      let revenueError = null;
       const loadRevenueAnalytics = async () => {
         try {
           return await paymentApi.getRevenueAnalytics();
-        } catch {
+        } catch (err) {
+          revenueError = err;
           return null;
         }
       };
@@ -32,8 +37,15 @@ export default function ContentManagerAnalyticsPage() {
       setStats(statsData);
       setRevenue(revenueData);
       setCourses(coursePage.content || []);
+      if (revenueError) {
+        setError(getContentManagerError(
+          revenueError,
+          'Không tải được số liệu doanh thu. Các số liệu nội dung khác vẫn được hiển thị.',
+          'REVENUE_ANALYTICS_UNAVAILABLE',
+        ));
+      }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được dữ liệu phân tích nội dung.');
+      setError(getContentManagerError(err, 'Không tải được dữ liệu phân tích nội dung.'));
     } finally {
       setLoading(false);
     }
@@ -77,11 +89,7 @@ export default function ContentManagerAnalyticsPage() {
         </button>
       </div>
 
-      {error ? (
-        <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-          {error}
-        </div>
-      ) : null}
+      <ManagementToast actionLabel="Thử lại" message={error} onAction={loadData} onClose={() => setError('')} />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={BookOpen} label="Khóa học" value={stats?.totalCourses ?? 0} />
@@ -138,7 +146,7 @@ export default function ContentManagerAnalyticsPage() {
               {recentCourses.length ? recentCourses.map((course) => (
                 <tr key={course.id}>
                   <td className="px-5 py-4 font-semibold">{course.title}</td>
-                  <td className="px-5 py-4 text-sm">{course.categoryName || course.category}</td>
+                  <td className="px-5 py-4"><ManagerTaxonomyBadge kind="exam" value={course.categoryName || course.category} /></td>
                   <td className="px-5 py-4 text-sm">{course.totalLessons || 0}</td>
                   <td className="px-5 py-4"><StatusBadge label={course.status} /></td>
                   <td className="px-5 py-4 text-sm">{formatDate(course.updatedAt)}</td>

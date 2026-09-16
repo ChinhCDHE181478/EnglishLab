@@ -630,7 +630,6 @@ public class ClassroomMapper {
                 .targetBand(course.getTargetBand())
                 .targetScore(course.getTargetScore())
                 .entryLevel(course.getEntryLevel())
-                .entryPlacementLevel(course.getEntryPlacementLevel())
                 .outcomes(course.getLearningOutcomes())
                 .teacherGuide(course.getTeacherGuide())
                 .totalSessions(units.stream()

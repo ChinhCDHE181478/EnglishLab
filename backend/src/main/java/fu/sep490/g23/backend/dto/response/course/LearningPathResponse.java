@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 
 @Data
 @Builder
+/** Complete learning-path model returned to the content management screen. */
 public class LearningPathResponse {
     private Long id;
     private String code;
