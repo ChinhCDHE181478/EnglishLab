@@ -11,9 +11,8 @@ const DEV_SCORE_OVERRIDE_SKILLS = new Set(['WRITING', 'SPEAKING']);
 const shouldApplyDevScoreOverride = (submission, assessment) => {
   if (!import.meta.env.DEV || !submission || !assessment) return false;
   const skill = String(assessment.skill || '').toUpperCase();
-  const type = String(assessment.type || '').toUpperCase();
   const score = toNumber(submission.aiScore);
-  return type === 'MODULE_TEST'
+  return assessment.moduleId != null
     && DEV_SCORE_OVERRIDE_SKILLS.has(skill)
     && score != null
     && score < DEV_MODULE_TEST_SCORE;
@@ -106,7 +105,7 @@ export const resolveAssessmentPassingThreshold = (assessment, course = null) => 
 
   const skill = String(assessment?.skill || '').toUpperCase();
   const usesBandScale = !['LISTENING', 'READING'].includes(skill);
-  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && usesBandScale && course?.targetBand != null) {
+  if (assessment?.moduleId != null && usesBandScale && course?.targetBand != null) {
     return normalizeBandThreshold(assessment, Number(course.targetBand) - 0.5);
   }
 

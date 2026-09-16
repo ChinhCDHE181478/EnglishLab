@@ -18,6 +18,27 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
     List<AssessmentBankItem> findBySkillOrderByUpdatedAtDescIdDesc(AssessmentSkill skill);
 
     @Query(value = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM content_bank_items
+                WHERE bank_type = 'ASSESSMENT'
+                  AND COALESCE(content_data->>'uiConfigJson', '') LIKE CONCAT('%', :urlSuffix, '%')
+            )
+            """, nativeQuery = true)
+    boolean existsByUiConfigJsonContaining(@Param("urlSuffix") String urlSuffix);
+
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM content_bank_items
+                WHERE bank_type = 'ASSESSMENT'
+                  AND status = 'PUBLISHED'
+                  AND COALESCE(content_data->>'uiConfigJson', '') LIKE CONCAT('%', :urlSuffix, '%')
+            )
+            """, nativeQuery = true)
+    boolean existsPublishedByUiConfigJsonContaining(@Param("urlSuffix") String urlSuffix);
+
+    @Query(value = """
             SELECT *
             FROM content_bank_items
             WHERE bank_type = 'ASSESSMENT'
@@ -140,6 +161,39 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
             String status
     ) {
         return findByIdAndTypeCodeAndStatus(id, type.name(), status);
+    }
+
+    @Query(value = """
+            SELECT * FROM content_bank_items
+            WHERE bank_type = 'ASSESSMENT'
+              AND id = :id
+              AND status = :status
+            """, nativeQuery = true)
+    Optional<AssessmentBankItem> findByIdAndStatus(
+            @Param("id") Long id,
+            @Param("status") String status
+    );
+
+    @Query(value = """
+            SELECT * FROM content_bank_items
+            WHERE bank_type = 'ASSESSMENT'
+              AND status = :status
+              AND skill IN (:skills)
+            ORDER BY updated_at DESC NULLS LAST, id DESC
+            """, nativeQuery = true)
+    List<AssessmentBankItem> findByStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
+            @Param("status") String status,
+            @Param("skills") List<String> skills
+    );
+
+    default List<AssessmentBankItem> findByStatusAndSkillInOrderByUpdatedAtDescIdDesc(
+            String status,
+            List<AssessmentSkill> skills
+    ) {
+        return findByStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
+                status,
+                skills.stream().map(Enum::name).toList()
+        );
     }
 
     @Query(value = """

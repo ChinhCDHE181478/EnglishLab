@@ -1,8 +1,9 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   Archive,
+  ArrowLeft,
+  ArrowRight,
   BookOpen,
   CheckCircle2,
   Clock3,
@@ -49,16 +50,14 @@ import {
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
 
-const strictSkill = (skill) => (item) => String(item.skill || '').toUpperCase() === skill;
-
 const pageMap = {
   listening: {
     title: 'Luyện nghe',
     subtitle: 'Chỉ quản lý nội dung Listening. Bài tạo mới trong trang này luôn là bài nghe.',
     skill: 'LISTENING',
     type: 'LESSON_PRACTICE',
-    allowedTypes: ['LESSON_PRACTICE', 'MODULE_TEST', 'QUIZ'],
     lockedSkill: true,
+    lockedType: true,
     createLabel: 'Tạo bài nghe',
     editLabel: 'Chỉnh sửa bài nghe',
     emptyLabel: 'Chưa có bài luyện nghe nào.',
@@ -69,15 +68,14 @@ const pageMap = {
     itemLabel: 'bài nghe',
     totalLabel: 'Bài nghe',
     statsIcon: Headphones,
-    matcher: strictSkill('LISTENING'),
   },
   reading: {
     title: 'Luyện đọc',
     subtitle: 'Chỉ quản lý nội dung Reading. Bài tạo mới trong trang này luôn là bài đọc.',
     skill: 'READING',
     type: 'LESSON_PRACTICE',
-    allowedTypes: ['LESSON_PRACTICE', 'MODULE_TEST', 'QUIZ'],
     lockedSkill: true,
+    lockedType: true,
     createLabel: 'Tạo bài đọc',
     editLabel: 'Chỉnh sửa bài đọc',
     emptyLabel: 'Chưa có bài luyện đọc nào.',
@@ -88,15 +86,14 @@ const pageMap = {
     itemLabel: 'bài đọc',
     totalLabel: 'Bài đọc',
     statsIcon: BookOpen,
-    matcher: strictSkill('READING'),
   },
   writing: {
     title: 'Luyện viết',
     subtitle: 'Chỉ quản lý nội dung Writing. Đề tạo mới trong trang này luôn là đề viết.',
     skill: 'WRITING',
     type: 'WRITING_TASK',
-    allowedTypes: ['WRITING_TASK', 'MODULE_TEST'],
     lockedSkill: true,
+    lockedType: true,
     createLabel: 'Tạo đề viết',
     editLabel: 'Chỉnh sửa đề viết',
     emptyLabel: 'Chưa có đề luyện viết nào.',
@@ -107,15 +104,14 @@ const pageMap = {
     itemLabel: 'đề viết',
     totalLabel: 'Đề viết',
     statsIcon: NotebookPen,
-    matcher: strictSkill('WRITING'),
   },
   speaking: {
     title: 'Luyện nói',
     subtitle: 'Chỉ quản lý nội dung Speaking. Đề tạo mới trong trang này luôn là đề nói.',
     skill: 'SPEAKING',
     type: 'SPEAKING_TASK',
-    allowedTypes: ['SPEAKING_TASK', 'MODULE_TEST'],
     lockedSkill: true,
+    lockedType: true,
     createLabel: 'Tạo đề nói',
     editLabel: 'Chỉnh sửa đề nói',
     emptyLabel: 'Chưa có đề luyện nói nào.',
@@ -126,7 +122,6 @@ const pageMap = {
     itemLabel: 'đề nói',
     totalLabel: 'Đề nói',
     statsIcon: Mic2,
-    matcher: strictSkill('SPEAKING'),
   },
   mockExams: {
     title: 'Ngân hàng đề thi thử',
@@ -143,13 +138,11 @@ const pageMap = {
     itemLabel: 'đề',
     totalLabel: 'Tổng đề',
     statsIcon: FileQuestion,
-    matcher: (item) => String(item.type || '').toUpperCase() === 'MOCK_TEST',
   },
 };
 
 const typeOptions = [
   { label: 'Bài luyện trong bài học', value: 'LESSON_PRACTICE' },
-  { label: 'Bài kiểm tra mô-đun', value: 'MODULE_TEST' },
   { label: 'Đề thi thử', value: 'MOCK_TEST' },
   { label: 'Bài luyện viết', value: 'WRITING_TASK' },
   { label: 'Bài luyện nói', value: 'SPEAKING_TASK' },
@@ -247,7 +240,7 @@ const emptyForm = (pageConfig) => {
     objectiveAnswerKey: '',
     uiConfigJson: isMock ? withExamTypeInConfig('{}', examCategory, skill) : '',
     passingScore: '',
-    maxScore: 100,
+    maxScore: isProductiveSkill(skill) ? 9 : 100,
     timeLimitMinutes: '',
     status: 'DRAFT',
   };
@@ -255,11 +248,12 @@ const emptyForm = (pageConfig) => {
 
 const toForm = (item = {}, pageConfig) => {
   const examCategory = resolveExamCategory(item);
+  const skill = item.skill || pageConfig?.skill || 'LISTENING';
   return {
     title: item.title || '',
     description: item.description || '',
     type: item.type || pageConfig?.type || 'LESSON_PRACTICE',
-    skill: item.skill || pageConfig?.skill || 'LISTENING',
+    skill,
     examCategory,
     aiEvaluationMode: resolveAutomaticEvaluationMode(item.skill || pageConfig?.skill),
     rubricId: item.rubric?.id ? String(item.rubric.id) : '',
@@ -267,7 +261,7 @@ const toForm = (item = {}, pageConfig) => {
     objectiveAnswerKey: item.objectiveAnswerKey || '',
     uiConfigJson: item.uiConfigJson || '',
     passingScore: item.passingScore ?? '',
-    maxScore: item.maxScore ?? 100,
+    maxScore: item.maxScore ?? (isProductiveSkill(skill) ? 9 : 100),
     timeLimitMinutes: item.timeLimitMinutes ?? '',
     status: item.status || 'DRAFT',
   };
@@ -279,6 +273,8 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const { confirm: confirmDialog } = useAppDialog();
   const pageConfig = pageMap[pageKey] || pageMap.listening;
   const isSkillLocked = Boolean(pageConfig.lockedSkill);
+  const isTypeLocked = Boolean(pageConfig.lockedType);
+  const filtersByPageType = !isSkillLocked;
   const isMockExamsPage = pageKey === 'mockExams';
   const [items, setItems] = useState([]);
   const [rubrics, setRubrics] = useState([]);
@@ -293,7 +289,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const [success, setSuccess] = useState('');
   const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [statsData, setStatsData] = useState({ total: 0, published: 0, draft: 0, timed: 0 });
-  const editorRef = useRef(null);
   const deferredKeyword = useDeferredValue(keyword);
   const resetKey = `${pageKey}-${deferredKeyword}-${filters.type}-${filters.status}-${filters.examCategory}`;
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
@@ -303,18 +298,23 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     pageResult,
   );
 
-  const lockFormToPage = (draft) => (
-    isSkillLocked ? { ...draft, skill: pageConfig.skill, type: pageConfig.type } : draft
-  );
+  const lockFormToPage = (draft, { preserveType = false } = {}) => ({
+    ...draft,
+    ...(isSkillLocked ? { skill: pageConfig.skill } : {}),
+    ...(isTypeLocked && !preserveType ? { type: pageConfig.type } : {}),
+  });
 
   const loadItems = async () => {
     setLoading(true);
     setError('');
     try {
-      const baseParams = isSkillLocked ? { skill: pageConfig.skill } : { type: pageConfig.type };
+      const baseParams = {
+        ...(isSkillLocked ? { skill: pageConfig.skill } : {}),
+        ...(filtersByPageType ? { type: pageConfig.type } : {}),
+      };
       const params = {
         ...baseParams,
-        type: !isSkillLocked && filters.type !== 'ALL' ? filters.type : baseParams.type,
+        type: !isTypeLocked && filters.type !== 'ALL' ? filters.type : baseParams.type,
         status: filters.status === 'ALL' ? undefined : filters.status,
         examCategory: isMockExamsPage && filters.examCategory !== 'ALL'
           ? filters.examCategory
@@ -388,6 +388,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       if (field === 'skill') {
         next.rubricId = '';
         next.aiEvaluationMode = resolveAutomaticEvaluationMode(value);
+        next.maxScore = isProductiveSkill(value) ? 9 : 100;
       }
       return next;
     });
@@ -399,9 +400,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     setEditorOpen(true);
     setError('');
     setSuccess('');
-    window.setTimeout(() => {
-      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 0);
   };
 
   const closeEditor = () => {
@@ -422,17 +420,14 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       return;
     }
     setEditingId(item.id);
-    setForm(lockFormToPage(toForm(item, pageConfig)));
+    setForm(lockFormToPage(toForm(item, pageConfig), { preserveType: isSkillLocked }));
     setEditorOpen(true);
     setError('');
     setSuccess('');
-    window.setTimeout(() => {
-      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 0);
   };
 
   const buildPayload = (draft) => {
-    const lockedDraft = lockFormToPage(draft);
+    const lockedDraft = lockFormToPage(draft, { preserveType: Boolean(editingId) && isSkillLocked });
     const examCategory = isMockExamsPage ? resolveExamCategory(lockedDraft) : null;
     return {
       ...lockedDraft,
@@ -501,10 +496,10 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         return [saved, ...current];
       });
       setEditingId(saved.id);
-      setForm(lockFormToPage(toForm(saved, pageConfig)));
+      setForm(lockFormToPage(toForm(saved, pageConfig), { preserveType: isSkillLocked }));
       setEditorOpen(false);
       setKeyword('');
-      setFilters({ type: 'ALL', status: 'ALL' });
+      setFilters({ type: 'ALL', status: 'ALL', examCategory: 'ALL' });
       setPage(1);
       setSuccess(editingId ? `Đã cập nhật ${pageConfig.successNoun}.` : `Đã tạo ${pageConfig.successNoun}.`);
     } catch (err) {
@@ -600,16 +595,16 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   const renderWorkspace = () => {
     if (isSkillLocked && pageConfig.skill === 'LISTENING') {
-      return <ListeningPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+      return <ListeningPracticeWorkspace form={lockedForm} inline onChange={updateForm} />;
     }
     if (isSkillLocked && pageConfig.skill === 'READING') {
-      return <ReadingPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+      return <ReadingPracticeWorkspace form={lockedForm} inline onChange={updateForm} />;
     }
     if (isSkillLocked && pageConfig.skill === 'WRITING') {
-      return <WritingPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+      return <WritingPracticeWorkspace form={lockedForm} inline onChange={updateForm} />;
     }
     if (isSkillLocked && pageConfig.skill === 'SPEAKING') {
-      return <SpeakingPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+      return <SpeakingPracticeWorkspace form={lockedForm} inline onChange={updateForm} />;
     }
     if (canUseBuilder) {
       return (
@@ -618,6 +613,8 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
             ...form,
             examType: isMockExamsPage ? (form.examCategory || 'IELTS') : undefined,
           }}
+          inline
+          key={form.skill}
           onChange={updateForm}
         />
       );
@@ -643,7 +640,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         </div>
       </div>
       <div className={`grid w-full gap-3 ${isSkillLocked ? 'sm:w-auto' : isMockExamsPage ? 'sm:grid-cols-2 lg:grid-cols-3 lg:w-auto' : 'sm:grid-cols-2 lg:w-auto'}`}>
-        {!isSkillLocked && !isMockExamsPage ? (
+        {!isTypeLocked && !isMockExamsPage ? (
           <FilterSelect label="Loại đề" onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))} options={[allOption, ...typeOptions]} value={filters.type} />
         ) : null}
         {isMockExamsPage ? (
@@ -676,49 +673,33 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       return <ManagerEmptyState>{pageConfig.emptyLabel}</ManagerEmptyState>;
     }
 
-    const columns = isSkillLocked
-      ? [
-        { label: pageConfig.tableTitle, key: 'title' },
-        { label: 'Thời lượng', key: 'time', align: 'center' },
-        { label: 'Trạng thái', key: 'status' },
-        { label: 'Thao tác', key: 'actions', align: 'right' },
-      ]
-      : isMockExamsPage
-        ? [
-          { label: pageConfig.tableTitle, key: 'title' },
-          { label: 'Kỳ thi', key: 'exam' },
-          { label: 'Kỹ năng', key: 'skill' },
-          { label: 'Thời lượng', key: 'time', align: 'center' },
-          { label: 'Trạng thái', key: 'status' },
-          { label: 'Thao tác', key: 'actions', align: 'right' },
-        ]
-        : [
-          { label: pageConfig.tableTitle, key: 'title' },
-          { label: 'Loại đề', key: 'type' },
-          { label: 'Kỹ năng', key: 'skill' },
-          { label: 'Thời lượng', key: 'time', align: 'center' },
-          { label: 'Trạng thái', key: 'status' },
-          { label: 'Thao tác', key: 'actions', align: 'right' },
-        ];
+    const columns = [
+      { label: pageConfig.tableTitle, key: 'title' },
+      ...(isMockExamsPage ? [{ label: 'Kỳ thi', key: 'exam' }] : []),
+      ...(!isTypeLocked && !isMockExamsPage ? [{ label: 'Loại đề', key: 'type' }] : []),
+      ...(!isSkillLocked ? [{ label: 'Kỹ năng', key: 'skill' }] : []),
+      { label: 'Thời lượng', key: 'time', align: 'center' },
+      { label: 'Trạng thái', key: 'status' },
+      { label: 'Thao tác', key: 'actions', align: 'right' },
+    ];
 
     return (
       <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
-        <ManagerTable columns={columns} minWidth={isSkillLocked ? '900px' : '1080px'}>
+        <ManagerTable columns={columns} minWidth={isSkillLocked || isTypeLocked ? '900px' : '1080px'}>
           {pageItems.map((item) => (
             <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
               <td className="px-6 py-5">
                 <p className="max-w-[360px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
                 {item.description ? <RichTextHtml asPlain className="mt-1 max-w-[360px] truncate text-xs text-[#564241]" value={item.description} /> : null}
               </td>
+              {isMockExamsPage ? (
+                <td className="px-6 py-5"><ManagerTaxonomyBadge kind="exam" value={resolveExamCategory(item)} /></td>
+              ) : null}
+              {!isTypeLocked && !isMockExamsPage ? (
+                <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatLabel(item.type)}</td>
+              ) : null}
               {!isSkillLocked ? (
-                <>
-                  {isMockExamsPage ? (
-                    <td className="px-6 py-5"><ManagerTaxonomyBadge kind="exam" value={resolveExamCategory(item)} /></td>
-                  ) : (
-                    <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatLabel(item.type)}</td>
-                  )}
-                  <td className="px-6 py-5"><ManagerTaxonomyBadge kind="skill" value={item.skill} /></td>
-                </>
+                <td className="px-6 py-5"><ManagerTaxonomyBadge kind="skill" value={item.skill} /></td>
               ) : null}
               <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : '-'}</td>
               <td className="px-6 py-5"><AssessmentStatusBadge status={item.status} /></td>
@@ -778,146 +759,23 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       <ManagementToast message={error} onClose={() => setError('')} />
       <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật nội dung" />
 
-      {editorOpen && (
-        <AssessmentHubModal onClose={closeEditor}>
-          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#f0e3e4] px-6 py-5 bg-white">
-            <div>
-              <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
-                {pageConfig.title || 'Biên soạn bài luyện tập'}
-              </p>
-              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
-                {editingId ? pageConfig.editLabel : pageConfig.createLabel}
-              </h2>
-              <p className="mt-1 text-xs text-[#8b706e]">
-                {isSkillLocked
-                  ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
-                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học.'}
-              </p>
-            </div>
-            <button className="rounded-2xl border border-[#dfbfbd]/65 p-2.5 text-[#730014] transition hover:bg-[#fff2f3]" onClick={closeEditor} type="button">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6" ref={editorRef}>
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
-              <div className="space-y-4">
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên {pageConfig.successNoun}</span>
-                  <input value={form.title} onChange={(event) => updateForm('title', event.target.value)} className={FIELD_CLASS} />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
-                  <RichTextEditor
-                    helperText=""
-                    onChange={(value) => updateForm('description', value)}
-                    placeholder="Mô tả đề luyện tập..."
-                    size="compact"
-                    value={form.description}
-                  />
-                </label>
-                {isSkillLocked ? (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <LockedMeta label="Trang kỹ năng" value={pageConfig.title} />
-                    <LockedMeta label="Dạng nội dung" value={formatLabel(pageConfig.type)} />
-                  </div>
-                ) : isMockExamsPage ? (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỳ thi</span>
-                      <BrandedSelect value={form.examCategory || 'IELTS'} onChange={(event) => updateForm('examCategory', event.target.value)} options={examCategoryOptions} />
-                    </div>
-                    <div>
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
-                      <BrandedSelect value={form.skill} onChange={(event) => updateForm('skill', event.target.value)} options={mockSkillOptions} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
-                      <BrandedSelect value={form.skill} onChange={(event) => updateForm('skill', event.target.value)} options={skillOptions} />
-                    </div>
-                    <div>
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Loại đề</span>
-                      <BrandedSelect value={form.type} onChange={(event) => updateForm('type', event.target.value)} options={typeOptions} />
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
-                  <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
-                </div>
-                {isProductiveSkill(form.skill) ? (
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bộ tiêu chí chấm</span>
-                    <BrandedSelect
-                      value={form.rubricId}
-                      onChange={(event) => updateForm('rubricId', event.target.value)}
-                      options={[
-                        { label: 'Chọn bộ tiêu chí', value: '' },
-                        ...rubrics
-                          .filter((rubric) => rubric.status === 'PUBLISHED' && rubric.skill === form.skill)
-                          .map((rubric) => ({ label: formatCriteriaSetName(rubric.name), value: String(rubric.id) })),
-                      ]}
-                    />
-                  </div>
-                ) : null}
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hướng dẫn làm bài</span>
-                  <RichTextEditor
-                    helperText=""
-                    onChange={(value) => updateForm('instructions', value)}
-                    placeholder="Hướng dẫn học viên làm bài..."
-                    size="compact"
-                    value={form.instructions}
-                  />
-                </label>
-                <div className="grid gap-3 md:grid-cols-3">
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm đạt</span>
-                    <input type="number" value={form.passingScore} onChange={(event) => updateForm('passingScore', event.target.value)} className={FIELD_CLASS} />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm tối đa</span>
-                    <input type="number" value={form.maxScore} onChange={(event) => updateForm('maxScore', event.target.value)} className={FIELD_CLASS} />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thời lượng (phút)</span>
-                    <div className="relative">
-                      <input
-                        aria-label="Thời lượng làm bài tính bằng phút"
-                        className={`${FIELD_CLASS} appearance-none pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                        min="1"
-                        onChange={(event) => updateForm('timeLimitMinutes', event.target.value)}
-                        placeholder="Ví dụ: 8"
-                        step="1"
-                        type="number"
-                        value={form.timeLimitMinutes}
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-semibold text-slate-500">phút</span>
-                    </div>
-                  </label>
-                </div>
-                <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                  <button type="button" disabled={working} onClick={saveItem} className={PRIMARY_BUTTON_CLASS}>
-                    <Save className="h-4 w-4" /> Lưu {pageConfig.successNoun}
-                  </button>
-                  <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
-                    <Plus className="h-4 w-4" /> {pageConfig.createLabel}
-                  </button>
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
-                {renderWorkspace()}
-              </div>
-            </div>
-          </div>
-        </AssessmentHubModal>
-      )}
-
-      {isSkillLocked ? (
+      {editorOpen ? (
+        <AssessmentAuthoringFlow
+          editing={Boolean(editingId)}
+          form={form}
+          isMockExamsPage={isMockExamsPage}
+          isSkillLocked={isSkillLocked}
+          isTypeLocked={isTypeLocked}
+          key={`${pageKey}-${editingId || 'new'}`}
+          onClose={closeEditor}
+          onSave={saveItem}
+          onUpdate={updateForm}
+          pageConfig={pageConfig}
+          rubrics={rubrics}
+          working={working}
+          workspace={renderWorkspace()}
+        />
+      ) : isSkillLocked ? (
         <SkillPracticeShell
           activeSkill={pageConfig.skill}
           createLabel={pageConfig.createLabel}
@@ -960,7 +818,7 @@ function formatLabel(value) {
     GRAMMAR: 'Ngữ pháp',
     MIXED: 'Tổng hợp',
     MOCK_TEST: 'Đề thi thử',
-    MODULE_TEST: 'Bài kiểm tra mô-đun',
+    MODULE_TEST: 'Nội dung kỹ năng cũ',
     LESSON_PRACTICE: 'Bài luyện trong bài học',
     WRITING_TASK: 'Bài luyện viết',
     SPEAKING_TASK: 'Bài luyện nói',
@@ -998,27 +856,240 @@ function AssessmentStatusBadge({ status }) {
   return <ManagerStatusBadge tone={tone}>{formatLabel(status)}</ManagerStatusBadge>;
 }
 
-function AssessmentHubModal({ children, onClose }) {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+function AssessmentAuthoringFlow({
+  editing,
+  form,
+  isMockExamsPage,
+  isSkillLocked,
+  isTypeLocked,
+  onClose,
+  onSave,
+  onUpdate,
+  pageConfig,
+  rubrics,
+  working,
+  workspace,
+}) {
+  const [step, setStep] = useState(0);
+  const [stepError, setStepError] = useState('');
+  const productive = isProductiveSkill(form.skill);
+  const hasContent = hasAuthoredContent(form.uiConfigJson);
+  const steps = [
+    { label: 'Thông tin chung', description: 'Tên, kỹ năng và thời lượng' },
+    { label: 'Nội dung bài', description: 'Đề bài, câu hỏi và học liệu' },
+    { label: 'Chấm điểm', description: 'Đáp án, rubric và ngưỡng đạt' },
+    { label: 'Kiểm tra', description: 'Rà soát trước khi lưu' },
+  ];
+  const mockSkillOptions = (form.examCategory || 'IELTS') === 'TOEIC'
+    ? toeicMockSkillOptions
+    : ieltsMockSkillOptions;
+  const availableRubrics = rubrics
+    .filter((rubric) => rubric.status === 'PUBLISHED' && rubric.skill === form.skill)
+    .map((rubric) => ({ label: formatCriteriaSetName(rubric.name), value: String(rubric.id) }));
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
-      <button
-        aria-label="Đóng modal"
-        className="absolute inset-0"
-        onClick={onClose}
-        type="button"
-      />
-      <div className="relative z-10 flex max-h-[calc(100dvh-2.5rem)] w-full max-w-[1280px] min-h-0 flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/50 bg-white shadow-2xl pointer-events-auto">
-        {children}
+  const changeStep = (nextStep) => {
+    if (nextStep > step && step === 0 && !form.title.trim()) {
+      setStepError(`Vui lòng nhập tên ${pageConfig.successNoun}.`);
+      return;
+    }
+    setStepError('');
+    setStep(nextStep);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-[#ead8d6] bg-white shadow-sm">
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#f0e3e4] bg-[linear-gradient(135deg,#fffdfd,#fff7f7)] px-5 py-5 sm:px-7">
+        <div>
+          <button className="mb-3 inline-flex min-h-10 items-center gap-2 text-sm font-bold text-[#730014] hover:underline" onClick={onClose} type="button">
+            <ArrowLeft className="h-4 w-4" /> Quay lại danh sách
+          </button>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">{pageConfig.title}</p>
+          <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">
+            {editing ? pageConfig.editLabel : pageConfig.createLabel}
+          </h2>
+        </div>
+        <button aria-label="Đóng trình biên soạn" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#dfbfbd]/65 text-[#730014] transition hover:bg-white" onClick={onClose} type="button">
+          <X className="h-5 w-5" />
+        </button>
+      </header>
+
+      <nav aria-label="Các bước biên soạn" className="grid border-b border-[#f0e3e4] bg-white sm:grid-cols-2 xl:grid-cols-4">
+        {steps.map((item, index) => {
+          const active = step === index;
+          const completed = index < step;
+          return (
+            <button
+              aria-current={active ? 'step' : undefined}
+              className={`flex min-h-[78px] items-center gap-3 border-b border-[#ead8d6] px-5 py-4 text-left transition sm:border-r xl:border-b-0 xl:last:border-r-0 ${active ? 'bg-[#4b0009] text-white' : 'bg-white text-[#0b1c30] hover:bg-[#fff7f7]'}`}
+              key={item.label}
+              onClick={() => changeStep(index)}
+              type="button"
+            >
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${active ? 'bg-white text-[#4b0009]' : completed ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                {completed ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold">{item.label}</span>
+                <span className={`mt-0.5 block text-xs ${active ? 'text-white/75' : 'text-slate-500'}`}>{item.description}</span>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="min-h-[520px] p-5 sm:p-7">
+        {stepError ? <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{stepError}</div> : null}
+
+        {step === 0 ? (
+          <div className="mx-auto max-w-4xl space-y-6">
+            <AuthoringSection description="Nhập những thông tin học viên cần thấy trước khi bắt đầu." title="Nhận diện bài">
+              <div className="grid gap-5 lg:grid-cols-2">
+                <label className="block lg:col-span-2">
+                  <FieldLabel>Tên {pageConfig.successNoun}</FieldLabel>
+                  <input className={FIELD_CLASS} onChange={(event) => onUpdate('title', event.target.value)} value={form.title} />
+                </label>
+                {isSkillLocked ? <LockedMeta label="Kỹ năng" value={formatLabel(pageConfig.skill)} /> : (
+                  <div>
+                    <FieldLabel>Kỹ năng</FieldLabel>
+                    <BrandedSelect onChange={(event) => onUpdate('skill', event.target.value)} options={isMockExamsPage ? mockSkillOptions : skillOptions} value={form.skill} />
+                  </div>
+                )}
+                {isMockExamsPage ? (
+                  <div>
+                    <FieldLabel>Kỳ thi</FieldLabel>
+                    <BrandedSelect onChange={(event) => onUpdate('examCategory', event.target.value)} options={examCategoryOptions} value={form.examCategory || 'IELTS'} />
+                  </div>
+                ) : isTypeLocked ? <LockedMeta label="Dạng nội dung" value={formatLabel(form.type)} /> : (
+                  <div>
+                    <FieldLabel>Loại đề</FieldLabel>
+                    <BrandedSelect onChange={(event) => onUpdate('type', event.target.value)} options={typeOptions} value={form.type} />
+                  </div>
+                )}
+                <label className="block">
+                  <FieldLabel>Thời lượng</FieldLabel>
+                  <div className="relative">
+                    <input className={`${FIELD_CLASS} appearance-none pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`} min="1" onChange={(event) => onUpdate('timeLimitMinutes', event.target.value)} placeholder="Ví dụ: 40" step="1" type="number" value={form.timeLimitMinutes} />
+                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-semibold text-slate-500">phút</span>
+                  </div>
+                </label>
+              </div>
+            </AuthoringSection>
+            <AuthoringSection description="Mô tả ngắn giúp phân biệt bài trong kho nội dung." title="Mô tả">
+              <RichTextEditor helperText="" onChange={(value) => onUpdate('description', value)} placeholder="Mô tả nội dung và mục tiêu của bài..." size="compact" value={form.description} />
+            </AuthoringSection>
+          </div>
+        ) : null}
+
+        {step === 1 ? (
+          <div className="mx-auto max-w-6xl">
+            <AuthoringSection description={`Chỉ hiển thị công cụ phù hợp với kỹ năng ${formatLabel(form.skill)}.`} title={`Biên soạn nội dung ${formatLabel(form.skill)}`}>
+              {workspace}
+            </AuthoringSection>
+          </div>
+        ) : null}
+
+        {step === 2 ? (
+          <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1.05fr_.95fr]">
+            <AuthoringSection description="Thiết lập cách hệ thống đánh giá và xác định kết quả đạt." title="Quy tắc chấm">
+              <div className="space-y-5">
+                {productive ? (
+                  <div>
+                    <FieldLabel>Bộ tiêu chí chấm</FieldLabel>
+                    <BrandedSelect onChange={(event) => onUpdate('rubricId', event.target.value)} options={[{ label: 'Chọn bộ tiêu chí', value: '' }, ...availableRubrics]} value={form.rubricId} />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800">
+                    Câu trả lời được đối chiếu với đáp án đã thiết lập trong phần Nội dung bài.
+                  </div>
+                )}
+                <label className="block">
+                  <FieldLabel>Điểm đạt</FieldLabel>
+                  <input className={FIELD_CLASS} max={productive ? '9' : undefined} min="0" onChange={(event) => onUpdate('passingScore', event.target.value)} step={productive ? '0.5' : '1'} type="number" value={form.passingScore} />
+                </label>
+                <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <summary className="cursor-pointer text-sm font-bold text-[#730014]">Thiết lập nâng cao</summary>
+                  <label className="mt-4 block">
+                    <FieldLabel>Điểm tối đa</FieldLabel>
+                    <input className={FIELD_CLASS} max={productive ? '9' : undefined} min="1" onChange={(event) => onUpdate('maxScore', event.target.value)} step={productive ? '0.5' : '1'} type="number" value={form.maxScore} />
+                  </label>
+                </details>
+              </div>
+            </AuthoringSection>
+            <AuthoringSection description="Nội dung này được hiển thị cho học viên trước khi làm bài." title="Hướng dẫn làm bài">
+              <RichTextEditor helperText="" onChange={(value) => onUpdate('instructions', value)} placeholder="Nhập hướng dẫn cần thiết..." size="compact" value={form.instructions} />
+            </AuthoringSection>
+          </div>
+        ) : null}
+
+        {step === 3 ? (
+          <div className="mx-auto max-w-5xl space-y-6">
+            <AuthoringSection description="Kiểm tra các phần chính trước khi lưu vào kho nội dung." title="Tóm tắt">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <ReviewItem label="Tên bài" value={form.title || 'Chưa nhập'} ready={Boolean(form.title.trim())} />
+                <ReviewItem label="Kỹ năng" value={formatLabel(form.skill)} ready />
+                <ReviewItem label="Nội dung" value={hasContent ? 'Đã biên soạn' : 'Chưa biên soạn'} ready={hasContent} />
+                <ReviewItem label="Cách chấm" value={productive ? (form.rubricId ? 'Đã chọn rubric' : 'Chưa chọn rubric') : 'Theo đáp án'} ready={!productive || Boolean(form.rubricId)} />
+              </div>
+            </AuthoringSection>
+            <AuthoringSection description="Chọn Nháp nếu nội dung chưa sẵn sàng cho người học." title="Trạng thái">
+              <div className="max-w-sm">
+                <BrandedSelect onChange={(event) => onUpdate('status', event.target.value)} options={statusOptions} value={form.status} />
+              </div>
+            </AuthoringSection>
+          </div>
+        ) : null}
       </div>
-    </div>,
-    document.body
+
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e3e4] bg-[#fffafa] px-5 py-4 sm:px-7">
+        <button className={SECONDARY_BUTTON_CLASS} disabled={step === 0} onClick={() => changeStep(step - 1)} type="button">
+          <ArrowLeft className="h-4 w-4" /> Quay lại
+        </button>
+        <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bước {step + 1} / {steps.length}</span>
+        {step < steps.length - 1 ? (
+          <button className={PRIMARY_BUTTON_CLASS} onClick={() => changeStep(step + 1)} type="button">
+            Tiếp tục <ArrowRight className="h-4 w-4" />
+          </button>
+        ) : (
+          <button className={PRIMARY_BUTTON_CLASS} disabled={working} onClick={onSave} type="button">
+            <Save className="h-4 w-4" /> {working ? 'Đang lưu...' : `Lưu ${pageConfig.successNoun}`}
+          </button>
+        )}
+      </footer>
+    </section>
+  );
+}
+
+function hasAuthoredContent(uiConfigJson) {
+  if (!String(uiConfigJson || '').trim()) return false;
+  try {
+    const config = JSON.parse(uiConfigJson);
+    return ['parts', 'tasks', 'variants', 'questions', 'sections']
+      .some((key) => Array.isArray(config?.[key]) && config[key].length > 0);
+  } catch {
+    return false;
+  }
+}
+
+function AuthoringSection({ children, description, title }) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{title}</h3>
+      {description ? <p className="mt-1 text-sm leading-relaxed text-slate-500">{description}</p> : null}
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function FieldLabel({ children }) {
+  return <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{children}</span>;
+}
+
+function ReviewItem({ label, ready, value }) {
+  return (
+    <div className={`rounded-xl border p-4 ${ready ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
+      <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={`mt-2 text-sm font-extrabold ${ready ? 'text-emerald-800' : 'text-amber-800'}`}>{value}</p>
+    </div>
   );
 }

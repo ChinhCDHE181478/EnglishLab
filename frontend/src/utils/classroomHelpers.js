@@ -84,7 +84,7 @@ export const formatDeliveryMode = (mode, label) => {
 
 export const formatAssessmentType = (type) => {
   const labels = {
-    MODULE_TEST: 'Kiểm tra cuối mô-đun',
+    MODULE_TEST: 'Đánh giá kỹ năng',
     LESSON_PRACTICE: 'Luyện tập theo bài',
     MOCK_TEST: 'Thi thử',
     WRITING_TASK: 'Bài viết',

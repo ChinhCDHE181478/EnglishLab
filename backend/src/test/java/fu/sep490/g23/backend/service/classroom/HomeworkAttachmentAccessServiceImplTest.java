@@ -11,6 +11,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRep
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
+import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.HomeworkAttachmentAccessServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,7 @@ class HomeworkAttachmentAccessServiceImplTest {
     @Mock private ClassroomTuitionPaymentProofRepository proofRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
     @Mock private CenterMaterialLibraryItemRepository centerMaterialRepository;
+    @Mock private AssessmentBankItemRepository assessmentBankItemRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private Resource resource;
@@ -55,6 +57,7 @@ class HomeworkAttachmentAccessServiceImplTest {
                 proofRepository,
                 materialRepository,
                 centerMaterialRepository,
+                assessmentBankItemRepository,
                 enrollmentRepository,
                 teacherAssignmentRepository
         );
@@ -114,5 +117,23 @@ class HomeworkAttachmentAccessServiceImplTest {
                 () -> service.loadAuthorized("orphan.pdf", "staff@example.com")
         );
         verify(storageService, never()).load("orphan.pdf");
+    }
+
+    @Test
+    void loadAuthorized_allowsPublishedAssessmentMedia() {
+        User learner = User.builder().id(10L).email("learner@example.com").build();
+        String suffix = "/homework-listening.mp3";
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(proofRepository.findFirstByFileUrlEndingWith(suffix)).thenReturn(Optional.empty());
+        when(submissionRepository.findFirstByAttachmentUrlEndingWith(suffix)).thenReturn(Optional.empty());
+        when(homeworkRepository.findFirstByAttachmentUrlEndingWith(suffix)).thenReturn(Optional.empty());
+        when(materialRepository.findFirstByFileUrlEndingWith(suffix)).thenReturn(Optional.empty());
+        when(assessmentBankItemRepository.existsPublishedByUiConfigJsonContaining(suffix)).thenReturn(true);
+        when(storageService.load("homework-listening.mp3")).thenReturn(resource);
+
+        Resource result = service.loadAuthorized("homework-listening.mp3", "learner@example.com");
+
+        assertSame(resource, result);
+        verify(storageService).load("homework-listening.mp3");
     }
 }

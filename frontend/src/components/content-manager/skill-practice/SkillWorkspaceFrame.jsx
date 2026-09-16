@@ -1,4 +1,6 @@
-export default function SkillWorkspaceFrame({ children, description, highlights, title }) {
+export default function SkillWorkspaceFrame({ children, compact = false, description, highlights, title }) {
+  if (compact) return children;
+
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-[#dcc0bf]/30 bg-[#eff4ff]/50 p-4">

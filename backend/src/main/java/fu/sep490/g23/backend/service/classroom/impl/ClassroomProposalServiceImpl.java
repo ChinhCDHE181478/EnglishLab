@@ -662,7 +662,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .map(raw -> {
                     try {
                         return DayOfWeek.valueOf(raw);
-                    } catch (IllegalArgumentException _) {
+                    } catch (IllegalArgumentException ignoredException) {
                         // Old data stores day-of-week as integer (e.g. "1" for MONDAY)
                         return DayOfWeek.of(Integer.parseInt(raw));
                     }

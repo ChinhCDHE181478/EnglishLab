@@ -416,9 +416,7 @@ export default function MyClassroomDetailPage() {
     try {
       const objective = parseObjectiveExamPayload(payload?.objectiveAnswersJson);
       await classroomApi.submitHomework(examHomework.id, {
-        textAnswer: examHomework.skill === 'SPEAKING'
-          ? ''
-          : payload?.submittedText || JSON.stringify(objective, null, 2),
+        textAnswer: payload?.submittedText || JSON.stringify(objective, null, 2),
         attachmentUrl: payload?.submittedAudioUrl || '',
       });
       setActionMessage('Đã nộp bài tập thành công.');
