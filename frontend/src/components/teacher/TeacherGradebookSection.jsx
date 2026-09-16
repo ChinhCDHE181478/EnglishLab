@@ -54,6 +54,7 @@ const LESSON_FILTERS = [
 ];
 
 const STUDENTS_PER_PAGE = 8;
+const SHOW_LESSON_GRADING_WORKSPACE = false;
 
 const formatScore = (score, maxScore = 10) => (
   score == null ? '—' : `${score} /${maxScore ?? 10}`
@@ -591,8 +592,6 @@ export default function TeacherGradebookSection({
   const hasPublishedEntries = gradebook.some((entry) => entry.status === 'PUBLISHED');
   const allEntriesPublished = gradebook.length > 0
     && gradebook.every((entry) => entry.status === 'PUBLISHED');
-  const pendingSubmissionCount = homework.reduce((total, item) => total + Number(item.pendingGradingCount || 0), 0);
-  const publishedStudentCount = gradebook.filter((entry) => entry.status === 'PUBLISHED').length;
 
   const visibleLessons = gradingLessons.filter((lesson) => {
     const activeFilter = LESSON_FILTERS.find((filter) => filter.id === lessonFilter);
@@ -737,22 +736,6 @@ export default function TeacherGradebookSection({
           </div>
         </div>
 
-        <div className="grid border-t border-[#dfbfbd]/20 bg-white/75 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Học viên', value: gradebook.length, icon: Users, className: 'text-[#9b1c31]' },
-            { label: 'Bài tập', value: homework.length, icon: BookOpenCheck, className: 'text-blue-600' },
-            { label: 'Lượt bài chờ chấm', value: pendingSubmissionCount, icon: AlertTriangle, className: 'text-amber-600' },
-            { label: 'Học viên đã công bố', value: publishedStudentCount, icon: CheckCircle2, className: 'text-emerald-600' },
-          ].map((item) => (
-            <div className="flex items-center gap-3 border-b border-[#dfbfbd]/15 px-5 py-4 last:border-b-0 sm:odd:border-r lg:border-b-0 lg:border-r lg:last:border-r-0" key={item.label}>
-              <item.icon className={`h-5 w-5 flex-shrink-0 ${item.className}`} />
-              <div>
-                <p className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">{item.value}</p>
-                <p className="text-[11px] font-bold text-[#8b706e]">{item.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
 
       {gradebook.length ? (
@@ -773,7 +756,7 @@ export default function TeacherGradebookSection({
           <h5 className="mt-3 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Chưa có bài tập để chấm</h5>
           <p className="mt-1 text-sm text-[#8b706e]">Thêm bài tập trong tab Bài tập để bắt đầu nhận và chấm bài.</p>
         </section>
-      ) : (
+      ) : SHOW_LESSON_GRADING_WORKSPACE ? (
         <section className="grid min-h-[620px] gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-3xl border border-gray-100 bg-[#fffafb]/70 p-4">
             <div>
@@ -960,7 +943,7 @@ export default function TeacherGradebookSection({
             )}
           </div>
         </section>
-      )}
+      ) : null}
 
       {selectedEntry && modalLesson ? (
         <GradebookStudentModal
