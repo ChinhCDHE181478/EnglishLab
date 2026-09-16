@@ -72,6 +72,7 @@ import {
   importCourseUnitsWithLessons,
   parseInstructorLedCourseExcelFile,
 } from '../../utils/curriculumExcel';
+import { getLessonOrderInUnit } from '../../utils/classroomHelpers';
 
 const emptyUnit = {
   title: '',
@@ -676,11 +677,13 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const openLessonCreator = (unit) => {
     setLessonUnitId(unit.id);
     setEditingLessonId(null);
-    const existingLessons = (instructorLedCourseDetail?.units || []).flatMap((u) => u.lessons || []);
-    const maxSession = existingLessons.reduce((max, l) => Math.max(max, Number(l.sessionNumber || 0)), 0);
+    const maxSession = (unit.lessons || []).reduce(
+      (max, lesson) => Math.max(max, getLessonOrderInUnit(lesson)),
+      0,
+    );
     setLessonForm({
       sessionNumber: maxSession + 1,
-      displayOrder: (unit.lessons?.length || 0) + 1,
+      displayOrder: maxSession + 1,
       plannedSessionCount: 1,
       title: '',
       description: '',
@@ -721,7 +724,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       return;
     }
     if (!Number.isInteger(Number(lessonForm.sessionNumber)) || Number(lessonForm.sessionNumber) < 1) {
-      setError('Thứ tự bài học phải là số nguyên bắt đầu từ 1.');
+      setError('Thứ tự bài trong unit phải là số nguyên bắt đầu từ 1.');
       return;
     }
     setWorking(true);
@@ -752,9 +755,10 @@ export default function ContentManagerInstructorLedCoursesPage() {
     }
   };
 
-  const deleteLesson = async (lesson) => {
+  const deleteLesson = async (unit, lesson) => {
+    const order = getLessonOrderInUnit(lesson) || lesson.sessionNumber;
     if (!await confirmDialog({
-      title: `Xóa Bài ${lesson.sessionNumber}?`,
+      title: `Xóa Bài ${order}?`,
       message: `Bạn có chắc muốn xóa bài học “${lesson.title}”?`,
       confirmText: 'Xóa bài học',
       tone: 'danger',
@@ -765,7 +769,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
     try {
       await curriculumApi.deleteCourseLesson(lesson.id);
       await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
-      setSuccess(`Đã xóa Bài ${lesson.sessionNumber}.`);
+      setSuccess(`Đã xóa Bài ${order}.`);
     } catch (err) {
       setError(getContentManagerError(err, 'Không xóa được bài học.'));
     } finally {
@@ -1122,8 +1126,8 @@ export default function ContentManagerInstructorLedCoursesPage() {
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <label className="block">
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Thứ tự bài học</span>
-                      <input className={FIELD_CLASS} min="1" onChange={(event) => setLessonForm((current) => ({ ...current, sessionNumber: event.target.value }))} required type="number" value={lessonForm.sessionNumber} />
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Thứ tự trong unit</span>
+                      <input className={FIELD_CLASS} min="1" onChange={(event) => setLessonForm((current) => ({ ...current, sessionNumber: event.target.value, displayOrder: event.target.value }))} required type="number" value={lessonForm.sessionNumber} />
                     </label>
                     <label className="block">
                       <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Số buổi dự kiến</span>
@@ -1245,7 +1249,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                               <div className="ml-2 flex flex-col gap-3 border-l-2 border-[#dfbfbd] bg-[#fffdfd] py-3 pl-4 pr-3 sm:flex-row sm:items-start sm:justify-between" key={lesson.id}>
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#730014]">Bài {lesson.sessionNumber}</p>
+                                    <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#730014]">Bài {getLessonOrderInUnit(lesson)}</p>
                                     <span className="rounded-md bg-[#fbf3f4] px-2 py-0.5 text-[11px] font-bold text-[#730014]">
                                       {lesson.plannedSessionCount || 1} buổi dự kiến
                                     </span>
@@ -1256,7 +1260,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                                 </div>
                                 <div className="flex shrink-0 gap-2">
                                   <button className="inline-flex h-7 shrink-0 items-center justify-center rounded-lg border border-[#dcc0bf]/50 bg-white px-2.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95" onClick={() => openLessonEditor(unit, lesson)} type="button">Chỉnh sửa</button>
-                                  <button aria-label={`Xóa Bài ${lesson.sessionNumber}`} className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 active:scale-95" disabled={working} onClick={() => deleteLesson(lesson)} type="button"><Trash2 className="h-3.5 w-3.5" /></button>
+                                  <button aria-label={`Xóa Bài ${getLessonOrderInUnit(lesson)}`} className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 active:scale-95" disabled={working} onClick={() => deleteLesson(unit, lesson)} type="button"><Trash2 className="h-3.5 w-3.5" /></button>
                                 </div>
                               </div>
                             )) : <p className="px-3 py-2 text-xs text-slate-500">Chưa có bài học nào trong Unit này.</p>}

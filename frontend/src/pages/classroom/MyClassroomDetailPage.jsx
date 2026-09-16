@@ -1683,7 +1683,7 @@ export default function MyClassroomDetailPage() {
           <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${isPassed ? 'border-emerald-100 bg-emerald-50/15' : 'border-amber-100 bg-amber-50/15'
             }`}>
             <div>
-              <p className="text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">Trạng thái khóa học</p>
+              <p className="text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">Điểm tổng kết khóa học</p>
               <h4 className={`mt-1 font-['Manrope'] text-xl font-extrabold ${isPassed ? 'text-emerald-800' : 'text-amber-800'}`}>
                 {finalResultLabel}
               </h4>

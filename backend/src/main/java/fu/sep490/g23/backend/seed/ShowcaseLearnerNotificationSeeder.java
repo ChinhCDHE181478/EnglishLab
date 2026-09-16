@@ -4,6 +4,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.notification.AppNotification;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.notification.AppNotificationRepository;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -24,9 +25,13 @@ public class ShowcaseLearnerNotificationSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final AppNotificationRepository notificationRepository;
     private final PlatformTransactionManager transactionManager;
+    private final MasterSeedGate masterSeedGate;
 
     @Override
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         log.info("[ShowcaseNotification] Bắt đầu seed thông báo cho các tài khoản học viên demo...");
         TransactionTemplate tx = new TransactionTemplate(transactionManager);
         List<String> targetEmails = List.of(

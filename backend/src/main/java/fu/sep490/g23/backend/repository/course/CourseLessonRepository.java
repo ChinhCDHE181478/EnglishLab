@@ -21,12 +21,12 @@ public interface CourseLessonRepository extends JpaRepository<CourseLesson, Long
 
     @Query("""
             select count(lesson) > 0 from CourseLesson lesson
-            where lesson.courseUnit.instructorLedCourse.id = :courseId
+            where lesson.courseUnit.id = :unitId
               and lesson.sequenceNumber = :sequenceNumber
               and (:excludeId is null or lesson.id <> :excludeId)
             """)
     boolean existsDuplicateSequenceNumber(
-            @Param("courseId") Long courseId,
+            @Param("unitId") Long unitId,
             @Param("sequenceNumber") Integer sequenceNumber,
             @Param("excludeId") Long excludeId
     );

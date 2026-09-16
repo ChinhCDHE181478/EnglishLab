@@ -351,7 +351,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     ) {
         CourseUnit unit = findUnit(unitId);
         validateCourseLessonRequest(request);
-        assertSessionNumberAvailable(unit.getInstructorLedCourse().getId(), request.getSessionNumber(), null);
+        assertSessionNumberAvailable(unit.getId(), request.getSessionNumber(), null);
         CourseLesson lesson = CourseLesson.builder()
                 .courseUnit(unit)
                 .sequenceNumber(request.getSessionNumber())
@@ -376,7 +376,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         CourseLesson lesson = findCourseLesson(lessonId);
         validateCourseLessonRequest(request);
         assertSessionNumberAvailable(
-                lesson.getCourseUnit().getInstructorLedCourse().getId(),
+                lesson.getCourseUnit().getId(),
                 request.getSessionNumber(),
                 lessonId
         );
@@ -922,7 +922,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
             throw new IllegalArgumentException("Dữ liệu bài học không được để trống.");
         }
         if (request.getSessionNumber() == null || request.getSessionNumber() < 1) {
-            throw new IllegalArgumentException("Thứ tự bài học phải bắt đầu từ 1.");
+            throw new IllegalArgumentException("Thứ tự bài trong unit phải bắt đầu từ 1.");
         }
         if (request.getPlannedSessionCount() != null && request.getPlannedSessionCount() < 1) {
             throw new IllegalArgumentException("Số buổi dự kiến phải từ 1 trở lên.");
@@ -933,11 +933,11 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         requireText(request.getTitle(), "Tiêu đề bài học không được để trống.");
     }
 
-    /** Prevents lessons in the same course from sharing a session number. */
-    private void assertSessionNumberAvailable(Long instructorLedCourseId, Integer sessionNumber, Long excludeId) {
-        if (courseLessonRepository.existsDuplicateSequenceNumber(instructorLedCourseId, sessionNumber, excludeId)) {
+    /** Prevents lessons in the same unit from sharing a sequence number. */
+    private void assertSessionNumberAvailable(Long unitId, Integer sessionNumber, Long excludeId) {
+        if (courseLessonRepository.existsDuplicateSequenceNumber(unitId, sessionNumber, excludeId)) {
             throw new IllegalArgumentException(
-                    "Bài học số " + sessionNumber + " đã tồn tại trong khóa học."
+                    "Bài học số " + sessionNumber + " đã tồn tại trong unit này."
             );
         }
     }
@@ -1282,6 +1282,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     /** Maps a lesson and includes its unit and course context. */
     private CourseLessonResponse toCourseLessonResponse(CourseLesson lesson) {
         CourseUnit unit = lesson.getCourseUnit();
+        Integer unitOrder = unit.getSequenceNumber() == null ? 0 : unit.getSequenceNumber();
+        Integer lessonOrder = lesson.getSequenceNumber() == null ? 0 : lesson.getSequenceNumber();
         return CourseLessonResponse.builder()
                 .id(lesson.getId())
                 .unitId(unit.getId())
@@ -1290,6 +1292,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .instructorLedCourseId(unit.getInstructorLedCourse().getId())
                 .sessionNumber(lesson.getSequenceNumber())
                 .displayOrder(lesson.getSequenceNumber())
+                .lessonCode(unitOrder + "." + lessonOrder)
                 .plannedSessionCount(lesson.getPlannedSessionCount() == null || lesson.getPlannedSessionCount() < 1 ? 1 : lesson.getPlannedSessionCount())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())

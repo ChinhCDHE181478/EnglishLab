@@ -21,6 +21,7 @@ import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +56,7 @@ public class ReviewDataSeeder implements CommandLineRunner {
     private final ClassScheduleRepository sessionRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.review.enabled:false}")
     private boolean enabled;
@@ -65,6 +67,9 @@ public class ReviewDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         if (!enabled || sheetEnabled) {
             return;
         }
@@ -182,7 +187,7 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .teacher(teacher)
                     .room(room)
                     .status(ClassroomSessionStatus.SCHEDULED)
-                    .sessionContent("Buổi 1: Orientation và đánh giá mục tiêu học tập.")
+                    .sessionContent("Orientation và đánh giá mục tiêu học tập.")
                     .build());
             return offering;
         });

@@ -21,6 +21,7 @@ import {
   formatClassroomDate,
   formatClassroomPrice,
   formatDeliveryMode,
+  getLessonOrderInUnit,
   formatOfferingStatus,
   formatRegistrationStatus,
   formatSessionStatus,
@@ -145,7 +146,7 @@ export default function StaffClassroomDetailPage() {
     { label: 'Chọn bài học', value: '' },
     ...(classroom?.instructorLedCourse?.units || []).flatMap((unit) => (
       (unit.lessons || []).map((plan) => ({
-        label: `Bài ${plan.sessionNumber}: ${plan.title}`,
+        label: `Bài ${getLessonOrderInUnit(plan)}: ${plan.title}`,
         value: String(plan.id),
       }))
     )),
@@ -1013,7 +1014,7 @@ function CourseStructureOverview({ course }) {
                     <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
                       {unit.lessons.map((plan) => (
                         <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Bài {plan.sessionNumber}</p>
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Bài {getLessonOrderInUnit(plan)}</p>
                           <p className="text-sm font-bold text-[#2b2828]">{plan.title}</p>
                         </div>
                       ))}

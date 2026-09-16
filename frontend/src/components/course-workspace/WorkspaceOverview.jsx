@@ -8,14 +8,14 @@ const WorkspaceOverview = ({
   onWorkspaceModeChange,
 }) => {
   const progressPercent = Math.min(100, Math.max(0, Number(enrollment?.progressPercent || 0)));
-  const detailPath = `/courses/${course?.slug || course?.id}`;
+  const homePath = `/courses/${course?.slug || course?.id}/home`;
 
   return (
     <section className="rounded-[14px] border border-[#e5d7d9] bg-white px-4 py-3 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
         <Link
           className="group inline-flex w-fit shrink-0 items-center gap-2 text-sm font-extrabold text-[#8a0018] transition hover:text-[#4b0009] lg:min-w-[260px]"
-          to={detailPath}
+          to={homePath}
           reloadDocument
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
