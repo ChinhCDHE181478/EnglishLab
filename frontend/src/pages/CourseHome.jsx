@@ -300,6 +300,25 @@ const CourseHome = () => {
     openLesson(firstModule, firstLesson, 0);
   };
 
+  const openLastOrFirstLesson = () => {
+    const lastLessonId = (() => {
+      try { return localStorage.getItem(`englishlab.activeLesson.${course?.slug}`); } catch { return null; }
+    })();
+    if (lastLessonId) {
+      // Tìm bài học đang active trong modules
+      for (const module of course?.modules ?? []) {
+        const lessonIndex = module.lessons?.findIndex(
+          (l) => getLessonId(module, l, module.lessons.indexOf(l)) === lastLessonId,
+        );
+        if (lessonIndex !== -1) {
+          openLesson(module, module.lessons[lessonIndex], lessonIndex);
+          return;
+        }
+      }
+    }
+    openFirstLesson();
+  };
+
   const renderMaterials = () => (
     <div>
       <div className="mb-6 rounded-lg border border-[#f1dfb8] bg-[#f2e8cf] p-6">
@@ -310,13 +329,13 @@ const CourseHome = () => {
           <button
             className="rounded bg-[#730014] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#9e001f] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!course.modules?.[0]?.lessons?.[0]}
-            onClick={openFirstLesson}
+            onClick={openLastOrFirstLesson}
             type="button"
           >
-            Bắt đầu bài đầu tiên
+            Tiếp tục học
           </button>
           <Link className="rounded border border-[#730014] px-4 py-2 text-sm font-bold text-[#730014] transition hover:bg-white/60" to={`/courses/${course.slug}`}>
-            Xem chi tiết khóa học
+            Tổng quan khóa học
           </Link>
         </div>
       </div>
