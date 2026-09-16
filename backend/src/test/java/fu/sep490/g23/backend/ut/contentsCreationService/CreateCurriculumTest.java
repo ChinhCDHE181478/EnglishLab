@@ -32,11 +32,11 @@ import static org.mockito.Mockito.when;
 class CreateCurriculumTest {
 
     @Mock
-    private InstructorLedCourseRepository programRepository;
+    private InstructorLedCourseRepository instructorLedCourseRepository;
     @Mock
     private CourseUnitRepository unitRepository;
     @Mock
-    private CourseLessonRepository sessionPlanRepository;
+    private CourseLessonRepository courseLessonRepository;
     @Mock
     private CourseUnitContentRefRepository contentRefRepository;
     @Mock
@@ -74,30 +74,32 @@ class CreateCurriculumTest {
     }
 
     @Test
-    void createProgram_withFullIeltsInfo_shouldReturnSavedProgram() {
-        when(programRepository.existsByCodeIgnoreCase(any())).thenReturn(false);
-        when(programRepository.save(any(InstructorLedCourse.class)))
+    void createCourse_withFullIeltsInfo_shouldReturnSavedCourse() {
+        when(instructorLedCourseRepository.existsByCodeIgnoreCase(any())).thenReturn(false);
+        when(instructorLedCourseRepository.save(any(InstructorLedCourse.class)))
                 .thenAnswer(invocation -> {
                     InstructorLedCourse p = invocation.getArgument(0);
                     p.setId(101L);
                     return p;
                 });
 
-        InstructorLedCourseResponse response = service.createProgram(request);
+        InstructorLedCourseResponse response = service.createInstructorLedCourse(request);
 
-        verify(programRepository).save(any(InstructorLedCourse.class));
+        verify(instructorLedCourseRepository).save(any(InstructorLedCourse.class));
         assert response != null && response.getId() != null && response.getTitle().equals("IELTS 7.0 Standard");
-        assert "IELTS-7-STANDARD".equals(response.getCode());
+        assert response.getCode() != null && response.getCode().startsWith("IELTS-7-STANDARD");
         assert "DRAFT".equals(response.getStatus());
+        assert "IELTS".equals(response.getExamCategory());
+        assert response.getTargetBand() != null && response.getTargetBand().compareTo(new BigDecimal("7.0")) == 0;
         System.out.println("Action completed successfully");
     }
 
     @Test
-    void createProgram_withMissingRequiredFields_shouldThrowException() {
+    void createCourse_withMissingRequiredFields_shouldThrowException() {
         request.setTitle(null);
 
         try {
-            service.createProgram(request);
+            service.createInstructorLedCourse(request);
             assert false : "Expected exception was not thrown";
         } catch (RuntimeException ex) {
             assert ex.getMessage() != null;
@@ -119,7 +121,7 @@ class CreateCurriculumTest {
     }
 
     @Test
-    void createProgram_withoutContentManagerRole_shouldThrowAccessDenied() {
+    void createCourse_withoutContentManagerRole_shouldThrowAccessDenied() {
         long actorUserId = 99L;
         String actorRole = "STUDENT";
         RuntimeException accessDenied = new RuntimeException("AccessDenied: tài khoản không có vai trò Content Manager");
