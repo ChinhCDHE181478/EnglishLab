@@ -420,6 +420,12 @@ const CourseWorkspace = () => {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked)
         || workspaceItems.find((item) => !item.isLocked)
         || workspaceItems[0];
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG URL guard FALLBACK]', {
+        requestedLessonId,
+        fallbackId: fallbackLesson?.id,
+        fallbackTitle: fallbackLesson?.title,
+      });
       if (fallbackLesson) {
         rememberActiveLesson(fallbackLesson.id);
         setRequestedLessonConsumed(true);
@@ -818,6 +824,19 @@ const CourseWorkspace = () => {
           <div className="min-w-0 flex-1 space-y-6">
             {workspaceMode === 'flashcards' ? (
               <WorkspaceFlashcards course={course} totalTerms={flashcardCount} />
+            ) : activeWorkspaceItem?.isLocked ? (
+              <div className="rounded-[20px] border border-[#ead9db] bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fff0f1] text-2xl text-[#730014]">
+                  &#128274;
+                </div>
+                <h2 className="text-lg font-bold text-[#1f2430]">Nội dung này hiện đang bị khoá</h2>
+                <p className="mt-2 text-sm text-[#5f5353]">
+                  {activeWorkspaceItem.lockReason || 'Bạn cần hoàn thành các bài học trước đó trước khi mở nội dung này.'}
+                </p>
+              </div>
+            ) : activeWorkspaceItem?.type === 'lesson' && !lessonItems.some((item) => String(item.id) === String(activeWorkspaceItem.id)) && requestedLessonId && !requestedLessonConsumed ? (
+              // Lesson requested via URL but lessonItems (lock info) hasn't loaded yet - wait.
+              <div className="flex items-center justify-center p-12 text-sm text-[#5f5353]">Đang tải bài học…</div>
             ) : activeWorkspaceItem?.type === 'assessment' && activeWorkspaceItem.assessments?.[0]?.type === 'QUIZ' ? (
               <LessonQuizPanel
                 assessment={activeWorkspaceItem.assessments[0]}
