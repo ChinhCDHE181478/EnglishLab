@@ -303,13 +303,8 @@ const CourseWorkspace = () => {
 
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
-    const found = workspaceItems.find((item) => String(item.id) === String(activeLessonId));
-    if (!found && requestedLessonId) {
-      const requested = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
-      if (requested) return requested;
-    }
-    return found ?? workspaceItems[0];
-  }, [activeLessonId, requestedLessonId, rememberActiveLesson, workspaceItems]);
+    return workspaceItems.find((item) => String(item.id) === String(activeLessonId)) ?? workspaceItems[0];
+  }, [activeLessonId, rememberActiveLesson, workspaceItems]);
   const isAssessmentMode = activeWorkspaceItem?.type === 'assessment';
   const activeLessonHasVideo = Boolean(activeWorkspaceItem?.lesson?.videoUrl);
   const hideRightRail = isAssessmentMode || workspaceMode === 'flashcards';
@@ -391,10 +386,27 @@ const CourseWorkspace = () => {
       const requestedItem = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
       if (requestedItem && String(activeLessonId) !== String(requestedLessonId)) {
         rememberActiveLesson(requestedLessonId);
+        // After honoring, strip ?lessonId from URL so user can navigate freely afterwards
+        const params = new URLSearchParams(location.search);
+        params.delete('lessonId');
+        const newSearch = params.toString();
+        navigate(
+          { pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' },
+          { replace: true, state: location.state },
+        );
         return;
       }
-      // If requested lesson exists and is already active, do nothing else
+      // If requested lesson exists and is already active, just clean URL
       if (requestedItem) {
+        const params = new URLSearchParams(location.search);
+        if (params.has('lessonId')) {
+          params.delete('lessonId');
+          const newSearch = params.toString();
+          navigate(
+            { pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' },
+            { replace: true, state: location.state },
+          );
+        }
         return;
       }
     }
@@ -411,7 +423,7 @@ const CourseWorkspace = () => {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
       if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
-  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, requestedLessonId, workspaceItems]);
+  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, location.pathname, location.search, location.state, navigate, rememberActiveLesson, requestedLessonId, workspaceItems]);
 
   useEffect(() => {
     if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {
