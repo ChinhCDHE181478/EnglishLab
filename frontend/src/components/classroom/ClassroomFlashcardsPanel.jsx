@@ -3,7 +3,15 @@ import { BookOpen, Layers3 } from 'lucide-react';
 import WorkspaceFlashcards from '../course-workspace/WorkspaceFlashcards';
 import BrandedSelect from '../ui/BrandedSelect';
 
-const toFlashcardCourse = (curriculum, unit) => ({
+export const resolveActiveFlashcardUnitId = (flashcardUnits, activeUnitId, initialUnitId) => {
+  const currentUnit = flashcardUnits.find((unit) => String(unit.id) === String(activeUnitId));
+  if (currentUnit) return String(currentUnit.id);
+
+  const requestedUnit = flashcardUnits.find((unit) => String(unit.id) === String(initialUnitId));
+  return String(requestedUnit?.id || flashcardUnits[0]?.id || '');
+};
+
+export const toFlashcardCourse = (curriculum, unit) => ({
   title: `${curriculum?.title || 'Chương trình học'} · ${unit?.title || 'Flashcards'}`,
   modules: unit ? [{
     id: `classroom-unit-${unit.id}`,
@@ -29,14 +37,12 @@ export default function ClassroomFlashcardsPanel({ curriculum, initialUnitId = n
   const [activeUnitId, setActiveUnitId] = useState(() => String(initialUnitId || flashcardUnits[0]?.id || ''));
 
   useEffect(() => {
-    const requestedUnit = flashcardUnits.find((unit) => String(unit.id) === String(initialUnitId));
-    const currentUnitExists = flashcardUnits.some((unit) => String(unit.id) === String(activeUnitId));
-    if (requestedUnit) {
-      setActiveUnitId(String(requestedUnit.id));
-    } else if (!currentUnitExists) {
-      setActiveUnitId(String(flashcardUnits[0]?.id || ''));
-    }
-  }, [activeUnitId, flashcardUnits, initialUnitId]);
+    setActiveUnitId((current) => resolveActiveFlashcardUnitId(
+      flashcardUnits,
+      current,
+      initialUnitId,
+    ));
+  }, [flashcardUnits, initialUnitId]);
 
   const activeUnit = flashcardUnits.find((unit) => String(unit.id) === String(activeUnitId)) || flashcardUnits[0];
   const course = useMemo(() => toFlashcardCourse(curriculum, activeUnit), [activeUnit, curriculum]);

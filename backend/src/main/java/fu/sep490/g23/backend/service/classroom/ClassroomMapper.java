@@ -1,6 +1,4 @@
 package fu.sep490.g23.backend.service.classroom;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionTiming;
@@ -59,6 +57,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepo
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkGradingCatalogService;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkObjectiveGrader;
+import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -75,7 +74,6 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class ClassroomMapper {
-    private static final ObjectMapper CONTENT_JSON_MAPPER = new ObjectMapper();
 
     private final HomeworkTextAnnotationCodec homeworkTextAnnotationCodec;
 
@@ -430,6 +428,7 @@ public class ClassroomMapper {
         return ClassroomHomeworkResponse.builder()
                 .id(homework.getId())
                 .classSectionId(homework.getClassSection().getId())
+                .classroomTitle(homework.getClassSection().getName())
                 .sessionId(homework.getSession() == null ? null : homework.getSession().getId())
                 .courseUnitId(homework.getCourseUnit() == null ? null : homework.getCourseUnit().getId())
                 .courseUnitTitle(homework.getCourseUnit() == null ? null : homework.getCourseUnit().getTitle())
@@ -727,7 +726,7 @@ public class ClassroomMapper {
         };
         String contentJson = item == null ? null : switch (ref.getContentType()) {
             case EXERCISE -> payloadText(item, "prompt");
-            case FLASHCARD -> serializePayload(item);
+            case FLASHCARD -> ContentBankPayloadSupport.cardsJsonFromPayload(item.getContentData());
             case ASSESSMENT -> payloadText(item, "uiConfigJson");
             case MATERIAL -> null;
         };
@@ -755,14 +754,6 @@ public class ClassroomMapper {
             }
         }
         return null;
-    }
-
-    private String serializePayload(fu.sep490.g23.backend.entity.curriculum.ContentBankItem item) {
-        try {
-            return CONTENT_JSON_MAPPER.writeValueAsString(item.getContentData());
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Không thể chuyển nội dung kho học liệu sang JSON.", exception);
-        }
     }
 
     private boolean isMandatoryMaterial(String sourceType) {

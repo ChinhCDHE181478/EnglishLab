@@ -26,9 +26,5 @@ public class CourseCategory {
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer displayOrder = 0;
-
-    @Column(nullable = false)
-    @Builder.Default
     private boolean active = true;
 }

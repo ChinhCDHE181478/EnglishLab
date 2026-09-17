@@ -2,14 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, CheckCircle2, Headphones, Layers3, LoaderCircle, RefreshCw, Save, Target, Users } from 'lucide-react';
 import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
-import { ManagerFilterBar } from '../../components/content-manager/ManagerListUi';
+import { ManagerFilterBar, ManagerTaxonomyBadge } from '../../components/content-manager/ManagerListUi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
+import ManagementToast from '../../components/ui/ManagementToast';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import { getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 
 const RECENT_ATTEMPTS_PAGE_SIZE = 10;
 
 const TABS = [
   { key: 'monitoring', label: 'Kết quả' },
+  { key: 'scoring', label: 'Cách chấm' },
   { key: 'listening', label: 'Nghe', examTypes: ['IELTS', 'SKILL'] },
   { key: 'reading', label: 'Đọc', examTypes: ['IELTS', 'SKILL'] },
   { key: 'writing', label: 'Viết', examTypes: ['IELTS', 'SKILL'] },
@@ -20,6 +23,7 @@ const TABS = [
 const TEST_TYPES = [
   {
     key: 'IELTS',
+    enabledField: 'ieltsEnabled',
     label: 'IELTS Placement',
     summary: 'Đánh giá đầy đủ Listening, Reading, Writing và Speaking.',
     icon: Layers3,
@@ -28,6 +32,7 @@ const TEST_TYPES = [
   },
   {
     key: 'TOEIC',
+    enabledField: 'toeicEnabled',
     label: 'TOEIC Placement',
     summary: 'Listening và Reading theo cấu trúc 7 part, chấm theo đáp án.',
     icon: Headphones,
@@ -36,6 +41,7 @@ const TEST_TYPES = [
   },
   {
     key: 'SKILL',
+    enabledField: 'skillAssessmentEnabled',
     label: 'Đánh giá kỹ năng',
     summary: 'Học viên tự chọn một hoặc nhiều kỹ năng cần kiểm tra.',
     icon: Target,
@@ -93,7 +99,7 @@ export default function ContentManagerPlacementTestPage() {
         setDefinition(toDraft(response));
         setMonitoring(monitoringResponse);
       } catch (requestError) {
-        if (active) setError(requestError?.response?.data?.message || 'Không tải được dữ liệu bài đánh giá đầu vào.');
+        if (active) setError(getContentManagerError(requestError, 'Không tải được dữ liệu bài đánh giá đầu vào.'));
       } finally {
         if (!active) return;
         setLoading(false);
@@ -164,7 +170,7 @@ export default function ContentManagerPlacementTestPage() {
       setDefinition(toDraft(response));
       setNotice('Đã lưu cấu hình bài đánh giá đầu vào.');
     } catch (requestError) {
-      setError(requestError?.response?.data?.message || 'Không thể lưu cấu hình bài đánh giá đầu vào.');
+      setError(getContentManagerError(requestError, 'Không thể lưu cấu hình bài đánh giá đầu vào.'));
     } finally {
       setSaving(false);
     }
@@ -181,7 +187,7 @@ export default function ContentManagerPlacementTestPage() {
       setMonitoringExamType(examType);
     } catch (requestError) {
       if (monitoringRequestRef.current !== requestId) return;
-      setError(requestError?.response?.data?.message || 'Không tải được dữ liệu theo dõi.');
+      setError(getContentManagerError(requestError, 'Không tải được dữ liệu theo dõi.'));
     } finally {
       if (monitoringRequestRef.current === requestId) setMonitoringLoading(false);
     }
@@ -223,7 +229,14 @@ export default function ContentManagerPlacementTestPage() {
     return <Panel className="flex min-h-[420px] items-center justify-center gap-3 text-sm font-semibold text-[#584140]"><LoaderCircle className="h-5 w-5 animate-spin text-[#730014]" /> Đang tải bài đánh giá đầu vào...</Panel>;
   }
   if (!definition) {
-    return <Panel className="min-h-[320px] p-6 text-sm font-semibold text-[#93000a]">{error || 'Không có dữ liệu để quản lý.'}</Panel>;
+    return (
+      <>
+        <ManagementToast message={error} onClose={() => setError('')} />
+        <Panel className="min-h-[320px] p-6 text-sm font-semibold text-[#93000a]">
+          {getContentManagerFeedbackMessage(error) || 'Không có dữ liệu để quản lý.'}
+        </Panel>
+      </>
+    );
   }
 
   return (
@@ -236,15 +249,6 @@ export default function ContentManagerPlacementTestPage() {
             <p className="mt-2 text-sm leading-relaxed text-[#8b706e]">Chọn dạng bài để biên soạn nội dung và theo dõi kết quả.</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <label className="inline-flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#dfbfbd] bg-white/85 px-4 py-3 text-sm font-bold text-[#4b0009]">
-              <input
-                checked={definition.status === 'PUBLISHED'}
-                className="h-4 w-4 accent-[#4b0009]"
-                onChange={(event) => updateDefinition('status', event.target.checked ? 'PUBLISHED' : 'ARCHIVED')}
-                type="checkbox"
-              />
-              Cho phép học viên làm bài
-            </label>
             <button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
               <Save aria-hidden="true" className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
             </button>
@@ -255,22 +259,41 @@ export default function ContentManagerPlacementTestPage() {
           {TEST_TYPES.map((testType) => {
             const Icon = testType.icon;
             const selected = activeExamType === testType.key;
+            const enabled = Boolean(definition[testType.enabledField]);
             return (
-              <button
-                aria-selected={selected}
-                className={`min-h-[150px] rounded-2xl border-2 p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#730014] focus-visible:ring-offset-2 ${selected ? testType.accent : 'border-transparent bg-white/80 text-[#0b1c30] hover:border-[#dfcfcb]'}`}
+              <section
+                className={`min-h-[168px] rounded-2xl border-2 p-5 transition ${selected ? testType.accent : 'border-transparent bg-white/80 text-[#0b1c30] hover:border-[#dfcfcb]'}`}
                 key={testType.key}
-                onClick={() => selectExamType(testType.key)}
-                role="tab"
-                type="button"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm"><Icon aria-hidden="true" className="h-5 w-5" /></span>
-                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider">{testType.badge}</span>
+                  <button
+                    aria-label={`Mở cấu hình ${testType.label}`}
+                    aria-selected={selected}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#730014]"
+                    onClick={() => selectExamType(testType.key)}
+                    role="tab"
+                    type="button"
+                  >
+                    <Icon aria-hidden="true" className="h-5 w-5" />
+                  </button>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider">
+                    <input
+                      checked={enabled}
+                      className="h-4 w-4 accent-[#4b0009]"
+                      onChange={(event) => updateDefinition(testType.enabledField, event.target.checked)}
+                      type="checkbox"
+                    />
+                    {enabled ? 'Đang bật' : 'Đang tắt'}
+                  </label>
                 </div>
-                <h2 className="mt-4 font-['Manrope'] text-lg font-extrabold">{testType.label}</h2>
-                <p className="mt-1 text-sm leading-6 opacity-80">{testType.summary}</p>
-              </button>
+                <button className="mt-4 block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#730014]" onClick={() => selectExamType(testType.key)} type="button">
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-['Manrope'] text-lg font-extrabold">{testType.label}</span>
+                    <span className="rounded-full bg-white px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider">{testType.badge}</span>
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 opacity-80">{testType.summary}</span>
+                </button>
+              </section>
             );
           })}
         </div>
@@ -289,11 +312,11 @@ export default function ContentManagerPlacementTestPage() {
             </button>
           ))}
         </div>
-        <span className="shrink-0 rounded-full bg-[#fff1f2] px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-[#730014]">{activeExamType}</span>
+        <span className="shrink-0 rounded-full border border-[#eadfdc] bg-white px-4 py-2"><ManagerTaxonomyBadge kind="exam" value={activeExamType} /></span>
       </ManagerFilterBar>
 
-      {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
-      {notice ? <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> {notice}</div> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast message={notice} onClose={() => setNotice('')} tone="success" title="Đã lưu bài đánh giá" />
 
       {activeTab === 'monitoring' ? (
         <Monitoring
@@ -303,6 +326,7 @@ export default function ContentManagerPlacementTestPage() {
           onRefresh={() => refreshMonitoring(activeExamType)}
         />
       ) : null}
+      {activeTab === 'scoring' ? <PlacementScoringGuide examType={activeExamType} /> : null}
       {activeTab === 'listening' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Nghe" skill="LISTENING" config={definition.listening} onChange={(field, value) => applyObjectiveChange('listening', field, value)} /> : null}
       {activeTab === 'reading' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Đọc" skill="READING" config={definition.reading} onChange={(field, value) => applyObjectiveChange('reading', field, value)} /> : null}
       {activeTab === 'writing' ? <SubjectiveEditor config={definition.writing} label="Bài đánh giá kỹ năng Viết" skill="WRITING" onChange={(field, value) => applySubjectiveChange('writing', field, value)} /> : null}
@@ -310,6 +334,109 @@ export default function ContentManagerPlacementTestPage() {
       {activeTab === 'toeic' ? <ToeicEditor config={definition.toeic} onChangeSection={applyToeicSectionChange} onReset={() => updateConfig('toeic', buildDefaultToeicConfig())} /> : null}
     </div>
   );
+}
+
+const IELTS_LISTENING_BANDS = [
+  ['39–40', '9.0'], ['37–38', '8.5'], ['35–36', '8.0'], ['33–34', '7.5'], ['30–32', '7.0'],
+  ['27–29', '6.5'], ['23–26', '6.0'], ['20–22', '5.5'], ['16–19', '5.0'], ['13–15', '4.5'],
+  ['10–12', '4.0'], ['7–9', '3.5'], ['5–6', '3.0'], ['3–4', '2.5'], ['0–2', '0'],
+];
+
+const IELTS_READING_BANDS = [
+  ['40', '9.0'], ['39', '8.5'], ['38', '8.0'], ['36–37', '7.5'], ['34–35', '7.0'],
+  ['32–33', '6.5'], ['30–31', '6.0'], ['27–29', '5.5'], ['23–26', '5.0'], ['19–22', '4.5'],
+  ['15–18', '4.0'], ['12–14', '3.5'], ['8–11', '3.0'], ['5–7', '2.5'], ['0–4', '0'],
+];
+
+function PlacementScoringGuide({ examType }) {
+  if (examType === 'TOEIC') {
+    return (
+      <div className="space-y-6">
+        <ScoringIntro title="Cách tính điểm TOEIC" description="Listening và Reading được chấm theo đáp án, sau đó quy đổi độc lập trước khi cộng tổng." />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <ScoringCard title="Quy đổi từng kỹ năng">
+            <p>Mỗi phần được quy đổi từ tỷ lệ câu đúng sang thang <strong>5–495</strong> và làm tròn đến 5 điểm gần nhất.</p>
+            <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 font-bold text-[#0b1c30]">Tổng điểm = Listening + Reading · Tối đa 990</p>
+          </ScoringCard>
+          <ScoringCard title="Mức trình độ gợi ý">
+            <ScoreThreshold label="Beginner" value="Dưới 450" />
+            <ScoreThreshold label="Intermediate" value="450–699" />
+            <ScoreThreshold label="Advanced" value="Từ 700" />
+          </ScoringCard>
+        </div>
+      </div>
+    );
+  }
+
+  const diagnosticOnly = examType === 'SKILL';
+  return (
+    <div className="space-y-6">
+      <ScoringIntro
+        title={diagnosticOnly ? 'Cách chấm đánh giá kỹ năng' : 'Cách tính band IELTS đầu vào'}
+        description={diagnosticOnly ? 'Chỉ các kỹ năng học viên chọn mới được chấm; kết quả dùng để chẩn đoán năng lực.' : 'Bốn kỹ năng được chấm riêng trên thang 0–9 và làm tròn theo nửa band.'}
+      />
+      <div className="grid gap-5 xl:grid-cols-2">
+        <BandTable rows={IELTS_LISTENING_BANDS} title="Listening" />
+        <BandTable rows={IELTS_READING_BANDS} title="Reading" />
+      </div>
+      <div className="grid gap-5 xl:grid-cols-2">
+        <ScoringCard title="Writing">
+          <CriteriaGrid items={['Task response', 'Coherence', 'Lexical resource', 'Grammar']} />
+          <p className="mt-4">Bài quá ngắn hoặc không có nội dung có thể bị giới hạn band. Kết quả được làm tròn theo nửa band.</p>
+        </ScoringCard>
+        <ScoringCard title="Speaking">
+          <CriteriaGrid items={['Fluency & coherence', 'Lexical resource', 'Grammar', 'Pronunciation']} />
+          <p className="mt-4">Ưu tiên đánh giá bản ghi âm. Nếu không đủ bằng chứng nói thật, kỹ năng này chưa được tính điểm.</p>
+        </ScoringCard>
+      </div>
+      <ScoringCard title={diagnosticOnly ? 'Kết quả chẩn đoán' : 'Band tổng và xếp lớp'}>
+        <p><strong>Band tổng</strong> là trung bình các kỹ năng có kết quả, sau đó làm tròn đến 0,5 gần nhất.</p>
+        <p className="mt-2">{diagnosticOnly ? 'Kết quả này không tự động xác nhận trình độ xếp lớp.' : 'Nhân viên cần rà soát Writing, Speaking và xác nhận trình độ cuối cùng trước khi dùng kết quả để xếp lớp.'}</p>
+      </ScoringCard>
+    </div>
+  );
+}
+
+function ScoringIntro({ description, title }) {
+  return (
+    <section className="rounded-2xl border border-[#eadfdc] bg-[linear-gradient(135deg,#fffdfb,#fff5f5)] p-6">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Quy tắc đánh giá</p>
+      <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-[#584140]">{description}</p>
+    </section>
+  );
+}
+
+function ScoringCard({ children, title }) {
+  return (
+    <Panel className="p-6">
+      <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{title}</h3>
+      <div className="mt-4 text-sm leading-6 text-[#584140]">{children}</div>
+    </Panel>
+  );
+}
+
+function BandTable({ rows, title }) {
+  return (
+    <ScoringCard title={`${title}: số câu đúng → band`}>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        {rows.map(([correct, band]) => (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center" key={correct}>
+            <p className="text-xs font-bold text-slate-500">{correct} câu</p>
+            <p className="mt-1 font-extrabold text-[#730014]">{band}</p>
+          </div>
+        ))}
+      </div>
+    </ScoringCard>
+  );
+}
+
+function CriteriaGrid({ items }) {
+  return <div className="grid gap-2 sm:grid-cols-2">{items.map((item) => <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-bold text-[#0b1c30]" key={item}>{item}</div>)}</div>;
+}
+
+function ScoreThreshold({ label, value }) {
+  return <div className="flex items-center justify-between border-b border-slate-100 py-2 last:border-0"><span className="font-bold text-[#0b1c30]">{label}</span><span>{value}</span></div>;
 }
 
 function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
@@ -333,7 +460,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Báo cáo</p><h2 className="mt-1 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Kết quả {examType}</h2></div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Báo cáo</p><h2 className="mt-1 flex items-baseline gap-1.5 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Kết quả <ManagerTaxonomyBadge kind="exam" value={examType} /></h2></div>
         <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={onRefresh} type="button">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới số liệu
         </button>
@@ -385,7 +512,7 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
 
       <Panel className="overflow-hidden">
         <div className="border-b border-[#f0e3e4] px-6 py-5">
-          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây · {examType}</h3>
+          <h3 className="flex items-baseline gap-1.5 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây · <ManagerTaxonomyBadge kind="exam" value={examType} /></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left">
@@ -424,9 +551,10 @@ function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {
             </tbody>
           </table>
         </div>
-        {attemptsTotalPages > 1 ? (
+        {recentAttempts.length ? (
           <div className="border-t border-[#f0e3e4] px-5 py-4">
             <Pagination
+              alwaysVisible
               onChange={setAttemptsPage}
               page={attemptsPage}
               pageSize={RECENT_ATTEMPTS_PAGE_SIZE}
@@ -525,7 +653,19 @@ function SubjectiveEditor({ config, label, onChange, skill }) {
 }
 
 function toDraft(response) {
-  return { ...response, examType: response.examType || 'IELTS', listening: parseConfig(response.listeningConfigJson), reading: parseConfig(response.readingConfigJson), writing: parseConfig(response.writingConfigJson), speaking: parseConfig(response.speakingConfigJson), toeic: parseConfig(response.toeicConfigJson, buildDefaultToeicConfig()) };
+  const legacyEnabled = response.status === 'PUBLISHED';
+  return {
+    ...response,
+    examType: response.examType || 'IELTS',
+    ieltsEnabled: response.ieltsEnabled ?? legacyEnabled,
+    toeicEnabled: response.toeicEnabled ?? legacyEnabled,
+    skillAssessmentEnabled: response.skillAssessmentEnabled ?? legacyEnabled,
+    listening: parseConfig(response.listeningConfigJson),
+    reading: parseConfig(response.readingConfigJson),
+    writing: parseConfig(response.writingConfigJson),
+    speaking: parseConfig(response.speakingConfigJson),
+    toeic: parseConfig(response.toeicConfigJson, buildDefaultToeicConfig()),
+  };
 }
 
 function toPayload(draft) {
@@ -538,12 +678,16 @@ function toPayload(draft) {
       ...(toeic.answerKey || {}),
     },
   };
+  const anyExamEnabled = draft.ieltsEnabled || draft.toeicEnabled || draft.skillAssessmentEnabled;
   return {
     title: draft.title,
     description: draft.description,
     examType: draft.examType || 'IELTS',
     maxAttempts: Number(draft.maxAttempts),
-    status: draft.status || 'DRAFT',
+    status: anyExamEnabled ? 'PUBLISHED' : 'ARCHIVED',
+    ieltsEnabled: Boolean(draft.ieltsEnabled),
+    toeicEnabled: Boolean(draft.toeicEnabled),
+    skillAssessmentEnabled: Boolean(draft.skillAssessmentEnabled),
     listeningConfigJson: JSON.stringify(draft.listening),
     readingConfigJson: JSON.stringify(draft.reading),
     writingConfigJson: JSON.stringify(draft.writing),

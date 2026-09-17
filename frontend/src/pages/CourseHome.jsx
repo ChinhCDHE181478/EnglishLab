@@ -16,6 +16,7 @@ import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 import { resolveScoreCap } from '../utils/ieltsBandScale';
 import { findFurthestReachedModuleIndex, isReachedModuleUnlocked } from '../utils/courseProgressAccess';
 import { buildLessonWorkspacePath } from '../utils/courseWorkspaceNavigation';
+import { useLearnerExperience } from '../context/LearnerExperienceContext';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -78,6 +79,7 @@ const CourseHome = () => {
   const [ratingComment, setRatingComment] = useState('');
   const [ratingSaving, setRatingSaving] = useState(false);
   const [ratingError, setRatingError] = useState('');
+  const { lessonNotes } = useLearnerExperience();
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -134,7 +136,19 @@ const CourseHome = () => {
 
         setCourse({ ...normalizedCourse, registered: Boolean(matchedEnrollment) });
         setEnrollment(matchedEnrollment || null);
-        setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
+        const savedLessonId = localStorage.getItem(`englishlab.activeLesson.${normalizedCourse.slug}`);
+        if (savedLessonId) {
+          const foundModule = (normalizedCourse.modules || []).find((m) =>
+            (m.lessons || []).some((l, li) =>
+              getLessonId(m, l, li) === savedLessonId ||
+              (l.id && String(l.id) === savedLessonId)
+            ) ||
+            String(getAssessmentStepId(m.id)) === String(savedLessonId)
+          );
+          setOpenModuleId(foundModule ? (foundModule.id ?? foundModule.title) : (normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null));
+        } else {
+          setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
+        }
         if (hasAccessToken()) {
           const [assessmentItems, completionResponse, certificateResponse, ratingResponse] = await Promise.all([
             loadOptionalCourseData(() => courseApi.getCourseAssessments(normalizedCourse.id), []),
@@ -288,6 +302,25 @@ const CourseHome = () => {
     openLesson(firstModule, firstLesson, 0);
   };
 
+  const openLastOrFirstLesson = () => {
+    const lastLessonId = (() => {
+      try { return localStorage.getItem(`englishlab.activeLesson.${course?.slug}`); } catch { return null; }
+    })();
+    if (lastLessonId) {
+      // Tìm bài học đang active trong modules
+      for (const module of course?.modules ?? []) {
+        const lessonIndex = module.lessons?.findIndex(
+          (l) => getLessonId(module, l, module.lessons.indexOf(l)) === lastLessonId,
+        );
+        if (lessonIndex !== -1) {
+          openLesson(module, module.lessons[lessonIndex], lessonIndex);
+          return;
+        }
+      }
+    }
+    openFirstLesson();
+  };
+
   const renderMaterials = () => (
     <div>
       <div className="mb-6 rounded-lg border border-[#f1dfb8] bg-[#f2e8cf] p-6">
@@ -298,13 +331,13 @@ const CourseHome = () => {
           <button
             className="rounded bg-[#730014] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#9e001f] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!course.modules?.[0]?.lessons?.[0]}
-            onClick={openFirstLesson}
+            onClick={openLastOrFirstLesson}
             type="button"
           >
-            Bắt đầu bài đầu tiên
+            Tiếp tục học
           </button>
           <Link className="rounded border border-[#730014] px-4 py-2 text-sm font-bold text-[#730014] transition hover:bg-white/60" to={`/courses/${course.slug}`}>
-            Xem chi tiết khóa học
+            Tổng quan khóa học
           </Link>
         </div>
       </div>
@@ -541,16 +574,45 @@ const CourseHome = () => {
     </div>
   );
 
+  const courseNotes = useMemo(
+    () => lessonNotes.filter((item) => String(item.courseId) === String(course?.id)),
+    [lessonNotes, course?.id],
+  );
+
   const renderNotes = () => (
     <div className="flex min-h-[560px] flex-col">
       <div className="mb-14 flex items-center justify-between gap-4">
         <h1 className="font-['Manrope'] text-3xl font-extrabold text-[#730014]">Ghi chú</h1>
-        <button className="rounded border border-[#730014] px-4 py-2 text-sm font-bold text-[#730014]" type="button">Lọc: Tất cả ghi chú</button>
       </div>
-      <div className="py-16 text-center text-[#1a1c1c]">
-        <StickyNote className="mx-auto mb-4 h-14 w-14 text-[#9ca3af]" />
-        <p>Bạn chưa thêm bất kỳ ghi chú nào. Ghi chú có thể được tạo trong không gian học.</p>
-      </div>
+      {!courseNotes.length ? (
+        <div className="py-16 text-center text-[#1a1c1c]">
+          <StickyNote className="mx-auto mb-4 h-14 w-14 text-[#9ca3af]" />
+          <p>Bạn chưa thêm bất kỳ ghi chú nào. Ghi chú có thể được tạo trong không gian học.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {courseNotes.map((note) => {
+            const lesson = course?.modules
+              ?.flatMap((m) => (m.lessons ?? []).map((l) => ({ ...l, moduleTitle: m.title })))
+              ?.find((l) => String(l.id) === String(note.lessonId));
+            return (
+              <div key={note.id} className="rounded-[8px] bg-[#f1f5fb] p-4">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold text-[#730014]">{lesson?.title ?? 'Bài học'}</p>
+                    {lesson?.moduleTitle ? (
+                      <p className="text-xs text-[#8c716f]">Module {lesson.moduleTitle}</p>
+                    ) : null}
+                  </div>
+                </div>
+                <p className="border-l-4 border-[#4b0009] pl-3 text-sm leading-7 text-[#1f2430]">
+                  {note.content || note.selectedText || ''}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 
@@ -584,7 +646,7 @@ const CourseHome = () => {
           <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{totalLessons}</p>
         </div>
         <div className="border border-[#e5e7eb] bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Bài đánh giá</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Tổng kết</p>
           <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{assessments.length}</p>
         </div>
       </div>

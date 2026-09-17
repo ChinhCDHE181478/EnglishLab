@@ -50,6 +50,7 @@ import fu.sep490.g23.backend.entity.course.*;
 import fu.sep490.g23.backend.entity.course.enums.*;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -114,6 +115,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private final UserRoleService userRoleService;
     private final JdbcTemplate jdbcTemplate;
     private final DemoLearnerOnboardingSupport demoLearnerOnboardingSupport;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -124,6 +126,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         if (!seedEnabled && !sheetEnabled) {
             return;
         }
@@ -1054,7 +1059,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
 
             if (!hasTodaySession) {
                 if (sessions.isEmpty()) {
-                    saveOfflineSession(offering, teacher1, today, 19, 21, ClassroomSessionStatus.OPEN, "Buổi 5: Writing Task 2 – Opinion essay (Hôm nay)");
+                    saveOfflineSession(offering, teacher1, today, 19, 21, ClassroomSessionStatus.OPEN, "Writing Task 2 – Opinion essay (Hôm nay)");
                 } else {
                     ClassSchedule targetClassSchedule = sessions.stream()
                             .filter(s -> s.getStatus() == ClassroomSessionStatus.OPEN || s.getStatus() == ClassroomSessionStatus.SCHEDULED)
@@ -1062,7 +1067,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                             .orElse(sessions.get(0));
                     targetClassSchedule.setSessionDate(today);
                     targetClassSchedule.setStatus(ClassroomSessionStatus.OPEN);
-                    targetClassSchedule.setSessionContent("Buổi 5: Writing Task 2 – Opinion essay (Hôm nay)");
+                    targetClassSchedule.setSessionContent("Writing Task 2 – Opinion essay (Hôm nay)");
                     sessionRepository.save(targetClassSchedule);
                 }
             }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, LifeBuoy, MessageSquarePlus, Plus, Send, XCircle } from 'lucide-react';
+import { ClipboardList, LifeBuoy, MessageSquarePlus, Plus, Send, X, XCircle } from 'lucide-react';
 import supportApi from '../api/supportApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import BrandedSelect from '../components/ui/BrandedSelect';
@@ -151,9 +151,19 @@ export default function SupportTicketsPage() {
         {/* 1. Form tạo ticket */}
         {showForm ? (
           <form className="rounded-[28px] border border-[#dfbfbd]/50 bg-white p-5 shadow-sm md:p-7" onSubmit={createTicket}>
-            <div className="flex items-center gap-2">
-              <LifeBuoy className="h-5 w-5 text-[#730014]" />
-              <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Gửi yêu cầu hỗ trợ</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <LifeBuoy className="h-5 w-5 text-[#730014]" />
+                <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Gửi yêu cầu hỗ trợ</h2>
+              </div>
+              <button
+                aria-label="Đóng biểu mẫu"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#8b706e] transition hover:border-[#730014] hover:bg-[#fff1f3] hover:text-[#730014]"
+                onClick={() => setShowForm(false)}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <p className="mt-2 text-sm text-[#8b706e]">
               Mô tả vấn đề và cung cấp thông tin cần thiết để được hỗ trợ.

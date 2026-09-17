@@ -6,22 +6,23 @@ import {
   ManagerFilterBar,
   ManagerStatsGrid,
   ManagerStatusBadge,
+  ManagerTaxonomyBadge,
   ManagerTable,
   ManagerTablePagination,
 } from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { createContentManagerError, getContentManagerError } from '../../utils/contentManagerFeedback';
 import {
-  ERROR_NOTICE_CLASS,
   FIELD_CLASS,
   PANEL_CLASS,
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
-  SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
@@ -103,7 +104,7 @@ export default function ContentManagerExerciseBankPage() {
       setItems(data.content);
       setStatsData(summary);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được ngân hàng bài tập.');
+      setError(getContentManagerError(err, 'Không tải được ngân hàng bài tập.'));
     } finally {
       setLoading(false);
     }
@@ -150,7 +151,7 @@ export default function ContentManagerExerciseBankPage() {
 
   const saveItem = async () => {
     if (!form.title.trim() || !form.prompt.trim()) {
-      setError('Vui lòng nhập tiêu đề và đề bài.');
+      setError(createContentManagerError('Vui lòng nhập tiêu đề và đề bài.'));
       return;
     }
     setWorking(true);
@@ -174,7 +175,7 @@ export default function ContentManagerExerciseBankPage() {
       resetForm(false);
       setSuccess('Đã lưu bài tập.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được bài tập.');
+      setError(getContentManagerError(err, 'Không lưu được bài tập.'));
     } finally {
       setWorking(false);
     }
@@ -186,8 +187,18 @@ export default function ContentManagerExerciseBankPage() {
       confirmLabel: 'Tạm ngưng',
       tone: 'danger',
     })) return;
-    await courseApi.deleteExerciseBankItem(id);
-    await loadItems();
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      await courseApi.deleteExerciseBankItem(id);
+      await loadItems();
+      setSuccess('Đã tạm ngưng bài tập.');
+    } catch (err) {
+      setError(getContentManagerError(err, 'Không tạm ngưng được bài tập.'));
+    } finally {
+      setWorking(false);
+    }
   };
 
   const updateSystemPractice = (field, value) => {
@@ -211,7 +222,7 @@ export default function ContentManagerExerciseBankPage() {
       await loadItems();
       setSuccess('Đã khôi phục bài tập.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không khôi phục được bài tập.');
+      setError(getContentManagerError(err, 'Không khôi phục được bài tập.'));
     } finally {
       setWorking(false);
     }
@@ -219,8 +230,8 @@ export default function ContentManagerExerciseBankPage() {
 
   return (
     <div className="space-y-6">
-      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
-      {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật bài tập" />
 
       {composerOpen ? (
         <section className={`${PANEL_CLASS} scroll-mt-24 space-y-5`} ref={editorRef}>
@@ -246,7 +257,7 @@ export default function ContentManagerExerciseBankPage() {
             {form.exerciseType === 'PRACTICE' && ['LISTENING', 'READING'].includes(form.skill) ? (
               <div className="rounded-2xl border border-[#ead9db] bg-[#fffdfd] p-5">
                 <h4 className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">Biên soạn bài luyện tập trên hệ thống</h4>
-                <p className="mt-2 text-sm leading-6 text-[#584140]">Dùng cùng trình biên soạn với Module Test để tạo phần thi, câu hỏi, lựa chọn và đáp án chấm tự động.</p>
+                <p className="mt-2 text-sm leading-6 text-[#584140]">Tạo phần thi, câu hỏi, lựa chọn và đáp án để hệ thống chấm tự động.</p>
                 <div className="mt-5">
                   <AssessmentExamBuilder
                     assessment={{
@@ -350,9 +361,9 @@ export default function ContentManagerExerciseBankPage() {
                       <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
                       {item.prompt ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{summarizeExerciseContent(item.prompt)}</p> : null}
                     </td>
-                    <td className="px-6 py-5"><ManagerStatusBadge tone="info">{formatSkill(item.skill)}</ManagerStatusBadge></td>
+                    <td className="px-6 py-5"><ManagerTaxonomyBadge kind="skill" value={item.skill} /></td>
                     <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatExerciseType(item.exerciseType)}</td>
-                    <td className="px-6 py-5 text-sm text-[#564241]">{item.level || '-'}</td>
+                    <td className="px-6 py-5"><ManagerTaxonomyBadge kind="level" value={item.level} /></td>
                     <td className="px-6 py-5"><ManagerStatusBadge tone={item.status === 'PUBLISHED' ? 'success' : 'neutral'}>{item.status === 'PUBLISHED' ? 'Đang dùng' : 'Đã tạm ngưng'}</ManagerStatusBadge></td>
                     <td className="px-6 py-5 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -403,18 +414,6 @@ function FilterSelect({ label, value, onChange, options }) {
       value={value}
     />
   );
-}
-
-function formatSkill(value) {
-  const labels = {
-    LISTENING: 'Nghe',
-    READING: 'Đọc',
-    WRITING: 'Viết',
-    SPEAKING: 'Nói',
-    GRAMMAR: 'Ngữ pháp',
-    VOCABULARY: 'Từ vựng',
-  };
-  return labels[String(value || '').toUpperCase()] || value || '-';
 }
 
 function formatExerciseType(value) {

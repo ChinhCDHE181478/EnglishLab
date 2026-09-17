@@ -88,7 +88,7 @@ const validateForm = (form, homeworks) => {
   if (form.finalResult !== '') {
     const finalResult = Number(form.finalResult);
     if (!Number.isFinite(finalResult) || finalResult < 0 || finalResult > 10) {
-      return 'Kết quả cuối phải nằm trong khoảng 0–10.';
+      return 'Điểm tổng kết phải nằm trong khoảng 0–10.';
     }
   }
   return '';
@@ -182,8 +182,8 @@ function AggregateGradebookTable({ gradebook, onOpenStudent }) {
               <th className="px-5 py-4">Học viên</th>
               <th className="px-5 py-4">Điểm TB bài tập</th>
               <th className="px-5 py-4">Chuyên cần</th>
-              <th className="px-5 py-4">Kết quả cuối</th>
-              <th className="px-5 py-4">Công bố</th>
+              <th className="px-5 py-4">Điểm tổng kết</th>
+              <th className="px-5 py-4">Trạng thái</th>
               <th className="px-5 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
@@ -441,7 +441,7 @@ function GradebookStudentModal({
                   )}
                 </label>
                 <label className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">Kết quả cuối</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">Điểm tổng kết</span>
                   {isEditing ? (
                     <div className="relative mt-1.5">
                       <input
@@ -498,7 +498,7 @@ function GradebookStudentModal({
                 type="button"
               >
                 <Pencil className="h-4 w-4" />
-                Sửa tổng kết
+                Sửa điểm
               </button>
             )}
           </div>
@@ -737,22 +737,7 @@ export default function TeacherGradebookSection({
           </div>
         </div>
 
-        <div className="grid border-t border-[#dfbfbd]/20 bg-white/75 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Học viên', value: gradebook.length, icon: Users, className: 'text-[#9b1c31]' },
-            { label: 'Bài tập', value: homework.length, icon: BookOpenCheck, className: 'text-blue-600' },
-            { label: 'Lượt bài chờ chấm', value: pendingSubmissionCount, icon: AlertTriangle, className: 'text-amber-600' },
-            { label: 'Học viên đã công bố', value: publishedStudentCount, icon: CheckCircle2, className: 'text-emerald-600' },
-          ].map((item) => (
-            <div className="flex items-center gap-3 border-b border-[#dfbfbd]/15 px-5 py-4 last:border-b-0 sm:odd:border-r lg:border-b-0 lg:border-r lg:last:border-r-0" key={item.label}>
-              <item.icon className={`h-5 w-5 flex-shrink-0 ${item.className}`} />
-              <div>
-                <p className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">{item.value}</p>
-                <p className="text-[11px] font-bold text-[#8b706e]">{item.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Stats bar hidden */}
       </section>
 
       {gradebook.length ? (
@@ -767,200 +752,7 @@ export default function TeacherGradebookSection({
           description="Chưa có học viên hoặc dữ liệu bảng điểm để tổ chức theo bài học."
           title="Chưa có dữ liệu chấm điểm"
         />
-      ) : !gradingLessons.length ? (
-        <section className="rounded-3xl border border-dashed border-[#dfbfbd]/60 bg-[#fffafb] px-6 py-10 text-center">
-          <CircleDashed className="mx-auto h-9 w-9 text-[#c9adab]" />
-          <h5 className="mt-3 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Chưa có bài tập để chấm</h5>
-          <p className="mt-1 text-sm text-[#8b706e]">Thêm bài tập trong tab Bài tập để bắt đầu nhận và chấm bài.</p>
-        </section>
-      ) : (
-        <section className="grid min-h-[620px] gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="flex min-h-0 flex-col rounded-3xl border border-gray-100 bg-[#fffafb]/70 p-4">
-            <div>
-              <h5 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Danh sách bài học</h5>
-              <p className="mt-1 text-xs text-[#8b706e]">Chọn một bài để xem tình trạng chấm của cả lớp.</p>
-            </div>
-            <div className="relative mt-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b706e]" />
-              <input
-                aria-label="Tìm bài học"
-                className="w-full rounded-xl border border-[#dfbfbd]/40 bg-white py-2.5 pl-9 pr-3 text-xs font-bold text-[#2b2828] outline-none placeholder:font-normal focus:border-[#730014]"
-                onChange={(event) => setLessonSearch(event.target.value)}
-                placeholder="Tìm theo tên hoặc số bài..."
-                type="search"
-                value={lessonSearch}
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Lọc trạng thái bài học">
-              {LESSON_FILTERS.map((filter) => (
-                <button
-                  className={`rounded-full px-2.5 py-1.5 text-[10px] font-extrabold transition ${
-                    lessonFilter === filter.id
-                      ? 'bg-[#730014] text-white'
-                      : 'border border-gray-200 bg-white text-[#584140] hover:border-[#dfbfbd]'
-                  }`}
-                  key={filter.id}
-                  onClick={() => setLessonFilter(filter.id)}
-                  type="button"
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 lg:max-h-[660px]">
-              {visibleLessons.length ? visibleLessons.map((lesson) => (
-                <LessonNavigationItem
-                  key={lesson.id}
-                  lesson={lesson}
-                  onSelect={() => setSelectedLessonId(lesson.id)}
-                  selected={selectedLesson?.id === lesson.id}
-                />
-              )) : (
-                <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-xs text-[#8b706e]">
-                  Không có bài học phù hợp bộ lọc.
-                </div>
-              )}
-            </div>
-          </aside>
-
-          <div className="min-w-0 overflow-hidden rounded-3xl border border-gray-100 bg-white">
-            <div className="border-b border-gray-100 bg-[#fffafb] px-5 py-5 sm:px-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {selectedLesson?.displayOrder != null ? (
-                      <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#9b1c31]">Bài {selectedLesson.displayOrder}</span>
-                    ) : null}
-                    <LessonPositionBadge status={selectedLesson.positionStatus} />
-                    <LessonGradingBadge status={selectedLesson.gradingStatus} />
-                  </div>
-                  <h5 className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{selectedLesson.title}</h5>
-                  {selectedLesson.description ? (
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#8b706e]">{selectedLesson.description}</p>
-                  ) : null}
-                </div>
-                <div className="flex flex-shrink-0 items-center gap-4 text-center">
-                  <div>
-                    <p className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">{selectedLesson.assignments.length}</p>
-                    <p className="text-[10px] font-bold text-[#8b706e]">Bài tập</p>
-                  </div>
-                  <div className="h-8 w-px bg-gray-200" />
-                  <div>
-                    <p className="font-['Manrope'] text-lg font-extrabold text-emerald-700">{selectedLesson.stats.gradedCount}</p>
-                    <p className="text-[10px] font-bold text-[#8b706e]">Đã chấm</p>
-                  </div>
-                  <div className="h-8 w-px bg-gray-200" />
-                  <div>
-                    <p className="font-['Manrope'] text-lg font-extrabold text-amber-700">{selectedLesson.stats.pendingCount}</p>
-                    <p className="text-[10px] font-bold text-[#8b706e]">Chờ chấm</p>
-                  </div>
-                </div>
-              </div>
-              {selectedLesson.stats.expectedSubmissionCount > 0 ? (
-                <div className="mt-4">
-                  <div className="mb-1.5 flex justify-between text-[10px] font-extrabold text-[#8b706e]">
-                    <span>Tiến độ chấm của bài học</span>
-                    <span>{selectedLesson.stats.completionPercent}%</span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${selectedLesson.stats.completionPercent}%` }} />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            {selectedLesson.positionStatus === LESSON_POSITION_STATUS.NOT_REACHED ? (
-              <div className="m-5 flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 px-6 text-center sm:m-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200 text-slate-500">
-                  <LockKeyhole className="h-6 w-6" />
-                </div>
-                <h6 className="mt-4 font-['Manrope'] text-lg font-extrabold text-slate-700">Bài này chưa học tới</h6>
-                <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">
-                  Bạn vẫn có thể xem bài trong danh sách tiến độ, nhưng thao tác chấm được khóa để tránh nhập điểm nhầm trước khi lớp học tới bài này.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] divide-y divide-gray-100 text-left text-sm">
-                  <thead className="bg-white text-[10px] font-bold uppercase tracking-wider text-[#8b706e]">
-                    <tr>
-                      <th className="px-5 py-3.5 sm:px-6">Học viên</th>
-                      {selectedLesson.assignments.map((assignment) => (
-                        <th className="max-w-44 px-4 py-3.5" key={assignment.id}>{assignment.title}</th>
-                      ))}
-                      <th className="px-4 py-3.5">Tiến độ</th>
-                      <th className="px-5 py-3.5 text-right sm:px-6">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 text-[#584140]">
-                    {gradingPageItems.map((entry) => {
-                      const progress = getStudentLessonProgress(entry, selectedLesson.assignments);
-                      return (
-                        <tr className="hover:bg-[#fffafb]/50" key={entry.studentId || entry.id}>
-                          <td className="px-5 py-4 sm:px-6">
-                            <div className="flex items-center gap-2.5">
-                              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-rose-50 text-xs font-extrabold text-[#730014]">
-                                {(entry.studentName || 'H').charAt(0).toUpperCase()}
-                              </span>
-                              <p className="max-w-44 truncate font-extrabold text-[#2b2828]">{entry.studentName || `Học viên #${entry.studentId}`}</p>
-                            </div>
-                          </td>
-                          {progress.results.map((result) => (
-                            <td className="px-4 py-4" key={result.id}>
-                              <div className="space-y-1.5">
-                                <p className="whitespace-nowrap text-xs font-extrabold text-[#2b2828]">{formatScore(result.score, result.maxScore)}</p>
-                                <HomeworkStatusBadge status={result.status} />
-                              </div>
-                            </td>
-                          ))}
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2 whitespace-nowrap">
-                              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
-                                <div
-                                  className={`h-full rounded-full ${progress.isComplete ? 'bg-emerald-500' : 'bg-amber-400'}`}
-                                  style={{ width: `${selectedLesson.assignments.length ? (progress.gradedCount / selectedLesson.assignments.length) * 100 : 0}%` }}
-                                />
-                              </div>
-                              <span className="text-[10px] font-extrabold text-[#8b706e]">{progress.gradedCount}/{selectedLesson.assignments.length}</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-right sm:px-6">
-                            <button
-                              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
-                                progress.pendingCount > 0
-                                  ? 'bg-amber-500 text-white hover:bg-amber-600'
-                                  : 'border border-[#dfbfbd]/50 bg-white text-[#730014] hover:bg-rose-50'
-                              }`}
-                              onClick={() => openHomeworkGrading(entry, progress.results)}
-                              type="button"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              {progress.results.length > 1
-                                ? 'Chọn bài'
-                                : progress.isComplete ? 'Sửa điểm' : 'Chấm điểm'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {gradingTotalPages > 1 ? (
-                  <div className="border-t border-gray-100 bg-[#fffafb]/50 px-5 py-4 sm:px-6">
-                    <Pagination
-                      onChange={setGradingPage}
-                      page={gradingPage}
-                      pageSize={STUDENTS_PER_PAGE}
-                      totalItems={gradingTotalItems}
-                      totalPages={gradingTotalPages}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      ) : null}
 
       {selectedEntry && modalLesson ? (
         <GradebookStudentModal

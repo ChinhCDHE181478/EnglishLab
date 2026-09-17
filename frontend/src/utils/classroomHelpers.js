@@ -1,4 +1,4 @@
-import { downloadProtectedFile, isProtectedAttachmentUrl } from './protectedFile';
+import { downloadProtectedFile, isProtectedAttachmentUrl, isLocalFileUrl } from './protectedFile';
 
 const resolveDate = (value) => {
   if (!value) return null;
@@ -84,7 +84,7 @@ export const formatDeliveryMode = (mode, label) => {
 
 export const formatAssessmentType = (type) => {
   const labels = {
-    MODULE_TEST: 'Kiểm tra cuối mô-đun',
+    MODULE_TEST: 'Đánh giá kỹ năng',
     LESSON_PRACTICE: 'Luyện tập theo bài',
     MOCK_TEST: 'Thi thử',
     WRITING_TASK: 'Bài viết',
@@ -193,6 +193,24 @@ export const getClassroomSessionUnitLabel = (session) => {
     : session.curriculumUnitTitle;
 };
 
+/** Unit display order (1-based) for syllabus numbering. */
+export const getUnitDisplayOrder = (unit) =>
+  Number(unit?.displayOrder ?? unit?.sequenceNumber ?? 0);
+
+/** Lesson order within its unit (1-based). */
+export const getLessonOrderInUnit = (lesson) =>
+  Number(lesson?.sessionNumber ?? lesson?.displayOrder ?? lesson?.sequenceNumber ?? 0);
+
+/** Standard syllabus code: 1.1, 2.3 (unit.lesson). */
+export const formatLessonCode = (unit, lesson) => {
+  if (lesson?.lessonCode) return String(lesson.lessonCode);
+  const unitOrder = getUnitDisplayOrder(unit);
+  const lessonOrder = getLessonOrderInUnit(lesson);
+  if (unitOrder > 0 && lessonOrder > 0) return `${unitOrder}.${lessonOrder}`;
+  if (lessonOrder > 0) return String(lessonOrder);
+  return '';
+};
+
 export const formatAttendanceDisputeStatus = (status) => {
   const labels = {
     PENDING: 'Đang chờ giáo viên xử lý',
@@ -294,21 +312,15 @@ export const buildMaterialDownloadName = (material) => {
   return baseName;
 };
 
-export const downloadClassroomMaterial = async (material, { openOnFailure = true } = {}) => {
+export const downloadClassroomMaterial = async (material, { openOnFailure = false } = {}) => {
   const url = material?.fileUrl;
   if (!url) return false;
 
   const fileName = buildMaterialDownloadName(material);
   try {
-    if (isProtectedAttachmentUrl(url)) {
-      await downloadProtectedFile(url, fileName);
-      return true;
-    }
+    // Always use blob download for consistent behavior
     const response = await fetch(url, { credentials: 'include' });
-    if (!response.ok) {
-      if (openOnFailure) window.open(url, '_blank', 'noopener,noreferrer');
-      return false;
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -317,7 +329,7 @@ export const downloadClassroomMaterial = async (material, { openOnFailure = true
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(objectUrl);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     return true;
   } catch {
     if (openOnFailure) window.open(url, '_blank', 'noopener,noreferrer');

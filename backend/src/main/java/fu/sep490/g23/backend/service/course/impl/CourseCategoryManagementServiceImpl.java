@@ -28,7 +28,7 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
 
     @Transactional(readOnly = true)
     public List<CourseCategoryResponse> getCategories() {
-        return courseCategoryRepository.findAllByOrderByDisplayOrderAscNameAsc().stream()
+        return courseCategoryRepository.findAllByOrderByNameAsc().stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -41,7 +41,7 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
 
     @Transactional(readOnly = true)
     public List<CourseCategoryResponse> getActiveCategories() {
-        return courseCategoryRepository.findAllByOrderByDisplayOrderAscNameAsc().stream()
+        return courseCategoryRepository.findAllByOrderByNameAsc().stream()
                 .filter(CourseCategory::isActive)
                 .map(this::toResponse)
                 .toList();
@@ -61,7 +61,6 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
                 .code(code)
                 .name(request.getName().trim())
                 .description(clean(request.getDescription()))
-                .displayOrder(defaultOrder(request.getDisplayOrder()))
                 .active(request.getActive() == null || request.getActive())
                 .build();
         return toResponse(courseCategoryRepository.save(category));
@@ -71,7 +70,6 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
         CourseCategory category = findCategory(id);
         category.setName(request.getName().trim());
         category.setDescription(clean(request.getDescription()));
-        category.setDisplayOrder(defaultOrder(request.getDisplayOrder()));
         if (request.getActive() != null) {
             category.setActive(request.getActive());
         }
@@ -100,7 +98,6 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
                 .code(category.getCode())
                 .name(category.getName())
                 .description(category.getDescription())
-                .displayOrder(category.getDisplayOrder())
                 .active(category.isActive())
                 .courseCount(onlineCourseRepository.countByCategoryAndStatusNot(category, PackageStatus.ARCHIVED))
                 .build();
@@ -111,10 +108,6 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
             return null;
         }
         return value.trim();
-    }
-
-    private int defaultOrder(Integer value) {
-        return value == null ? 0 : value;
     }
 
     private String normalizeCode(String value) {

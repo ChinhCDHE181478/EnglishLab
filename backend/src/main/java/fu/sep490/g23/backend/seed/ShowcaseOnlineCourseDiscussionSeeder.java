@@ -21,6 +21,7 @@ import fu.sep490.g23.backend.repository.course.CourseDiscussionReactionRepositor
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.seed.master.MasterSeedGate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
     private final CourseDiscussionPostRepository postRepository;
     private final CourseDiscussionReportRepository reportRepository;
     private final CourseDiscussionReactionRepository reactionRepository;
+    private final MasterSeedGate masterSeedGate;
 
     @Value("${app.seed.sheet.enabled:false}")
     private boolean seedEnabled;
@@ -57,6 +59,9 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (masterSeedGate.shouldSkipLegacyDemoSeeders()) {
+            return;
+        }
         if (!seedEnabled) {
             return;
         }

@@ -265,12 +265,12 @@ class ClassroomHomeworkServiceImplTest {
     }
 
     @Test
-    void listAiAssessmentOptions_IncludesObjectiveReadingAssessmentWithoutRubric() {
+    void listAiAssessmentOptions_IncludesPublishedReadingPracticeWithoutRubric() {
         User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
         AssessmentBankItem readingAssessment = AssessmentBankItem.builder()
                 .id(11L)
                 .title("Reading practice")
-                .type(AssessmentType.MODULE_TEST)
+                .type(AssessmentType.LESSON_PRACTICE)
                 .status("PUBLISHED")
                 .skill(AssessmentSkill.READING)
                 .uiConfigJson("{}")
@@ -278,8 +278,7 @@ class ClassroomHomeworkServiceImplTest {
 
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(assessmentBankItemRepository
-                .findByTypeAndStatusAndSkillInOrderByUpdatedAtDescIdDesc(
-                        AssessmentType.MODULE_TEST,
+                .findByStatusAndSkillInOrderByUpdatedAtDescIdDesc(
                         "PUBLISHED",
                         List.of(
                                 AssessmentSkill.LISTENING,
@@ -316,7 +315,7 @@ class ClassroomHomeworkServiceImplTest {
         AssessmentBankItem assessment = AssessmentBankItem.builder()
                 .id(11L)
                 .title("IELTS Writing Task 2")
-                .type(AssessmentType.MODULE_TEST)
+                .type(AssessmentType.WRITING_TASK)
                 .status("PUBLISHED")
                 .skill(AssessmentSkill.WRITING)
                 .rubric(defaultRubric)
@@ -333,8 +332,8 @@ class ClassroomHomeworkServiceImplTest {
 
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assessmentBankItemRepository.findByIdAndTypeAndStatus(
-                assessment.getId(), AssessmentType.MODULE_TEST, "PUBLISHED"
+        when(assessmentBankItemRepository.findByIdAndStatus(
+                assessment.getId(), "PUBLISHED"
         )).thenReturn(Optional.of(assessment));
         when(homeworkGradingCatalogService.requireActiveRubric(selectedRubric.getId()))
                 .thenReturn(selectedRubric);
@@ -361,7 +360,7 @@ class ClassroomHomeworkServiceImplTest {
         AssessmentBankItem assessment = AssessmentBankItem.builder()
                 .id(11L)
                 .title("IELTS Writing Task 2")
-                .type(AssessmentType.MODULE_TEST)
+                .type(AssessmentType.WRITING_TASK)
                 .status("PUBLISHED")
                 .skill(AssessmentSkill.WRITING)
                 .uiConfigJson("{}")
@@ -376,8 +375,8 @@ class ClassroomHomeworkServiceImplTest {
 
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assessmentBankItemRepository.findByIdAndTypeAndStatus(
-                assessment.getId(), AssessmentType.MODULE_TEST, "PUBLISHED"
+        when(assessmentBankItemRepository.findByIdAndStatus(
+                assessment.getId(), "PUBLISHED"
         )).thenReturn(Optional.of(assessment));
         when(homeworkRepository.save(any(ClassroomHomework.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));

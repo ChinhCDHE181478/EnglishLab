@@ -351,7 +351,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     ) {
         CourseUnit unit = findUnit(unitId);
         validateCourseLessonRequest(request);
-        assertSessionNumberAvailable(unit.getInstructorLedCourse().getId(), request.getSessionNumber(), null);
+        assertSessionNumberAvailable(unit.getId(), request.getSessionNumber(), null);
         CourseLesson lesson = CourseLesson.builder()
                 .courseUnit(unit)
                 .sequenceNumber(request.getSessionNumber())
@@ -376,7 +376,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         CourseLesson lesson = findCourseLesson(lessonId);
         validateCourseLessonRequest(request);
         assertSessionNumberAvailable(
-                lesson.getCourseUnit().getInstructorLedCourse().getId(),
+                lesson.getCourseUnit().getId(),
                 request.getSessionNumber(),
                 lessonId
         );
@@ -922,7 +922,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
             throw new IllegalArgumentException("Dữ liệu bài học không được để trống.");
         }
         if (request.getSessionNumber() == null || request.getSessionNumber() < 1) {
-            throw new IllegalArgumentException("Thứ tự bài học phải bắt đầu từ 1.");
+            throw new IllegalArgumentException("Thứ tự bài trong unit phải bắt đầu từ 1.");
         }
         if (request.getPlannedSessionCount() != null && request.getPlannedSessionCount() < 1) {
             throw new IllegalArgumentException("Số buổi dự kiến phải từ 1 trở lên.");
@@ -933,11 +933,11 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         requireText(request.getTitle(), "Tiêu đề bài học không được để trống.");
     }
 
-    /** Prevents lessons in the same course from sharing a session number. */
-    private void assertSessionNumberAvailable(Long instructorLedCourseId, Integer sessionNumber, Long excludeId) {
-        if (courseLessonRepository.existsDuplicateSequenceNumber(instructorLedCourseId, sessionNumber, excludeId)) {
+    /** Prevents lessons in the same unit from sharing a sequence number. */
+    private void assertSessionNumberAvailable(Long unitId, Integer sessionNumber, Long excludeId) {
+        if (courseLessonRepository.existsDuplicateSequenceNumber(unitId, sessionNumber, excludeId)) {
             throw new IllegalArgumentException(
-                    "Bài học số " + sessionNumber + " đã tồn tại trong khóa học."
+                    "Bài học số " + sessionNumber + " đã tồn tại trong unit này."
             );
         }
     }
@@ -1282,6 +1282,8 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     /** Maps a lesson and includes its unit and course context. */
     private CourseLessonResponse toCourseLessonResponse(CourseLesson lesson) {
         CourseUnit unit = lesson.getCourseUnit();
+        Integer unitOrder = unit.getSequenceNumber() == null ? 0 : unit.getSequenceNumber();
+        Integer lessonOrder = lesson.getSequenceNumber() == null ? 0 : lesson.getSequenceNumber();
         return CourseLessonResponse.builder()
                 .id(lesson.getId())
                 .unitId(unit.getId())
@@ -1290,6 +1292,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 .instructorLedCourseId(unit.getInstructorLedCourse().getId())
                 .sessionNumber(lesson.getSequenceNumber())
                 .displayOrder(lesson.getSequenceNumber())
+                .lessonCode(unitOrder + "." + lessonOrder)
                 .plannedSessionCount(lesson.getPlannedSessionCount() == null || lesson.getPlannedSessionCount() < 1 ? 1 : lesson.getPlannedSessionCount())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
@@ -1403,23 +1406,24 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
                 && !StringUtils.hasText(request.getUiConfigJson())) {
             throw new RuntimeException("Đề Writing/Speaking cần có nội dung đề trong cấu hình.");
         }
-        if (request.getType() == AssessmentType.MODULE_TEST
-                && (request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING)) {
-            if (resolveAiEvaluationMode(request) == AiEvaluationMode.NONE) {
-                throw new RuntimeException("Module Test Writing/Speaking phải bật chấm bằng AI.");
-            }
+        if (request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING) {
             if (request.getRubricId() == null) {
-                throw new RuntimeException("Module Test Writing/Speaking phải có bộ tiêu chí chấm.");
+                throw new RuntimeException("Bài Writing/Speaking phải có bộ tiêu chí chấm.");
             }
         }
     }
 
-    /** Selects a skill-appropriate default AI mode when none is requested. */
+    /** Derives grading behavior from skill so clients cannot persist incompatible modes. */
     private AiEvaluationMode resolveAiEvaluationMode(AssessmentBankItemRequest request) {
-        if (request.getAiEvaluationMode() != null) return request.getAiEvaluationMode();
-        return request.getSkill() == AssessmentSkill.WRITING || request.getSkill() == AssessmentSkill.SPEAKING
-                ? AiEvaluationMode.RUBRIC_FEEDBACK
-                : AiEvaluationMode.EXPLAIN_ONLY;
+        if (request.getSkill() == AssessmentSkill.LISTENING
+                || request.getSkill() == AssessmentSkill.READING
+                || request.getSkill() == AssessmentSkill.WRITING
+                || request.getSkill() == AssessmentSkill.SPEAKING) {
+            return AiEvaluationMode.ESTIMATED_BAND;
+        }
+        return request.getAiEvaluationMode() == null
+                ? AiEvaluationMode.EXPLAIN_ONLY
+                : request.getAiEvaluationMode();
     }
 
     /** Resolves a published rubric and verifies that it matches the assessment skill. */
@@ -1432,7 +1436,10 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         if (!"PUBLISHED".equalsIgnoreCase(rubric.getStatus())) {
             throw new RuntimeException("Bộ tiêu chí đã tạm ngưng.");
         }
-        if (rubric.getSkill() != null && rubric.getSkill() != skill && rubric.getSkill() != AssessmentSkill.MIXED) {
+        boolean requiresExactRubric = skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING;
+        if (rubric.getSkill() != null
+                && rubric.getSkill() != skill
+                && (requiresExactRubric || rubric.getSkill() != AssessmentSkill.MIXED)) {
             throw new RuntimeException("Bộ tiêu chí không phù hợp với kỹ năng của nội dung.");
         }
         return rubric;

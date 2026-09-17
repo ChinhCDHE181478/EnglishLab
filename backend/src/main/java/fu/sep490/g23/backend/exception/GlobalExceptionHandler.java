@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> error.getDefaultMessage())
                 .orElse("Dữ liệu không hợp lệ.");
-        return build(HttpStatus.BAD_REQUEST, message);
+        return build(HttpStatus.BAD_REQUEST, message, "VALIDATION_ERROR");
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -39,22 +39,22 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(violation -> violation.getMessage())
                 .orElse("Dữ liệu không hợp lệ.");
-        return build(HttpStatus.BAD_REQUEST, message);
+        return build(HttpStatus.BAD_REQUEST, message, "VALIDATION_ERROR");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableRequest(HttpMessageNotReadableException ex) {
-        return build(HttpStatus.BAD_REQUEST, "Dữ liệu gửi lên sai định dạng hoặc không thể đọc được.");
+        return build(HttpStatus.BAD_REQUEST, "Dữ liệu gửi lên sai định dạng hoặc không thể đọc được.", "INVALID_REQUEST_BODY");
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng.");
+        return build(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng.", "INVALID_CREDENTIALS");
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUsernameNotFoundException(UsernameNotFoundException ex) {
-        return build(HttpStatus.NOT_FOUND, safeMessage(ex, "Không tìm thấy tài khoản."));
+        return build(HttpStatus.NOT_FOUND, safeMessage(ex, "Không tìm thấy tài khoản."), "ACCOUNT_NOT_FOUND");
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -62,12 +62,12 @@ public class GlobalExceptionHandler {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         String message = ex.getReason() == null || ex.getReason().isBlank()
                 ? "Yêu cầu không thể được xử lý." : ex.getReason();
-        return build(status, message);
+        return build(status, message, "HTTP_" + status.value());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
-        return build(HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.");
+        return build(HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.", "ACCESS_DENIED");
     }
 
     @ExceptionHandler(AiEvaluationException.class)
@@ -76,6 +76,7 @@ public class GlobalExceptionHandler {
         ErrorResponse response = ErrorResponse.builder()
                 .status(status.value())
                 .message(resolveAiMessage(ex, status))
+                .code(status == HttpStatus.SERVICE_UNAVAILABLE ? "AI_SERVICE_UNAVAILABLE" : "AI_EVALUATION_FAILED")
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -96,7 +97,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CourseUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleCourseUnavailableException(CourseUnavailableException ex) {
-        return build(HttpStatus.NOT_FOUND, safeMessage(ex, "Không tìm thấy khóa học."));
+        return build(HttpStatus.NOT_FOUND, safeMessage(ex, "Không tìm thấy khóa học."), "COURSE_UNAVAILABLE");
     }
 
     @ExceptionHandler(ClassroomConflictException.class)
@@ -104,6 +105,7 @@ public class GlobalExceptionHandler {
         ClassroomConflictErrorResponse response = ClassroomConflictErrorResponse.builder()
                 .status(HttpStatus.CONFLICT.value())
                 .message(ex.getMessage())
+                .code("CLASSROOM_SCHEDULE_CONFLICT")
                 .timestamp(LocalDateTime.now())
                 .conflicts(ex.getConflictResult())
                 .build();
@@ -114,36 +116,37 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException ex) {
         log.warn("Concurrent update rejected: {}", ex.getMessage());
-        return build(HttpStatus.CONFLICT, "Dữ liệu vừa được người khác cập nhật. Vui lòng tải lại và thử lại.");
+        return build(HttpStatus.CONFLICT, "Dữ liệu vừa được người khác cập nhật. Vui lòng tải lại và thử lại.", "CONCURRENT_UPDATE");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation", ex);
-        return build(HttpStatus.CONFLICT, "Dữ liệu bị trùng hoặc không còn hợp lệ. Vui lòng tải lại và kiểm tra.");
+        return build(HttpStatus.CONFLICT, "Dữ liệu bị trùng hoặc không còn hợp lệ. Vui lòng tải lại và kiểm tra.", "DATA_CONFLICT");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        return build(HttpStatus.BAD_REQUEST, safeMessage(ex, "Dữ liệu không hợp lệ."));
+        return build(HttpStatus.BAD_REQUEST, safeMessage(ex, "Dữ liệu không hợp lệ."), "INVALID_ARGUMENT");
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
         log.warn("Request rejected by business rule", ex);
-        return build(HttpStatus.BAD_REQUEST, safeMessage(ex, "Yêu cầu không thể được xử lý."));
+        return build(HttpStatus.BAD_REQUEST, safeMessage(ex, "Yêu cầu không thể được xử lý."), "BUSINESS_RULE_VIOLATION");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
         log.error("Unhandled server error", ex);
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Hệ thống đang gặp lỗi. Vui lòng thử lại sau.");
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Hệ thống đang gặp lỗi. Vui lòng thử lại sau.", "INTERNAL_SERVER_ERROR");
     }
 
-    private ResponseEntity<ErrorResponse> build(HttpStatus status, String message) {
+    private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, String code) {
         ErrorResponse response = ErrorResponse.builder()
                 .status(status.value())
                 .message(message)
+                .code(code)
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(status).body(response);

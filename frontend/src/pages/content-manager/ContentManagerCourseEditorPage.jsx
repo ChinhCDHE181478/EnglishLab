@@ -7,8 +7,10 @@ import CourseVersionPanel from '../../components/content-manager/CourseVersionPa
 import { IeltsBandSelect, ToeicScoreField } from '../../components/content-manager/EnglishScoreFields';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { findEditableCourseVersion } from '../../utils/courseVersionUi';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 
 const emptyForm = {
   title: '',
@@ -103,8 +105,11 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       try {
         const items = await courseApi.getManagedCourseCategories();
         if (active) setCategories(items);
-      } catch {
-        if (active) setCategories([]);
+      } catch (err) {
+        if (active) {
+          setCategories([]);
+          setError(getContentManagerError(err, 'Không tải được danh mục khóa học.'));
+        }
       }
     };
 
@@ -128,8 +133,8 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         setForm(mapCourseToForm(course));
         const versionItems = await courseApi.getOnlineCourseVersions(course.id);
         if (active) setVersions(versionItems);
-      } catch {
-        if (active) setError('Không tải được chi tiết khóa học.');
+      } catch (err) {
+        if (active) setError(getContentManagerError(err, 'Không tải được chi tiết khóa học.'));
       } finally {
         if (active) setLoading(false);
       }
@@ -177,7 +182,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       setForm((current) => ({ ...current, thumbnailUrl: uploaded.url }));
       setSuccess('Đã tải ảnh bìa lên.');
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Không thể tải ảnh bìa lên.');
+      setError(getContentManagerError(err, 'Không thể tải ảnh bìa lên.'));
     } finally {
       setUploadingThumbnail(false);
     }
@@ -258,7 +263,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         onSave(response);
       }
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Không lưu được khóa học.');
+      setError(getContentManagerError(err, 'Không lưu được khóa học.'));
     } finally {
       setSaving(false);
       setSavingAction('');
@@ -279,7 +284,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       setVersions(versionItems);
       setSuccess('Đã tạo bản nháp mới. Các thay đổi từ đây không ảnh hưởng học viên hiện tại.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể tạo phiên bản mới.');
+      setError(getContentManagerError(err, 'Không thể tạo phiên bản mới.'));
     } finally {
       setVersionBusy(false);
     }
@@ -320,8 +325,8 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         ) : null}
       </div>
       <div className="space-y-6">
-        {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
-        {success ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700">{success}</div> : null}
+        <ManagementToast message={error} onClose={() => setError('')} />
+        <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật khóa học" />
 
         {editMode ? (
           <CourseVersionPanel

@@ -376,9 +376,7 @@ export default function MyHomeworkPage() {
         ]));
         await classroomApi.submitStudentQuiz(examHomework.legacyQuizId, JSON.stringify(legacyAnswers));
       } else {
-        const textAnswer = examHomework.skill === 'SPEAKING'
-          ? ''
-          : payload?.submittedText || JSON.stringify(objective, null, 2);
+        const textAnswer = payload?.submittedText || JSON.stringify(objective, null, 2);
         await classroomApi.submitHomework(examHomework.id, {
           textAnswer,
           attachmentUrl: payload?.submittedAudioUrl || '',
@@ -545,7 +543,7 @@ export default function MyHomeworkPage() {
 
                           {/* Title block */}
                           <div className="space-y-1">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Lớp: #{item.classroomOfferingId}</span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Lớp: {item.classroomTitle || `#${item.classroomOfferingId}`}</span>
                             <h3 className="font-['Manrope'] text-base font-extrabold text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors duration-300 line-clamp-2">
                               {item.title}
                             </h3>

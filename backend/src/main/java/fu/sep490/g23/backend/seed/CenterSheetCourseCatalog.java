@@ -40,7 +40,6 @@ public class CenterSheetCourseCatalog {
             CourseLevel level,
             double minBand,
             double targetBand,
-            int displayOrder,
             String thumbnailUrl,
             List<String> moduleTitles
     ) {}
@@ -52,56 +51,56 @@ public class CenterSheetCourseCatalog {
                         "IELTS Listening Foundations",
                         "Luyện nghe IELTS từ 4.5 lên 6.5: chiến lược gạch keyword, bẫy distractors và chính tả.",
                         CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
-                        11, "/course-covers/ielts-listening.png",
+                        "/course-covers/ielts-listening.png",
                         List.of("Section 1 Forms and Notes", "Section 2 Maps and Plans", "Section 3 Academic Discussion", "Section 4 Lecture Monologue")),
                 new CourseSpec(
                         "center-sheet-ielts-reading",
                         "IELTS Academic Reading",
                         "Kỹ năng skim, scan, True/False/Not Given và Summary Completion cho bài thi Academic.",
                         CourseCategoryCode.IELTS, CourseLevel.INTERMEDIATE, 4.5, 6.5,
-                        12, "/course-covers/ielts-reading.png",
+                        "/course-covers/ielts-reading.png",
                         List.of("Skimming and Scanning", "True False Not Given Mastery", "Headings and Matching", "Multiple Choice and Summary")),
                 new CourseSpec(
                         "center-sheet-ielts-writing",
                         "IELTS Writing Task 1 and Task 2",
                         "Cấu trúc bài viết chuẩn học thuật: phân tích biểu đồ Task 1 và lập luận Task 2 band 6.5+.",
                         CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
-                        13, "/course-covers/ielts-writing.png",
+                        "/course-covers/ielts-writing.png",
                         List.of("Task 1 Trend Charts", "Task 1 Process and Maps", "Task 2 Opinion Essays", "Task 2 Discussion and Problem Solution")),
                 new CourseSpec(
                         "center-sheet-ielts-speaking",
                         "IELTS Speaking Fluency Studio",
                         "Mở rộng ý tưởng Part 1, kéo dài câu Part 2 và lập luận phản biện Part 3.",
                         CourseCategoryCode.IELTS, CourseLevel.ADVANCED, 5.0, 7.0,
-                        14, "/course-covers/ielts-speaking.png",
+                        "/course-covers/ielts-speaking.png",
                         List.of("Part 1 Fluency and Natural Idioms", "Part 2 The 1-Minute Plan", "Part 3 Counterarguments and Examples", "Pronunciation and Linking")),
                 new CourseSpec(
                         "center-sheet-toeic-lr",
                         "TOEIC Listening and Reading 650+",
                         "Chiến lược xử lý nhanh part 3-4-7 và hệ thống ngữ pháp - từ vựng trọng tâm TOEIC.",
                         CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 350.0, 650.0,
-                        15, "/course-covers/toeic-lr.png",
+                        "/course-covers/toeic-lr.png",
                         List.of("Part 1 and 2 Quick Response", "Part 3 and 4 Audio Inference", "Part 5 and 6 Speed Grammar", "Part 7 Double Passage Time Saving")),
                 new CourseSpec(
                         "center-sheet-toeic-sw",
                         "TOEIC Speaking and Writing 140+",
                         "Giao tiếp công sở chuẩn quốc tế: trả lời điện thoại, viết email và giải quyết than phiền.",
                         CourseCategoryCode.TOEIC, CourseLevel.INTERMEDIATE, 110.0, 160.0,
-                        16, "/course-covers/toeic-sw.png",
+                        "/course-covers/toeic-sw.png",
                         List.of("Speaking Read Aloud and Describe Picture", "Speaking Respond to Questions", "Writing Business Email", "Writing Opinion Essay")),
                 new CourseSpec(
                         "center-sheet-communication-work",
                         "English Communication for Work",
                         "Kỹ năng thuyết trình, họp dự án, đàm phán nhẹ và viết thư công việc chuyên nghiệp.",
                         CourseCategoryCode.COMMUNICATION, CourseLevel.INTERMEDIATE, 4.0, 6.0,
-                        10, "/course-covers/communication.png",
+                        "/course-covers/communication.png",
                         List.of("Small Talk and Introductions", "Meetings and Opinions", "Email Etiquette", "Presentations and Pitches")),
                 new CourseSpec(
                         "center-sheet-grammar-foundation",
                         "English Grammar Foundation",
                         "Khóa ngữ pháp nền: thì, mệnh đề, giới từ và sửa lỗi thường gặp trong bài thi.",
                         CourseCategoryCode.FOUNDATION, CourseLevel.BEGINNER, 3.0, 5.0,
-                        17, "/course-covers/grammar.png",
+                        "/course-covers/grammar.png",
                         List.of("Tenses in Context", "Complex Sentences", "Prepositions and Articles", "Error Correction"))
         );
     }
@@ -121,7 +120,6 @@ public class CenterSheetCourseCatalog {
                         .code(spec.category().name())
                         .name(spec.category().name())
                         .description(spec.title())
-                        .displayOrder(spec.displayOrder())
                         .active(true)
                         .build()));
 

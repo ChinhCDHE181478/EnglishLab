@@ -2,10 +2,15 @@ package fu.sep490.g23.backend.service.curriculum.impl;
 
 import fu.sep490.g23.backend.dto.request.curriculum.InstructorLedCourseRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CourseLessonRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.course.CourseUnit;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
@@ -52,6 +57,37 @@ class InstructorLedCourseManagementServiceImplTest {
 
     @InjectMocks
     private InstructorLedCourseManagementServiceImpl service;
+
+    @Test
+    void createAssessmentBankItemRejectsWritingWithoutRubric() {
+        AssessmentBankItemRequest request = new AssessmentBankItemRequest();
+        request.setTitle("IELTS Writing Task 2");
+        request.setType(AssessmentType.LESSON_PRACTICE);
+        request.setSkill(AssessmentSkill.WRITING);
+        request.setUiConfigJson("{}");
+
+        assertThatThrownBy(() -> service.createAssessmentBankItem(request))
+                .hasMessage("Bài Writing/Speaking phải có bộ tiêu chí chấm.");
+        verify(assessmentBankRepository, never()).save(any());
+    }
+
+    @Test
+    void createAssessmentBankItemUsesAutomaticBandModeForObjectiveSkill() {
+        AssessmentBankItemRequest request = new AssessmentBankItemRequest();
+        request.setTitle("IELTS Listening");
+        request.setType(AssessmentType.LESSON_PRACTICE);
+        request.setSkill(AssessmentSkill.LISTENING);
+        request.setAiEvaluationMode(AiEvaluationMode.NONE);
+        request.setObjectiveAnswerKey("{}");
+        when(assessmentBankRepository.save(any(AssessmentBankItem.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.createAssessmentBankItem(request);
+
+        ArgumentCaptor<AssessmentBankItem> captor = ArgumentCaptor.forClass(AssessmentBankItem.class);
+        verify(assessmentBankRepository).save(captor.capture());
+        assertThat(captor.getValue().getAiEvaluationMode()).isEqualTo(AiEvaluationMode.ESTIMATED_BAND);
+    }
 
     @Test
     void createInstructorLedCoursePersistsCanonicalIeltsProfile() {
@@ -161,7 +197,7 @@ class InstructorLedCourseManagementServiceImplTest {
         CourseUnit unit = unit(10L, program(1L));
         CourseLessonRequest request = sessionPlanRequest(1, "Reading Overview");
         when(unitRepository.findById(10L)).thenReturn(Optional.of(unit));
-        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(false);
+        when(courseLessonRepository.existsDuplicateSequenceNumber(10L, 1, null)).thenReturn(false);
         when(courseLessonRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> {
             CourseLesson saved = invocation.getArgument(0);
             saved.setId(101L);
@@ -179,7 +215,7 @@ class InstructorLedCourseManagementServiceImplTest {
     void updateCourseLessonPersistsChanges() {
         CourseLesson plan = plan(101L, unit(10L, program(1L)), 1, "Cũ");
         when(courseLessonRepository.findById(101L)).thenReturn(Optional.of(plan));
-        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 2, 101L)).thenReturn(false);
+        when(courseLessonRepository.existsDuplicateSequenceNumber(10L, 2, 101L)).thenReturn(false);
         when(courseLessonRepository.save(plan)).thenReturn(plan);
 
         var response = service.updateCourseLesson(101L, sessionPlanRequest(2, "Scanning + Keywords"));
@@ -199,9 +235,9 @@ class InstructorLedCourseManagementServiceImplTest {
     }
 
     @Test
-    void createCourseLessonRejectsDuplicateNumberInsideCourse() {
+    void createCourseLessonRejectsDuplicateNumberInsideUnit() {
         when(unitRepository.findById(10L)).thenReturn(Optional.of(unit(10L, program(1L))));
-        when(courseLessonRepository.existsDuplicateSequenceNumber(1L, 1, null)).thenReturn(true);
+        when(courseLessonRepository.existsDuplicateSequenceNumber(10L, 1, null)).thenReturn(true);
 
         assertThatThrownBy(() -> service.createCourseLesson(10L, sessionPlanRequest(1, "Trùng")))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -209,19 +245,19 @@ class InstructorLedCourseManagementServiceImplTest {
     }
 
     @Test
-    void differentCoursesMayBothUseLessonNumberOne() {
+    void differentUnitsMayBothUseLessonNumberOne() {
         CourseUnit firstUnit = unit(10L, program(1L));
-        CourseUnit secondUnit = unit(20L, program(2L));
+        CourseUnit secondUnit = unit(20L, program(1L));
         when(unitRepository.findById(10L)).thenReturn(Optional.of(firstUnit));
         when(unitRepository.findById(20L)).thenReturn(Optional.of(secondUnit));
         when(courseLessonRepository.existsDuplicateSequenceNumber(any(), any(), any())).thenReturn(false);
         when(courseLessonRepository.save(any(CourseLesson.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.createCourseLesson(10L, sessionPlanRequest(1, "Course A"));
-        service.createCourseLesson(20L, sessionPlanRequest(1, "Course B"));
+        service.createCourseLesson(10L, sessionPlanRequest(1, "Unit A"));
+        service.createCourseLesson(20L, sessionPlanRequest(1, "Unit B"));
 
-        verify(courseLessonRepository).existsDuplicateSequenceNumber(1L, 1, null);
-        verify(courseLessonRepository).existsDuplicateSequenceNumber(2L, 1, null);
+        verify(courseLessonRepository).existsDuplicateSequenceNumber(10L, 1, null);
+        verify(courseLessonRepository).existsDuplicateSequenceNumber(20L, 1, null);
     }
 
     @Test

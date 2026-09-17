@@ -10,6 +10,7 @@ import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   IELTS_MAX_BAND,
@@ -23,10 +24,11 @@ import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
 import { canAutoFetchTranscript, isBunnyVideoUrl, isYouTubeVideoUrl } from '../../utils/youtubeVideoUrl';
 import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
+import { getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
-const ASSESSMENT_TYPE_OPTIONS = ['MODULE_TEST', 'LESSON_PRACTICE', 'MOCK_TEST', 'WRITING_TASK', 'SPEAKING_TASK', 'QUIZ'];
+const ASSESSMENT_TYPE_OPTIONS = ['LESSON_PRACTICE', 'MOCK_TEST', 'WRITING_TASK', 'SPEAKING_TASK', 'QUIZ'];
 const ASSESSMENT_SKILL_OPTIONS = ['LISTENING', 'READING', 'WRITING', 'SPEAKING', 'VOCABULARY', 'GRAMMAR', 'MIXED'];
 const AI_MODE_OPTIONS = ['NONE', 'EXPLAIN_ONLY', 'RUBRIC_FEEDBACK', 'ESTIMATED_BAND'];
 const LESSON_ASSESSMENT_TYPES = new Set(['QUIZ', 'ASSIGNMENT']);
@@ -47,7 +49,7 @@ const createAssessmentDraft = ({ moduleKey, moduleTitle = null, lessonKey = '', 
   rubricId: '',
   title: lessonTitle ? `${contentType === 'QUIZ' ? 'Trắc nghiệm' : 'Bài tập'}: ${lessonTitle}` : '',
   description: '',
-  type: contentType === 'QUIZ' ? 'QUIZ' : contentType === 'ASSIGNMENT' ? 'WRITING_TASK' : 'MODULE_TEST',
+  type: contentType === 'QUIZ' ? 'QUIZ' : contentType === 'ASSIGNMENT' ? 'WRITING_TASK' : 'LESSON_PRACTICE',
   skill: contentType === 'QUIZ' ? 'MIXED' : contentType === 'ASSIGNMENT' ? 'WRITING' : 'MIXED',
   aiEvaluationMode: contentType === 'QUIZ' || contentType === 'ASSIGNMENT' ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY',
   instructions: '',
@@ -71,7 +73,7 @@ const createAssessmentDraftFromBank = ({ bankItem, moduleKey, moduleTitle = null
   rubricId: bankItem.rubric?.id ? String(bankItem.rubric.id) : '',
   title: bankItem.title || '',
   description: bankItem.description || '',
-  type: bankItem.type || 'MODULE_TEST',
+  type: bankItem.type || 'LESSON_PRACTICE',
   skill: bankItem.skill || 'MIXED',
   aiEvaluationMode: bankItem.aiEvaluationMode || 'NONE',
   instructions: bankItem.instructions || '',
@@ -121,7 +123,7 @@ const normalizeAssessmentStructure = (items, modules) => {
       rubricId: assessment.rubric?.id ? String(assessment.rubric.id) : '',
       title: assessment.title || '',
       description: assessment.description || '',
-      type: assessment.type || 'MODULE_TEST',
+      type: assessment.type || 'LESSON_PRACTICE',
       skill: assessment.skill || 'MIXED',
       aiEvaluationMode: assessment.aiEvaluationMode || 'EXPLAIN_ONLY',
       instructions: assessment.instructions || '',
@@ -157,7 +159,7 @@ const buildAssessmentPayload = (items, localModules, persistedModules) => {
     rubricId: assessment.rubricId ? Number(assessment.rubricId) : null,
     title: assessment.title?.trim() || `Bài đánh giá ${index + 1}`,
     description: assessment.description?.trim() || '',
-    type: assessment.type || 'MODULE_TEST',
+    type: assessment.type || 'LESSON_PRACTICE',
     skill: assessment.skill || 'MIXED',
     aiEvaluationMode: assessment.aiEvaluationMode || 'EXPLAIN_ONLY',
     instructions: ['LISTENING', 'READING'].includes(String(assessment.skill || '').toUpperCase())
@@ -236,7 +238,7 @@ export default function ContentManagerCourseBuilderPage() {
         const normalizedCourse = normalizeCourseStructure(courseData);
         setCourse(normalizedCourse);
         setRubrics(Array.isArray(rubricItems) ? rubricItems : []);
-        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter((item) => item.status === 'PUBLISHED'));
+        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter(isPublishedSkillPractice));
         setFlashcardSets((Array.isArray(flashcardItems) ? flashcardItems : []).filter((item) => item.status === 'PUBLISHED'));
 
         if (!normalizedCourse.id) {
@@ -254,8 +256,8 @@ export default function ContentManagerCourseBuilderPage() {
         setAssessments(normalizedAssessments);
         setVersions(versionItems);
         setSavedBuilderFingerprint(createCourseBuilderFingerprint(normalizedCourse, normalizedAssessments));
-      } catch {
-        if (active) setError('Không tải được dữ liệu builder.');
+      } catch (err) {
+        if (active) setError(getContentManagerError(err, 'Không tải được dữ liệu builder.'));
       }
     };
 
@@ -525,30 +527,6 @@ export default function ContentManagerCourseBuilderPage() {
     pushToast('Đã thêm bài học mới. Điền nội dung rồi bấm Lưu thay đổi trình xây dựng.');
   };
 
-  const addAssessment = (scope = 'module') => {
-    if (scope === 'module' && !activeModule) {
-      pushToast('Hãy chọn mô-đun trước khi thêm bài đánh giá.', 'warning');
-      return;
-    }
-
-    setAssessments((current) => {
-      const groupKey = scope === 'module' ? activeModuleKey : COURSE_LEVEL_KEY;
-      const existingCount = current.filter((item) => item.moduleKey === groupKey).length;
-      return [
-        ...current,
-        createAssessmentDraft({
-          moduleKey: groupKey,
-          moduleTitle: scope === 'module' ? activeModule?.title || 'Mô-đun hiện tại' : null,
-          displayOrder: existingCount + 1,
-        }),
-      ];
-    });
-
-    pushToast(scope === 'module'
-      ? 'Đã thêm bài đánh giá cuối mô-đun.'
-      : 'Đã thêm bài đánh giá cuối khóa.');
-  };
-
   const addAssessmentFromBank = (scope = 'module') => {
     if (scope === 'module' && !activeModule) {
       pushToast('Hãy chọn mô-đun trước khi thêm đề từ kho.', 'warning');
@@ -755,7 +733,7 @@ export default function ContentManagerCourseBuilderPage() {
       setCourse((current) => (current ? { ...current, modules: savedModules } : current));
       pushToast('Đã cập nhật thứ tự mô-đun.');
     } catch (err) {
-      pushToast(err?.response?.data?.message || 'Không thể đổi thứ tự mô-đun. Hệ thống đã khôi phục vị trí cũ.', 'error');
+      pushToast(getContentManagerError(err, 'Không thể đổi thứ tự mô-đun. Hệ thống đã khôi phục vị trí cũ.'), 'error');
     } finally {
       setReordering(false);
     }
@@ -804,7 +782,7 @@ export default function ContentManagerCourseBuilderPage() {
       replaceLessons(savedLessons);
       pushToast('Đã cập nhật thứ tự bài học.');
     } catch (err) {
-      pushToast(err?.response?.data?.message || 'Không thể đổi thứ tự bài học. Hệ thống đã khôi phục vị trí cũ.', 'error');
+      pushToast(getContentManagerError(err, 'Không thể đổi thứ tự bài học. Hệ thống đã khôi phục vị trí cũ.'), 'error');
     } finally {
       setReordering(false);
     }
@@ -878,9 +856,7 @@ export default function ContentManagerCourseBuilderPage() {
       setUploadProgress(100);
       pushToast('Tải video lên thành công.');
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không upload được video lên Bunny.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không upload được video lên Bunny.'));
     } finally {
       setUploadingVideo(false);
     }
@@ -926,9 +902,7 @@ export default function ContentManagerCourseBuilderPage() {
         : 'Video chưa có caption. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
       segmentCount ? 'success' : 'warning');
     } catch (refreshError) {
-      const message = refreshError?.response?.data?.message || 'Không thể lấy bản chép lời từ video lúc này.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(refreshError, 'Không thể lấy bản chép lời từ video lúc này.'));
     } finally {
       setRefreshingTranscript(false);
     }
@@ -966,6 +940,9 @@ export default function ContentManagerCourseBuilderPage() {
     setSaving(true);
 
     try {
+      const normalizedCategory = String(course.category || '').toUpperCase();
+      const isIeltsCourse = normalizedCategory === 'IELTS';
+      const isToeicCourse = normalizedCategory === 'TOEIC';
       const payload = {
         title: course.title,
         shortDescription: course.shortDescription,
@@ -973,9 +950,9 @@ export default function ContentManagerCourseBuilderPage() {
         category: course.category,
         level: course.level,
         status: course.status,
-        targetScore: course.targetScore,
-        recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? null,
-        targetBand: course.targetBand ?? null,
+        targetScore: isToeicCourse ? course.targetScore : null,
+        recommendedCurrentBandMin: isIeltsCourse ? (course.recommendedCurrentBandMin ?? null) : null,
+        targetBand: isIeltsCourse ? (course.targetBand ?? null) : null,
         targetOutcome: course.targetOutcome ?? null,
         duration: course.duration,
         price: Number(course.price || 0),
@@ -1016,9 +993,7 @@ export default function ContentManagerCourseBuilderPage() {
       pushToast('Đã lưu thay đổi nội dung khóa học.');
       return true;
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không lưu được thay đổi nội dung khóa học.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không lưu được thay đổi nội dung khóa học.'));
       return false;
     } finally {
       setSaving(false);
@@ -1037,9 +1012,7 @@ export default function ContentManagerCourseBuilderPage() {
       setVersions(await courseApi.getOnlineCourseVersions(course.id));
       pushToast('Đã tạo bản nháp mới. Học viên vẫn học bản đang xuất bản cho đến khi bản nháp mới được xuất bản.');
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không thể tạo phiên bản mới.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không thể tạo phiên bản mới.'));
     } finally {
       setVersionBusy(false);
     }
@@ -1070,9 +1043,7 @@ export default function ContentManagerCourseBuilderPage() {
       setLessonModalOpen(false);
       pushToast(`Đã xuất bản phiên bản v${version.versionNumber}.`);
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không thể xuất bản phiên bản.';
-      setError(message);
-      pushToast(message, 'error');
+      setError(getContentManagerError(err, 'Không thể xuất bản phiên bản.'));
     } finally {
       setVersionBusy(false);
     }
@@ -1120,7 +1091,7 @@ export default function ContentManagerCourseBuilderPage() {
         ) : null}
       </div>
 
-      {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
 
       {course ? (
         <CourseVersionPanel
@@ -1423,9 +1394,9 @@ export default function ContentManagerCourseBuilderPage() {
             <Panel className="p-6">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bài kiểm tra mô-đun</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Đánh giá cuối mô-đun</p>
                   <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">
-                    {activeModule ? `Bài kiểm tra của ${activeModule.title}` : 'Bài kiểm tra'}
+                    {activeModule ? `Nội dung đánh giá của ${activeModule.title}` : 'Nội dung đánh giá'}
                   </h3>
                 </div>
               </div>
@@ -1446,13 +1417,13 @@ export default function ContentManagerCourseBuilderPage() {
                       rubricOptions={buildRubricOptions(rubrics, assessment.skill)}
                       onDelete={() => deleteAssessment(assessment.localKey)}
                       onFieldChange={(field, value) => updateAssessment(assessment.localKey, field, value)}
-                      title={`Bài kiểm tra mô-đun ${index + 1}`}
+                      title={`Đánh giá cuối mô-đun ${index + 1}`}
                     />
                   ))}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-[#dfbfbd] p-4 text-sm text-[#584140]">
-                  Mô-đun này chưa có bài kiểm tra nào.
+                  Chưa gắn nội dung đánh giá nào từ kho kỹ năng.
                 </div>
               )}
             </Panel>
@@ -2234,6 +2205,8 @@ function ToastStack({ toasts, onDismiss }) {
       {toasts.map((toast) => {
         const tone = toastTone(toast.type);
         const Icon = tone.icon;
+        const message = getContentManagerFeedbackMessage(toast.message);
+        const code = typeof toast.message === 'object' ? toast.message?.code : null;
         return (
           <div
             key={toast.id}
@@ -2242,7 +2215,12 @@ function ToastStack({ toasts, onDismiss }) {
             <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone.iconBg} ${tone.iconText}`}>
               <Icon className="h-4 w-4" />
             </span>
-            <p className="min-w-0 flex-1 pt-1 text-sm font-semibold leading-5 text-[#2b2828]">{toast.message}</p>
+            <div className="min-w-0 flex-1 pt-1">
+              <p className="text-sm font-semibold leading-5 text-[#2b2828]">{message}</p>
+              {toast.type === 'error' && code ? (
+                <p className="mt-1 font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-rose-700">Mã lỗi: {code}</p>
+              ) : null}
+            </div>
             <button
               aria-label="Đóng thông báo"
               className="rounded-lg p-1 text-[#8b706e] transition hover:bg-[#fff2f3] hover:text-[#730014]"
@@ -2295,13 +2273,24 @@ function buildRubricOptions(rubrics, skill) {
 }
 
 function buildAssessmentBankOptions(items) {
-  const base = [{ value: '', label: 'Chọn đề trong ngân hàng đề' }];
+  const base = [{ value: '', label: 'Chọn bài từ kho kỹ năng' }];
   const options = (items || []).map((item) => ({
     value: String(item.id),
     label: item.title || `Đề #${item.id}`,
     description: `${getAssessmentTypeLabel(item.type)} • ${getSkillLabel(item.skill)} • ${getAiModeLabel(item.aiEvaluationMode)}`,
   }));
   return [...base, ...options];
+}
+
+function isPublishedSkillPractice(item) {
+  if (item?.status !== 'PUBLISHED') return false;
+  const skill = String(item.skill || '').toUpperCase();
+  const type = String(item.type || '').toUpperCase();
+  if (!['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(skill)) return false;
+  if (type === 'MODULE_TEST') return true;
+  if (['LISTENING', 'READING'].includes(skill)) return ['LESSON_PRACTICE', 'QUIZ'].includes(type);
+  if (skill === 'WRITING') return type === 'WRITING_TASK';
+  return type === 'SPEAKING_TASK';
 }
 
 function buildFlashcardSetOptions(items) {
@@ -2354,7 +2343,7 @@ function getContentLabel(contentType) {
 
 function getAssessmentTypeLabel(value) {
   const map = {
-    MODULE_TEST: 'Kiểm tra mô-đun',
+    MODULE_TEST: 'Nội dung kỹ năng cũ',
     LESSON_PRACTICE: 'Luyện tập theo bài',
     MOCK_TEST: 'Đề thi thử',
     WRITING_TASK: 'Bài viết',

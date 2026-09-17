@@ -6,8 +6,10 @@ import courseApi from '../../api/courseApi';
 import { HeaderActions, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import { formatCoursePrice } from '../../components/course/courseFormatters';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import ManagementToast from '../../components/ui/ManagementToast';
 import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
+import { getContentManagerError } from '../../utils/contentManagerFeedback';
 
 const emptyForm = {
   id: null,
@@ -61,7 +63,7 @@ export default function ContentManagerDiscountCodesPage() {
       setPageResult(result);
       setItems(result.content);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể tải danh sách mã giảm giá.');
+      setError(getContentManagerError(err, 'Không thể tải danh sách mã giảm giá.'));
     } finally {
       setLoading(false);
     }
@@ -143,7 +145,7 @@ export default function ContentManagerDiscountCodesPage() {
       setEditorOpen(false);
       await loadDiscountCodes();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể lưu mã giảm giá.');
+      setError(getContentManagerError(err, 'Không thể lưu mã giảm giá.'));
     } finally {
       setSaving(false);
     }
@@ -168,7 +170,7 @@ export default function ContentManagerDiscountCodesPage() {
       setMessage(unused ? 'Đã xóa mã giảm giá.' : 'Đã tắt mã giảm giá vì đã có lịch sử sử dụng.');
       await loadDiscountCodes();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể xóa mã giảm giá.');
+      setError(getContentManagerError(err, 'Không thể xóa mã giảm giá.'));
     } finally {
       setSaving(false);
     }
@@ -176,7 +178,8 @@ export default function ContentManagerDiscountCodesPage() {
 
   return (
     <div className="space-y-6">
-      {message ? <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div> : null}
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast message={message} onClose={() => setMessage('')} tone="success" title="Đã cập nhật mã giảm giá" />
 
       {editorOpen && (
         <DiscountCodeModal onClose={handleReset}>
@@ -191,8 +194,6 @@ export default function ContentManagerDiscountCodesPage() {
               <X className="h-4 w-4" />
             </button>
           </div>
-
-          {error ? <div className="mb-4 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-sm font-semibold text-[#93000a]">{error}</div> : null}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <TextField label="Mã" onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} value={form.code} />

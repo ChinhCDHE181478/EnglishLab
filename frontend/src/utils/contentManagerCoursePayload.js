@@ -1,6 +1,9 @@
 export function buildManagedCoursePayload(course, overrides = {}) {
   const source = { ...course, ...overrides };
   const modules = Array.isArray(source.modules) ? source.modules : [];
+  const normalizedCategory = String(source.category || '').toUpperCase();
+  const isIeltsCourse = normalizedCategory === 'IELTS';
+  const isToeicCourse = normalizedCategory === 'TOEIC';
 
   return {
     title: source.title || '',
@@ -9,9 +12,9 @@ export function buildManagedCoursePayload(course, overrides = {}) {
     category: source.category || 'ONLINE',
     level: source.level || 'BEGINNER',
     status: source.status || 'DRAFT',
-    targetScore: source.targetScore || '',
-    recommendedCurrentBandMin: nullableNumber(source.recommendedCurrentBandMin),
-    targetBand: nullableNumber(source.targetBand),
+    targetScore: isToeicCourse ? (source.targetScore || '') : null,
+    recommendedCurrentBandMin: isIeltsCourse ? nullableNumber(source.recommendedCurrentBandMin) : null,
+    targetBand: isIeltsCourse ? nullableNumber(source.targetBand) : null,
     targetOutcome: cleanNullable(source.targetOutcome),
     duration: source.duration || '',
     price: Number(source.price || 0),

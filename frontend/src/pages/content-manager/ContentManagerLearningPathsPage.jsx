@@ -21,6 +21,7 @@ import Pagination, { usePagination } from "../../components/ui/Pagination";
 import { useAppDialog } from "../../components/ui/AppDialog";
 import BrandedSelect from "../../components/ui/BrandedSelect";
 import ManagementToast from "../../components/ui/ManagementToast";
+import { getContentManagerError } from "../../utils/contentManagerFeedback";
 import { EMPTY_PAGE, pageParams } from "../../utils/pagination";
 
 export default function ContentManagerLearningPathsPage() {
@@ -72,9 +73,7 @@ export default function ContentManagerLearningPathsPage() {
       setPaths(pathResult.content || []);
       setPathPageResult(pathResult);
     } catch (err) {
-      setError(
-        err?.response?.data?.message || "Không thể tải dữ liệu lộ trình.",
-      );
+      setError(getContentManagerError(err, "Không thể tải dữ liệu lộ trình."));
     } finally {
       setLoading(false);
     }
@@ -104,7 +103,7 @@ export default function ContentManagerLearningPathsPage() {
         if (!active) return;
         setCourses([]);
         setCoursePageResult(EMPTY_PAGE);
-        setError(err?.response?.data?.message || "Không thể tải danh sách khóa học.");
+        setError(getContentManagerError(err, "Không thể tải danh sách khóa học."));
       }
     };
     loadAvailableCourses();
@@ -194,7 +193,7 @@ export default function ContentManagerLearningPathsPage() {
       setSuccess(modal.mode === "add" ? "Đã thêm khóa học vào lộ trình." : "Đã lưu lộ trình.");
       await loadData();
     } catch (err) {
-      setError(err?.response?.data?.message || "Không thể lưu lộ trình.");
+      setError(getContentManagerError(err, "Không thể lưu lộ trình."));
     } finally {
       setSaving(false);
     }
@@ -218,7 +217,7 @@ export default function ContentManagerLearningPathsPage() {
       setSuccess("Đã xóa lộ trình.");
       await loadData();
     } catch (err) {
-      setError(err?.response?.data?.message || "Không thể xóa lộ trình.");
+      setError(getContentManagerError(err, "Không thể xóa lộ trình."));
     } finally {
       setSaving(false);
     }
@@ -239,7 +238,7 @@ export default function ContentManagerLearningPathsPage() {
           Tạo lộ trình
         </button>
       </HeaderActions>
-      {!modal ? <ManagementToast message={error} onClose={() => setError("")} /> : null}
+      <ManagementToast message={error} onClose={() => setError("")} />
       <ManagementToast message={success} onClose={() => setSuccess("")} tone="success" title="Đã cập nhật lộ trình" />
       {pathPageItems.map((group) => {
         const isExpanded = expanded[group.code] === true;
@@ -378,7 +377,6 @@ export default function ContentManagerLearningPathsPage() {
 
             {/* Scrollable Body */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 space-y-5">
-              {error ? <Notice tone="error">{error}</Notice> : null}
               {modal.mode !== "add" ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField
@@ -556,16 +554,6 @@ export default function ContentManagerLearningPathsPage() {
           </div>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function Notice({ children, tone }) {
-  return (
-    <div
-      className={`rounded-2xl border px-5 py-4 text-sm font-semibold ${tone === "error" ? "border-[#ba1a1a]/20 bg-[#ffdad6] text-[#93000a]" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
-    >
-      {children}
     </div>
   );
 }
