@@ -377,6 +377,16 @@ const CourseWorkspace = () => {
 
     if (waitingForStoredAssessment) return;
 
+    // If URL has explicit lessonId request, try to honor it regardless of lock status
+    if (requestedLessonId && !activeLessonStillExists) {
+      const requestedItem = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
+      if (requestedItem) {
+        // Item exists but might be locked - set it anyway, the UI will show lock status
+        rememberActiveLesson(requestedLessonId);
+        return;
+      }
+    }
+
     if (!activeLessonId || !activeLessonStillExists) {
       const storedItem = workspaceItems.find((item) => String(item.id) === String(preferredLessonId) && !item.isLocked);
       const firstUnlockedItem = workspaceItems.find((item) => !item.isLocked) || workspaceItems[0];
