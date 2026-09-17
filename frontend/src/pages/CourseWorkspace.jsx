@@ -298,9 +298,14 @@ const CourseWorkspace = () => {
     });
   }, [assessmentLockByModule, assessmentLockReasonByModule, assessmentsByLesson, assessmentsByModule, course?.modules, lessonItems]);
 
+  // DEBUG
+  console.log('[DEBUG CourseWorkspace] workspaceItems:', workspaceItems.map(i => ({ id: i.id, type: i.type, title: i.title, isLocked: i.isLocked })));
+
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
-    return workspaceItems.find((item) => String(item.id) === String(activeLessonId)) ?? workspaceItems[0];
+    const found = workspaceItems.find((item) => String(item.id) === String(activeLessonId));
+    console.log('[DEBUG CourseWorkspace] activeWorkspaceItem calc:', { activeLessonId, foundId: found?.id, willFallback: !found });
+    return found ?? workspaceItems[0];
   }, [activeLessonId, rememberActiveLesson, workspaceItems]);
   const isAssessmentMode = activeWorkspaceItem?.type === 'assessment';
   const activeLessonHasVideo = Boolean(activeWorkspaceItem?.lesson?.videoUrl);
