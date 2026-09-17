@@ -384,6 +384,12 @@ const CourseWorkspace = () => {
 
     if (waitingForStoredAssessment) return;
 
+    // Wait for lessonItems (which carry isLocked info) to be loaded before honoring URL request
+    // Otherwise we can't reliably tell whether the requested lesson is accessible.
+    if (requestedLessonId && !requestedLessonConsumed && !lessonItems.length) {
+      return;
+    }
+
     // If URL has explicit lessonId request that hasn't been consumed yet, ALWAYS honor it
     // (even if locked or already exists). Once applied, mark as consumed so user-driven
     // navigation from the sidebar is not forced back to the URL lesson.
@@ -421,7 +427,7 @@ const CourseWorkspace = () => {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
       if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
-  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, requestedLessonConsumed, requestedLessonId, workspaceItems]);
+  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, lessonItems.length, rememberActiveLesson, requestedLessonConsumed, requestedLessonId, workspaceItems]);
 
   useEffect(() => {
     if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {
