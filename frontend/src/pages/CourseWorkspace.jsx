@@ -258,11 +258,13 @@ const CourseWorkspace = () => {
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
     const courseLevelAssessments = assessmentsByModule.get('course') || [];
+    const hasLessonItems = lessonItems.length > 0;
 
     return course.modules.flatMap((module, moduleIndex) => {
       const moduleLessons = (module.lessons || []).map((lesson, lessonIndex) => {
         const lessonId = getLessonId(module, lesson, lessonIndex);
         const lessonAssessments = assessmentsByLesson.get(String(lesson.id)) || [];
+        const lockedFromState = lessonItems.find((item) => String(item.id) === String(lessonId))?.isLocked;
         return {
           id: lessonId,
           module,
@@ -273,7 +275,10 @@ const CourseWorkspace = () => {
           assessments: lessonAssessments,
           title: lesson.title,
           description: lesson.description,
-          isLocked: lessonItems.find((item) => String(item.id) === String(lessonId))?.isLocked ?? false,
+          // While lessonItems haven't loaded yet, treat as unlocked so the UI doesn't flash
+          // a locked state. Effect in CourseWorkspace will guard URL-driven navigation
+          // until lessonItems is ready.
+          isLocked: hasLessonItems ? (lockedFromState ?? false) : false,
         };
       });
 
@@ -395,6 +400,14 @@ const CourseWorkspace = () => {
     // navigation from the sidebar is not forced back to the URL lesson.
     if (requestedLessonId && !requestedLessonConsumed) {
       const requestedItem = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG URL guard]', {
+        requestedLessonId,
+        requestedLessonConsumed,
+        lessonItemsLen: lessonItems.length,
+        requestedItem: requestedItem ? { id: requestedItem.id, isLocked: requestedItem.isLocked, lockReason: requestedItem.lockReason } : null,
+        activeLessonId,
+      });
       if (requestedItem && !requestedItem.isLocked) {
         if (String(activeLessonId) !== String(requestedLessonId)) {
           rememberActiveLesson(requestedLessonId);
