@@ -64,6 +64,9 @@ const CourseWorkspace = () => {
       return null;
     }
   });
+  // Track whether the lessonId in URL has been honored already - so subsequent
+  // user-driven navigation (sidebar clicks) is not forced back to the URL lesson.
+  const [requestedLessonConsumed, setRequestedLessonConsumed] = useState(() => Boolean(requestedLessonId));
   const [completedLessonIds, setCompletedLessonIds] = useState(() => new Set());
   const [savingLessonId, setSavingLessonId] = useState(null);
   const [workspaceMode, setWorkspaceMode] = useState(() => (
@@ -381,32 +384,16 @@ const CourseWorkspace = () => {
 
     if (waitingForStoredAssessment) return;
 
-    // If URL has explicit lessonId request, ALWAYS honor it - even if locked or already exists
-    if (requestedLessonId) {
+    // If URL has explicit lessonId request that hasn't been consumed yet, ALWAYS honor it
+    // (even if locked or already exists). Once applied, mark as consumed so user-driven
+    // navigation from the sidebar is not forced back to the URL lesson.
+    if (requestedLessonId && !requestedLessonConsumed) {
       const requestedItem = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
-      if (requestedItem && String(activeLessonId) !== String(requestedLessonId)) {
-        rememberActiveLesson(requestedLessonId);
-        // After honoring, strip ?lessonId from URL so user can navigate freely afterwards
-        const params = new URLSearchParams(location.search);
-        params.delete('lessonId');
-        const newSearch = params.toString();
-        navigate(
-          { pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' },
-          { replace: true, state: location.state },
-        );
-        return;
-      }
-      // If requested lesson exists and is already active, just clean URL
       if (requestedItem) {
-        const params = new URLSearchParams(location.search);
-        if (params.has('lessonId')) {
-          params.delete('lessonId');
-          const newSearch = params.toString();
-          navigate(
-            { pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' },
-            { replace: true, state: location.state },
-          );
+        if (String(activeLessonId) !== String(requestedLessonId)) {
+          rememberActiveLesson(requestedLessonId);
         }
+        setRequestedLessonConsumed(true);
         return;
       }
     }
@@ -423,7 +410,7 @@ const CourseWorkspace = () => {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
       if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
-  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, location.pathname, location.search, location.state, navigate, rememberActiveLesson, requestedLessonId, workspaceItems]);
+  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, requestedLessonConsumed, requestedLessonId, workspaceItems]);
 
   useEffect(() => {
     if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {
@@ -554,6 +541,8 @@ const CourseWorkspace = () => {
       return;
     }
     setError('');
+    // User-driven navigation - mark URL request as consumed so we don't fight them
+    setRequestedLessonConsumed(true);
     rememberActiveLesson(lessonId);
   };
 
