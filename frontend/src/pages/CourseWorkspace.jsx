@@ -368,6 +368,17 @@ const CourseWorkspace = () => {
     const activeLessonStillExists = workspaceItems.some((item) => String(item.id) === String(activeLessonId));
     const storedLessonId = localStorage.getItem(activeLessonStorageKey);
     const preferredLessonId = requestedLessonId || storedLessonId;
+    
+    // DEBUG
+    console.log('[DEBUG CourseWorkspace] Effect run:', {
+      workspaceItemsCount: workspaceItems.length,
+      activeLessonId,
+      requestedLessonId,
+      activeLessonStillExists,
+      preferredLessonId,
+      firstItemId: workspaceItems[0]?.id,
+    });
+    
     const waitingForStoredAssessment = (
       !assessmentsLoaded
       && isAssessmentStepId(preferredLessonId)
@@ -375,27 +386,35 @@ const CourseWorkspace = () => {
       && !activeLessonStillExists
     );
 
-    if (waitingForStoredAssessment) return;
+    if (waitingForStoredAssessment) {
+      console.log('[DEBUG CourseWorkspace] Waiting for assessment to load');
+      return;
+    }
 
     // If URL has explicit lessonId request, try to honor it regardless of lock status
-    if (requestedLessonId && !activeLessonStillExists) {
+    if (requestedLessonId) {
       const requestedItem = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
+      console.log('[DEBUG CourseWorkspace] Looking for requestedItem:', requestedLessonId, 'found:', !!requestedItem, requestedItem?.id);
       if (requestedItem) {
         // Item exists but might be locked - set it anyway, the UI will show lock status
+        console.log('[DEBUG CourseWorkspace] Setting activeLessonId to requestedLessonId');
         rememberActiveLesson(requestedLessonId);
         return;
       }
     }
 
     if (!activeLessonId || !activeLessonStillExists) {
+      console.log('[DEBUG CourseWorkspace] Falling back - no activeLessonId or item not found');
       const storedItem = workspaceItems.find((item) => String(item.id) === String(preferredLessonId) && !item.isLocked);
       const firstUnlockedItem = workspaceItems.find((item) => !item.isLocked) || workspaceItems[0];
+      console.log('[DEBUG CourseWorkspace] storedItem:', storedItem?.id, 'firstUnlockedItem:', firstUnlockedItem?.id);
       rememberActiveLesson(storedItem?.id || firstUnlockedItem?.id || workspaceItems[0].id);
       return;
     }
 
     const currentItem = workspaceItems.find((item) => String(item.id) === String(activeLessonId));
     if (currentItem?.isLocked) {
+      console.log('[DEBUG CourseWorkspace] currentItem is locked, falling back');
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
       if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
