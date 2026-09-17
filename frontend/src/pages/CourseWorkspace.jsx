@@ -389,13 +389,24 @@ const CourseWorkspace = () => {
     // navigation from the sidebar is not forced back to the URL lesson.
     if (requestedLessonId && !requestedLessonConsumed) {
       const requestedItem = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
-      if (requestedItem) {
+      if (requestedItem && !requestedItem.isLocked) {
         if (String(activeLessonId) !== String(requestedLessonId)) {
           rememberActiveLesson(requestedLessonId);
         }
         setRequestedLessonConsumed(true);
         return;
       }
+      // Requested lesson is locked or missing - fall back to first unlocked lesson
+      // and mark the URL request as consumed so we don't loop trying it.
+      const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked)
+        || workspaceItems.find((item) => !item.isLocked)
+        || workspaceItems[0];
+      if (fallbackLesson) {
+        rememberActiveLesson(fallbackLesson.id);
+        setRequestedLessonConsumed(true);
+        return;
+      }
+      setRequestedLessonConsumed(true);
     }
 
     if (!activeLessonId || !activeLessonStillExists) {
