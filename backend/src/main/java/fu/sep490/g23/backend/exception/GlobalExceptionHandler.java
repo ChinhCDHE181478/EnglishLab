@@ -113,6 +113,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(CheckoutChangedException.class)
+    public ResponseEntity<ErrorResponse> handleCheckoutChangedException(CheckoutChangedException ex) {
+        log.info("Checkout rejected because authoritative pricing changed: {}", ex.getReason());
+        return build(HttpStatus.CONFLICT, ex.getMessage(), "CHECKOUT_CHANGED");
+    }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException ex) {
         log.warn("Concurrent update rejected: {}", ex.getMessage());

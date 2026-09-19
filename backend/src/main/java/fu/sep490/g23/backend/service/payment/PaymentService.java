@@ -17,6 +17,7 @@ public interface PaymentService {
     PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail);
     PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail);
     PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail);
+    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, CheckoutPriceSnapshot checkoutSnapshot, String studentEmail);
     PaymentOrderStatusResponse getOrderStatus(Long orderCode, String studentEmail);
       List<PaymentOrderSummaryResponse> listMyOrders(String studentEmail);
       Page<PaymentOrderSummaryResponse> pageMyOrders(String studentEmail, Pageable pageable);

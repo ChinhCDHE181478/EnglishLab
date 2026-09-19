@@ -2,11 +2,12 @@ import axiosClient from './axiosClient';
 
 const unwrapData = (response) => response?.data?.data ?? response?.data;
 
-const paymentBody = (courseIds = [], couponCode = '', classroomOfferingIds = [], learningPathId = null) => ({
+const paymentBody = (courseIds = [], couponCode = '', classroomOfferingIds = [], learningPathId = null, checkoutSnapshot = null) => ({
   courseIds,
   classroomOfferingIds,
   learningPathId,
   couponCode,
+  ...(checkoutSnapshot || {}),
 });
 
 export const paymentApi = {
@@ -15,8 +16,8 @@ export const paymentApi = {
     return unwrapData(response);
   },
 
-  async createPayosLink(courseIds = [], couponCode = '', classroomOfferingIds = [], learningPathId = null) {
-    const response = await axiosClient.post('/api/student/payments/payos/link', paymentBody(courseIds, couponCode, classroomOfferingIds, learningPathId));
+  async createPayosLink(courseIds = [], couponCode = '', classroomOfferingIds = [], learningPathId = null, checkoutSnapshot = null) {
+    const response = await axiosClient.post('/api/student/payments/payos/link', paymentBody(courseIds, couponCode, classroomOfferingIds, learningPathId, checkoutSnapshot));
     return unwrapData(response);
   },
 

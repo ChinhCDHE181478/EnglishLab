@@ -19,4 +19,14 @@ public class CreatePaymentLinkRequest {
 
     @Size(max = 40)
     private String couponCode;
+
+    private Long displayedOriginalAmount;
+
+    private Long displayedSystemDiscountAmount;
+
+    private Long displayedLearningPathDiscountAmount;
+
+    private Long displayedCouponDiscountAmount;
+
+    private Long finalAmount;
 }

@@ -204,7 +204,6 @@ class PaymentServiceImplLearningPathTest {
                 .build();
         when(onlineCourseRepository.findById(44L)).thenReturn(Optional.of(paidCourse));
         when(onlineCourseService.getMyEnrollments("learner@example.com")).thenReturn(List.of());
-        when(discountCodeRepository.findByCodeIgnoreCase("FREE100")).thenReturn(Optional.of(coupon));
         when(discountCodeRepository.findByCodeIgnoreCaseForUpdate("FREE100")).thenReturn(Optional.of(coupon));
         when(paymentOrderRepository.save(any(PaymentOrder.class))).thenAnswer(invocation -> {
             PaymentOrder order = invocation.getArgument(0);
