@@ -189,6 +189,7 @@ export const StatusBadge = ({ status }) => {
     SUBMITTED: { text: 'Đã nộp', bg: 'bg-blue-50 border-blue-100 text-blue-700' },
     GRADED: { text: 'Đã chấm', bg: 'bg-emerald-50 border-emerald-100 text-emerald-700 font-extrabold' },
     OVERDUE: { text: 'Quá hạn', bg: 'bg-rose-50 border-rose-100 text-rose-700 font-bold animate-pulse' },
+    PUBLISHED: { text: 'Đã công bố', bg: 'bg-emerald-50 border-emerald-200 text-emerald-700 font-extrabold' },
   };
 
   const config = configMap[status] || { text: status || 'Đang cập nhật', bg: 'bg-gray-50 border-gray-100 text-gray-600' };

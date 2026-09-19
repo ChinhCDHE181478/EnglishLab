@@ -131,7 +131,7 @@ const canJoinGoogleMeet = (session, classroom) => {
 
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
-  { id: 'curriculum', label: 'Giáo trình' },
+  { id: 'syllabus', label: 'Giáo trình' },
   { id: 'flashcards', label: 'Flashcard' },
   { id: 'practice', label: 'Luyện tập' },
   { id: 'schedule', label: 'Lịch học' },
@@ -171,11 +171,13 @@ export default function MyClassroomDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'overview';
+  const requestedTab = searchParams.get('tab');
+  const activeTab = requestedTab === 'curriculum' ? 'syllabus' : requestedTab || 'overview';
   const setActiveTab = (tab) => {
     setSearchParams((prev) => {
-      prev.set('tab', tab);
-      return prev;
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
     }, { replace: true, preventScrollReset: true });
   };
   const [classroom, setClassroom] = useState(null);
@@ -193,6 +195,15 @@ export default function MyClassroomDetailPage() {
   const [submitAnswers, setSubmitAnswers] = useState({});
   const [submitFiles, setSubmitFiles] = useState({});
   const [actionMessage, setActionMessage] = useState('');
+
+  useEffect(() => {
+    if (requestedTab !== 'curriculum') return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'syllabus');
+      return next;
+    }, { replace: true, preventScrollReset: true });
+  }, [requestedTab, setSearchParams]);
   const [meetMessage, setMeetMessage] = useState('');
   const [disputeForm, setDisputeForm] = useState({ attendanceId: null, reason: '' });
   const [submittingDispute, setSubmittingDispute] = useState(false);
@@ -405,9 +416,7 @@ export default function MyClassroomDetailPage() {
     try {
       const objective = parseObjectiveExamPayload(payload?.objectiveAnswersJson);
       await classroomApi.submitHomework(examHomework.id, {
-        textAnswer: examHomework.skill === 'SPEAKING'
-          ? ''
-          : payload?.submittedText || JSON.stringify(objective, null, 2),
+        textAnswer: payload?.submittedText || JSON.stringify(objective, null, 2),
         attachmentUrl: payload?.submittedAudioUrl || '',
       });
       setActionMessage('Đã nộp bài tập thành công.');
@@ -530,7 +539,7 @@ export default function MyClassroomDetailPage() {
     });
 
     if (matchingUnit) {
-      setActiveTab('curriculum');
+      setActiveTab('syllabus');
       setExpandedUnits(new Set([matchingUnit.id]));
       setTimeout(() => {
         const element = document.getElementById(`curriculum-unit-${matchingUnit.id}`);
@@ -539,7 +548,7 @@ export default function MyClassroomDetailPage() {
         }
       }, 300);
     } else {
-      setActiveTab('curriculum');
+      setActiveTab('syllabus');
     }
   };
 
@@ -547,7 +556,7 @@ export default function MyClassroomDetailPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
 
   const renderTabContent = () => {
-    if (activeTab === 'curriculum') {
+    if (activeTab === 'syllabus') {
       return (
         <LearnerCurriculumPanel
           curriculum={classroom?.instructorLedCourse}
@@ -659,7 +668,7 @@ export default function MyClassroomDetailPage() {
             <KpiCard
               label="Bài tập đã nộp"
               value={`${homework.filter((h) => h.mySubmission).length} / ${homework.length}`}
-              sub={pendingHomework.length ? `Còn ${pendingHomework.length} bài chưa nộp` : 'Đã nộp đầy đủ'}
+              sub={pendingHomework.length ? `Còn ${pendingHomework.length} bài chưa nộp` : 'Bài tập đã nộp'}
               icon={<FileText className="h-4.5 w-4.5" />}
             />
             <KpiCard
@@ -1766,7 +1775,7 @@ export default function MyClassroomDetailPage() {
                       type="button"
                     >
                       <Download className="h-4 w-4" />
-                      Tải học liệu (.pdf/.docx)
+                      Mở tài liệu
                     </button>
                   </div>
                 )}

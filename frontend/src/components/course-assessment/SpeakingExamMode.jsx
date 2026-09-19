@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, UserRound } from 'lucide-react';
+import useLiveSpeechTranscript from '../../hooks/useLiveSpeechTranscript';
 import ExamDeviceCheck from './ExamDeviceCheck';
 
 const formatSeconds = (value) => {
@@ -70,6 +71,15 @@ export default function SpeakingExamMode({
   const intentionalExitRef = useRef(false);
   const fullscreenSessionStartedRef = useRef(false);
   const violationLockRef = useRef(false);
+  const {
+    getTranscript,
+    interimTranscript,
+    resetTranscript,
+    startTranscription,
+    stopTranscription,
+    supportsLiveTranscription,
+    transcript,
+  } = useLiveSpeechTranscript();
 
   const activePart = parts[partIndex] || parts[0];
   const activePrompts = activePart?.prompts || [];
@@ -97,18 +107,26 @@ export default function SpeakingExamMode({
     streamRef.current = null;
   };
 
-  const buildSubmissionText = () => [
-    `Speaking mock test: ${config.submissionLabel || config.title || 'IELTS Speaking'}`,
-    `Recording duration seconds: ${recordingDurationRef.current}`,
-    `Voice signal detected: ${hasVoiceSignalRef.current ? 'yes' : 'no'}`,
-    '',
-    'Part prompts shown to the learner:',
-    parts.map((part) => [
-      `${part.label} - ${part.caption}`,
-      part.cueCardTitle ? `Cue card: ${part.cueCardTitle}` : '',
-      part.prompts.map((prompt, index) => `${index + 1}. ${prompt.text}`).join('\n'),
-    ].filter(Boolean).join('\n')).join('\n\n'),
-  ].join('\n');
+  const buildSubmissionText = () => {
+    const spokenTranscript = getTranscript();
+    const transcriptWordCount = spokenTranscript ? spokenTranscript.split(/\s+/).length : 0;
+    return [
+      `Speaking mock test: ${config.submissionLabel || config.title || 'IELTS Speaking'}`,
+      `Recording duration seconds: ${recordingDurationRef.current}`,
+      `Voice signal detected: ${hasVoiceSignalRef.current ? 'yes' : 'no'}`,
+      `Transcript word count: ${transcriptWordCount}`,
+      '',
+      'SPEAKING TRANSCRIPT:',
+      spokenTranscript || 'Transcript unavailable; use the attached audio as primary evidence.',
+      '',
+      'Part prompts shown to the learner:',
+      parts.map((part) => [
+        `${part.label} - ${part.caption}`,
+        part.cueCardTitle ? `Cue card: ${part.cueCardTitle}` : '',
+        part.prompts.map((prompt, index) => `${index + 1}. ${prompt.text}`).join('\n'),
+      ].filter(Boolean).join('\n')).join('\n\n'),
+    ].join('\n');
+  };
 
   const submitRecording = async (uploadedUrl = audioUrl) => {
     if (recordingDurationRef.current < 5 || !hasVoiceSignalRef.current) {
@@ -144,6 +162,7 @@ export default function SpeakingExamMode({
       recorderRef.current.stop();
     }
     setIsRecording(false);
+    stopTranscription();
     stopMeter();
   };
 
@@ -218,7 +237,9 @@ export default function SpeakingExamMode({
         }
       };
 
+      resetTranscript();
       recorder.start();
+      startTranscription();
       setIsRecording(true);
     } catch {
       setError('Không thể sử dụng micro. Hãy kiểm tra quyền micro của trình duyệt.');
@@ -431,6 +452,18 @@ export default function SpeakingExamMode({
                   </div>
                 </div>
                 <p className="mt-4 text-2xl font-extrabold text-[#8a0018]">{formatSeconds(recordingDuration)}</p>
+              </div>
+
+              <div className="mx-auto mt-5 max-w-3xl rounded-2xl border border-[#ead8d5] bg-[#fffdfc] px-5 py-4 text-left">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8c716f]">Transcript tự động</p>
+                  <span className="text-xs font-semibold text-[#6f5a58]">
+                    {supportsLiveTranscription ? 'Đang nhận diện tiếng Anh' : 'Không được trình duyệt hỗ trợ'}
+                  </span>
+                </div>
+                <p aria-live="polite" className="mt-3 min-h-12 text-sm leading-6 text-[#2b2828]">
+                  {[transcript, interimTranscript].filter(Boolean).join(' ') || (isRecording ? 'Đang nghe nội dung bạn nói...' : 'Transcript sẽ xuất hiện khi bắt đầu ghi âm.')}
+                </p>
               </div>
 
               {error ? <p className="mx-auto mt-4 max-w-2xl rounded-2xl bg-[#fff0f1] px-4 py-3 text-sm font-semibold text-[#8a0018]">{error}</p> : null}

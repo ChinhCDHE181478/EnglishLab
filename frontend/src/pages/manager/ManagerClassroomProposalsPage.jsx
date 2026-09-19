@@ -23,6 +23,11 @@ import {
   SECONDARY_BUTTON_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
+import {
+  looksLikeRichTextHtml,
+  sanitizeLessonHtml,
+  stripRichTextToPlain,
+} from '../../utils/lessonRichText';
 
 const statusTabs = [
   { label: 'Chờ duyệt', value: 'PENDING_APPROVAL' },
@@ -403,7 +408,7 @@ function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonC
               <div className="grid gap-3 sm:grid-cols-2">
                 <Detail icon={Users} label="Sức chứa" value={`${proposal.capacity} học viên`} />
                 <Detail icon={Clock3} label="Số buổi dự kiến" value={`${proposal.plannedSessionCount || 0} buổi`} />
-                <Detail icon={CalendarDays} label="Ngày học" value={`${formatDate(proposal.plannedStartDate)} – ${formatDate(proposal.plannedEndDate)}`} />
+                <Detail icon={CalendarDays} label="Ngày khai giảng dự kiến" value={`${formatDate(proposal.plannedStartDate)} – ${formatDate(proposal.plannedEndDate)}`} />
                 <Detail icon={Clock3} label="Lịch lặp" value={`${formatWeekdays(proposal.weekdays)} · ${formatTime(proposal.sessionStartTime)}–${formatTime(proposal.sessionEndTime)}`} />
                 <Detail icon={GraduationCap} label="Giáo viên" value={proposal.primaryTeacherName || 'Chưa chọn'} />
                 <Detail
@@ -422,7 +427,7 @@ function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonC
               <div className="space-y-3 text-sm">
                 <ReviewRow label="Người tạo" value={proposal.createdByName || 'Không rõ'} />
                 <ReviewRow label="Gửi duyệt lúc" value={formatDateTime(proposal.submittedAt)} />
-                <ReviewRow label="Ghi chú đề xuất" value={proposal.staffNote || 'Không có ghi chú'} />
+                <RichTextReviewRow label="Ghi chú đề xuất" value={proposal.staffNote} />
                 {proposal.reviewedAt ? <ReviewRow label="Người duyệt" value={proposal.reviewedByName || 'Không rõ'} /> : null}
                 {proposal.reviewedAt ? <ReviewRow label="Duyệt lúc" value={formatDateTime(proposal.reviewedAt)} /> : null}
                 {proposal.reviewNote ? <ReviewRow label="Phản hồi" value={proposal.reviewNote} /> : null}
@@ -493,6 +498,32 @@ function Detail({ icon: Icon, label, value }) {
 
 function ReviewRow({ label, value }) {
   return <div className="grid gap-1 border-b border-slate-100 pb-3 last:border-0 last:pb-0 sm:grid-cols-[130px_1fr]"><span className="font-semibold text-slate-400">{label}</span><span className="break-words font-bold text-slate-700">{value}</span></div>;
+}
+
+function RichTextReviewRow({ label, value }) {
+  const plain = stripRichTextToPlain(value || '');
+  const hasContent = plain.length > 0;
+  const html = hasContent && looksLikeRichTextHtml(value)
+    ? sanitizeLessonHtml(value)
+    : null;
+
+  return (
+    <div className="grid gap-2 border-b border-slate-100 pb-3 last:border-0 last:pb-0 sm:grid-cols-[130px_1fr]">
+      <span className="font-semibold text-slate-400">{label}</span>
+      {hasContent ? (
+        html ? (
+          <div
+            className="rich-text-view rounded-2xl bg-slate-50 px-3 py-2 font-normal leading-6 text-slate-700"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        ) : (
+          <span className="break-words font-bold text-slate-700">{plain}</span>
+        )
+      ) : (
+        <span className="break-words italic font-semibold text-slate-400">Không có ghi chú</span>
+      )}
+    </div>
+  );
 }
 
 function formatDate(value) {

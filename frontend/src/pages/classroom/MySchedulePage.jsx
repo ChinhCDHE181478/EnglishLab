@@ -81,6 +81,11 @@ const getDayIndex = (dateStr) => {
 const formatMonthYear = (date) =>
   new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(date);
 
+const formatWeekRange = (weekDays) => {
+  const fmt = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return `${fmt.format(weekDays[0])} – ${fmt.format(weekDays[6])}`;
+};
+
 const formatFullDate = (dateStr) => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -294,7 +299,7 @@ export default function MySchedulePage() {
                         <ChevronLeft className="h-3.5 w-3.5" />
                       </button>
                       <button className="rounded-lg border border-gray-200 px-3 py-1 text-[10px] font-extrabold text-[#584140] transition hover:bg-[#fff3f4] hover:text-[#730014]" onClick={goToday} type="button">
-                        Hôm nay
+                        {formatWeekRange(weekDays)}
                       </button>
                       <button className="rounded-lg border border-gray-200 p-1.5 text-[#584140] transition hover:bg-[#fff3f4] hover:text-[#730014]" onClick={nextWeek} type="button">
                         <ChevronRight className="h-3.5 w-3.5" />

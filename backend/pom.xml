@@ -30,6 +30,8 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Pin JUnit 5 to 5.10.x for IntelliJ 2023.2 compatibility -->
+        <junit-jupiter.version>5.10.5</junit-jupiter.version>
     </properties>
     <dependencies>
         <dependency>
@@ -140,6 +142,7 @@
             <artifactId>s3-transfer-manager</artifactId>
             <version>2.29.45</version>
         </dependency>
+
     </dependencies>
 
     <build>

@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import org.junit.jupiter.api.Test;
 
@@ -20,10 +21,13 @@ class AssessmentPassingThresholdResolverTest {
     private final AssessmentPassingThresholdResolver resolver = new AssessmentPassingThresholdResolver();
 
     @Test
-    void resolve_usesTargetBandMinusHalfForModuleTestWhenPassingScoreNotConfigured() {
+    void resolve_usesTargetBandMinusHalfForAssessmentAttachedToModule() {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
-                .type(AssessmentType.MODULE_TEST)
+                .type(AssessmentType.WRITING_TASK)
+                .skill(AssessmentSkill.WRITING)
+                .aiEvaluationMode(AiEvaluationMode.ESTIMATED_BAND)
+                .module(OnlineCourseModule.builder().id(1L).build())
                 .onlineCourseVersion(versionOf(course))
                 .maxScore(null)
                 .build();
@@ -37,6 +41,7 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
+                .module(OnlineCourseModule.builder().id(1L).build())
                 .onlineCourseVersion(versionOf(course))
                 .passingScore(new BigDecimal("5.0"))
                 .maxScore(new BigDecimal("10"))
@@ -51,6 +56,7 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
+                .module(OnlineCourseModule.builder().id(1L).build())
                 .onlineCourseVersion(versionOf(course))
                 .passingScore(new BigDecimal("6.5"))
                 .maxScore(null)
@@ -67,6 +73,7 @@ class AssessmentPassingThresholdResolverTest {
                 .build();
         CourseAssessment moduleTest = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
+                .module(OnlineCourseModule.builder().id(1L).build())
                 .skill(AssessmentSkill.WRITING)
                 .aiEvaluationMode(AiEvaluationMode.ESTIMATED_BAND)
                 .maxScore(new BigDecimal("9"))
@@ -82,6 +89,7 @@ class AssessmentPassingThresholdResolverTest {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.0D).build();
         CourseAssessment assessment = CourseAssessment.builder()
                 .type(AssessmentType.MODULE_TEST)
+                .module(OnlineCourseModule.builder().id(1L).build())
                 .onlineCourseVersion(versionOf(course))
                 .maxScore(null)
                 .build();
@@ -94,7 +102,10 @@ class AssessmentPassingThresholdResolverTest {
     void isScorePassing_comparesAgainstTargetBandMinusHalf() {
         OnlineCourse course = OnlineCourse.builder().targetBand(6.5D).build();
         CourseAssessment assessment = CourseAssessment.builder()
-                .type(AssessmentType.MODULE_TEST)
+                .type(AssessmentType.WRITING_TASK)
+                .skill(AssessmentSkill.WRITING)
+                .aiEvaluationMode(AiEvaluationMode.ESTIMATED_BAND)
+                .module(OnlineCourseModule.builder().id(1L).build())
                 .onlineCourseVersion(versionOf(course))
                 .maxScore(null)
                 .build();

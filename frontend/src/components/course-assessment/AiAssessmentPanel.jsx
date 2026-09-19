@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, UserRound } from 'lucide-react';
 import courseApi from '../../api/courseApi';
+import useLiveSpeechTranscript from '../../hooks/useLiveSpeechTranscript';
 import BrandedSelect from '../ui/BrandedSelect';
 import { applyDevAssessmentScoreOverride } from '../../utils/selfPacedHelpers';
 import ListeningExamMode from './ListeningExamMode';
@@ -775,8 +776,18 @@ export default function AiAssessmentPanel({
   const examViolationLockRef = useRef(false);
   const examIntentionalExitRef = useRef(false);
   const examFullscreenSessionRef = useRef(false);
+  const {
+    getTranscript,
+    interimTranscript,
+    resetTranscript,
+    startTranscription,
+    stopTranscription,
+    supportsLiveTranscription,
+    transcript,
+  } = useLiveSpeechTranscript();
 
   const restoreAssessmentAttemptState = () => {
+    resetTranscript();
     const latestSubmission = selected?.latestSubmission;
     const objectiveSeed = latestSubmission?.objectiveAnswersJson || '';
     const recoveredAudioUrl = selected?.skill === 'SPEAKING'
@@ -874,6 +885,8 @@ export default function AiAssessmentPanel({
   };
 
   const buildSpeakingSubmissionText = () => {
+    const spokenTranscript = getTranscript();
+    const transcriptWordCount = spokenTranscript ? spokenTranscript.split(/\s+/).length : 0;
     const parts = (activeSpeakingVariant?.parts || []).map((part) => {
       const prompts = Array.isArray(part.prompts) && part.prompts.length
         ? part.prompts.map((prompt, index) => `${index + 1}. ${typeof prompt === 'string' ? prompt : prompt?.text || ''}`).join('\n')
@@ -888,6 +901,10 @@ export default function AiAssessmentPanel({
       `Speaking mock test: ${activeSpeakingVariant?.label || 'Unknown variant'}`,
       `Recording duration seconds: ${completedRecordingDurationSeconds || recordingDurationSeconds || 0}`,
       `Voice signal detected: ${recordingHasVoiceSignal ? 'yes' : 'no'}`,
+      `Transcript word count: ${transcriptWordCount}`,
+      '',
+      'SPEAKING TRANSCRIPT:',
+      spokenTranscript || 'Transcript unavailable; use the attached audio as primary evidence.',
       '',
       'Part prompts shown to the learner:',
       parts || 'No part metadata available.',
@@ -895,6 +912,7 @@ export default function AiAssessmentPanel({
   };
 
   const resetSpeakingAttemptState = () => {
+    resetTranscript();
     stopRecordingMeter();
     stopMediaStream();
     stopMicCheck();
@@ -1855,7 +1873,9 @@ export default function AiAssessmentPanel({
         }
       };
 
+      resetTranscript();
       mediaRecorder.start();
+      startTranscription();
       setIsRecording(true);
     } catch {
       setRecordingError('Không thể truy cập microphone. Hãy kiểm tra quyền dùng mic của trình duyệt.');
@@ -1865,6 +1885,7 @@ export default function AiAssessmentPanel({
 
   const handleStopRecording = () => {
     if (!isRecording) return;
+    stopTranscription();
     stopRecordingMeter();
     setCompletedRecordingDurationSeconds(recordingDurationRef.current);
     if (mediaRecorderRef.current?.state && mediaRecorderRef.current.state !== 'inactive') {
@@ -1876,6 +1897,7 @@ export default function AiAssessmentPanel({
   };
 
   const handleDiscardRecording = () => {
+    resetTranscript();
     if (audioPreviewUrl) {
       URL.revokeObjectURL(audioPreviewUrl);
     }
@@ -2568,6 +2590,18 @@ export default function AiAssessmentPanel({
                         </div>
                       </div>
 
+                      <div className="mt-4 rounded-2xl border border-[#ead8d5] bg-[#fffdfc] px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8c716f]">Transcript tự động</p>
+                          <span className="text-xs font-semibold text-[#6f5a58]">
+                            {supportsLiveTranscription ? 'Đang nhận diện tiếng Anh' : 'Không được trình duyệt hỗ trợ'}
+                          </span>
+                        </div>
+                        <p aria-live="polite" className="mt-2 min-h-12 text-sm leading-6 text-[#2b2828]">
+                          {[transcript, interimTranscript].filter(Boolean).join(' ') || (isRecording ? 'Đang nghe nội dung bạn nói...' : 'Transcript sẽ xuất hiện khi bắt đầu ghi âm.')}
+                        </p>
+                      </div>
+
                       {audioPreviewUrl ? (
                         <audio className="mt-4 w-full" controls src={audioPreviewUrl} />
                       ) : null}
@@ -2873,7 +2907,7 @@ export default function AiAssessmentPanel({
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <p className="text-sm font-extrabold text-amber-900">Chưa đạt yêu cầu để qua mô-đun</p>
                   <p className="mt-1 text-sm leading-6 text-amber-800">
-                    {selected?.type === 'MODULE_TEST'
+                    {selected?.moduleId != null
                         ? 'Bạn cần đạt ngưỡng yêu cầu để mở mô-đun tiếp theo. Hãy xem phản hồi chi tiết bên dưới và làm lại bài test.'
                         : 'Kết quả chưa đạt ngưỡng yêu cầu. Hãy xem phản hồi và làm lại bài để tiếp tục học.'}
                   </p>

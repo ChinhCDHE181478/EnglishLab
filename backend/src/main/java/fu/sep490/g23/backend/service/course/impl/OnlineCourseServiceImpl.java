@@ -444,13 +444,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return updateCourse(id, request, null);
     }
 
-    /**
-     * Updates course metadata without changing versioned modules or lessons.
-     */
+    /** Updates course metadata and synchronizes modules and lessons into the editable draft version. */
     @Override
     public OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request, String actorEmail) {
         validateCourseRequest(request);
         OnlineCourse course = findCourse(id);
+        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
+        OnlineCourseVersion editableVersion = onlineCourseVersionService.requireEditableVersion(course);
         String oldThumbnailUrl = course.getThumbnailUrl();
 
         CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
@@ -475,7 +475,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setTargetBand(request.getTargetBand());
         course.setTargetOutcome(request.getTargetOutcome());
 
+        synchronizeModules(course, editableVersion, request.getModules());
+        refreshCourseTotals(course, editableVersion.getModules());
+        onlineCourseVersionRepository.save(editableVersion);
+
         OnlineCourse saved = onlineCourseRepository.save(course);
+        onlineCourseVersionService.synchronizeDraftSnapshot(saved);
         // Drop the previous thumbnail AFTER the transaction commits via event listener.
         // This avoids holding a DB transaction open during a potentially-slow R2 delete call.
         if (oldThumbnailUrl != null && !oldThumbnailUrl.equals(saved.getThumbnailUrl())) {
@@ -485,7 +490,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         new fu.sep490.g23.backend.service.course.event.CourseThumbnailReplacedEvent(previousKey));
             }
         }
-        return mapper.toResponse(saved);
+        return mapper.toResponse(saved, editableVersion.getModules());
     }
 
     /**
@@ -745,7 +750,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 })
                 .filter(java.util.Objects::nonNull)
                 // Map to DTO
-                .map(mapper::toEnrollmentResponse)
+                .map(this::toEnrollmentResponseWithLatestLessonProgress)
                 .toList();
     }
 
@@ -1092,28 +1097,22 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         OnlineCourseEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
         onlineCourseVersionService.assertLessonBelongsToEnrollment(enrollment, lessonId);
         
-        // 3. Determine the correct course version for this enrollment
-        OnlineCourseVersion pinnedVersion = enrollment.getCourseVersion() != null
-                ? enrollment.getCourseVersion()
-                : onlineCourseVersionService.requirePublishedVersion(course);
         OnlineLesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("OnlineLesson not found"));
 
-        // Validate that the lesson belongs to the expected course version
-        if (lesson.getModule() == null
-                || lesson.getModule().getOnlineCourseVersion() == null
-                || !pinnedVersion.getId().equals(lesson.getModule().getOnlineCourseVersion().getId())) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
-        }
-
-        // 4. Retrieve existing LessonProgress or create a new one if it doesn't exist
+        String lessonKey = lesson.getStableLessonKey();
         LessonProgress progress = lessonProgressRepository.findByEnrollmentAndLesson(enrollment, lesson)
+                .or(() -> lessonProgressRepository.findByEnrollment(enrollment).stream()
+                        .filter(existing -> existing.getLesson() != null)
+                        .filter(existing -> lessonKey != null && lessonKey.equals(existing.getLesson().getStableLessonKey()))
+                        .findFirst())
                 .or(() -> lessonProgressRepository.findByStudentAndLesson(student, lesson))
                 .orElseGet(() -> LessonProgress.builder()
                         .lesson(lesson)
                         .enrollment(enrollment)
                         .build());
 
+        progress.setLesson(lesson);
         if (progress.getEnrollment() == null) {
             progress.setEnrollment(enrollment);
         }
@@ -1144,7 +1143,17 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
         // 7. Recalculate and refresh the overall course progress for the student
         OnlineCourseEnrollment savedEnrollment = courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
-        return mapper.toEnrollmentResponse(savedEnrollment);
+        return toEnrollmentResponseWithLatestLessonProgress(savedEnrollment);
+    }
+
+    private OnlineCourseEnrollmentResponse toEnrollmentResponseWithLatestLessonProgress(
+            OnlineCourseEnrollment enrollment
+    ) {
+        OnlineCourseEnrollmentResponse response = mapper.toEnrollmentResponse(enrollment);
+        response.setCompletedLessonIds(
+                onlineCourseVersionService.getCompletedLessonIdsForLatestVersion(enrollment)
+        );
+        return response;
     }
 
     @Override
@@ -1668,7 +1677,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (type == AssessmentType.MODULE_TEST
                 && (skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING)
                 && aiMode == AiEvaluationMode.NONE) {
-            throw new RuntimeException("Module Test Writing/Speaking phải bật chấm bằng AI.");
+            throw new RuntimeException("Nội dung Writing/Speaking này phải bật chấm bằng AI.");
         }
         if (uiConfigJson == null || uiConfigJson.isBlank()) {
             return;

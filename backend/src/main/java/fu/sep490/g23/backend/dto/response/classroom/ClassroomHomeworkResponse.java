@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class ClassroomHomeworkResponse {
     private Long id;
     private Long classSectionId;
+    private String classroomTitle;
     private Long sessionId;
     @JsonProperty("curriculumUnitId")
     private Long courseUnitId;

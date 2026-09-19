@@ -13,6 +13,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRep
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
+import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentAccessService;
 import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
@@ -39,6 +40,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
     private final ClassroomTuitionPaymentProofRepository proofRepository;
     private final ClassroomMaterialRepository materialRepository;
     private final CenterMaterialLibraryItemRepository centerMaterialRepository;
+    private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
 
@@ -110,6 +112,14 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
             return canAccessClassContent(requester, material.get().getClassSection());
         }
 
+        if (requester.hasRole(RoleCodes.CONTENT_MANAGER)) {
+            return assessmentBankItemRepository.existsByUiConfigJsonContaining(suffix);
+        }
+
+        if (assessmentBankItemRepository.existsPublishedByUiConfigJsonContaining(suffix)) {
+            return true;
+        }
+
         return requester.hasRole(RoleCodes.CONTENT_MANAGER)
                 && centerMaterialRepository.findFirstByFileUrlEndingWith(suffix).isPresent();
     }
@@ -119,6 +129,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
                 || submissionRepository.existsByAttachmentUrlEndingWith(suffix)
                 || homeworkRepository.existsByAttachmentUrlEndingWith(suffix)
                 || materialRepository.existsByFileUrlEndingWith(suffix)
+                || assessmentBankItemRepository.existsByUiConfigJsonContaining(suffix)
                 || centerMaterialRepository.existsByFileUrlEndingWith(suffix);
     }
 

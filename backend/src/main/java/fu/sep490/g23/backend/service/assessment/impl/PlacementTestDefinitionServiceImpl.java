@@ -63,7 +63,16 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
         definition.setDescription(request.getDescription() == null ? "" : request.getDescription().trim());
         definition.setExamType(normalizeExamType(request.getExamType()));
         definition.setMaxAttempts(request.getMaxAttempts());
-        definition.setStatus(normalizeStatus(request.getStatus()));
+        definition.setIeltsEnabled(request.getIeltsEnabled() == null
+                ? definition.getIeltsEnabled()
+                : request.getIeltsEnabled());
+        definition.setToeicEnabled(request.getToeicEnabled() == null
+                ? definition.getToeicEnabled()
+                : request.getToeicEnabled());
+        definition.setSkillAssessmentEnabled(request.getSkillAssessmentEnabled() == null
+                ? definition.getSkillAssessmentEnabled()
+                : request.getSkillAssessmentEnabled());
+        definition.setStatus(anyExamEnabled(definition) ? "PUBLISHED" : "ARCHIVED");
         definition.setListeningConfigJson(request.getListeningConfigJson());
         definition.setReadingConfigJson(request.getReadingConfigJson());
         definition.setWritingConfigJson(request.getWritingConfigJson());
@@ -167,6 +176,9 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .examType("IELTS")
                 .maxAttempts(3)
                 .status("PUBLISHED")
+                .ieltsEnabled(true)
+                .toeicEnabled(true)
+                .skillAssessmentEnabled(true)
                 .listeningConfigJson(loadResource("placement-test/current-listening.json"))
                 .readingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_reading_test_1.json"))
                 .writingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_writing_test_1.json"))
@@ -222,6 +234,9 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .examType(definition.getExamType())
                 .maxAttempts(definition.getMaxAttempts())
                 .status(definition.getStatus())
+                .ieltsEnabled(Boolean.TRUE.equals(definition.getIeltsEnabled()))
+                .toeicEnabled(Boolean.TRUE.equals(definition.getToeicEnabled()))
+                .skillAssessmentEnabled(Boolean.TRUE.equals(definition.getSkillAssessmentEnabled()))
                 .listeningConfigJson(definition.getListeningConfigJson())
                 .readingConfigJson(definition.getReadingConfigJson())
                 .writingConfigJson(definition.getWritingConfigJson())
@@ -229,6 +244,12 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .toeicConfigJson(normalizedToeicConfig(definition.getToeicConfigJson()))
                 .updatedAt(definition.getUpdatedAt())
                 .build();
+    }
+
+    private boolean anyExamEnabled(PlacementTestDefinition definition) {
+        return Boolean.TRUE.equals(definition.getIeltsEnabled())
+                || Boolean.TRUE.equals(definition.getToeicEnabled())
+                || Boolean.TRUE.equals(definition.getSkillAssessmentEnabled());
     }
 
     private String normalizedToeicConfig(String config) {

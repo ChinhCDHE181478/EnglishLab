@@ -11,6 +11,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
@@ -312,26 +313,41 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         versionRepository.save(published);
     }
 
-    /**
-     * Constructs the full course details tailored for a specific student's enrollment.
-     * This ensures the student sees the correct version of the course (pinned or latest)
-     * and attaches their personal learning progress.
-     */
+    /** Returns the latest published content while the enrollment keeps its original progress baseline. */
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse) {
-        // 1. Determine which version of the course this student should see
-        OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, liveCourse);
-        
-        // 2. Read the course structure (modules/lessons) from that specific version
-        OnlineCourseResponse response = readVersionContent(pinned, liveCourse);
-        
-        // 3. Attach student's personal enrollment data to the response
+        assertEnrollmentCourseVersionBelongsToCourse(enrollment, liveCourse);
+        OnlineCourseVersion latestPublished = resolveLatestPublishedForLearning(enrollment, liveCourse);
+        OnlineCourseResponse response = readVersionContent(latestPublished, liveCourse);
         response.setRegistered(true);
         response.setProgressPercent(enrollment.getProgressPercent());
         response.setEnrollmentId(enrollment.getId());
-        
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> getCompletedLessonIdsForLatestVersion(OnlineCourseEnrollment enrollment) {
+        OnlineCourse course = resolveEnrollmentCourse(enrollment);
+        OnlineCourseVersion latestPublished = resolveLatestPublishedForLearning(enrollment, course);
+        if (latestPublished == null) {
+            return List.of();
+        }
+        initializeVersionModules(latestPublished);
+        Set<String> completedKeys = lessonProgressRepository
+                .findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED)
+                .stream()
+                .map(LessonProgress::getLesson)
+                .filter(Objects::nonNull)
+                .map(this::lessonProgressKey)
+                .collect(java.util.stream.Collectors.toSet());
+        return latestPublished.getModules().stream()
+                .flatMap(module -> module.getLessons().stream())
+                .filter(lesson -> completedKeys.contains(lessonProgressKey(lesson)))
+                .map(OnlineLesson::getId)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     @Override
@@ -447,9 +463,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     @Transactional(readOnly = true)
     public void assertLessonBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long lessonId) {
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
-        OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, course);
-        if (!lessonBelongsToVersion(lessonId, pinned, course)) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
+        OnlineCourseVersion latestPublished = resolveLatestPublishedForLearning(enrollment, course);
+        if (!lessonBelongsToVersion(lessonId, latestPublished, course)) {
+            throw new IllegalArgumentException("Bài học không thuộc phiên bản mới nhất của khóa học này.");
         }
     }
 
@@ -464,10 +480,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
             Long lessonId,
             boolean completed
     ) {
-        // 1. Resolve the correct course and the specific version the student is enrolled in
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
-        OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, course);
-        OnlineCourseResponse snapshot = readVersionContent(pinned, course);
+        OnlineCourseVersion latestPublished = resolveLatestPublishedForLearning(enrollment, course);
+        OnlineCourseResponse snapshot = readVersionContent(latestPublished, course);
         
         // 2. Build a flattened, ordered list of all lesson IDs in this course version
         List<Long> orderedLessonIds = snapshot.getModules() == null
@@ -480,7 +495,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         // 3. Find the position (index) of the requested lesson within the course
         int lessonIndex = orderedLessonIds.indexOf(lessonId);
         if (lessonIndex < 0) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
+            throw new IllegalArgumentException("Bài học không thuộc phiên bản mới nhất của khóa học này.");
         }
         
         // 4. If the user is un-completing a lesson (completed = false), always allow it
@@ -488,16 +503,20 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
             return;
         }
         
-        // 5. Fetch all lessons the user has previously completed in this course version
-        var completedLessonIds = lessonProgressRepository
+        Set<String> completedLessonKeys = lessonProgressRepository
                 .findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED)
                 .stream()
-                .map(progress -> progress.getLesson().getId())
+                .map(LessonProgress::getLesson)
+                .filter(Objects::nonNull)
+                .map(this::lessonProgressKey)
                 .collect(java.util.stream.Collectors.toSet());
-                
-        // 6. Find the furthest lesson index the user has reached so far
-        int furthestCompletedIndex = completedLessonIds.stream()
-                .mapToInt(orderedLessonIds::indexOf)
+
+        List<String> orderedLessonKeys = snapshot.getModules().stream()
+                .flatMap(module -> module.getLessons().stream())
+                .map(this::lessonProgressKey)
+                .toList();
+        int furthestCompletedIndex = completedLessonKeys.stream()
+                .mapToInt(orderedLessonKeys::indexOf)
                 .max()
                 .orElse(-1);
                 
@@ -508,7 +527,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         
         // 8. Enforce sequential progression: if it's a new lesson (beyond furthest reached), 
         // the immediate preceding lesson must have been completed.
-        if (lessonIndex > 0 && !completedLessonIds.contains(orderedLessonIds.get(lessonIndex - 1))) {
+        if (lessonIndex > 0 && !completedLessonKeys.contains(orderedLessonKeys.get(lessonIndex - 1))) {
             throw new IllegalStateException("Bạn cần hoàn thành bài học trước đó trong phiên bản này trước khi tiếp tục.");
         }
         
@@ -724,6 +743,28 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
             return pinned;
         }
         return findLatestPublishedVersion(course);
+    }
+
+    private OnlineCourseVersion resolveLatestPublishedForLearning(
+            OnlineCourseEnrollment enrollment,
+            OnlineCourse course
+    ) {
+        OnlineCourseVersion latestPublished = findLatestPublishedVersion(course);
+        if (latestPublished != null) {
+            initializeVersionModules(latestPublished);
+            return latestPublished;
+        }
+        return resolvePinnedOrLatestPublished(enrollment, course);
+    }
+
+    private String lessonProgressKey(OnlineLesson lesson) {
+        String stableKey = lesson.getStableLessonKey();
+        return stableKey == null || stableKey.isBlank() ? "ID:" + lesson.getId() : "KEY:" + stableKey;
+    }
+
+    private String lessonProgressKey(LessonResponse lesson) {
+        String stableKey = lesson.getLessonKey();
+        return stableKey == null || stableKey.isBlank() ? "ID:" + lesson.getId() : "KEY:" + stableKey;
     }
 
     private boolean lessonBelongsToVersion(Long lessonId, OnlineCourseVersion version, OnlineCourse course) {

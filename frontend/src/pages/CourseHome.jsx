@@ -16,6 +16,7 @@ import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 import { resolveScoreCap } from '../utils/ieltsBandScale';
 import { findFurthestReachedModuleIndex, isReachedModuleUnlocked } from '../utils/courseProgressAccess';
 import { buildLessonWorkspacePath } from '../utils/courseWorkspaceNavigation';
+import { useLearnerExperience } from '../context/LearnerExperienceContext';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -78,6 +79,7 @@ const CourseHome = () => {
   const [ratingComment, setRatingComment] = useState('');
   const [ratingSaving, setRatingSaving] = useState(false);
   const [ratingError, setRatingError] = useState('');
+  const { lessonNotes } = useLearnerExperience();
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -572,16 +574,45 @@ const CourseHome = () => {
     </div>
   );
 
+  const courseNotes = useMemo(
+    () => lessonNotes.filter((item) => String(item.courseId) === String(course?.id)),
+    [lessonNotes, course?.id],
+  );
+
   const renderNotes = () => (
     <div className="flex min-h-[560px] flex-col">
       <div className="mb-14 flex items-center justify-between gap-4">
         <h1 className="font-['Manrope'] text-3xl font-extrabold text-[#730014]">Ghi chú</h1>
-        <button className="rounded border border-[#730014] px-4 py-2 text-sm font-bold text-[#730014]" type="button">Lọc: Tất cả ghi chú</button>
       </div>
-      <div className="py-16 text-center text-[#1a1c1c]">
-        <StickyNote className="mx-auto mb-4 h-14 w-14 text-[#9ca3af]" />
-        <p>Bạn chưa thêm bất kỳ ghi chú nào. Ghi chú có thể được tạo trong không gian học.</p>
-      </div>
+      {!courseNotes.length ? (
+        <div className="py-16 text-center text-[#1a1c1c]">
+          <StickyNote className="mx-auto mb-4 h-14 w-14 text-[#9ca3af]" />
+          <p>Bạn chưa thêm bất kỳ ghi chú nào. Ghi chú có thể được tạo trong không gian học.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {courseNotes.map((note) => {
+            const lesson = course?.modules
+              ?.flatMap((m) => (m.lessons ?? []).map((l) => ({ ...l, moduleTitle: m.title })))
+              ?.find((l) => String(l.id) === String(note.lessonId));
+            return (
+              <div key={note.id} className="rounded-[8px] bg-[#f1f5fb] p-4">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold text-[#730014]">{lesson?.title ?? 'Bài học'}</p>
+                    {lesson?.moduleTitle ? (
+                      <p className="text-xs text-[#8c716f]">Module {lesson.moduleTitle}</p>
+                    ) : null}
+                  </div>
+                </div>
+                <p className="border-l-4 border-[#4b0009] pl-3 text-sm leading-7 text-[#1f2430]">
+                  {note.content || note.selectedText || ''}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 

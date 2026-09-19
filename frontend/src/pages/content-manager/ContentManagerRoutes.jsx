@@ -44,6 +44,7 @@ export default function ContentManagerRoutes() {
         <Route path="reading" element={<ContentManagerAssessmentsHubPage pageKey="reading" />} />
         <Route path="writing" element={<ContentManagerAssessmentsHubPage pageKey="writing" />} />
         <Route path="speaking" element={<ContentManagerAssessmentsHubPage pageKey="speaking" />} />
+        <Route path="module-tests" element={<Navigate replace to="/content-manager/listening" />} />
         <Route path="placement-test" element={<ContentManagerPlacementTestPage />} />
         <Route path="rubrics" element={<ContentManagerRubricsPage />} />
         <Route path="learning-paths" element={<ContentManagerLearningPathsPage />} />

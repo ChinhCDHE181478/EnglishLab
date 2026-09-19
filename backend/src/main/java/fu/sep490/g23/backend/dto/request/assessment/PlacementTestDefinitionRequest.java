@@ -20,6 +20,12 @@ public class PlacementTestDefinitionRequest {
 
     private String status;
 
+    private Boolean ieltsEnabled;
+
+    private Boolean toeicEnabled;
+
+    private Boolean skillAssessmentEnabled;
+
     @NotBlank
     private String listeningConfigJson;
 

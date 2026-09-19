@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Clock3, History, Play, RotateCcw } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import ListeningExamMode from '../../components/course-assessment/ListeningExamMode';
@@ -52,6 +52,7 @@ const toAnswerMap = (objectiveAnswersJson) => {
 
 export default function PracticeRunnerPage() {
   const { classroomId, exerciseId } = useParams();
+  const navigate = useNavigate();
   const [practice, setPractice] = useState(null);
   const [attempts, setAttempts] = useState([]);
   const [latestResult, setLatestResult] = useState(null);
@@ -86,6 +87,10 @@ export default function PracticeRunnerPage() {
   const questionCount = countQuestions(examConfig);
   const isListening = String(practice?.skill || '').toUpperCase() === 'LISTENING'
     || examConfig?.type === 'ielts_listening_exam';
+
+  const goBack = () => {
+    navigate(`/my-classrooms/${classroomId}`, { replace: true });
+  };
 
   const openExam = async () => {
     setLatestResult(null);
@@ -146,7 +151,10 @@ export default function PracticeRunnerPage() {
 
   return (
     <LearnerPageShell
-      actions={<Link className="inline-flex items-center gap-2 rounded-full border border-[#dfbfbd] bg-white px-5 py-2.5 text-sm font-extrabold text-[#730014]" to="/my-practice"><ArrowLeft className="h-4 w-4" />Danh sách luyện tập</Link>}
+      actions={<div className="flex items-center gap-2">
+        <button className="inline-flex items-center gap-2 rounded-full border border-[#dfbfbd] bg-white px-5 py-2.5 text-sm font-extrabold text-[#730014]" onClick={goBack} type="button"><ArrowLeft className="h-4 w-4" />Quay lại lớp học</button>
+        <Link className="inline-flex items-center gap-2 rounded-full border border-[#dfbfbd] bg-white px-5 py-2.5 text-sm font-extrabold text-[#730014]" to="/my-practice"><ArrowLeft className="h-4 w-4" />Danh sách luyện tập</Link>
+      </div>}
       description={`${practice.classroomTitle} · Unit ${practice.unitDisplayOrder}: ${practice.unitTitle}`}
       eyebrow="Luyện tập theo giáo trình"
       title={practice.title}

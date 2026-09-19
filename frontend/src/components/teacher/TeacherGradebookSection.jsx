@@ -89,7 +89,7 @@ const validateForm = (form, homeworks) => {
   if (form.finalResult !== '') {
     const finalResult = Number(form.finalResult);
     if (!Number.isFinite(finalResult) || finalResult < 0 || finalResult > 10) {
-      return 'Kết quả cuối phải nằm trong khoảng 0–10.';
+      return 'Điểm tổng kết phải nằm trong khoảng 0–10.';
     }
   }
   return '';
@@ -183,8 +183,8 @@ function AggregateGradebookTable({ gradebook, onOpenStudent }) {
               <th className="px-5 py-4">Học viên</th>
               <th className="px-5 py-4">Điểm TB bài tập</th>
               <th className="px-5 py-4">Chuyên cần</th>
-              <th className="px-5 py-4">Kết quả cuối</th>
-              <th className="px-5 py-4">Công bố</th>
+              <th className="px-5 py-4">Điểm tổng kết</th>
+              <th className="px-5 py-4">Trạng thái</th>
               <th className="px-5 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
@@ -442,7 +442,7 @@ function GradebookStudentModal({
                   )}
                 </label>
                 <label className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">Kết quả cuối</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">Điểm tổng kết</span>
                   {isEditing ? (
                     <div className="relative mt-1.5">
                       <input
@@ -499,7 +499,7 @@ function GradebookStudentModal({
                 type="button"
               >
                 <Pencil className="h-4 w-4" />
-                Sửa tổng kết
+                Sửa điểm
               </button>
             )}
           </div>
@@ -736,6 +736,22 @@ export default function TeacherGradebookSection({
           </div>
         </div>
 
+        <div className="grid border-t border-[#dfbfbd]/20 bg-white/75 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Học viên', value: gradebook.length, icon: Users, className: 'text-[#9b1c31]' },
+            { label: 'Bài tập', value: homework.length, icon: BookOpenCheck, className: 'text-blue-600' },
+            { label: 'Lượt bài chờ chấm', value: pendingSubmissionCount, icon: AlertTriangle, className: 'text-amber-600' },
+            { label: 'Học viên đã công bố', value: publishedStudentCount, icon: CheckCircle2, className: 'text-emerald-600' },
+          ].map((item) => (
+            <div className="flex items-center gap-3 border-b border-[#dfbfbd]/15 px-5 py-4 last:border-b-0 sm:odd:border-r lg:border-b-0 lg:border-r lg:last:border-r-0" key={item.label}>
+              <item.icon className={`h-5 w-5 flex-shrink-0 ${item.className}`} />
+              <div>
+                <p className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">{item.value}</p>
+                <p className="text-[11px] font-bold text-[#8b706e]">{item.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {gradebook.length ? (
@@ -756,7 +772,7 @@ export default function TeacherGradebookSection({
           <h5 className="mt-3 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Chưa có bài tập để chấm</h5>
           <p className="mt-1 text-sm text-[#8b706e]">Thêm bài tập trong tab Bài tập để bắt đầu nhận và chấm bài.</p>
         </section>
-      ) : SHOW_LESSON_GRADING_WORKSPACE ? (
+      ) : (
         <section className="grid min-h-[620px] gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-3xl border border-gray-100 bg-[#fffafb]/70 p-4">
             <div>
@@ -943,7 +959,7 @@ export default function TeacherGradebookSection({
             )}
           </div>
         </section>
-      ) : null}
+      )}
 
       {selectedEntry && modalLesson ? (
         <GradebookStudentModal

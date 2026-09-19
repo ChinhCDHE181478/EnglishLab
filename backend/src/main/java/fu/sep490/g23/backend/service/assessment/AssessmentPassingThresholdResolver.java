@@ -1,7 +1,6 @@
 package fu.sep490.g23.backend.service.assessment;
 
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +18,7 @@ public class AssessmentPassingThresholdResolver {
         OnlineCourse course = assessment.getOnlineCourseVersion() == null
                 ? null
                 : assessment.getOnlineCourseVersion().getOnlineCourse();
-        if (assessment.getType() == AssessmentType.MODULE_TEST
+        if (assessment.getModule() != null
                 && IeltsBandScale.usesBandScale(assessment)
                 && course != null
                 && course.getTargetBand() != null) {

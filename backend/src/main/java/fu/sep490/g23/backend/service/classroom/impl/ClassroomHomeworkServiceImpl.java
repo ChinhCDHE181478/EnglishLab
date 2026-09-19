@@ -146,16 +146,16 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         User teacher = accessHelper.requireUser(teacherEmail);
         accessHelper.assertTeacher(teacher);
         return assessmentBankItemRepository
-                .findByTypeAndStatusAndSkillInOrderByUpdatedAtDescIdDesc(
-                        AssessmentType.MODULE_TEST,
+                .findByStatusAndSkillInOrderByUpdatedAtDescIdDesc(
                         "PUBLISHED",
-                    List.of(
+                        List.of(
                             AssessmentSkill.LISTENING,
                             AssessmentSkill.READING,
                             AssessmentSkill.WRITING,
                             AssessmentSkill.SPEAKING
                     )
                 ).stream()
+                .filter(this::isSupportedSkillBankItem)
                 .filter(item -> item.getSkill() == AssessmentSkill.LISTENING
                         || item.getSkill() == AssessmentSkill.READING
                         || (item.getRubric() != null && "PUBLISHED".equalsIgnoreCase(item.getRubric().getStatus())))
@@ -507,8 +507,8 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         AssessmentBankItem assessment = null;
         if (request.getAssessmentBankItemId() != null) {
             assessment = assessmentBankItemRepository
-                    .findByIdAndTypeAndStatus(
-                            request.getAssessmentBankItemId(), AssessmentType.MODULE_TEST, "PUBLISHED")
+                    .findByIdAndStatus(request.getAssessmentBankItemId(), "PUBLISHED")
+                    .filter(this::isSupportedSkillBankItem)
                     .orElseThrow(() -> new RuntimeException("Đề hệ thống không tồn tại hoặc chưa được xuất bản."));
             if (request.getSkill() != null && request.getSkill() != assessment.getSkill()) {
                 throw new RuntimeException("Kỹ năng đã chọn không phù hợp với đề trong ngân hàng.");
@@ -548,22 +548,34 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             return;
         }
         if (assessment == null) {
-            throw new RuntimeException("Chấm điểm AI chỉ dùng được khi chọn đề MODULE_TEST của hệ thống.");
+            throw new RuntimeException("Chấm điểm AI chỉ dùng được khi chọn đề Writing hoặc Speaking của hệ thống.");
         }
         if (assessment.getSkill() != AssessmentSkill.SPEAKING && assessment.getSkill() != AssessmentSkill.WRITING) {
-            throw new RuntimeException("Chấm điểm AI chỉ hỗ trợ MODULE_TEST Writing hoặc Speaking.");
+            throw new RuntimeException("Chấm điểm AI chỉ hỗ trợ đề Writing hoặc Speaking.");
         }
         Long rubricId = request.getRubricId() != null
                 ? request.getRubricId()
                 : assessment.getRubric() == null ? null : assessment.getRubric().getId();
         if (rubricId == null) {
-            throw new RuntimeException("MODULE_TEST đã chọn chưa có bộ tiêu chí chấm AI.");
+            throw new RuntimeException("Đề đã chọn chưa có bộ tiêu chí chấm AI.");
         }
         AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(rubricId);
         if (rubric.getSkill() != assessment.getSkill()) {
-            throw new RuntimeException("Bộ tiêu chí của MODULE_TEST không khớp với kỹ năng bài thi.");
+            throw new RuntimeException("Bộ tiêu chí không khớp với kỹ năng của đề.");
         }
         homework.setRubric(rubric);
+    }
+
+    private boolean isSupportedSkillBankItem(AssessmentBankItem item) {
+        if (item == null || item.getSkill() == null || item.getType() == null) return false;
+        if (item.getType() == AssessmentType.MODULE_TEST) return true;
+        return switch (item.getSkill()) {
+            case LISTENING, READING -> item.getType() == AssessmentType.LESSON_PRACTICE
+                    || item.getType() == AssessmentType.QUIZ;
+            case WRITING -> item.getType() == AssessmentType.WRITING_TASK;
+            case SPEAKING -> item.getType() == AssessmentType.SPEAKING_TASK;
+            default -> false;
+        };
     }
 
     private void validateActivitySkillCompatibility(HomeworkActivityType activityType, AssessmentSkill skill) {

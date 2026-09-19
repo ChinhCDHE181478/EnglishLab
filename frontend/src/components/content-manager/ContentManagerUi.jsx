@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, LogOut, Plus } from 'lucide-react';
+import { Bell, ChevronDown, ChevronRight, LogOut, Plus } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import { contentManagerNav, contentManagerPageMeta } from './contentManagerConfig';
@@ -173,6 +173,13 @@ export function ContentManagerLayout({ children }) {
             </div>
 
             <div className="hidden items-center gap-3 sm:flex">
+              <Link
+                aria-label="Thông báo"
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-[#730014]"
+                to="/notifications"
+              >
+                <Bell className="h-5 w-5" />
+              </Link>
               <div className="relative">
                 <button
                   className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-1.5 pr-4 text-left shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md"

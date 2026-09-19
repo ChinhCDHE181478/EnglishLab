@@ -76,7 +76,7 @@ class ClassroomHomeworkAiGradingServiceImplTest {
     }
 
     @Test
-    void tryAutoGrade_SpeakingSendsStoredAudioInsteadOfMetadataText() {
+    void tryAutoGrade_SpeakingSendsStoredAudioWithTranscriptContext() {
         AiEvaluationClient client = mock(AiEvaluationClient.class);
         HomeworkAttachmentStorageService storageService = mock(HomeworkAttachmentStorageService.class);
         byte[] audioBytes = new byte[]{1, 2, 3};
@@ -86,7 +86,7 @@ class ClassroomHomeworkAiGradingServiceImplTest {
                         "homework-audio.webm", "audio/webm", audioBytes.length, audioBytes
                 )
         ));
-        when(client.evaluateWithAudio(contains("actual spoken response"), same(audioBytes), eq("audio/webm")))
+        when(client.evaluateWithAudio(contains("I usually practise English after class."), same(audioBytes), eq("audio/webm")))
                 .thenReturn(AiEvaluationResult.builder()
                         .estimatedScore(BigDecimal.valueOf(6.5))
                         .feedbackJson("{\"summary\":\"Phát âm khá rõ.\"}")
@@ -96,7 +96,15 @@ class ClassroomHomeworkAiGradingServiceImplTest {
         ClassroomHomeworkSubmission submission = ClassroomHomeworkSubmission.builder()
                 .homework(homework)
                 .student(User.builder().id(2L).build())
-                .textAnswer("Speaking mock test: recording duration 125 seconds")
+                .textAnswer("""
+                        Speaking mock test: Unit speaking practice
+                        Recording duration seconds: 125
+                        Voice signal detected: yes
+                        Transcript word count: 7
+
+                        SPEAKING TRANSCRIPT:
+                        I usually practise English after class.
+                        """)
                 .attachmentUrl(attachmentUrl)
                 .status(HomeworkSubmissionStatus.SUBMITTED)
                 .build();

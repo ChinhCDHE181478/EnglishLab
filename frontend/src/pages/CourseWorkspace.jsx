@@ -64,6 +64,9 @@ const CourseWorkspace = () => {
       return null;
     }
   });
+  // Track whether the lessonId in URL has been honored already - so subsequent
+  // user-driven navigation (sidebar clicks) is not forced back to the URL lesson.
+  const [requestedLessonConsumed, setRequestedLessonConsumed] = useState(() => Boolean(requestedLessonId));
   const [completedLessonIds, setCompletedLessonIds] = useState(() => new Set());
   const [savingLessonId, setSavingLessonId] = useState(null);
   const [workspaceMode, setWorkspaceMode] = useState(() => (
@@ -255,11 +258,13 @@ const CourseWorkspace = () => {
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
     const courseLevelAssessments = assessmentsByModule.get('course') || [];
+    const hasLessonItems = lessonItems.length > 0;
 
     return course.modules.flatMap((module, moduleIndex) => {
       const moduleLessons = (module.lessons || []).map((lesson, lessonIndex) => {
         const lessonId = getLessonId(module, lesson, lessonIndex);
         const lessonAssessments = assessmentsByLesson.get(String(lesson.id)) || [];
+        const lockedFromState = lessonItems.find((item) => String(item.id) === String(lessonId))?.isLocked;
         return {
           id: lessonId,
           module,
@@ -270,7 +275,10 @@ const CourseWorkspace = () => {
           assessments: lessonAssessments,
           title: lesson.title,
           description: lesson.description,
-          isLocked: lessonItems.find((item) => String(item.id) === String(lessonId))?.isLocked ?? false,
+          // While lessonItems haven't loaded yet, treat as unlocked so the UI doesn't flash
+          // a locked state. Effect in CourseWorkspace will guard URL-driven navigation
+          // until lessonItems is ready.
+          isLocked: hasLessonItems ? (lockedFromState ?? false) : false,
         };
       });
 
@@ -297,6 +305,9 @@ const CourseWorkspace = () => {
       ];
     });
   }, [assessmentLockByModule, assessmentLockReasonByModule, assessmentsByLesson, assessmentsByModule, course?.modules, lessonItems]);
+
+  // DEBUG
+  console.log('[DEBUG CourseWorkspace] workspaceItems:', workspaceItems.map(i => ({ id: i.id, type: i.type, title: i.title, isLocked: i.isLocked })));
 
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
@@ -368,6 +379,7 @@ const CourseWorkspace = () => {
     const activeLessonStillExists = workspaceItems.some((item) => String(item.id) === String(activeLessonId));
     const storedLessonId = localStorage.getItem(activeLessonStorageKey);
     const preferredLessonId = requestedLessonId || storedLessonId;
+
     const waitingForStoredAssessment = (
       !assessmentsLoaded
       && isAssessmentStepId(preferredLessonId)
@@ -377,6 +389,51 @@ const CourseWorkspace = () => {
 
     if (waitingForStoredAssessment) return;
 
+    // Wait for lessonItems (which carry isLocked info) to be loaded before honoring URL request
+    // Otherwise we can't reliably tell whether the requested lesson is accessible.
+    if (requestedLessonId && !requestedLessonConsumed && !lessonItems.length) {
+      return;
+    }
+
+    // If URL has explicit lessonId request that hasn't been consumed yet, ALWAYS honor it
+    // (even if locked or already exists). Once applied, mark as consumed so user-driven
+    // navigation from the sidebar is not forced back to the URL lesson.
+    if (requestedLessonId && !requestedLessonConsumed) {
+      const requestedItem = workspaceItems.find((item) => String(item.id) === String(requestedLessonId));
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG URL guard]', {
+        requestedLessonId,
+        requestedLessonConsumed,
+        lessonItemsLen: lessonItems.length,
+        requestedItem: requestedItem ? { id: requestedItem.id, isLocked: requestedItem.isLocked, lockReason: requestedItem.lockReason } : null,
+        activeLessonId,
+      });
+      if (requestedItem && !requestedItem.isLocked) {
+        if (String(activeLessonId) !== String(requestedLessonId)) {
+          rememberActiveLesson(requestedLessonId);
+        }
+        setRequestedLessonConsumed(true);
+        return;
+      }
+      // Requested lesson is locked or missing - fall back to first unlocked lesson
+      // and mark the URL request as consumed so we don't loop trying it.
+      const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked)
+        || workspaceItems.find((item) => !item.isLocked)
+        || workspaceItems[0];
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG URL guard FALLBACK]', {
+        requestedLessonId,
+        fallbackId: fallbackLesson?.id,
+        fallbackTitle: fallbackLesson?.title,
+      });
+      if (fallbackLesson) {
+        rememberActiveLesson(fallbackLesson.id);
+        setRequestedLessonConsumed(true);
+        return;
+      }
+      setRequestedLessonConsumed(true);
+    }
+
     if (!activeLessonId || !activeLessonStillExists) {
       const storedItem = workspaceItems.find((item) => String(item.id) === String(preferredLessonId) && !item.isLocked);
       const firstUnlockedItem = workspaceItems.find((item) => !item.isLocked) || workspaceItems[0];
@@ -385,11 +442,11 @@ const CourseWorkspace = () => {
     }
 
     const currentItem = workspaceItems.find((item) => String(item.id) === String(activeLessonId));
-    if (currentItem?.isLocked) {
+    if (currentItem?.isLocked && !requestedLessonId) {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
       if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
-  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, requestedLessonId, workspaceItems]);
+  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, lessonItems.length, rememberActiveLesson, requestedLessonConsumed, requestedLessonId, workspaceItems]);
 
   useEffect(() => {
     if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {
@@ -520,6 +577,8 @@ const CourseWorkspace = () => {
       return;
     }
     setError('');
+    // User-driven navigation - mark URL request as consumed so we don't fight them
+    setRequestedLessonConsumed(true);
     rememberActiveLesson(lessonId);
   };
 
@@ -765,6 +824,19 @@ const CourseWorkspace = () => {
           <div className="min-w-0 flex-1 space-y-6">
             {workspaceMode === 'flashcards' ? (
               <WorkspaceFlashcards course={course} totalTerms={flashcardCount} />
+            ) : activeWorkspaceItem?.isLocked ? (
+              <div className="rounded-[20px] border border-[#ead9db] bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fff0f1] text-2xl text-[#730014]">
+                  &#128274;
+                </div>
+                <h2 className="text-lg font-bold text-[#1f2430]">Nội dung này hiện đang bị khoá</h2>
+                <p className="mt-2 text-sm text-[#5f5353]">
+                  {activeWorkspaceItem.lockReason || 'Bạn cần hoàn thành các bài học trước đó trước khi mở nội dung này.'}
+                </p>
+              </div>
+            ) : activeWorkspaceItem?.type === 'lesson' && !lessonItems.some((item) => String(item.id) === String(activeWorkspaceItem.id)) && requestedLessonId && !requestedLessonConsumed ? (
+              // Lesson requested via URL but lessonItems (lock info) hasn't loaded yet - wait.
+              <div className="flex items-center justify-center p-12 text-sm text-[#5f5353]">Đang tải bài học…</div>
             ) : activeWorkspaceItem?.type === 'assessment' && activeWorkspaceItem.assessments?.[0]?.type === 'QUIZ' ? (
               <LessonQuizPanel
                 assessment={activeWorkspaceItem.assessments[0]}
