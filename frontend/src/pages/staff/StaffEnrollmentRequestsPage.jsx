@@ -30,7 +30,7 @@ import { ERROR_NOTICE_CLASS, FIELD_CLASS, PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON
 import { combineLocalDateTime } from '../../utils/vietnameseDate';
 
 const views = [
-  { label: 'Tất cả', value: 'ALL' },
+  { label: 'Tất cả của tôi', value: 'ALL' },
   { label: 'Mới đăng ký', value: 'SUBMITTED' },
   { label: 'Đã hẹn test', value: 'TEST_SCHEDULED' },
   { label: 'Đủ điều kiện', value: 'WAITING_FOR_CLASS' },
@@ -323,7 +323,7 @@ export default function StaffEnrollmentRequestsPage() {
 
       {/* Metric Cards Summary */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={BookOpenCheck} label="Tổng hồ sơ" value={stats.total} />
+        <MetricCard icon={BookOpenCheck} label="Hồ sơ phụ trách" value={stats.total} />
         <MetricCard icon={UserPlus} label="Mới đăng ký" value={stats.submitted} />
         <MetricCard icon={CalendarClock} label="Đã hẹn test" value={stats.testScheduled} />
         <MetricCard icon={UserRoundCheck} label="Đủ điều kiện" value={stats.waitingForClass} />
@@ -428,7 +428,7 @@ export default function StaffEnrollmentRequestsPage() {
                   <th className="w-16 px-5 py-4">Mã</th>
                   <th className="w-64 px-5 py-4">Học viên / Liên hệ</th>
                   <th className="w-64 px-5 py-4">Khóa học quan tâm</th>
-                  <th className="min-w-[250px] px-5 py-4">Lịch test / Nhu cầu</th>
+                  <th className="min-w-[310px] px-5 py-4">Lịch test / Kết quả tham khảo</th>
                   <th className="w-40 px-5 py-4">Ngày đăng ký</th>
                   <th className="w-44 px-5 py-4 text-center">Trạng thái</th>
                   <th className="w-56 px-5 py-4 text-right">Thao tác</th>
@@ -464,6 +464,9 @@ export default function StaffEnrollmentRequestsPage() {
                         )}
                         {item.testLocation ? <p>{item.testLocation}</p> : null}
                         {item.preferredSchedule ? <p className="mt-1">Giờ học mong muốn: {item.preferredSchedule}</p> : null}
+                        {item.latestPlacementResult ? (
+                          <PlacementScoreSummary result={item.latestPlacementResult} />
+                        ) : null}
                         {item.staffNote ? (
                           <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-2 text-amber-900">
                             <span className="font-extrabold">Ghi chú xử lý:</span> {item.staffNote}
@@ -546,10 +549,44 @@ function ActionButton({ danger = false, icon: Icon, label, onClick, success = fa
   );
 }
 
+function PlacementScoreSummary({ detailed = false, result }) {
+  const scores = [
+    ['Nghe', result.listeningScore],
+    ['Đọc', result.readingScore],
+    ['Viết', result.writingScore],
+    ['Nói', result.speakingScore],
+  ].filter(([, score]) => score !== null && score !== undefined);
+  return (
+    <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50/70 p-3">
+      <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-sky-700">Placement online gần nhất · Tham khảo</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-extrabold text-[#0b1c30]">{result.examType || 'Placement test'}</span>
+        {result.overallScore !== null && result.overallScore !== undefined ? (
+          <span className="rounded-full bg-white px-2.5 py-0.5 font-extrabold text-sky-800">
+            Tổng {result.overallScore}
+          </span>
+        ) : null}
+      </div>
+      {scores.length ? (
+        <div className={`mt-2 grid gap-2 ${detailed ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
+          {scores.map(([label, score]) => (
+            <span className="rounded-lg bg-white px-2.5 py-1.5 font-bold text-slate-700 shadow-sm" key={label}>
+              {label}: {score}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {result.submittedAt ? (
+        <p className="mt-2 text-[11px] text-slate-500">Nộp lúc {formatClassroomDateTime(result.submittedAt)}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, error, onChange, onClose, onConfirm, working }) {
   const titles = {
     SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
-    COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá tại trung tâm.'],
+    COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá trực tiếp tại trung tâm.'],
     ASSIGN: ['Xếp lớp chính thức', 'Chọn lớp phù hợp theo kết quả test; khóa học học viên quan tâm ban đầu chỉ dùng để tham khảo.'],
     REJECT: ['Kết thúc hồ sơ', 'Dùng khi học viên từ chối tiếp tục hoặc hồ sơ không thể xử lý.'],
   };
@@ -587,6 +624,10 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
             </div>
           ) : null}
 
+          {action.type === 'COMPLETE_TEST' && action.item.latestPlacementResult ? (
+            <PlacementScoreSummary detailed result={action.item.latestPlacementResult} />
+          ) : null}
+
           {action.type === 'COMPLETE_TEST' ? (
             <div className="space-y-4">
               <div>
@@ -622,7 +663,7 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
           ) : null}
 
           <label className="block">
-            <FieldLabel>{action.type === 'REJECT' ? 'Lý do kết thúc *' : action.type === 'COMPLETE_TEST' && action.eligible === 'false' ? 'Lý do chưa đủ điều kiện *' : 'Ghi chú nội bộ'}</FieldLabel>
+            <FieldLabel>{action.type === 'REJECT' ? 'Lý do kết thúc *' : action.type === 'COMPLETE_TEST' && action.eligible === 'false' ? 'Lý do chưa đủ điều kiện *' : action.type === 'COMPLETE_TEST' ? 'Nhận xét đánh giá tại trung tâm' : 'Ghi chú nội bộ'}</FieldLabel>
             <textarea className={TEXTAREA_CLASS} onChange={(event) => onChange({ ...action, [action.type === 'REJECT' ? 'reason' : 'note']: event.target.value })} placeholder="Nội dung chỉ hiển thị trong khu vực vận hành." rows={4} value={action.type === 'REJECT' ? action.reason : action.note} />
           </label>
 
@@ -777,8 +818,8 @@ function EmptyState() {
   return (
     <section className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
       <BookOpenCheck className="h-12 w-12 text-slate-300" />
-      <h2 className="mt-4 text-xl font-black text-[#0b1c30]">Không có hồ sơ đăng ký</h2>
-      <p className="mt-2 text-sm text-slate-500">Không có học viên nào phù hợp với điều kiện tìm kiếm hoặc bộ lọc đang chọn.</p>
+      <h2 className="mt-4 text-xl font-black text-[#0b1c30]">Không có hồ sơ được phân công</h2>
+      <p className="mt-2 text-sm text-slate-500">Không có học viên nào phù hợp với bộ lọc hiện tại.</p>
     </section>
   );
 }

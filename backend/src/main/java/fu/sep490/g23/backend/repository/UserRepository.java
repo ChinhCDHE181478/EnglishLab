@@ -3,9 +3,12 @@ package fu.sep490.g23.backend.repository;
 import fu.sep490.g23.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,6 +23,17 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     @Query("select distinct user from User user join user.roles role where role.code in :roles")
     List<User> findDistinctByRoles_CodeIn(@Param("roles") Collection<String> roles);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select user
+            from User user join user.roles role
+            where role.code = :roleCode
+              and role.active = true
+              and user.emailVerified = true
+            order by user.id
+            """)
+    List<User> findEnabledByRoleCodeForUpdate(@Param("roleCode") String roleCode);
 
     /**
      * Streams only the avatar URLs for orphan-cleanup scans, avoiding loading every User row.

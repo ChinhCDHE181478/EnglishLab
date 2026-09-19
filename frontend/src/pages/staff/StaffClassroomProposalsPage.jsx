@@ -313,7 +313,7 @@ export default function StaffClassroomProposalsPage() {
       {!modalOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
       <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật đề xuất" />
       {loading ? <div className="grid gap-4 xl:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" key={index} />)}</div> : null}
-      {!loading && !pageItems.length ? <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center"><CalendarDays className="h-12 w-12 text-slate-300" /><h2 className="mt-4 text-xl font-black text-[#0b1c30]">Không có đề xuất trong tab này</h2><p className="mt-2 text-sm text-slate-500">Draft, Pending và Rejected được tách riêng nên một đề xuất không xuất hiện trùng tab.</p></div> : null}
+      {!loading && !pageItems.length ? <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center"><CalendarDays className="h-12 w-12 text-slate-300" /><h2 className="mt-4 text-xl font-black text-[#0b1c30]">Bạn chưa có đề xuất trong tab này</h2><p className="mt-2 text-sm text-slate-500">Các đề xuất do bạn tạo sẽ hiển thị tại đây.</p></div> : null}
       {!loading && pageItems.length ? (
         <div className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-2">

@@ -10,11 +10,13 @@ import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sep490.g23.backend.dto.request.classroom.EnrollStudentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
+import fu.sep490.g23.backend.dto.response.assessment.PlacementTestSummaryResponse;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentRequestHistoryResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.AuthToken;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.EnrollmentRequestStatusHistory;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
@@ -28,6 +30,7 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
 import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
@@ -35,6 +38,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.security.TrainingRolePolicy;
 import fu.sep490.g23.backend.service.assessment.PlacementEligibilityService;
+import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
@@ -46,10 +50,12 @@ import fu.sep490.g23.backend.service.mail.EnrollmentRequestMailService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
@@ -82,6 +88,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     private final ClassScheduleRepository classScheduleRepository;
     private final ClassEnrollmentRepository classEnrollmentRepository;
     private final UserRepository userRepository;
+    private final PlacementTestAttemptRepository placementTestAttemptRepository;
     private final PlacementEligibilityService placementEligibilityService;
     private final ClassroomOfferingService classSectionService;
     private final ClassroomConflictService classroomConflictService;
@@ -127,6 +134,8 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .studyWorkGoal(trimOrNull(request.getStudyWorkGoal()))
                 .preferredSchedule(trimOrNull(request.getPreferredSchedule()))
                 .learnerNote(trimOrNull(request.getNote()))
+                .reviewedBy(nextEnrollmentOwner())
+                .reviewedAt(LocalDateTime.now())
                 .build();
         enrollmentRequestRepository.save(courseRegistrationRequest);
         recordTransition(
@@ -255,10 +264,18 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             EnrollmentRequestStatus status,
             String staffEmail
     ) {
-        assertStaffViewer(requireUser(staffEmail));
-        List<CourseRegistrationRequest> requests = status == null
-                ? enrollmentRequestRepository.findAllByOrderByCreatedAtDesc()
-                : enrollmentRequestRepository.findByStatusOrderByCreatedAtAsc(status);
+        User staff = requireUser(staffEmail);
+        assertStaffViewer(staff);
+        List<CourseRegistrationRequest> requests;
+        if (staff.hasRole(RoleCodes.ADMIN)) {
+            requests = status == null
+                    ? enrollmentRequestRepository.findAllByOrderByCreatedAtDesc()
+                    : enrollmentRequestRepository.findByStatusOrderByCreatedAtAsc(status);
+        } else {
+            requests = status == null
+                    ? enrollmentRequestRepository.findByReviewedByOrderByCreatedAtDesc(staff)
+                    : enrollmentRequestRepository.findByReviewedByAndStatusOrderByCreatedAtAsc(staff, status);
+        }
         return requests.stream().map(this::toResponse).toList();
     }
 
@@ -270,7 +287,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireRequest(requestId);
+        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
         if (request.getStatus() != EnrollmentRequestStatus.SUBMITTED
                 && request.getStatus() != EnrollmentRequestStatus.INVITATION_SENT
                 && request.getStatus() != EnrollmentRequestStatus.TEST_SCHEDULED) {
@@ -281,8 +298,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         }
         request.setInvitationSentAt(LocalDateTime.now());
         request.setStaffNote(trimOrNull(payload.getNote()));
-        request.setReviewedBy(staff);
-        request.setReviewedAt(LocalDateTime.now());
         transition(
                 request,
                 EnrollmentRequestStatus.TEST_SCHEDULED,
@@ -303,13 +318,11 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireRequest(requestId);
+        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
         if (request.getStatus() != EnrollmentRequestStatus.TEST_SCHEDULED) {
             throw new IllegalArgumentException("Chỉ có thể ghi kết quả sau khi hồ sơ đã được xếp lịch test.");
         }
         request.setStaffNote(trimOrNull(payload.getNote()));
-        request.setReviewedBy(staff);
-        request.setReviewedAt(LocalDateTime.now());
         if (Boolean.TRUE.equals(payload.getEligible())) {
             if (payload.getPlacementLevel() == null) {
                 throw new IllegalArgumentException("Vui lòng chọn trình độ phù hợp trước khi chuyển hồ sơ sang chờ xếp lớp.");
@@ -347,14 +360,12 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireRequest(requestId);
+        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
         if (TERMINAL_STATUSES.contains(request.getStatus())
                 || request.getStatus() == EnrollmentRequestStatus.CLASS_PROPOSED) {
             throw new IllegalArgumentException("Không thể từ chối yêu cầu ở trạng thái hiện tại.");
         }
         request.setRejectionReason(payload.getReason().trim());
-        request.setReviewedBy(staff);
-        request.setReviewedAt(LocalDateTime.now());
         transition(request, EnrollmentRequestStatus.REJECTED, staff, payload.getReason().trim());
         return toResponse(request);
     }
@@ -367,7 +378,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireRequest(requestId);
+        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
         if (request.getStatus() != EnrollmentRequestStatus.WAITING_FOR_CLASS) {
             throw new IllegalArgumentException(
                     "Chỉ có thể xếp lớp sau khi học viên đã test, đủ điều kiện và hồ sơ đang chờ xếp lớp."
@@ -386,8 +397,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         }
         request.setAssignedClassSection(target);
         request.setStaffNote(trimOrNull(payload.getNote()));
-        request.setReviewedBy(staff);
-        request.setReviewedAt(LocalDateTime.now());
         transition(request, EnrollmentRequestStatus.CLASS_ASSIGNED, staff,
                 "Staff đã xếp học viên vào lớp " + target.getTitle() + ".");
         enrollmentRequestMailService.sendClassAssignment(request, target);
@@ -399,7 +408,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     public List<Long> listAvailableClassroomIds(Long requestId, String staffEmail) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireRequest(requestId);
+        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
         if (request.getStatus() != EnrollmentRequestStatus.WAITING_FOR_CLASS || request.getLearner() == null) {
             return List.of();
         }
@@ -509,6 +518,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .invitationSentAt(request.getInvitationSentAt())
                 .placementAttemptId(request.getPlacementAttempt() == null ? null : request.getPlacementAttempt().getId())
                 .placementEligibility(eligibility)
+                .latestPlacementResult(latestPlacementResult(request.getLearner()))
                 .assignedClassroomId(request.getAssignedClassSection() == null ? null : request.getAssignedClassSection().getId())
                 .history(historyRepository.findByCourseRegistrationRequestIdOrderByCreatedAtAscIdAsc(request.getId()).stream()
                         .map(this::toHistoryResponse)
@@ -516,6 +526,44 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .createdAt(request.getCreatedAt())
                 .updatedAt(request.getUpdatedAt())
                 .build();
+    }
+
+    private PlacementTestSummaryResponse latestPlacementResult(User learner) {
+        return placementTestAttemptRepository
+                .findByStudentAndTestCodeOrderBySubmittedAtDesc(
+                        learner,
+                        PlacementTestDefinitionService.TEST_CODE
+                ).stream()
+                .filter(attempt -> !isSkillAssessment(attempt))
+                .findFirst()
+                .map(attempt -> PlacementTestSummaryResponse.builder()
+                        .attemptId(attempt.getId())
+                        .examType(placementExamType(attempt))
+                        .listeningScore(attempt.getListeningScore())
+                        .readingScore(attempt.getReadingScore())
+                        .writingScore(attempt.getWritingScore())
+                        .speakingScore(attempt.getSpeakingScore())
+                        .overallScore(attempt.getOverallScore())
+                        .evaluationStatus(attempt.getEvaluationStatus())
+                        .recommendedLevel(attempt.getRecommendedLevel())
+                        .submittedAt(attempt.getSubmittedAt())
+                        .reviewedAt(attempt.getReviewedAt())
+                        .build())
+                .orElse(null);
+    }
+
+    private boolean isSkillAssessment(PlacementTestAttempt attempt) {
+        return String.valueOf(attempt.getAiFeedbackJson()).contains("\"examType\":\"SKILL\"");
+    }
+
+    private String placementExamType(PlacementTestAttempt attempt) {
+        String feedback = String.valueOf(attempt.getAiFeedbackJson());
+        if (feedback.contains("\"examType\":\"TOEIC\"")
+                || attempt.getOverallScore() != null
+                && attempt.getOverallScore().compareTo(BigDecimal.valueOf(9)) > 0) {
+            return "TOEIC";
+        }
+        return "IELTS";
     }
 
     private EnrollmentDemandReportResponse toDemandReport(
@@ -589,6 +637,41 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu đăng ký."));
     }
 
+    private CourseRegistrationRequest requireOwnedRequest(Long id, User staff) {
+        CourseRegistrationRequest request = requireRequest(id);
+        if (staff.hasRole(RoleCodes.ADMIN)) {
+            return request;
+        }
+        if (request.getReviewedBy() == null
+                || !request.getReviewedBy().getId().equals(staff.getId())) {
+            throw new AccessDeniedException("Hồ sơ này do nhân viên khác phụ trách.");
+        }
+        return request;
+    }
+
+    private User nextEnrollmentOwner() {
+        List<User> staffMembers = userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF);
+        if (staffMembers.isEmpty()) {
+            throw new IllegalStateException("Hiện chưa có nhân viên phụ trách đăng ký đang hoạt động.");
+        }
+        User lastOwner = enrollmentRequestRepository
+                .findFirstByReviewedByInAndReviewedAtIsNotNullAndRequestSourceOrderByReviewedAtDescIdDesc(
+                        staffMembers,
+                        EnrollmentRequestSource.ONLINE
+                )
+                .map(CourseRegistrationRequest::getReviewedBy)
+                .orElse(null);
+        if (lastOwner == null) {
+            return staffMembers.get(0);
+        }
+        for (int index = 0; index < staffMembers.size(); index++) {
+            if (staffMembers.get(index).getId().equals(lastOwner.getId())) {
+                return staffMembers.get((index + 1) % staffMembers.size());
+            }
+        }
+        return staffMembers.get(0);
+    }
+
     private void assertStaff(User user) {
         if (!TrainingRolePolicy.canPerformStaffAction(user)) {
             throw new IllegalArgumentException("Bạn không có quyền xử lý yêu cầu đăng ký.");
@@ -596,7 +679,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     }
 
     private void assertStaffViewer(User user) {
-        if (!TrainingRolePolicy.canOperate(user)) {
+        if (!TrainingRolePolicy.canPerformStaffAction(user)) {
             throw new IllegalArgumentException("Bạn không có quyền xem yêu cầu đăng ký.");
         }
     }
