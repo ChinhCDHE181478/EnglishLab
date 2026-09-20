@@ -223,6 +223,11 @@ export default function StaffEnrollmentRequestsPage() {
     }
   };
 
+  const openActionFromDetail = async (type, item) => {
+    setDetailRequest(null);
+    await openAction(type, item);
+  };
+
   const scheduleTest = () => {
     const appointmentAt = combineLocalDateTime(action.appointmentDate, action.appointmentTime);
     if (!appointmentAt || !action.location.trim()) {
@@ -505,6 +510,7 @@ export default function StaffEnrollmentRequestsPage() {
       {detailRequest ? (
         <EnrollmentRequestDetailModal
           item={detailRequest}
+          onAction={openActionFromDetail}
           onClose={() => setDetailRequest(null)}
         />
       ) : null}
@@ -537,7 +543,7 @@ export default function StaffEnrollmentRequestsPage() {
   );
 }
 
-function ActionButton({ danger = false, icon: Icon, label, neutral = false, onClick, success = false }) {
+function ActionButton({ danger = false, icon: Icon, label, modal = false, neutral = false, onClick, success = false }) {
   const tone = danger
     ? 'border border-rose-200 text-rose-700 hover:bg-rose-50'
     : success
@@ -546,15 +552,21 @@ function ActionButton({ danger = false, icon: Icon, label, neutral = false, onCl
         ? 'border border-slate-200 bg-white text-slate-700 hover:border-[#dfbfbd] hover:bg-[#fff4f5] hover:text-[#730014]'
         : 'bg-[#4b0009] text-white hover:bg-[#730014]';
   return (
-    <button className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${tone}`} onClick={onClick} type="button">
-      <Icon className="h-3.5 w-3.5" />
+    <button
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition active:scale-95 ${modal ? 'h-10 px-4' : 'px-2.5 py-1.5'} ${tone}`}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon className={modal ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
       {label}
     </button>
   );
 }
 
-function EnrollmentRequestDetailModal({ item, onClose }) {
+function EnrollmentRequestDetailModal({ item, onAction, onClose }) {
   const history = item.history || [];
+  const actions = getEnrollmentRequestActions(item.status);
+  const hasActions = actions.canSchedule || actions.canCompleteTest || actions.canAssign || actions.canReject;
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     const closeOnEscape = (event) => {
@@ -642,6 +654,28 @@ function EnrollmentRequestDetailModal({ item, onClose }) {
               <p className="text-sm text-slate-500">Chưa có lịch sử xử lý.</p>
             )}
           </DetailSection>
+        </div>
+
+        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <button className={`${SECONDARY_BUTTON_CLASS} justify-center`} onClick={onClose} type="button">
+            Đóng
+          </button>
+          {hasActions ? (
+            <div className="flex flex-wrap justify-end gap-2">
+              {actions.canSchedule ? (
+                <ActionButton icon={CalendarClock} label="Xếp lịch & gửi email" modal onClick={() => onAction('SCHEDULE', item)} />
+              ) : null}
+              {actions.canCompleteTest ? (
+                <ActionButton icon={CheckCircle2} label="Ghi kết quả" modal onClick={() => onAction('COMPLETE_TEST', item)} />
+              ) : null}
+              {actions.canAssign ? (
+                <ActionButton icon={UserRoundCheck} label="Xếp lớp" modal onClick={() => onAction('ASSIGN', item)} success />
+              ) : null}
+              {actions.canReject ? (
+                <ActionButton danger icon={XCircle} label="Kết thúc" modal onClick={() => onAction('REJECT', item)} />
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
