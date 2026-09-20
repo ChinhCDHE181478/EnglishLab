@@ -65,6 +65,8 @@ class ClassroomChangeRequestServiceImplTest {
     private ClassSchedule sourceSession;
     private User teacher;
     private User staff;
+    private User secondStaff;
+    private User manager;
 
     @BeforeEach
     void setUp() {
@@ -102,6 +104,16 @@ class ClassroomChangeRequestServiceImplTest {
                 .fullName("Nhân viên đào tạo")
                 .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.STAFF))
                 .build();
+        secondStaff = User.builder()
+                .id(100L)
+                .fullName("Nhân viên thứ hai")
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.STAFF))
+                .build();
+        manager = User.builder()
+                .id(101L)
+                .fullName("Quản lý đào tạo")
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.MANAGER))
+                .build();
     }
 
     @Test
@@ -109,6 +121,10 @@ class ClassroomChangeRequestServiceImplTest {
         when(accessHelper.requireUser("teacher@example.com")).thenReturn(teacher);
         when(offeringRepository.findById(21L)).thenReturn(Optional.of(offering));
         when(sessionRepository.findById(31L)).thenReturn(Optional.of(sourceSession));
+        when(userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF))
+                .thenReturn(List.of(staff, secondStaff));
+        when(changeRequestRepository.findFirstByReviewerInOrderByCreatedAtDescIdDesc(List.of(staff, secondStaff)))
+                .thenReturn(Optional.empty());
 
         CreateChangeRequestRequest request = makeupRequest("""
                 {
@@ -136,6 +152,17 @@ class ClassroomChangeRequestServiceImplTest {
         assertThat(conflictCaptor.getValue().getCheckSessionLocked()).isFalse();
         assertThat(conflictCaptor.getValue().getSessionDate()).isEqualTo(LocalDate.of(2026, 7, 20));
         assertThat(response.getId()).isEqualTo(51L);
+        ArgumentCaptor<ClassroomChangeRequest> requestCaptor = ArgumentCaptor.forClass(ClassroomChangeRequest.class);
+        verify(changeRequestRepository).save(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getReviewer()).isEqualTo(staff);
+        assertThat(requestCaptor.getValue().getReviewedAt()).isNull();
+        verify(notificationService).notifyUser(
+                eq(staff),
+                eq("CLASSROOM_CHANGE_REQUEST_PENDING"),
+                any(),
+                any(),
+                any()
+        );
     }
 
     @Test
@@ -156,6 +183,7 @@ class ClassroomChangeRequestServiceImplTest {
     @Test
     void checkPendingMakeupConflict_DoesNotTreatCompletedSourceAsLocked() {
         ClassroomChangeRequest pending = pendingMakeupRequest();
+        when(accessHelper.requireUser("tm@example.com")).thenReturn(staff);
         when(changeRequestRepository.findById(1L)).thenReturn(Optional.of(pending));
         when(conflictService.check(any(ConflictCheckRequest.class)))
                 .thenReturn(ConflictCheckResultResponse.builder()
@@ -164,7 +192,7 @@ class ClassroomChangeRequestServiceImplTest {
                         .conflicts(List.of())
                         .build());
 
-        ConflictCheckResultResponse result = service.checkPendingConflict(1L);
+        ConflictCheckResultResponse result = service.checkPendingConflict(1L, "tm@example.com");
 
         ArgumentCaptor<ConflictCheckRequest> conflictCaptor = ArgumentCaptor.forClass(ConflictCheckRequest.class);
         verify(conflictService).check(conflictCaptor.capture());
@@ -215,6 +243,84 @@ class ClassroomChangeRequestServiceImplTest {
         verify(offeringService, never()).createSession(any(), any(), eq(true));
     }
 
+    @Test
+    void createRequest_AssignsNextStaffInRoundRobinOrder() {
+        ClassroomChangeRequest previous = pendingMakeupRequest();
+        previous.setReviewer(staff);
+        when(accessHelper.requireUser("teacher@example.com")).thenReturn(teacher);
+        when(offeringRepository.findById(21L)).thenReturn(Optional.of(offering));
+        when(sessionRepository.findById(31L)).thenReturn(Optional.of(sourceSession));
+        when(userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF))
+                .thenReturn(List.of(staff, secondStaff));
+        when(changeRequestRepository.findFirstByReviewerInOrderByCreatedAtDescIdDesc(List.of(staff, secondStaff)))
+                .thenReturn(Optional.of(previous));
+        when(changeRequestRepository.save(any(ClassroomChangeRequest.class)))
+                .thenAnswer(invocation -> {
+                    ClassroomChangeRequest saved = invocation.getArgument(0);
+                    saved.setId(52L);
+                    return saved;
+                });
+        when(mapper.changeRequestTypeLabel(ClassroomChangeRequestType.CREATE_MAKEUP_SESSION))
+                .thenReturn("Tạo buổi học bù");
+
+        service.create(makeupRequest("""
+                {
+                  "sessionDate": "2026-07-20",
+                  "startTime": "18:00",
+                  "endTime": "20:00",
+                  "teacherId": 41
+                }
+                """), "teacher@example.com");
+
+        ArgumentCaptor<ClassroomChangeRequest> requestCaptor = ArgumentCaptor.forClass(ClassroomChangeRequest.class);
+        verify(changeRequestRepository).save(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getReviewer()).isEqualTo(secondStaff);
+    }
+
+    @Test
+    void listPending_OnlyReturnsRequestsAssignedToStaff() {
+        ClassroomChangeRequest pending = pendingMakeupRequest();
+        when(accessHelper.requireUser("tm@example.com")).thenReturn(staff);
+        when(changeRequestRepository.findByReviewerAndStatusOrderByCreatedAtDesc(
+                staff,
+                ClassroomChangeRequestStatus.PENDING
+        )).thenReturn(List.of(pending));
+
+        service.listPending("tm@example.com");
+
+        verify(changeRequestRepository).findByReviewerAndStatusOrderByCreatedAtDesc(
+                staff,
+                ClassroomChangeRequestStatus.PENDING
+        );
+        verify(changeRequestRepository, never()).findByStatusOrderByCreatedAtDesc(any());
+    }
+
+    @Test
+    void listPending_ManagerKeepsOversightOfAllRequests() {
+        when(accessHelper.requireUser("manager@example.com")).thenReturn(manager);
+        when(changeRequestRepository.findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING))
+                .thenReturn(List.of(pendingMakeupRequest()));
+
+        service.listPending("manager@example.com");
+
+        verify(changeRequestRepository).findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING);
+        verify(changeRequestRepository, never()).findByReviewerAndStatusOrderByCreatedAtDesc(any(), any());
+    }
+
+    @Test
+    void approveRequest_RejectsAnotherStaffOwner() {
+        ClassroomChangeRequest pending = pendingMakeupRequest();
+        when(accessHelper.requireUser("staff2@example.com")).thenReturn(secondStaff);
+        when(changeRequestRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> service.approve(1L, new ReviewChangeRequestRequest(), "staff2@example.com"))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("nhân viên khác");
+
+        verify(scheduleLockService, never()).lockDates(any());
+        verify(changeRequestRepository, never()).save(any());
+    }
+
     private ClassroomChangeRequest pendingMakeupRequest() {
         return ClassroomChangeRequest.builder()
                 .id(1L)
@@ -232,6 +338,7 @@ class ClassroomChangeRequestServiceImplTest {
                         """)
                 .reason("Tổ chức buổi học bù")
                 .status(ClassroomChangeRequestStatus.PENDING)
+                .reviewer(staff)
                 .build();
     }
 

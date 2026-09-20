@@ -20,8 +20,8 @@ public class StaffClassroomRequestController {
     private final ClassroomChangeRequestService changeRequestService;
 
     @GetMapping("/pending")
-    public ResponseEntity<List<ClassroomChangeRequestResponse>> listPending() {
-        return ResponseEntity.ok(changeRequestService.listPending());
+    public ResponseEntity<List<ClassroomChangeRequestResponse>> listPending(Authentication authentication) {
+        return ResponseEntity.ok(changeRequestService.listPending(authentication.getName()));
     }
 
     @PostMapping("/{requestId}/approve")
@@ -43,7 +43,10 @@ public class StaffClassroomRequestController {
     }
 
     @PostMapping("/{requestId}/conflict-check")
-    public ResponseEntity<ConflictCheckResultResponse> checkConflict(@PathVariable Long requestId) {
-        return ResponseEntity.ok(changeRequestService.checkPendingConflict(requestId));
+    public ResponseEntity<ConflictCheckResultResponse> checkConflict(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(changeRequestService.checkPendingConflict(requestId, authentication.getName()));
     }
 }

@@ -21,11 +21,11 @@ public interface ClassroomChangeRequestService {
 
     Map<String, Long> getMyStats(String requesterEmail);
 
-    List<ClassroomChangeRequestResponse> listPending();
+    List<ClassroomChangeRequestResponse> listPending(String reviewerEmail);
 
     ClassroomChangeRequestResponse approve(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail);
 
     ClassroomChangeRequestResponse reject(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail);
 
-    ConflictCheckResultResponse checkPendingConflict(Long requestId);
+    ConflictCheckResultResponse checkPendingConflict(Long requestId, String reviewerEmail);
 }

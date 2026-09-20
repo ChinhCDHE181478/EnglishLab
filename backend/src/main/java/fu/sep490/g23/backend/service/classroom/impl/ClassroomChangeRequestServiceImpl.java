@@ -26,6 +26,7 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
@@ -38,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -114,10 +116,12 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 .newValuesJson(request.getNewValuesJson())
                 .reason(request.getReason())
                 .status(ClassroomChangeRequestStatus.PENDING)
+                .reviewer(nextRequestOwner())
                 .build();
 
         changeRequest = changeRequestRepository.save(changeRequest);
-        notificationService.notifyTrainingStaff(
+        notificationService.notifyUser(
+                changeRequest.getReviewer(),
                 "CLASSROOM_CHANGE_REQUEST_PENDING",
                 "Yêu cầu thay đổi lớp học",
                 requester.getFullName() + " gửi yêu cầu " + mapper.changeRequestTypeLabel(request.getRequestType()) + ".",
@@ -190,8 +194,16 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClassroomChangeRequestResponse> listPending() {
-        return changeRequestRepository.findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING).stream()
+    public List<ClassroomChangeRequestResponse> listPending(String reviewerEmail) {
+        User reviewer = accessHelper.requireUser(reviewerEmail);
+        accessHelper.assertStaffOperator(reviewer);
+        List<ClassroomChangeRequest> requests = canReviewEveryRequest(reviewer)
+                ? changeRequestRepository.findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING)
+                : changeRequestRepository.findByReviewerAndStatusOrderByCreatedAtDesc(
+                        reviewer,
+                        ClassroomChangeRequestStatus.PENDING
+                );
+        return requests.stream()
                 .map(mapper::toChangeRequestResponse)
                 .toList();
     }
@@ -202,6 +214,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         accessHelper.assertStaffOperator(reviewer);
 
         ClassroomChangeRequest changeRequest = findPendingRequest(requestId);
+        assertAssignedReviewer(changeRequest, reviewer);
         ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
         configureSessionLockCheck(conflictRequest, changeRequest);
 
@@ -239,12 +252,15 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
     @Override
     @Transactional(readOnly = true)
-    public ConflictCheckResultResponse checkPendingConflict(Long requestId) {
+    public ConflictCheckResultResponse checkPendingConflict(Long requestId, String reviewerEmail) {
+        User reviewer = accessHelper.requireUser(reviewerEmail);
+        accessHelper.assertStaffOperator(reviewer);
         ClassroomChangeRequest changeRequest = changeRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu thay đổi."));
         if (changeRequest.getStatus() != ClassroomChangeRequestStatus.PENDING) {
             throw new RuntimeException("Chỉ có thể kiểm tra trùng lịch cho yêu cầu đang chờ duyệt.");
         }
+        assertAssignedReviewer(changeRequest, reviewer);
         ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
         configureSessionLockCheck(conflictRequest, changeRequest);
         return conflictService.check(conflictRequest);
@@ -256,6 +272,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         accessHelper.assertStaffOperator(reviewer);
 
         ClassroomChangeRequest changeRequest = findPendingRequest(requestId);
+        assertAssignedReviewer(changeRequest, reviewer);
         changeRequest.setStatus(ClassroomChangeRequestStatus.REJECTED);
         changeRequest.setReviewer(reviewer);
         changeRequest.setReviewedAt(LocalDateTime.now());
@@ -282,6 +299,39 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             throw new RuntimeException("Yêu cầu không còn ở trạng thái chờ duyệt.");
         }
         return changeRequest;
+    }
+
+    private User nextRequestOwner() {
+        List<User> staffMembers = userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF);
+        if (staffMembers.isEmpty()) {
+            throw new IllegalStateException("Hiện chưa có nhân viên phụ trách yêu cầu đang hoạt động.");
+        }
+        User lastOwner = changeRequestRepository
+                .findFirstByReviewerInOrderByCreatedAtDescIdDesc(staffMembers)
+                .map(ClassroomChangeRequest::getReviewer)
+                .orElse(null);
+        if (lastOwner == null) {
+            return staffMembers.get(0);
+        }
+        for (int index = 0; index < staffMembers.size(); index++) {
+            if (staffMembers.get(index).getId().equals(lastOwner.getId())) {
+                return staffMembers.get((index + 1) % staffMembers.size());
+            }
+        }
+        return staffMembers.get(0);
+    }
+
+    private void assertAssignedReviewer(ClassroomChangeRequest request, User reviewer) {
+        if (canReviewEveryRequest(reviewer)) {
+            return;
+        }
+        if (request.getReviewer() == null || !request.getReviewer().getId().equals(reviewer.getId())) {
+            throw new AccessDeniedException("Yêu cầu này do nhân viên khác phụ trách.");
+        }
+    }
+
+    private boolean canReviewEveryRequest(User reviewer) {
+        return reviewer.hasRole(RoleCodes.MANAGER) || reviewer.hasRole(RoleCodes.ADMIN);
     }
 
     /**
