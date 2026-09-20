@@ -34,6 +34,7 @@ const views = [
   { label: 'Tất cả của tôi', value: 'ALL' },
   { label: 'Mới đăng ký', value: 'SUBMITTED' },
   { label: 'Đã hẹn test', value: 'TEST_SCHEDULED' },
+  { label: 'Chờ học viên xác nhận', value: 'CLASS_PROPOSED' },
   { label: 'Đủ điều kiện', value: 'WAITING_FOR_CLASS' },
   { label: 'Hoàn tất', value: 'CLASS_ASSIGNED' },
   { label: 'Không phù hợp', value: 'REJECTED' },
@@ -63,13 +64,13 @@ const initialAction = {
   type: '',
   item: null,
   classroomId: '',
+  recommendedCourseOfferingId: '',
   note: '',
   reason: '',
   appointmentDate: '',
   appointmentTime: '',
   location: 'EnglishLab Campus, Hà Nội',
   eligible: 'true',
-  placementLevel: '',
 };
 
 export default function StaffEnrollmentRequestsPage() {
@@ -85,6 +86,7 @@ export default function StaffEnrollmentRequestsPage() {
 
   const [requests, setRequests] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
+  const [courseOfferings, setCourseOfferings] = useState([]);
   const [keyword, setKeyword] = useState('');
   const [trackFilter, setTrackFilter] = useState('ALL');
   const [sourceFilter, setSourceFilter] = useState('ALL');
@@ -93,6 +95,7 @@ export default function StaffEnrollmentRequestsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [classroomLoadError, setClassroomLoadError] = useState('');
+  const [courseOfferingLoadError, setCourseOfferingLoadError] = useState('');
   const [success, setSuccess] = useState('');
   const [action, setAction] = useState(initialAction);
   const [assignmentAvailability, setAssignmentAvailability] = useState({ loading: false, ids: null });
@@ -103,10 +106,21 @@ export default function StaffEnrollmentRequestsPage() {
     setLoading(true);
     setError('');
     setClassroomLoadError('');
-    const result = await loadStaffEnrollmentData(
-      () => enrollmentRequestApi.listForStaff(),
-      () => classroomApi.getStaffClassrooms(),
-    );
+    setCourseOfferingLoadError('');
+    const loadCourseOfferings = async () => {
+      try {
+        return { items: await classroomApi.getStaffInstructorLedCourses(), error: null };
+      } catch (requestError) {
+        return { items: [], error: requestError };
+      }
+    };
+    const [result, courseOfferingResult] = await Promise.all([
+      loadStaffEnrollmentData(
+        () => enrollmentRequestApi.listForStaff(),
+        () => classroomApi.getStaffClassrooms(),
+      ),
+      loadCourseOfferings(),
+    ]);
     if (result.requestError) {
       setRequests([]);
       setError(getStaffEnrollmentLoadError(result.requestError, 'requests'));
@@ -120,6 +134,10 @@ export default function StaffEnrollmentRequestsPage() {
       setClassrooms(result.classrooms
         .filter((classroom) => isAssignableClassroom(classroom))
         .sort((left, right) => String(left.startDate).localeCompare(String(right.startDate))));
+    }
+    setCourseOfferings(courseOfferingResult.items || []);
+    if (courseOfferingResult.error) {
+      setCourseOfferingLoadError('Không thể tải danh sách khóa học phù hợp để đề xuất. Vui lòng tải lại.');
     }
     setLoading(false);
   };
@@ -246,10 +264,6 @@ export default function StaffEnrollmentRequestsPage() {
   };
 
   const completeTest = () => {
-    if (action.eligible === 'true' && !action.placementLevel) {
-      setError('Vui lòng chọn trình độ phù hợp của học viên.');
-      return;
-    }
     if (action.eligible === 'false' && !action.note.trim()) {
       setError('Vui lòng ghi rõ lý do học viên chưa đủ điều kiện.');
       return;
@@ -257,12 +271,20 @@ export default function StaffEnrollmentRequestsPage() {
     runAction(
       () => enrollmentRequestApi.completeTest(action.item.id, {
         eligible: action.eligible === 'true',
-        placementLevel: action.eligible === 'true' ? action.placementLevel : null,
+        recommendedCourseOfferingId: action.eligible === 'false' && action.recommendedCourseOfferingId
+          ? Number(action.recommendedCourseOfferingId)
+          : null,
         note: action.note.trim() || null,
       }),
-      (updated) => updated.status === 'WAITING_FOR_CLASS'
-        ? `Đã xác nhận ${updated.contactName || updated.learnerName} đủ điều kiện học.`
-        : `Đã hoàn tất hồ sơ test của ${updated.contactName || updated.learnerName}.`,
+      (updated) => {
+        if (updated.status === 'WAITING_FOR_CLASS') {
+          return `Đã gửi kết quả và chuyển ${updated.contactName || updated.learnerName} sang chờ xếp lớp.`;
+        }
+        if (updated.status === 'CLASS_PROPOSED') {
+          return `Đã gửi khóa học đề xuất để ${updated.contactName || updated.learnerName} xác nhận.`;
+        }
+        return `Đã gửi kết quả đánh giá cho ${updated.contactName || updated.learnerName}.`;
+      },
       'Không thể ghi nhận kết quả test.',
     );
   };
@@ -521,6 +543,8 @@ export default function StaffEnrollmentRequestsPage() {
           assignmentAvailability={assignmentAvailability}
           classroomLoadError={classroomLoadError}
           classrooms={classrooms}
+          courseOfferings={courseOfferings}
+          courseOfferingLoadError={courseOfferingLoadError}
           error={error}
           onChange={setAction}
           onClose={() => setAction(initialAction)}
@@ -734,11 +758,11 @@ function PlacementScoreSummary({ detailed = false, result }) {
   );
 }
 
-function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, error, onChange, onClose, onConfirm, working }) {
+function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, courseOfferingLoadError, courseOfferings, error, onChange, onClose, onConfirm, working }) {
   const titles = {
     SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
     COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá trực tiếp tại trung tâm.'],
-    ASSIGN: ['Xếp lớp chính thức', 'Chọn lớp phù hợp theo kết quả test; khóa học học viên quan tâm ban đầu chỉ dùng để tham khảo.'],
+    ASSIGN: ['Xếp lớp chính thức', 'Chọn lớp thuộc khóa học đã được xác nhận và không trùng lịch của học viên.'],
     REJECT: ['Kết thúc hồ sơ', 'Dùng khi học viên từ chối tiếp tục hoặc hồ sơ không thể xử lý.'],
   };
   const [title, description] = titles[action.type];
@@ -783,12 +807,41 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
             <div className="space-y-4">
               <div>
                 <FieldLabel>Kết quả *</FieldLabel>
-                <BrandedSelect onChange={(event) => onChange({ ...action, eligible: event.target.value, note: event.target.value === 'false' ? '' : action.note })} options={[{ label: 'Đủ điều kiện học', value: 'true' }, { label: 'Chưa đủ điều kiện', value: 'false' }]} value={action.eligible} />
+                <BrandedSelect
+                  onChange={(event) => onChange({
+                    ...action,
+                    eligible: event.target.value,
+                    recommendedCourseOfferingId: event.target.value === 'true' ? '' : action.recommendedCourseOfferingId,
+                  })}
+                  options={[
+                    { label: 'Phù hợp với khóa học đã đăng ký', value: 'true' },
+                    { label: 'Cần chuyển sang khóa học khác', value: 'false' },
+                  ]}
+                  value={action.eligible}
+                />
               </div>
-              {action.eligible === 'true' ? (
+              {action.eligible === 'false' ? (
                 <div>
-                  <FieldLabel>Trình độ phù hợp *</FieldLabel>
-                  <BrandedSelect onChange={(event) => onChange({ ...action, placementLevel: event.target.value })} options={placementOptions} placeholder="Chọn trình độ" value={action.placementLevel} />
+                  <FieldLabel>Khóa học phù hợp đề xuất</FieldLabel>
+                  <BrandedSelect
+                    onChange={(event) => onChange({ ...action, recommendedCourseOfferingId: event.target.value })}
+                    options={courseOfferings
+                      .filter((item) => String(item.id) !== String(action.item.courseOfferingId))
+                      .map((item) => ({
+                        label: item.title,
+                        value: String(item.id),
+                        description: item.entryLevel || item.code || '',
+                      }))}
+                    placeholder="Không đề xuất khóa học khác"
+                    searchable
+                    value={action.recommendedCourseOfferingId}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Nếu chọn khóa khác, học viên phải xác nhận trước khi hồ sơ được chuyển sang chờ xếp lớp.
+                  </p>
+                  {courseOfferingLoadError ? (
+                    <p className="mt-2 text-xs font-semibold text-rose-600">{courseOfferingLoadError}</p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
