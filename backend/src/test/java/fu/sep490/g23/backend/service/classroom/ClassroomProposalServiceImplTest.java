@@ -79,6 +79,7 @@ class ClassroomProposalServiceImplTest {
     private ClassroomProposalServiceImpl service;
     private User learner;
     private User staff;
+    private User secondStaff;
     private User manager;
     private User teacher;
     private InstructorLedCourse courseOffering;
@@ -100,6 +101,7 @@ class ClassroomProposalServiceImplTest {
         );
         learner = user(1L, "learner@example.com", RoleCodes.LEARNER);
         staff = user(2L, "staff@example.com", RoleCodes.STAFF);
+        secondStaff = user(5L, "staff2@example.com", RoleCodes.STAFF);
         manager = user(3L, "manager@example.com", RoleCodes.MANAGER);
         teacher = user(4L, "teacher@example.com", RoleCodes.TEACHER);
         courseOffering = InstructorLedCourse.builder()
@@ -350,6 +352,33 @@ class ClassroomProposalServiceImplTest {
         assertThat(response.getReviewNote()).isEqualTo(payload.getReason());
         assertThat(courseRegistrationRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         verify(enrollmentHistoryRepository, never()).save(any());
+    }
+
+    @Test
+    void staffOnlyListsProposalsCreatedByThem() {
+        ClassroomProposal proposal = pendingProposal();
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(proposalRepository.findByCreatedByOrderByCreatedAtDesc(staff)).thenReturn(List.of(proposal));
+
+        List<ClassroomProposalResponse> responses = service.listForStaff(null, staff.getEmail());
+
+        assertThat(responses).extracting(ClassroomProposalResponse::getId).containsExactly(proposal.getId());
+        verify(proposalRepository, never()).findAllByOrderByCreatedAtDesc();
+    }
+
+    @Test
+    void staffCannotSubmitAnotherStaffProposal() {
+        ClassroomProposal proposal = pendingProposal();
+        proposal.setApprovalStatus(ClassroomApprovalStatus.DRAFT);
+        proposal.setCreatedBy(secondStaff);
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
+
+        assertThatThrownBy(() -> service.submit(proposal.getId(), staff.getEmail()))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("do mình tạo");
+
+        verify(proposalRepository, never()).save(any());
     }
 
     private ClassroomProposal pendingProposal() {

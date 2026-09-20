@@ -131,6 +131,8 @@ import fu.sep490.g23.backend.repository.teacher.TeacherCredentialRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -165,8 +167,8 @@ import java.util.stream.Collectors;
 public class MasterDemoDataSeeder implements CommandLineRunner {
 
     private static final String MASTER_PASSWORD = "Password123!";
-    private static final String MASTER_REF_PREFIX = "master-demo://";
-    private static final String NATURAL_KEY_PREFIX = "master-demo:nk:";
+    private static final String MASTER_REF_PREFIX = MasterDemoMarkers.MASTER_REF_PREFIX;
+    private static final String NATURAL_KEY_PREFIX = "master-ops:nk:";
 
     private final MasterDemoProperties properties;
     private final MasterDemoCleanupService cleanupService;
@@ -220,6 +222,9 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
     private final ContentBankItemRepository contentBankItemRepository;
     private final CenterMaterialLibraryItemRepository centerMaterialLibraryItemRepository;
     private final LearnerLessonNoteRepository learnerLessonNoteRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -343,10 +348,20 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
                 continue;
             }
             if (account.path("preserved").asBoolean(false) || MasterDemoMarkers.isPreservedEmail(email)) {
-                userRepository.findByEmail(email).ifPresent(user -> byEmail.put(email, user));
+                userRepository.findByEmail(email).ifPresent(user -> {
+                    if (account.path("renameFullNameOnly").asBoolean(false) && account.hasNonNull("fullName")) {
+                        String fullName = account.path("fullName").asText();
+                        if (!fullName.isBlank() && !fullName.startsWith("(")) {
+                            semanticValidator.assertValidVietnameseName(email, fullName);
+                            user.setFullName(fullName);
+                            userRepository.save(user);
+                        }
+                    }
+                    byEmail.put(email, user);
+                });
                 continue;
             }
-            if (!MasterDemoMarkers.isMasterEmail(email)) {
+            if (!MasterDemoMarkers.isGeneratedMasterEmail(email)) {
                 continue;
             }
             String fullName = account.path("fullName").asText();
@@ -369,9 +384,27 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
                         .passwordSet(true)
                         .build();
                 applyOptionalProfile(created, account);
+                if (account.hasNonNull("createdAt")) {
+                    LocalDateTime createdAt = parseDateTime(account.path("createdAt").asText(null));
+                    if (createdAt != null) {
+                        created.setCreatedAt(createdAt);
+                    }
+                }
                 userRoleService.assignRole(created, role);
                 return userRepository.save(created);
             });
+            // created_at is @CreatedDate updatable=false — force cohort timestamp via native update
+            if (account.hasNonNull("createdAt") && user.getId() != null) {
+                LocalDateTime createdAt = parseDateTime(account.path("createdAt").asText(null));
+                if (createdAt != null) {
+                    entityManager.createNativeQuery(
+                                    "UPDATE users SET created_at = :createdAt WHERE id = :id")
+                            .setParameter("createdAt", createdAt)
+                            .setParameter("id", user.getId())
+                            .executeUpdate();
+                    user.setCreatedAt(createdAt);
+                }
+            }
             byEmail.put(email, user);
         }
         return byEmail;
@@ -809,26 +842,27 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
                         .totalRequiredAssessments(0)
                         .build()));
         if (version.getModules() == null || version.getModules().isEmpty()) {
-            String[] moduleTitles = {
-                    "Khởi động & định hướng",
-                    "Kỹ năng cốt lõi",
-                    "Luyện đề có hướng dẫn",
-                    "Ôn tập & mock"
-            };
-            for (int m = 0; m < moduleTitles.length; m++) {
+            String[][] curriculum = resolveStarterCurriculum(course);
+            for (int m = 0; m < curriculum.length; m++) {
+                String moduleTitle = curriculum[m][0];
+                String moduleDesc = curriculum[m][1];
                 OnlineCourseModule module = OnlineCourseModule.builder()
-                        .title(moduleTitles[m])
-                        .description("Module " + (m + 1) + " của khóa " + course.getTitle())
+                        .title(moduleTitle)
+                        .description(moduleDesc)
                         .sequenceNumber(m + 1)
                         .build();
                 for (int l = 1; l <= 3; l++) {
-                    int seq = m * 3 + l;
+                    String lessonTitle = curriculum[m][1 + l];
+                    String lessonBody = curriculum[m][4 + l];
+                    String contentText = "### " + lessonTitle + "\n\n" + lessonBody
+                            + "\n\n**Việc cần làm**\n- Đọc mục tiêu bài và ghi chú 3 ý chính.\n"
+                            + "- Hoàn thành phần luyện trong bài.\n- Đánh dấu hoàn thành khi đã tự kiểm tra.";
                     module.addLesson(OnlineLesson.builder()
                             .stableLessonKey(course.getSlug() + "-m" + (m + 1) + "-l" + l)
-                            .title("Module " + (m + 1) + " · " + moduleTitles[m] + " · phần " + l)
-                            .description("Nội dung luyện tập bài " + seq + ".")
+                            .title(lessonTitle)
+                            .description(lessonBody.length() > 480 ? lessonBody.substring(0, 480) : lessonBody)
                             .contentType("ARTICLE")
-                            .contentText("Nội dung demo cho bài " + seq + " — " + course.getTitle() + ".")
+                            .contentText(contentText)
                             .durationMinutes(20 + (l * 5))
                             .sequenceNumber(l)
                             .preview(m == 0 && l == 1)
@@ -847,6 +881,64 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
         if (course.getStatus() == PackageStatus.PUBLISHED) {
             onlineCourseVersionService.refreshPublishedSnapshot(course);
         }
+    }
+
+    /**
+     * Starter curriculum for MASTER online extras (no protected E2/Vocab).
+     * Each module row: title, description, 3 lesson titles, 3 lesson bodies.
+     */
+    private String[][] resolveStarterCurriculum(OnlineCourse course) {
+        String slug = course.getSlug() == null ? "" : course.getSlug();
+        String category = course.getCategory() == null || course.getCategory().getCode() == null
+                ? ""
+                : course.getCategory().getCode().toUpperCase();
+        if (slug.contains("writing") || (category.contains("IELTS") && slug.contains("writing"))) {
+            return new String[][]{
+                    {"Task 1 — Overview & số liệu", "Biểu đồ và overview.", "Cấu trúc Task 1 4 đoạn", "Overview không nhồi số", "Chọn số liệu then chốt", "Nắm intro-overview-body1-body2.", "Viết overview tối đa 2 câu.", "So sánh highest/lowest trong 1 body."},
+                    {"Task 1 — Process & so sánh", "Quy trình và ngôn ngữ so sánh.", "Mô tả process", "While/whereas/compared with", "Mini Task 1 timed", "Dùng first/then và bị động.", "Viết 10 câu so sánh số liệu.", "Làm 1 đề Task 1 trong 20 phút."},
+                    {"Task 2 — Dàn ý & lập luận", "Opinion/discussion.", "Paraphrase & thesis", "Body TEE", "Counter-argument ngắn", "Paraphrase 4 đề và viết thesis.", "Topic-explain-example cho 2 body.", "Thêm 1 câu thừa nhận rồi bác bỏ lịch sự."},
+                    {"Tự sửa & full Writing", "Checklist band 6+.", "Collocation Academic", "Câu phức an toàn", "Full mock 60 phút", "Học 15 collocation và viết 8 câu.", "Thêm although/which/if không lỗi.", "Làm Task 1+2 và tự chấm 4 tiêu chí."}
+            };
+        }
+        if (slug.contains("speaking")) {
+            return new String[][]{
+                    {"Fluency & Part 1", "Nói liền mạch.", "Fillers tự nhiên", "Part 1 topics", "Why + Example", "Trả lời ≥25 giây/câu.", "Ghi âm hometown/study/free time.", "Công thức Answer-Reason-Example."},
+                    {"Pronunciation", "Stress và linking.", "Word stress", "Linking & weak forms", "Âm /θ/ /ð/", "Luyện 15 từ Academic.", "Đọc 10 câu có linking.", "Minimal pairs thin/this/that."},
+                    {"Part 2 cue card", "Outline 1 phút — nói 2 phút.", "Khung what/when/who/why", "Kéo dài ý phút 1:20", "Timed Part 2 set", "3 cue card bullet rồi nói.", "Thêm feeling/result/contrast.", "2 cue card liên tiếp."},
+                    {"Part 3 & mock", "Câu trừu tượng.", "Compare/speculate", "Lý do 2 tầng", "Full mock Speaking", "would/might/tend to.", "Opinion-reason-example.", "Mock 11–14 phút và tự chấm."}
+            };
+        }
+        if (slug.contains("listening")) {
+            return new String[][]{
+                    {"Trước khi nghe", "Predict keywords.", "Đọc câu hỏi 30 giây", "Paraphrase Listening", "Distractors", "Gạch keyword và đoán loại thông tin.", "Bảng synonym thường gặp.", "Nhận biết speaker sửa đáp án."},
+                    {"Section 1–2", "Form và map.", "Spelling & số liệu", "Map labelling", "MCQ Section 2", "Checklist lỗi spelling.", "Ôn hướng và landmark.", "Loại đáp án nhiễu."},
+                    {"Section 3", "Academic dialogue.", "Ai nói gì", "Matching", "Khi bị lạc từ khóa", "Theo dõi speaker A/B.", "Loại dần matching.", "Skip & rejoin câu tiếp."},
+                    {"Section 4 & mock", "Lecture notes.", "Note-taking", "Summary completion", "Full Listening mock", "Ghi chú theo outline.", "Đọc trước chỗ trống.", "Đề full + error log."}
+            };
+        }
+        if (category.contains("TOEIC") || slug.contains("toeic")) {
+            return new String[][]{
+                    {"Listening Part 1–2", "Photos & Q-R.", "Part 1 ảnh", "Part 2 loại câu hỏi", "Đồng âm & paraphrase", "Loại đáp án sai thì/vị trí.", "Wh-/Yes-No patterns.", "Bẫy từ nghe giống."},
+                    {"Listening Part 3–4", "Conversations & talks.", "Part 3 mục đích", "Part 3 graphic", "Part 4 announcement", "Đọc 3 câu trước audio.", "Đối chiếu schedule/menu.", "Bắt topic sentence."},
+                    {"Reading Part 5–6", "Grammar speed.", "Word form & thì", "Giới từ & liên từ", "Part 6 ngữ cảnh", "Checklist N/V/Adj/Adv.", "20 câu preposition.", "Email 4 chỗ trống."},
+                    {"Part 7 & mock", "Single/double passages.", "Email & notice", "Double passages", "Mini mock L&R", "Câu inference nhanh.", "Nối thông tin 2 văn bản.", "Đề rút gọn + review lỗi."}
+            };
+        }
+        if (category.contains("COMM") || category.contains("BUSINESS") || slug.contains("business") || slug.contains("communication")) {
+            return new String[][]{
+                    {"Small talk & introductions", "Chào hỏi công sở.", "Self-intro 45 giây", "Small talk an toàn", "Kết thúc hội thoại", "Tên-vị trí-việc đang làm.", "8 cặp hỏi–đáp weekend/project.", "Cụm wrap-up lịch sự."},
+                    {"Meetings", "Agenda và turn-taking.", "Mở họp & lấy lượt", "Tóm tắt quyết định", "Disagree lịch sự", "Shall we start / Can I add.", "5 bullet decision+owner.", "I see your point, however…"},
+                    {"Email & calls", "Tone và action.", "Email request", "Clarify trên điện thoại", "Follow-up email", "Subject-context-ask-thanks.", "Could you repeat / confirm.", "Action items 6–8 dòng."},
+                    {"Presenting ideas", "3 điểm trong 3 phút.", "Signposting", "Q&A ngắn", "Mock presentation", "First/Next/Finally.", "Buy time rồi trả lời.", "Thuyết trình 3 phút + checklist."}
+            };
+        }
+        // Foundation / academic default
+        return new String[][]{
+                {"Câu & đoạn học thuật", "Từ câu đơn đến phức.", "Compound/complex", "Topic sentence", "Supporting details", "Viết 12 câu biến đổi cấu trúc.", "5 topic sentence rõ.", "2 đoạn explain+example."},
+                {"Academic vocabulary", "Education/environment/health.", "Collocation Education", "Paraphrase câu", "Word families", "20 collocation + 8 câu.", "Paraphrase 10 câu giữ nghĩa.", "15 chỗ trống N/V/Adj/Adv."},
+                {"Đọc đoạn ngắn", "Main idea & reference.", "Main idea", "Reference words", "Inference cơ bản", "3 đoạn chọn main idea.", "10 câu it/this/these.", "6 câu inference có evidence."},
+                {"Viết paragraph & mini essay", "Chuẩn bị IELTS Writing.", "Paragraph 120 từ", "Mini essay 220 từ", "Self-edit checklist", "Online learning + linking words.", "Opinion 4 đoạn rút gọn.", "Sửa grammar/vocab/coherence."}
+        };
     }
 
     private Map<String, ClassSection> seedClassSections(
@@ -1598,20 +1690,14 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
             if (parentThread == null) {
                 return null;
             }
-            post = discussionPostRepository.findAll().stream()
-                    .filter(candidate -> candidate.getParentPost() != null
-                            && candidate.getParentPost().getId().equals(parentThread.getId())
-                            && candidate.getAuthor() != null
-                            && candidate.getAuthor().getId().equals(author.getId())
-                            && storedContent.equals(candidate.getContent()))
-                    .findFirst()
-                    .orElseGet(() -> CourseDiscussionPost.builder()
-                            .course(course)
-                            .parentPost(parentThread)
-                            .postType(CourseDiscussionPostType.REPLY)
-                            .build());
+            // After cleanup, owned replies are gone — create fresh (avoid findAll PC pollution).
+            post = CourseDiscussionPost.builder()
+                    .course(course)
+                    .parentPost(parentThread)
+                    .postType(CourseDiscussionPostType.REPLY)
+                    .build();
         }
-        post.setAuthor(author);
+        post.setAuthor(userRepository.getReferenceById(author.getId()));
         post.setContent(storedContent);
         post.setAccepted(node.path("accepted").asBoolean(false));
         post.setStatus(CourseDiscussionStatus.valueOf(node.path("status").asText("OPEN")));
@@ -2182,13 +2268,16 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
     }
 
     private ExerciseBankItem ensureMasterPracticeExercise(Map<String, User> usersByEmail) {
-        final String code = "demo-ex-classroom-practice";
+        final String code = "ilc-ex-classroom-practice";
         return exerciseBankItemRepository.findAllByOrderByUpdatedAtDesc().stream()
                 .filter(item -> code.equalsIgnoreCase(item.getCode()))
                 .findFirst()
                 .orElseGet(() -> {
                     User createdBy = usersByEmail.values().stream()
-                            .filter(u -> u.getEmail() != null && u.getEmail().startsWith("demo.content."))
+                            .filter(u -> u.getEmail() != null && (
+                                    u.getEmail().equalsIgnoreCase("content.manager@englishlab.vn")
+                                            || u.getEmail().startsWith("cm.")
+                            ))
                             .findFirst()
                             .orElse(null);
                     Map<String, Object> contentData = new HashMap<>();
@@ -2198,7 +2287,7 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
                     ExerciseBankItem created = ExerciseBankItem.builder()
                             .bankType("EXERCISE")
                             .code(code)
-                            .title("MASTER Classroom Practice Drill")
+                            .title("Classroom Practice Drill")
                             .skill("READING")
                             .status("PUBLISHED")
                             .contentData(contentData)
@@ -2215,9 +2304,9 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
         for (JsonNode node : flashcardSetsNode) {
             String code = node.path("code").asText(null);
             if (code == null || code.isBlank()) {
-                code = "demo-fc-" + node.path("naturalKey").asText("set");
+                code = "ilc-fc-" + node.path("naturalKey").asText("set");
             }
-            if (!code.startsWith("demo-fc-")) {
+            if (!MasterDemoMarkers.isOwnedFlashcardCode(code)) {
                 continue;
             }
             String finalCode = code;

@@ -12,6 +12,8 @@ import java.util.List;
 public interface PlacementTestAttemptRepository extends JpaRepository<PlacementTestAttempt, Long> {
     Optional<PlacementTestAttempt> findTopByStudentAndTestCodeOrderBySubmittedAtDesc(User student, String testCode);
 
+    List<PlacementTestAttempt> findByStudentAndTestCodeOrderBySubmittedAtDesc(User student, String testCode);
+
     Optional<PlacementTestAttempt> findTopByStudentOrderBySubmittedAtDesc(User student);
 
     Optional<PlacementTestAttempt> findTopByStudentAndEvaluationStatusOrderBySubmittedAtDesc(

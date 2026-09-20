@@ -6,8 +6,12 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -50,4 +54,8 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
 
     @Query("select c.thumbnailUrl from OnlineCourse c where c.thumbnailUrl is not null and c.thumbnailUrl <> ''")
     List<String> findAllNonEmptyThumbnailUrls();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select course from OnlineCourse course where course.id in :ids order by course.id")
+    List<OnlineCourse> findAllByIdForCheckout(@Param("ids") List<Long> ids);
 }

@@ -3,6 +3,8 @@ package fu.sep490.g23.backend.dto.response.payment;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 @Builder
 public class PaymentQuoteResponse {
@@ -16,4 +18,5 @@ public class PaymentQuoteResponse {
     private String couponMessage;
     private Long learningPathId;
     private String learningPathName;
+    private Map<Long, Long> courseOriginalAmounts;
 }

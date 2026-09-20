@@ -6,6 +6,7 @@ import fu.sep490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
 import fu.sep490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
 import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sep490.g23.backend.service.payment.PaymentService;
+import fu.sep490.g23.backend.service.payment.CheckoutPriceSnapshot;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -43,6 +44,13 @@ public class StudentPaymentController {
                 request.getClassroomOfferingIds(),
                 request.getLearningPathId(),
                 request.getCouponCode(),
+                new CheckoutPriceSnapshot(
+                        request.getDisplayedOriginalAmount(),
+                        request.getDisplayedSystemDiscountAmount(),
+                        request.getDisplayedLearningPathDiscountAmount(),
+                        request.getDisplayedCouponDiscountAmount(),
+                        request.getFinalAmount()
+                ),
                 authentication.getName()
         ));
     }

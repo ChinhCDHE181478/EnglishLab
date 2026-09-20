@@ -112,9 +112,9 @@ const CheckoutPage = () => {
   }, [freeCourseIdsKey, hasPaymentReturn]);
 
   useEffect(() => {
-    if (!learningPathCheckout?.learningPathId || !selectedCourseIds.length || hasPaymentReturn) return undefined;
+    if (!selectedCourseIds.length || hasPaymentReturn) return undefined;
     let active = true;
-    const loadLearningPathQuote = async () => {
+    const loadCheckoutQuote = async () => {
       setQuoteLoading(true);
       setSubmitError('');
       try {
@@ -122,17 +122,17 @@ const CheckoutPage = () => {
           selectedCourseIds,
           '',
           [],
-          learningPathCheckout.learningPathId,
+          learningPathCheckout?.learningPathId || null,
         );
         if (active) setQuote(result);
       } catch (error) {
         if (!active) return;
-        setSubmitError(error?.response?.data?.message || 'Không thể cập nhật giá lộ trình.');
+        setSubmitError(error?.response?.data?.message || 'Không thể cập nhật thông tin thanh toán.');
       } finally {
         if (active) setQuoteLoading(false);
       }
     };
-    loadLearningPathQuote();
+    loadCheckoutQuote();
     return () => {
       active = false;
     };
@@ -249,9 +249,16 @@ const CheckoutPage = () => {
     try {
       const result = await paymentApi.createPayosLink(
         selectedCourseIds,
-        couponCode.trim(),
+        quote?.couponCode || '',
         [],
         learningPathCheckout?.learningPathId || null,
+        {
+          displayedOriginalAmount: Number(quote?.originalAmount),
+          displayedSystemDiscountAmount: Number(quote?.systemDiscountAmount),
+          displayedLearningPathDiscountAmount: Number(quote?.learningPathDiscountAmount),
+          displayedCouponDiscountAmount: Number(quote?.couponDiscountAmount),
+          finalAmount: Number(quote?.totalAmount),
+        },
       );
       const paidDirectly = String(result?.status || '').toUpperCase() === 'PAID';
 
@@ -285,6 +292,34 @@ const CheckoutPage = () => {
 
       window.location.href = checkoutUrl;
     } catch (error) {
+      const errorCode = error?.response?.data?.code || error?.response?.data?.data?.code;
+      if (errorCode === 'CHECKOUT_CHANGED') {
+        try {
+          let refreshedQuote;
+          try {
+            refreshedQuote = await paymentApi.quotePayment(
+              selectedCourseIds,
+              quote?.couponCode || '',
+              [],
+              learningPathCheckout?.learningPathId || null,
+            );
+          } catch {
+            refreshedQuote = await paymentApi.quotePayment(
+              selectedCourseIds,
+              '',
+              [],
+              learningPathCheckout?.learningPathId || null,
+            );
+            setCouponCode('');
+          }
+          setQuote(refreshedQuote);
+          setQuoteMessage('');
+        } catch {
+          // The checkout remains open so the learner can retry refreshing safely.
+        }
+        setSubmitError('Giá khóa học đã được cập nhật. Vui lòng kiểm tra lại thông tin thanh toán trước khi tiếp tục.');
+        return;
+      }
       const serverMessage =
         error?.response?.data?.message
         || error?.response?.data?.error
@@ -537,7 +572,7 @@ const CheckoutPage = () => {
                 <span>{course.title}</span>
                 <strong className="text-right text-[#2b2828]">
                   {formatCoursePrice(quote
-                    ? (course.originalPrice ?? course.salePrice ?? course.price)
+                    ? (quote.courseOriginalAmounts?.[course.id] ?? course.originalPrice ?? course.salePrice ?? course.price)
                     : getEffectiveCoursePrice(course))}
                 </strong>
               </div>
@@ -573,7 +608,6 @@ const CheckoutPage = () => {
                 className="min-w-0 flex-1 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold uppercase text-[#1a1c1c] outline-none transition focus:border-[#730014]"
                 onChange={(event) => {
                   setCouponCode(event.target.value.toUpperCase());
-                  if (!learningPathCheckout) setQuote(null);
                   setQuoteMessage('');
                 }}
                 placeholder="Nhập mã"
@@ -600,7 +634,7 @@ const CheckoutPage = () => {
           <div className="mt-6 flex flex-col gap-3">
             <button
               className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
-              disabled={submitting}
+              disabled={submitting || quoteLoading || !quote}
               onClick={handleConfirmPayment}
               type="button"
             >

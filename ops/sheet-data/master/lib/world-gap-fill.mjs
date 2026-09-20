@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Gap-domain builders for MASTER demo world (discussions, ops, commerce edges, etc.)
  */
 
@@ -99,7 +99,7 @@ export function patchOnlineEnrollmentsAndPayments(rng, WINDOW_FROM, onlineCourse
     orderSeq += 1;
     existingPairs.add(pair);
     const row = {
-      marker: "MASTER_DEMO",
+      marker: "MASTER_OPS",
       learnerEmail: learner.email,
       courseSlug: course.slug,
       status: "COMPLETED",
@@ -109,14 +109,14 @@ export function patchOnlineEnrollmentsAndPayments(rng, WINDOW_FROM, onlineCourse
     };
     onlineEnrollments.unshift(row);
     lessonProgressPlan.unshift({
-      marker: "MASTER_DEMO",
+      marker: "MASTER_OPS",
       learnerEmail: learner.email,
       courseSlug: course.slug,
       completedLessonCount: 12,
       progressPercent: 100,
     });
     payments.unshift({
-      marker: "MASTER_DEMO",
+      marker: "MASTER_OPS",
       orderCode: orderSeq,
       learnerEmail: learner.email,
       courseSlug: course.slug,
@@ -172,7 +172,7 @@ export function patchOnlineEnrollmentsAndPayments(rng, WINDOW_FROM, onlineCourse
     if (i % 4 === 0) {
       // FAILED then separate retry PAID
       payments.push({
-        marker: "MASTER_DEMO",
+        marker: "MASTER_OPS",
         orderCode: orderSeq,
         learnerEmail: learner.email,
         courseSlug: course.slug,
@@ -187,7 +187,7 @@ export function patchOnlineEnrollmentsAndPayments(rng, WINDOW_FROM, onlineCourse
       orderSeq += 1;
       const retryDay = iso(addDays(d(createdDay), rng.int(1, 3)));
       payments.push({
-        marker: "MASTER_DEMO",
+        marker: "MASTER_OPS",
         orderCode: orderSeq,
         learnerEmail: learner.email,
         courseSlug: course.slug,
@@ -205,7 +205,7 @@ export function patchOnlineEnrollmentsAndPayments(rng, WINDOW_FROM, onlineCourse
     status = pick.status;
     if (status === "PAID") paidAt = ts(createdDay, "15:00:00");
     payments.push({
-      marker: "MASTER_DEMO",
+      marker: "MASTER_OPS",
       orderCode: orderSeq,
       learnerEmail: learner.email,
       courseSlug: course.slug,
@@ -229,7 +229,7 @@ export function buildDiscussions(rng, MARKER, REF, publishedCourses, learners, t
   for (let i = 0; i < target; i += 1) {
     const created = iso(addDays(d("2026-06-05"), rng.int(0, 100)));
     if (created > REF) continue;
-    const nk = `demo-disc-${String(i + 1).padStart(3, "0")}`;
+    const nk = `ilc-disc-${String(i + 1).padStart(3, "0")}`;
     const course = publishedCourses[i % publishedCourses.length];
     const author = learners[(i * 3) % learners.length];
     const resolved = rng.bool(0.35);
@@ -313,7 +313,7 @@ export function buildDiscussionReports(rng, MARKER, REF, discussions, discussion
     const reviewedDay = status === "PENDING" ? null : iso(addDays(d(created), rng.int(1, 5)));
     discussionReports.push({
       marker: MARKER,
-      naturalKey: `demo-disc-report-${String(i + 1).padStart(2, "0")}`,
+      naturalKey: `ilc-disc-report-${String(i + 1).padStart(2, "0")}`,
       postNaturalKey: posts[i],
       reporterEmail: learners[(i + 7) % learners.length].email,
       reason: reasons[i % reasons.length],
@@ -352,7 +352,7 @@ export function buildTeacherFeedback(rng, MARKER, REF, classes, enrollments) {
       if (submitted > REF) continue;
       teacherFeedback.push({
         marker: MARKER,
-        naturalKey: `demo-tfb-${String(n + 1).padStart(3, "0")}`,
+        naturalKey: `ilc-tfb-${String(n + 1).padStart(3, "0")}`,
         classCode: cls.code,
         learnerEmail: enr.learnerEmail,
         teacherEmail: cls.primaryTeacherEmail,
@@ -393,7 +393,7 @@ export function buildAnnouncements(rng, MARKER, REF, classes) {
       const tpl = templates[(n + a) % templates.length];
       announcements.push({
         marker: MARKER,
-        naturalKey: `demo-ann-${String(n + 1).padStart(3, "0")}`,
+        naturalKey: `ilc-ann-${String(n + 1).padStart(3, "0")}`,
         classCode: cls.code,
         title: tpl.title,
         content: tpl.content.replace("{{date}}", created),
@@ -408,14 +408,14 @@ export function buildAnnouncements(rng, MARKER, REF, classes) {
 
 export function buildBroadcasts(rng, MARKER, REF, admins) {
   const broadcasts = [];
-  const admin = admins[0]?.email || `demo.admin.01@englishlab.local`;
+  const admin = admins[0]?.email || `classroom.admin@englishlab.vn`;
   const items = [
     { title: "Khai giảng khóa mùa thu", message: "Chào mừng học viên đợt September 2026. Kiểm tra lịch lớp trên portal.", targetRole: "LEARNER", status: "SENT" },
     { title: "Cập nhật quy trình học phí", message: "Từ 01/09, biên lai chuyển khoản cần ghi rõ mã lớp.", targetRole: "STAFF", status: "SENT" },
     { title: "Nhắc giáo viên điểm danh", message: "Vui lòng chốt điểm danh trong 24h sau buổi học.", targetRole: "TEACHER", status: "SENT" },
     { title: "Bảo trì hệ thống", message: "Portal offline 02:00–04:00 ngày 20/09.", targetRole: null, status: "SCHEDULED", scheduledAt: "2026-09-20T02:00:00" },
     { title: "Workshop CM tháng 10", message: "Họp rà soát khóa online draft.", targetRole: "STAFF", status: "DRAFT" },
-    { title: "Ưu đãi tháng 9", message: "Mã DEMO_SEP15 giảm 15% khóa online.", targetRole: "LEARNER", status: "SCHEDULED", scheduledAt: "2026-09-25T08:00:00" },
+    { title: "Ưu đãi tháng 9", message: "Mã ILC_SEP15 giảm 15% khóa online.", targetRole: "LEARNER", status: "SCHEDULED", scheduledAt: "2026-09-25T08:00:00" },
     { title: "Thông báo nội bộ Q4", message: "Kế hoạch mở lớp Q4 — draft.", targetRole: "STAFF", status: "DRAFT" },
     { title: "Kết quả khảo sát giáo viên", message: "Cảm ơn giáo viên đã phản hồi khảo sát tháng 8.", targetRole: "TEACHER", status: "SENT" },
   ];
@@ -426,7 +426,7 @@ export function buildBroadcasts(rng, MARKER, REF, admins) {
     const inApp = it.status === "SENT" ? rng.int(Math.floor(recipientCount * 0.7), recipientCount) : 0;
     broadcasts.push({
       marker: MARKER,
-      naturalKey: `demo-bcast-${String(i + 1).padStart(2, "0")}`,
+      naturalKey: `ilc-bcast-${String(i + 1).padStart(2, "0")}`,
       title: it.title,
       message: it.message,
       targetRole: it.targetRole,
@@ -515,7 +515,7 @@ export function buildChangeRequests(rng, MARKER, REF, WINDOW_FROM, classes, enro
     const reviewedDay = status === "PENDING" ? null : iso(addDays(d(created), rng.int(1, 4)));
     changeRequests.push({
       marker: MARKER,
-      naturalKey: `demo-cr-${String(i + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-cr-${String(i + 1).padStart(3, "0")}`,
       requestType: type,
       requesterEmail,
       requesterRole: rolePick,
@@ -573,7 +573,7 @@ export function buildCourseListItems(rng, MARKER, REF, WINDOW_FROM, publishedCou
     if (added > REF) continue;
     courseListItems.push({
       marker: MARKER,
-      naturalKey: `demo-wish-${String(wi + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-wish-${String(wi + 1).padStart(3, "0")}`,
       learnerEmail: learner.email,
       courseSlug: course.slug,
       listType: "WISHLIST",
@@ -588,7 +588,7 @@ export function buildCourseListItems(rng, MARKER, REF, WINDOW_FROM, publishedCou
     if (added > REF) continue;
     courseListItems.push({
       marker: MARKER,
-      naturalKey: `demo-cart-${String(ci + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-cart-${String(ci + 1).padStart(3, "0")}`,
       learnerEmail: learner.email,
       courseSlug: course.slug,
       listType: "CART",
@@ -618,7 +618,7 @@ export function buildTuition(rng, MARKER, REF, enrollments, classes, staff) {
           : Math.round(cls.tuitionFeeVnd * 0.5);
     tuitionPayments.push({
       marker: MARKER,
-      naturalKey: `demo-tuit-${String(tuitionPayments.length + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-tuit-${String(tuitionPayments.length + 1).padStart(3, "0")}`,
       classCode: enr.classCode,
       learnerEmail: enr.learnerEmail,
       amount,
@@ -632,9 +632,9 @@ export function buildTuition(rng, MARKER, REF, enrollments, classes, staff) {
       const proofDay = iso(addDays(d(created), rng.int(0, 3)));
       tuitionProofs.push({
         marker: MARKER,
-        naturalKey: `demo-tuit-proof-${String(pi + 1).padStart(3, "0")}`,
+        naturalKey: `ilc-tuit-proof-${String(pi + 1).padStart(3, "0")}`,
         tuitionPaymentNaturalKey: tuitionPayments[tuitionPayments.length - 1].naturalKey,
-        fileUrl: `master-demo://tuition-proof/${enr.classCode}/${enr.learnerEmail}/${pi + 1}.jpg`,
+        fileUrl: `master-ops://tuition-proof/${enr.classCode}/${enr.learnerEmail}/${pi + 1}.jpg`,
         status,
         reviewedByEmail: status === "PENDING" ? null : staff[(i + 1) % staff.length].email,
         reviewedAt: status === "PENDING" ? null : ts(proofDay, "16:00:00"),
@@ -662,7 +662,7 @@ export function buildTeacherCredentials(rng, MARKER, teachers, managers) {
     const verified = rng.bool(0.75);
     teacherCredentials.push({
       marker: MARKER,
-      naturalKey: `demo-cred-${String(i + 1).padStart(2, "0")}`,
+      naturalKey: `ilc-cred-${String(i + 1).padStart(2, "0")}`,
       teacherEmail: teacher.email,
       type: tpl.type,
       title: tpl.title,
@@ -710,14 +710,14 @@ export function buildPracticeAttempts(rng, MARKER, REF, classes, enrollments) {
 
 export function buildFlashcardSets(MARKER, contentManagers) {
   const topics = [
-    { code: "demo-fc-ielts-env", title: "IELTS Environment Collocations", examCategory: "IELTS", skill: "WRITING" },
-    { code: "demo-fc-ielts-edu", title: "IELTS Education Vocabulary", examCategory: "IELTS", skill: "READING" },
-    { code: "demo-fc-toeic-office", title: "TOEIC Office Phrases", examCategory: "TOEIC", skill: "LISTENING" },
-    { code: "demo-fc-ielts-speaking", title: "IELTS Speaking Part 2 Cues", examCategory: "IELTS", skill: "SPEAKING" },
-    { code: "demo-fc-toeic-travel", title: "TOEIC Travel & Logistics", examCategory: "TOEIC", skill: "READING" },
-    { code: "demo-fc-comm-email", title: "Business Email Openers", examCategory: "COMMUNICATION", skill: "WRITING" },
-    { code: "demo-fc-ielts-listening", title: "IELTS Listening Map Labels", examCategory: "IELTS", skill: "LISTENING" },
-    { code: "demo-fc-foundation-grammar", title: "Foundation Phrasal Verbs", examCategory: "FOUNDATION", skill: "GRAMMAR" },
+    { code: "ilc-fc-ielts-env", title: "IELTS Environment Collocations", examCategory: "IELTS", skill: "WRITING" },
+    { code: "ilc-fc-ielts-edu", title: "IELTS Education Vocabulary", examCategory: "IELTS", skill: "READING" },
+    { code: "ilc-fc-toeic-office", title: "TOEIC Office Phrases", examCategory: "TOEIC", skill: "LISTENING" },
+    { code: "ilc-fc-ielts-speaking", title: "IELTS Speaking Part 2 Cues", examCategory: "IELTS", skill: "SPEAKING" },
+    { code: "ilc-fc-toeic-travel", title: "TOEIC Travel & Logistics", examCategory: "TOEIC", skill: "READING" },
+    { code: "ilc-fc-comm-email", title: "Business Email Openers", examCategory: "COMMUNICATION", skill: "WRITING" },
+    { code: "ilc-fc-ielts-listening", title: "IELTS Listening Map Labels", examCategory: "IELTS", skill: "LISTENING" },
+    { code: "ilc-fc-foundation-grammar", title: "Foundation Phrasal Verbs", examCategory: "FOUNDATION", skill: "GRAMMAR" },
   ];
   const flashcardSets = topics.map((t, idx) => {
     const cards = [];
@@ -768,10 +768,10 @@ export function buildCenterLibrary(rng, MARKER, REF, WINDOW_FROM, contentManager
     const created = iso(addDays(d(WINDOW_FROM), rng.int(0, 80)));
     centerLibrary.push({
       marker: MARKER,
-      naturalKey: `demo-lib-${String(i + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-lib-${String(i + 1).padStart(3, "0")}`,
       title: `${tpl.title} — bản ${i + 1}`,
       description: "Tài liệu dùng chung cho giáo viên và học viên tại trung tâm.",
-      fileUrl: `master-demo://center-library/${i + 1}.${tpl.fileType.toLowerCase()}`,
+      fileUrl: `master-ops://center-library/${i + 1}.${tpl.fileType.toLowerCase()}`,
       fileType: tpl.fileType,
       examCategory: tpl.examCategory,
       skill: tpl.skill,
@@ -799,7 +799,7 @@ export function buildLessonNotes(rng, MARKER, REF, onlineEnrollments) {
     if (created > REF) continue;
     lessonNotes.push({
       marker: MARKER,
-      naturalKey: `demo-note-${String(i + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-note-${String(i + 1).padStart(3, "0")}`,
       learnerEmail: enr.learnerEmail,
       courseSlug: enr.courseSlug,
       lessonIndex: 1 + (i % 8),
@@ -837,7 +837,7 @@ export function buildRichNotifications(rng, MARKER, REF, WINDOW_FROM, learners, 
       .replace("{{snippet}}", "Bổ sung tài liệu tuần 5 trong mục Thông báo lớp.");
     notifications.push({
       marker: MARKER,
-      naturalKey: `demo-notif-${String(i + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-notif-${String(i + 1).padStart(3, "0")}`,
       recipientEmail: learner.email,
       title: tpl.title,
       body,

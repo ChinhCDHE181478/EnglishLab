@@ -173,7 +173,7 @@ public class MasterDemoSemanticValidator {
         }
         for (JsonNode node : sets) {
             String code = node.path("code").asText("");
-            if (!code.isBlank() && !code.startsWith("demo-fc-")) {
+            if (!code.isBlank() && !MasterDemoMarkers.isOwnedFlashcardCode(code)) {
                 issues.add("flashcard_code_prefix:" + code);
             }
         }
