@@ -1,19 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 const EXIT_DURATION_MS = 260;
+const SUCCESS_DURATION_MS = 4500;
+const ERROR_DURATION_MS = 7000;
 
-export default function ManagementToast({ actionLabel, code, message, onAction, onClose, tone = 'error', title }) {
+export default function ManagementToast({ actionLabel, code, duration, message, onAction, onClose, tone = 'error', title }) {
   const [leaving, setLeaving] = useState(false);
   const messageText = typeof message === 'object' ? message?.message : message;
+  const closeToast = useEffectEvent(() => onClose?.());
   const messageCode = code
     || (typeof message === 'object' ? message?.code : null)
     || (tone === 'error' ? 'CONTENT_MANAGER_ERROR' : null);
 
   useEffect(() => {
     setLeaving(false);
-  }, [message, tone]);
+    if (!messageText || !onClose) return undefined;
+
+    let closeTimer;
+    const dismissTimer = window.setTimeout(() => {
+      setLeaving(true);
+      closeTimer = window.setTimeout(closeToast, EXIT_DURATION_MS);
+    }, duration ?? (tone === 'error' ? ERROR_DURATION_MS : SUCCESS_DURATION_MS));
+
+    return () => {
+      window.clearTimeout(dismissTimer);
+      if (closeTimer) window.clearTimeout(closeTimer);
+    };
+  }, [duration, messageText, tone]);
 
   if (!messageText) return null;
 
@@ -24,7 +39,7 @@ export default function ManagementToast({ actionLabel, code, message, onAction, 
   const dismiss = () => {
     if (leaving) return;
     setLeaving(true);
-    window.setTimeout(onClose, EXIT_DURATION_MS);
+    window.setTimeout(closeToast, EXIT_DURATION_MS);
   };
 
   return createPortal(
