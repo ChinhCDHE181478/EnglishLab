@@ -5,16 +5,29 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.EnumSet;
 import java.util.Set;
 
 public final class ClassroomRegistrationSupport {
 
+    public static final int TUITION_DEPOSIT_PERCENT = 30;
+    public static final int TUITION_BALANCE_DUE_DAYS_BEFORE_START = 7;
+    public static final int LATE_APPROVAL_PAYMENT_HOURS = 24;
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     private ClassroomRegistrationSupport() {
     }
 
-    /** Học viên đã được xếp lớp — chiếm sĩ số và có quyền học. */
+    /** Hồ sơ đã được duyệt giữ chỗ cho tới khi thanh toán đủ hoặc hết hạn. */
     public static final Set<ClassroomRegistrationStatus> OCCUPIES_CLASS_SLOT = EnumSet.of(
+            ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT,
+            ClassroomRegistrationStatus.DEPOSIT_PAID,
+            ClassroomRegistrationStatus.PARTIALLY_PAID,
+            ClassroomRegistrationStatus.FULLY_PAID,
             ClassroomRegistrationStatus.ASSIGNED
     );
 
@@ -26,6 +39,7 @@ public final class ClassroomRegistrationSupport {
             ClassroomRegistrationStatus.PARTIALLY_PAID,
             ClassroomRegistrationStatus.FULLY_PAID,
             ClassroomRegistrationStatus.ASSIGNED,
+            ClassroomRegistrationStatus.SUSPENDED,
             ClassroomRegistrationStatus.WAITLIST
     );
 
@@ -91,6 +105,76 @@ public final class ClassroomRegistrationSupport {
         return ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
     }
 
+    public static BigDecimal requiredDeposit(BigDecimal amountDue) {
+        BigDecimal due = amountDue == null ? BigDecimal.ZERO : amountDue.max(BigDecimal.ZERO);
+        return due.multiply(BigDecimal.valueOf(TUITION_DEPOSIT_PERCENT))
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+    }
+
+    public static BigDecimal remainingDeposit(BigDecimal amountDue, BigDecimal amountPaid) {
+        BigDecimal paid = amountPaid == null ? BigDecimal.ZERO : amountPaid.max(BigDecimal.ZERO);
+        return requiredDeposit(amountDue).subtract(paid).max(BigDecimal.ZERO);
+    }
+
+    public static LocalDateTime tuitionPaymentDeadline(ClassEnrollment enrollment) {
+        if (enrollment == null || enrollment.getClassSection() == null
+                || enrollment.getClassSection().getStartDate() == null) {
+            return null;
+        }
+        LocalDateTime regularDeadline = enrollment.getClassSection().getStartDate()
+                .minusDays(TUITION_BALANCE_DUE_DAYS_BEFORE_START)
+                .atTime(LocalTime.MAX);
+        LocalDateTime invitedAt = enrollment.getEnrolledAt();
+        if (invitedAt == null || !invitedAt.isAfter(regularDeadline)) {
+            return regularDeadline;
+        }
+        LocalDateTime lateDeadline = invitedAt.plusHours(LATE_APPROVAL_PAYMENT_HOURS);
+        LocalDateTime classStartDayEnd = enrollment.getClassSection().getStartDate().atTime(LocalTime.MAX);
+        return lateDeadline.isBefore(classStartDayEnd) ? lateDeadline : classStartDayEnd;
+    }
+
+    public static boolean requiresFullTuitionPayment(ClassEnrollment enrollment) {
+        if (enrollment == null || enrollment.getClassSection() == null
+                || enrollment.getClassSection().getStartDate() == null
+                || enrollment.getEnrolledAt() == null) {
+            return false;
+        }
+        LocalDateTime regularDeadline = enrollment.getClassSection().getStartDate()
+                .minusDays(TUITION_BALANCE_DUE_DAYS_BEFORE_START)
+                .atTime(LocalTime.MAX);
+        return enrollment.getEnrolledAt().isAfter(regularDeadline);
+    }
+
+    public static boolean isTuitionPaymentOverdue(ClassEnrollment enrollment, LocalDateTime now) {
+        LocalDateTime deadline = tuitionPaymentDeadline(enrollment);
+        return deadline != null && now != null && now.isAfter(deadline)
+                && enrollment.tuitionBalance().compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    public static LocalDateTime currentBusinessTime() {
+        return LocalDateTime.now(BUSINESS_ZONE);
+    }
+
+    public static TuitionPaymentKind classifyTuitionPayment(
+            BigDecimal amountDue,
+            BigDecimal amountPaidBefore,
+            BigDecimal paymentAmount
+    ) {
+        BigDecimal due = amountDue == null ? BigDecimal.ZERO : amountDue;
+        BigDecimal paidBefore = amountPaidBefore == null ? BigDecimal.ZERO : amountPaidBefore;
+        BigDecimal paidAfter = paidBefore.add(paymentAmount == null ? BigDecimal.ZERO : paymentAmount);
+        if (due.compareTo(BigDecimal.ZERO) > 0 && paidAfter.compareTo(due) >= 0) {
+            return TuitionPaymentKind.FULL;
+        }
+        BigDecimal deposit = requiredDeposit(due);
+        if (deposit.compareTo(BigDecimal.ZERO) > 0
+                && paidBefore.compareTo(deposit) < 0
+                && paidAfter.compareTo(deposit) >= 0) {
+            return TuitionPaymentKind.DEPOSIT;
+        }
+        return TuitionPaymentKind.PARTIAL;
+    }
+
     public static void applyComputedSettlement(ClassEnrollment enrollment) {
     }
 
@@ -122,6 +206,7 @@ public final class ClassroomRegistrationSupport {
             case PARTIALLY_PAID -> "Thanh toán một phần";
             case FULLY_PAID -> "Đã thanh toán đủ";
             case ASSIGNED -> "Đã được xếp lớp";
+            case SUSPENDED -> "Đang bảo lưu";
             case WAITLIST -> "Chờ xếp lớp";
             case REJECTED -> "Từ chối";
             case CANCELLED -> "Đã hủy";

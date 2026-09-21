@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.PaymentOrderItem;
@@ -32,6 +33,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -111,6 +114,96 @@ class PaymentServiceImplClassroomTuitionTest {
     }
 
     @Test
+    void quotePayment_classroomDeposit_returnsThirtyPercentDeposit() {
+        when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
+                .thenReturn(Optional.of(enrollment));
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
+                .thenReturn(false);
+
+        PaymentQuoteResponse quote = paymentService.quotePayment(
+                List.of(),
+                List.of(12L),
+                null,
+                null,
+                TuitionPaymentKind.DEPOSIT,
+                "learner@example.com"
+        );
+
+        assertEquals(1_500_000L, quote.getTotalAmount());
+        assertEquals(1_500_000L, quote.getOriginalAmount());
+    }
+
+    @Test
+    void quotePayment_lateApproval_rejectsDepositAndRequiresFullPayment() {
+        enrollment.getClassSection().setStartDate(LocalDate.now().plusDays(5));
+        enrollment.setEnrolledAt(LocalDateTime.now());
+        when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
+                .thenReturn(Optional.of(enrollment));
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> paymentService.quotePayment(
+                        List.of(),
+                        List.of(12L),
+                        null,
+                        null,
+                        TuitionPaymentKind.DEPOSIT,
+                        "learner@example.com"
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("thanh toán toàn bộ"));
+    }
+
+    @Test
+    void quotePayment_afterCenterDeposit_returnsRemainingBalance() {
+        enrollment.setRegistrationStatus(ClassroomRegistrationStatus.DEPOSIT_PAID);
+        enrollment.setTuitionAmountPaid(new BigDecimal("1500000"));
+        when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
+                .thenReturn(Optional.of(enrollment));
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
+                .thenReturn(false);
+
+        PaymentQuoteResponse quote = paymentService.quotePayment(
+                List.of(),
+                List.of(12L),
+                null,
+                null,
+                TuitionPaymentKind.FULL,
+                "learner@example.com"
+        );
+
+        assertEquals(3_500_000L, quote.getTotalAmount());
+    }
+
+    @Test
+    void quotePayment_rejectsSecondDepositAfterDepositRequirementIsMet() {
+        enrollment.setRegistrationStatus(ClassroomRegistrationStatus.DEPOSIT_PAID);
+        enrollment.setTuitionAmountPaid(new BigDecimal("1500000"));
+        when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
+                .thenReturn(Optional.of(enrollment));
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
+                .thenReturn(false);
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> paymentService.quotePayment(
+                        List.of(),
+                        List.of(12L),
+                        null,
+                        null,
+                        TuitionPaymentKind.DEPOSIT,
+                        "learner@example.com"
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("hoàn tất tiền cọc"));
+    }
+
+    @Test
     void quotePayment_classroomTuition_rejectsCoupon() {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
@@ -128,18 +221,19 @@ class PaymentServiceImplClassroomTuitionTest {
     }
 
     @Test
-    void quotePayment_allowsPendingConfirmationEnrollment() {
+    void quotePayment_rejectsPendingConfirmationEnrollment() {
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.PENDING_CONFIRMATION);
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
-        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
-                .thenReturn(false);
 
-        PaymentQuoteResponse quote = paymentService.quotePayment(
-                List.of(), List.of(12L), null, "learner@example.com");
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> paymentService.quotePayment(
+                        List.of(), List.of(12L), null, "learner@example.com")
+        );
 
-        assertEquals(5_000_000L, quote.getTotalAmount());
+        assertTrue(exception.getMessage().contains("chờ Nhân viên đào tạo xác nhận"));
     }
 
     @Test
@@ -220,7 +314,7 @@ class PaymentServiceImplClassroomTuitionTest {
     @Test
     void createPaymentLink_classroomTuition_zeroAmountShortcut_notUsedWhenBalancePositive() {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
-        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionIdForUpdate(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
         when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any())).thenReturn(false);
         when(payosProperties.isEnabled()).thenReturn(false);
@@ -230,6 +324,25 @@ class PaymentServiceImplClassroomTuitionTest {
                 () -> paymentService.createPaymentLink(List.of(), List.of(12L), null, "learner@example.com")
         );
         assertTrue(ex.getMessage().contains("PayOS"));
+        verify(paymentOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void createPaymentLink_rejectsWhenAnotherClassroomPayosOrderIsOpen() {
+        when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionIdForUpdate(7L, 12L))
+                .thenReturn(Optional.of(enrollment));
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(88L), any()))
+                .thenReturn(true);
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> paymentService.createPaymentLink(
+                        List.of(), List.of(12L), null, null, null,
+                        TuitionPaymentKind.DEPOSIT, "learner@example.com")
+        );
+
+        assertTrue(exception.getMessage().contains("đơn PayOS"));
         verify(paymentOrderRepository, never()).save(any());
     }
 }

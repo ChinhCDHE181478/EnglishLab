@@ -4,15 +4,19 @@ import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateChangeRequestRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCourseSuspensionRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
@@ -31,7 +35,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +65,7 @@ class ClassroomChangeRequestServiceImplTest {
     @Mock private ClassroomOfferingService offeringService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
+    @Mock private HomeworkAttachmentStorageService attachmentStorageService;
 
     private ClassroomChangeRequestServiceImpl service;
     private ClassSection offering;
@@ -82,7 +89,8 @@ class ClassroomChangeRequestServiceImplTest {
                 scheduleLockService,
                 offeringService,
                 accessHelper,
-                notificationService
+                notificationService,
+                attachmentStorageService
         );
 
         offering = ClassSection.builder().id(21L).build();
@@ -319,6 +327,185 @@ class ClassroomChangeRequestServiceImplTest {
 
         verify(scheduleLockService, never()).lockDates(any());
         verify(changeRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void suspensionEligibility_AllowsExactlyHalfOfSessionsWhenTuitionIsPaid() {
+        User learner = User.builder().id(70L).fullName("Học viên").build();
+        ClassEnrollment enrollment = paidAssignedEnrollment(learner);
+        LocalDateTime now = LocalDateTime.now();
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(enrollmentRepository.findByStudentIdAndRegistrationStatusIn(
+                70L, List.of(ClassroomRegistrationStatus.ASSIGNED))).thenReturn(List.of(enrollment));
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(21L))
+                .thenReturn(List.of(sessionAt(now.minusDays(1)), sessionAt(now.plusDays(1))));
+        when(changeRequestRepository.findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+                70L, List.of(ClassroomChangeRequestType.SUSPEND_STUDENT))).thenReturn(List.of());
+
+        var result = service.listSuspensionEligibility("learner@example.com");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).isEligible()).isTrue();
+        assertThat(result.get(0).getProgressPercent()).isEqualTo(50);
+    }
+
+    @Test
+    void createSuspensionRequest_RejectsProgressAboveHalf() {
+        User learner = User.builder().id(70L).fullName("Học viên").build();
+        ClassEnrollment enrollment = paidAssignedEnrollment(learner);
+        LocalDateTime now = LocalDateTime.now();
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(userRepository.findByIdForUpdate(70L)).thenReturn(Optional.of(learner));
+        when(enrollmentRepository.findByIdForUpdate(81L)).thenReturn(Optional.of(enrollment));
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(21L))
+                .thenReturn(List.of(
+                        sessionAt(now.minusDays(2)),
+                        sessionAt(now.minusDays(1)),
+                        sessionAt(now.plusDays(1))
+                ));
+
+        CreateCourseSuspensionRequest request = new CreateCourseSuspensionRequest();
+        request.setEnrollmentId(81L);
+        request.setRequestedStartDate(LocalDate.now());
+        request.setRequestedReturnDate(LocalDate.now().plusMonths(2));
+        request.setReason("Điều trị chấn thương theo chỉ định bác sĩ.");
+        request.setProofUrl("/api/classroom-homework/attachments/proof.pdf");
+
+        assertThatThrownBy(() -> service.createSuspensionRequest(request, "learner@example.com"))
+                .hasMessage("Khóa học đã vượt quá 50% số buổi.");
+        verify(changeRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void createSuspensionRequest_RejectsDurationLongerThanThreeMonths() {
+        User learner = User.builder().id(70L).fullName("Học viên").build();
+        ClassEnrollment enrollment = paidAssignedEnrollment(learner);
+        LocalDateTime now = LocalDateTime.now();
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(userRepository.findByIdForUpdate(70L)).thenReturn(Optional.of(learner));
+        when(enrollmentRepository.findByIdForUpdate(81L)).thenReturn(Optional.of(enrollment));
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(21L))
+                .thenReturn(List.of(sessionAt(now.minusDays(1)), sessionAt(now.plusDays(1))));
+        when(changeRequestRepository.findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+                70L, List.of(ClassroomChangeRequestType.SUSPEND_STUDENT))).thenReturn(List.of());
+
+        CreateCourseSuspensionRequest request = new CreateCourseSuspensionRequest();
+        request.setEnrollmentId(81L);
+        request.setRequestedStartDate(LocalDate.now());
+        request.setRequestedReturnDate(LocalDate.now().plusMonths(3).plusDays(1));
+        request.setReason("Điều trị chấn thương theo chỉ định bác sĩ.");
+        request.setProofUrl("/api/classroom-homework/attachments/proof.pdf");
+
+        assertThatThrownBy(() -> service.createSuspensionRequest(request, "learner@example.com"))
+                .hasMessage("Thời gian bảo lưu không được vượt quá 3 tháng.");
+        verify(changeRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void createSuspensionRequest_StoresCanonicalInternalProofUrl() {
+        User learner = User.builder()
+                .id(70L)
+                .fullName("Học viên")
+                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
+                .build();
+        ClassEnrollment enrollment = paidAssignedEnrollment(learner);
+        LocalDateTime now = LocalDateTime.now();
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(userRepository.findByIdForUpdate(70L)).thenReturn(Optional.of(learner));
+        when(enrollmentRepository.findByIdForUpdate(81L)).thenReturn(Optional.of(enrollment));
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(21L))
+                .thenReturn(List.of(sessionAt(now.minusDays(1)), sessionAt(now.plusDays(1))));
+        when(changeRequestRepository.findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+                70L, List.of(ClassroomChangeRequestType.SUSPEND_STUDENT))).thenReturn(List.of());
+        when(attachmentStorageService.loadStoredAttachmentFromUrl("https://files.example/homework-proof.pdf"))
+                .thenReturn(Optional.of(new HomeworkAttachmentStorageService.StoredHomeworkAttachment(
+                        "homework-proof.pdf", "application/pdf", 3, new byte[] {1, 2, 3}
+                )));
+        when(userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF)).thenReturn(List.of(staff));
+        when(changeRequestRepository.save(any(ClassroomChangeRequest.class))).thenAnswer(invocation -> {
+            ClassroomChangeRequest saved = invocation.getArgument(0);
+            saved.setId(92L);
+            return saved;
+        });
+
+        CreateCourseSuspensionRequest request = new CreateCourseSuspensionRequest();
+        request.setEnrollmentId(81L);
+        request.setRequestedStartDate(LocalDate.now());
+        request.setRequestedReturnDate(LocalDate.now().plusMonths(2));
+        request.setReason("Điều trị chấn thương theo chỉ định bác sĩ.");
+        request.setProofUrl("https://files.example/homework-proof.pdf");
+
+        service.createSuspensionRequest(request, "learner@example.com");
+
+        ArgumentCaptor<ClassroomChangeRequest> captor = ArgumentCaptor.forClass(ClassroomChangeRequest.class);
+        verify(changeRequestRepository).save(captor.capture());
+        assertThat(captor.getValue().getNewValuesJson())
+                .contains("/api/classroom-homework/attachments/homework-proof.pdf")
+                .doesNotContain("files.example");
+    }
+
+    @Test
+    void approveSuspension_RevalidatesAndRemovesClassAccess() {
+        User learner = User.builder().id(70L).fullName("Học viên").build();
+        ClassEnrollment enrollment = paidAssignedEnrollment(learner);
+        LocalDateTime now = LocalDateTime.now();
+        ClassroomChangeRequest request = ClassroomChangeRequest.builder()
+                .id(91L)
+                .requestType(ClassroomChangeRequestType.SUSPEND_STUDENT)
+                .requester(learner)
+                .classSection(enrollment.getClassSection())
+                .newValuesJson("{\"enrollmentId\":81,\"requestedStartDate\":\""
+                        + LocalDate.now() + "\",\"requestedReturnDate\":\""
+                        + LocalDate.now().plusMonths(2) + "\"}")
+                .reason("Điều trị chấn thương")
+                .status(ClassroomChangeRequestStatus.PENDING)
+                .reviewer(staff)
+                .build();
+        when(accessHelper.requireUser("staff@example.com")).thenReturn(staff);
+        when(changeRequestRepository.findByIdForUpdate(91L)).thenReturn(Optional.of(request));
+        when(enrollmentRepository.findByIdForUpdate(81L)).thenReturn(Optional.of(enrollment));
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(21L))
+                .thenReturn(List.of(sessionAt(now.minusDays(1)), sessionAt(now.plusDays(1))));
+        when(changeRequestRepository.findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+                70L, List.of(ClassroomChangeRequestType.SUSPEND_STUDENT))).thenReturn(List.of());
+        when(changeRequestRepository.save(any(ClassroomChangeRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.approve(91L, new ReviewChangeRequestRequest(), "staff@example.com");
+
+        verify(offeringService).suspendEnrollment(81L, "Bảo lưu theo yêu cầu #91");
+        verify(scheduleLockService, never()).lockDates(any());
+    }
+
+    private ClassEnrollment paidAssignedEnrollment(User learner) {
+        InstructorLedCourse course = InstructorLedCourse.builder()
+                .id(61L)
+                .title("IELTS Foundation")
+                .build();
+        ClassSection classroom = ClassSection.builder()
+                .id(21L)
+                .name("IELTS Foundation Evening")
+                .instructorLedCourse(course)
+                .build();
+        return ClassEnrollment.builder()
+                .id(81L)
+                .student(learner)
+                .classSection(classroom)
+                .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
+                .agreedTuitionFeeVnd(BigDecimal.valueOf(5_000_000))
+                .tuitionAmountDue(BigDecimal.valueOf(5_000_000))
+                .tuitionAmountPaid(BigDecimal.valueOf(5_000_000))
+                .build();
+    }
+
+    private ClassSchedule sessionAt(LocalDateTime dateTime) {
+        return ClassSchedule.builder()
+                .classSection(offering)
+                .sessionDate(dateTime.toLocalDate())
+                .startTime(dateTime.toLocalTime().minusHours(1))
+                .endTime(dateTime.toLocalTime())
+                .status(ClassroomSessionStatus.SCHEDULED)
+                .build();
     }
 
     private ClassroomChangeRequest pendingMakeupRequest() {

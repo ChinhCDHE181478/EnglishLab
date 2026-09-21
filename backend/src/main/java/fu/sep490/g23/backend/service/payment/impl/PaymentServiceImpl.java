@@ -12,6 +12,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -94,9 +95,23 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail) {
+        return quotePayment(courseIds, classroomOfferingIds, learningPathId, couponCode, null, studentEmail);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentQuoteResponse quotePayment(
+            List<Long> courseIds,
+            List<Long> classroomOfferingIds,
+            Long learningPathId,
+            String couponCode,
+            TuitionPaymentKind classroomPaymentKind,
+            String studentEmail
+    ) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
-        PayableBundle bundle = resolvePayableBundle(courseIds, classroomOfferingIds, learningPathId, student, false);
+        PayableBundle bundle = resolvePayableBundle(
+                courseIds, classroomOfferingIds, learningPathId, student, false, classroomPaymentKind);
         return toQuoteResponse(calculateBreakdown(bundle, couponCode, false), bundle);
     }
 
@@ -119,15 +134,39 @@ public class PaymentServiceImpl implements PaymentService {
             CheckoutPriceSnapshot checkoutSnapshot,
             String studentEmail
     ) {
+        return createPaymentLink(
+                courseIds,
+                classroomOfferingIds,
+                learningPathId,
+                couponCode,
+                checkoutSnapshot,
+                null,
+                studentEmail
+        );
+    }
+
+    @Override
+    public PaymentLinkResponse createPaymentLink(
+            List<Long> courseIds,
+            List<Long> classroomOfferingIds,
+            Long learningPathId,
+            String couponCode,
+            CheckoutPriceSnapshot checkoutSnapshot,
+            TuitionPaymentKind classroomPaymentKind,
+            String studentEmail
+    ) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
         boolean checkoutConfirmationRequired = checkoutSnapshot != null;
+        boolean lockCheckoutPricing = checkoutConfirmationRequired
+                || (classroomOfferingIds != null && !classroomOfferingIds.isEmpty());
         PayableBundle bundle = resolvePayableBundle(
                 courseIds,
                 classroomOfferingIds,
                 learningPathId,
                 student,
-                checkoutConfirmationRequired
+                lockCheckoutPricing,
+                classroomPaymentKind
         );
         PriceBreakdown breakdown;
         try {
@@ -528,7 +567,8 @@ public class PaymentServiceImpl implements PaymentService {
             List<Long> classroomOfferingIds,
             Long learningPathId,
             User student,
-            boolean lockCheckoutPricing
+            boolean lockCheckoutPricing,
+            TuitionPaymentKind classroomPaymentKind
     ) {
         List<Long> normalizedCourseIds = normalizeIds(courseIds);
         List<Long> normalizedClassroomIds = normalizeIds(classroomOfferingIds);
@@ -539,7 +579,12 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Không thể thanh toán khóa học online và học phí lớp trong cùng một đơn.");
         }
         if (!normalizedClassroomIds.isEmpty()) {
-            return new PayableBundle(List.of(), resolvePayableClassroomTuitions(normalizedClassroomIds, student), null);
+            return new PayableBundle(
+                    List.of(),
+                    resolvePayableClassroomTuitions(
+                            normalizedClassroomIds, student, lockCheckoutPricing, classroomPaymentKind),
+                    null
+            );
         }
         if (learningPathId != null) {
             return resolvePayableLearningPath(learningPathId, student, lockCheckoutPricing);
@@ -576,18 +621,27 @@ public class PaymentServiceImpl implements PaymentService {
         return new PayableBundle(payableCourses, List.of(), path);
     }
 
-    private List<PayableClassroomTuition> resolvePayableClassroomTuitions(List<Long> classroomOfferingIds, User student) {
+    private List<PayableClassroomTuition> resolvePayableClassroomTuitions(
+            List<Long> classroomOfferingIds,
+            User student,
+            boolean lockEnrollment,
+            TuitionPaymentKind requestedKind
+    ) {
         if (classroomOfferingIds.size() != 1) {
             throw new RuntimeException("Mỗi lần chỉ thanh toán học phí cho một lớp học.");
         }
 
         Long offeringId = classroomOfferingIds.getFirst();
-        ClassEnrollment enrollment = classEnrollmentRepository
-                .findByStudentIdAndClassSectionId(student.getId(), offeringId)
+        ClassEnrollment enrollment = (lockEnrollment
+                ? classEnrollmentRepository.findByStudentIdAndClassSectionIdForUpdate(student.getId(), offeringId)
+                : classEnrollmentRepository.findByStudentIdAndClassSectionId(student.getId(), offeringId))
                 .filter(item -> ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
                 .orElseThrow(() -> new RuntimeException("Bạn chưa có đăng ký hiệu lực cho lớp này."));
 
         ClassroomRegistrationStatus status = enrollment.getRegistrationStatus();
+        if (status == ClassroomRegistrationStatus.PENDING_CONFIRMATION) {
+            throw new RuntimeException("Đăng ký đang chờ Nhân viên đào tạo xác nhận.");
+        }
         if (status == ClassroomRegistrationStatus.WAITLIST) {
             throw new RuntimeException("Bạn đang ở trong danh sách chờ và chưa cần thanh toán học phí.");
         }
@@ -610,11 +664,37 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Bạn đang có đơn PayOS học phí chưa hoàn tất cho lớp này. Vui lòng hoàn tất hoặc chờ hết hạn trước khi tạo đơn mới.");
         }
 
+        TuitionPaymentKind paymentKind = requestedKind == null ? TuitionPaymentKind.FULL : requestedKind;
+        if (paymentKind != TuitionPaymentKind.DEPOSIT && paymentKind != TuitionPaymentKind.FULL) {
+            throw new RuntimeException("PayOS chỉ hỗ trợ đặt cọc hoặc thanh toán toàn bộ học phí còn lại.");
+        }
+        if (ClassroomRegistrationSupport.isTuitionPaymentOverdue(
+                enrollment, ClassroomRegistrationSupport.currentBusinessTime())) {
+            throw new RuntimeException("Đăng ký đã quá hạn thanh toán học phí.");
+        }
+        if (paymentKind == TuitionPaymentKind.DEPOSIT
+                && ClassroomRegistrationSupport.requiresFullTuitionPayment(enrollment)) {
+            throw new RuntimeException("Đăng ký gần ngày khai giảng cần thanh toán toàn bộ học phí.");
+        }
+
+        BigDecimal payableAmount = balance;
+        if (paymentKind == TuitionPaymentKind.DEPOSIT) {
+            payableAmount = ClassroomRegistrationSupport.remainingDeposit(
+                    enrollment.getTuitionAmountDue(), enrollment.getTuitionAmountPaid());
+            if (payableAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Bạn đã hoàn tất tiền cọc. Vui lòng thanh toán số học phí còn lại.");
+            }
+        }
+
         ClassSection offering = enrollment.getClassSection();
         String title = offering.getTitle() == null
                 ? "Lớp #" + offering.getId()
                 : offering.getTitle();
-        return List.of(new PayableClassroomTuition(enrollment, offering, toVnd(balance), title));
+        String paymentTitle = paymentKind == TuitionPaymentKind.DEPOSIT
+                ? title + " - Đặt cọc"
+                : title + " - Học phí còn lại";
+        return List.of(new PayableClassroomTuition(
+                enrollment, offering, toVnd(payableAmount), paymentTitle));
     }
 
     private List<Long> normalizeIds(List<Long> ids) {

@@ -21,6 +21,10 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomAttendanceResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
+import fu.sep490.g23.backend.dto.response.classroom.CourseSuspensionEligibilityResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCourseReturnRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCourseSuspensionRequest;
 import fu.sep490.g23.backend.service.classroom.ClassroomGradebookService;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResponse;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
@@ -52,10 +56,55 @@ public class StudentClassroomController {
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
     private final HomeworkAttachmentAccessService homeworkAttachmentAccessService;
     private final ClassroomPracticeService classroomPracticeService;
+    private final ClassroomChangeRequestService classroomChangeRequestService;
 
     @GetMapping({"/my-classrooms", "/my-classes"})
     public ResponseEntity<List<ClassroomOfferingResponse>> getMyClasses(Authentication authentication) {
         return ResponseEntity.ok(classSectionService.getMyClasses(authentication.getName()));
+    }
+
+    @GetMapping("/suspensions/eligibility")
+    public ResponseEntity<List<CourseSuspensionEligibilityResponse>> getSuspensionEligibility(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomChangeRequestService.listSuspensionEligibility(authentication.getName()));
+    }
+
+    @GetMapping("/suspensions/mine")
+    public ResponseEntity<List<ClassroomChangeRequestResponse>> getMySuspensionRequests(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomChangeRequestService.listMySuspensionRequests(authentication.getName()));
+    }
+
+    @PostMapping("/suspensions")
+    public ResponseEntity<ClassroomChangeRequestResponse> createSuspensionRequest(
+            @Valid @RequestBody CreateCourseSuspensionRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomChangeRequestService.createSuspensionRequest(
+                request, authentication.getName()));
+    }
+
+    @PostMapping("/suspensions/return")
+    public ResponseEntity<ClassroomChangeRequestResponse> createCourseReturnRequest(
+            @Valid @RequestBody CreateCourseReturnRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomChangeRequestService.createReturnRequest(
+                request, authentication.getName()));
+    }
+
+    @PostMapping(value = "/suspensions/proofs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<HomeworkAttachmentUploadResponse> uploadSuspensionProof(
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
+    ) {
+        String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/classroom-homework/attachments")
+                .toUriString();
+        return ResponseEntity.ok(homeworkAttachmentStorageService.store(
+                file, publicUrlBase, authentication.getName()));
     }
 
     @PostMapping(value = "/{id}/tuition-proofs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

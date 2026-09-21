@@ -44,9 +44,25 @@ public interface ClassroomChangeRequestRepository extends JpaRepository<Classroo
 
     List<ClassroomChangeRequest> findByRequesterIdOrderByCreatedAtDesc(Long requesterId);
 
+    List<ClassroomChangeRequest> findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+            Long requesterId,
+            Collection<ClassroomChangeRequestType> requestTypes
+    );
+
+    boolean existsByRequesterIdAndClassSectionIdAndRequestTypeAndStatus(
+            Long requesterId,
+            Long classSectionId,
+            ClassroomChangeRequestType requestType,
+            ClassroomChangeRequestStatus status
+    );
+
     Optional<ClassroomChangeRequest> findByTargetClassScheduleIdAndRequestTypeAndStatus(
             Long targetClassScheduleId,
             ClassroomChangeRequestType requestType,
             ClassroomChangeRequestStatus status
     );
+
+    Optional<ClassroomChangeRequest> findFirstByNewValuesJsonContaining(String value);
+
+    boolean existsByNewValuesJsonContaining(String value);
 }

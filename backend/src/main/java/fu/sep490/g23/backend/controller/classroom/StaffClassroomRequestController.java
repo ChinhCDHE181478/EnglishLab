@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.controller.classroom;
 import fu.sep490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.service.classroom.ClassroomChangeRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,5 +49,13 @@ public class StaffClassroomRequestController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(changeRequestService.checkPendingConflict(requestId, authentication.getName()));
+    }
+
+    @GetMapping("/{requestId}/return-options")
+    public ResponseEntity<List<ClassroomOfferingResponse>> listReturnOptions(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(changeRequestService.listReturnOptions(requestId, authentication.getName()));
     }
 }

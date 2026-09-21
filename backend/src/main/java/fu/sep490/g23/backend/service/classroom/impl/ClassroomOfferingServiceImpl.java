@@ -28,6 +28,10 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentRespo
 import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
 import fu.sep490.g23.backend.dto.request.classroom.AssignToClassRequest;
@@ -115,6 +119,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final ClassScheduleRepository sessionRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
+    private final ClassroomTuitionPaymentProofRepository tuitionPaymentProofRepository;
+    private final PaymentOrderItemRepository paymentOrderItemRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
@@ -150,7 +156,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Transactional(readOnly = true)
     public List<ClassroomOfferingResponse> getMyClasses(String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), HAS_LEARNING_ACCESS).stream()
+        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), ACTIVE_REGISTRATIONS).stream()
                 .map(ClassEnrollment::getClassSection)
                 .map(offering -> mapper.toOfferingResponse(
                         offering,
@@ -208,10 +214,17 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User learner = accessHelper.requireUser(learnerEmail);
         ClassEnrollment enrollment = enrollmentRepository
                 .findByStudentIdAndClassSectionId(learner.getId(), id)
-                .filter(ClassEnrollment::hasClassAccess)
+                .filter(item -> ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
                 .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập lớp học này."));
         ClassSection offering = findOffering(id);
-        return mapper.toOfferingResponse(offering, true, learner.getId(), enrollment, true);
+        boolean hasClassAccess = enrollment.hasClassAccess();
+        return mapper.toOfferingResponse(
+                offering,
+                hasClassAccess,
+                learner.getId(),
+                enrollment,
+                hasClassAccess
+        );
     }
 
     @Override
@@ -613,14 +626,18 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                         .build());
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
 
+        enrollment.setAgreedTuitionFeeVnd(tuitionDue);
         enrollment.setTuitionAmountDue(tuitionDue);
-        enrollment.setTuitionAmountPaid(tuitionDue);
+        if (enrollment.getTuitionAmountPaid() == null) {
+            enrollment.setTuitionAmountPaid(BigDecimal.ZERO);
+        }
         enrollment.setNote(request.getNote());
 
-        if (isClassFull(offering) && !enrollment.hasClassAccess()) {
+        if (isClassFull(offering)) {
             enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
-        } else if (!enrollment.hasClassAccess()) {
-            tryAssignEnrollment(enrollment, offering, student, null, "Xếp lớp trực tiếp");
+        } else {
+            enrollment.setRegistrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT);
+            enrollment.setEnrolledAt(ClassroomRegistrationSupport.currentBusinessTime());
         }
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         return mapper.toEnrollmentResponse(enrollment);
@@ -646,6 +663,18 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     @Override
+    public void suspendEnrollment(Long enrollmentId, String note) {
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId)
+                .filter(item -> item.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED)
+                .orElseThrow(() -> new RuntimeException("Học viên không còn ở trạng thái đang học."));
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
+        enrollment.setRegistrationStatus(ClassroomRegistrationStatus.SUSPENDED);
+        enrollment.setNote(appendNote(enrollment.getNote(), note));
+        saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
+        notifyWaitlistIfSlotAvailable(enrollment.getClassSection());
+    }
+
+    @Override
     @SuppressWarnings("deprecation")
     public ClassroomEnrollmentResponse transferStudent(Long offeringId, TransferStudentRequest request) {
         ClassSection source = findOffering(offeringId);
@@ -654,20 +683,33 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
 
         ClassEnrollment sourceEnrollment = enrollmentRepository.findByStudentIdAndClassSectionId(student.getId(), offeringId)
-                .filter(enrollment -> ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus()))
+                .filter(enrollment -> ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus())
+                        || enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.SUSPENDED)
                 .orElseThrow(() -> new RuntimeException("Học viên không có đăng ký hợp lệ ở lớp nguồn."));
+
+        boolean returningFromSuspension = sourceEnrollment.getRegistrationStatus()
+                == ClassroomRegistrationStatus.SUSPENDED;
+        if (returningFromSuspension && !source.getInstructorLedCourse().getId()
+                .equals(target.getInstructorLedCourse().getId())) {
+            throw new RuntimeException("Học viên bảo lưu chỉ được xếp lại vào lớp cùng khóa học.");
+        }
 
         ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
                 .targetClassSectionId(target.getId())
                 .learnerIds(List.of(student.getId()))
-                .checkCapacity(false)
+                .checkCapacity(returningFromSuspension)
                 .build();
         conflictService.assertNoBlockingConflict(conflictRequest);
 
         BigDecimal carriedPaid = sourceEnrollment.getTuitionAmountPaid() == null
                 ? BigDecimal.ZERO
                 : sourceEnrollment.getTuitionAmountPaid();
-        BigDecimal targetDue = resolveTuitionDue(target);
+        BigDecimal targetDue = returningFromSuspension
+                ? sourceEnrollment.getTuitionAmountDue()
+                : resolveTuitionDue(target);
+        BigDecimal agreedTuition = returningFromSuspension
+                ? sourceEnrollment.getAgreedTuitionFeeVnd()
+                : targetDue;
 
         ClassroomRegistrationStatus sourcePreviousStatus = sourceEnrollment.getRegistrationStatus();
         sourceEnrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
@@ -682,6 +724,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassEnrollment targetEnrollment = ClassEnrollment.builder()
                 .student(student)
                 .classSection(target)
+                .agreedTuitionFeeVnd(agreedTuition)
                 .tuitionAmountDue(targetDue)
                 .tuitionAmountPaid(carriedPaid)
                 .transferredFromEnrollmentId(sourceEnrollment.getId())
@@ -724,6 +767,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             return;
         }
         String classTitle = offering.getName();
+        notificationService.notifyTrainingStaff(
+                "CLASSROOM_WAITLIST_SLOT_AVAILABLE",
+                "Lớp có chỗ trống cần xử lý",
+                "Lớp " + classTitle + " đã có chỗ trống. Vui lòng xử lý học viên tiếp theo trong danh sách chờ.",
+                Map.of("classroomId", offering.getId(), "enrollmentId", waitlisted.getFirst().getId())
+        );
         for (ClassEnrollment waiting : waitlisted) {
             notificationService.notifyUser(
                     waiting.getStudent(),
@@ -753,6 +802,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 : ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(nextStatus);
+        if (nextStatus == ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT) {
+            enrollment.setEnrolledAt(ClassroomRegistrationSupport.currentBusinessTime());
+        }
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         String classTitle = offering.getName();
@@ -768,6 +820,58 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
         );
         return mapper.toEnrollmentResponse(enrollment);
+    }
+
+    @Override
+    public boolean expireOverdueTuitionEnrollment(Long enrollmentId, LocalDateTime now) {
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId).orElse(null);
+        if (enrollment == null || !Set.of(
+                ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT,
+                ClassroomRegistrationStatus.DEPOSIT_PAID,
+                ClassroomRegistrationStatus.PARTIALLY_PAID
+        ).contains(enrollment.getRegistrationStatus())) {
+            return false;
+        }
+        if (!ClassroomRegistrationSupport.isTuitionPaymentOverdue(enrollment, now)) {
+            return false;
+        }
+        if (tuitionPaymentProofRepository.countByEnrollmentIdAndStatus(
+                enrollmentId, TuitionProofStatus.PENDING) > 0) {
+            return false;
+        }
+        if (paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(
+                enrollmentId, List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING))) {
+            return false;
+        }
+
+        ClassSection offering = enrollment.getClassSection();
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
+        BigDecimal paid = enrollment.getTuitionAmountPaid() == null
+                ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
+        String note = paid.compareTo(BigDecimal.ZERO) > 0
+                ? "Tự động từ chối do quá hạn đóng đủ học phí; cần đối soát khoản đã thu."
+                : "Tự động từ chối do quá hạn đóng học phí.";
+        enrollment.setRegistrationStatus(ClassroomRegistrationStatus.REJECTED);
+        enrollment.setNote(appendNote(enrollment.getNote(), note));
+        saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
+        notificationService.notifyUser(
+                enrollment.getStudent(),
+                "CLASSROOM_TUITION_EXPIRED",
+                "Đăng ký lớp đã hết hạn thanh toán",
+                "Đăng ký lớp " + offering.getName() + " đã bị từ chối do chưa hoàn tất học phí đúng hạn.",
+                Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
+        );
+        if (paid.compareTo(BigDecimal.ZERO) > 0) {
+            notificationService.notifyTrainingStaff(
+                    "CLASSROOM_TUITION_REVIEW_REQUIRED",
+                    "Cần đối soát học phí",
+                    "Hồ sơ của " + enrollment.getStudent().getFullName()
+                            + " đã hết hạn nhưng có khoản học phí đã thu.",
+                    Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
+            );
+        }
+        notifyWaitlistIfSlotAvailable(offering);
+        return true;
     }
 
     @Override
@@ -811,8 +915,24 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     ) {
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertStaffOperator(actor);
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đăng ký lớp."));
+        if (paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(
+                enrollmentId,
+                List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING)
+        )) {
+            throw new RuntimeException("Học viên đang có đơn PayOS chưa hoàn tất. Vui lòng xử lý đơn đó trước khi ghi nhận tại trung tâm.");
+        }
+        if (ClassroomRegistrationSupport.isTuitionPaymentOverdue(
+                enrollment, ClassroomRegistrationSupport.currentBusinessTime())) {
+            throw new RuntimeException("Đăng ký đã quá hạn thanh toán học phí.");
+        }
+        if (request.getPaymentKind() == TuitionPaymentKind.DEPOSIT
+                && ClassroomRegistrationSupport.requiresFullTuitionPayment(enrollment)) {
+            throw new RuntimeException("Đăng ký gần ngày khai giảng cần thanh toán toàn bộ học phí.");
+        }
         return applyTuitionPaymentInternal(
-                findEnrollment(enrollmentId),
+                enrollment,
                 request.getAmount(),
                 request.getPaymentKind(),
                 request.getNote(),
@@ -836,7 +956,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     public ClassroomEnrollmentResponse applyPayosTuitionPayment(Long enrollmentId, BigDecimal amount, String note) {
-        ClassEnrollment enrollment = findEnrollment(enrollmentId);
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đăng ký lớp."));
         String normalizedNote = note == null ? "" : note.trim();
         if (!normalizedNote.isBlank()) {
             boolean alreadyRecorded = tuitionPaymentRepository
@@ -858,12 +979,14 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Số tiền PayOS không hợp lệ.");
         }
         if (paymentAmount.compareTo(balance) > 0) {
-            paymentAmount = balance;
+            throw new RuntimeException("Số tiền PayOS vượt quá học phí còn lại. Vui lòng kiểm tra giao dịch.");
         }
 
-        TuitionPaymentKind kind = paymentAmount.compareTo(balance) >= 0
-                ? TuitionPaymentKind.FULL
-                : TuitionPaymentKind.PARTIAL;
+        BigDecimal paidBefore = enrollment.getTuitionAmountPaid() == null
+                ? BigDecimal.ZERO
+                : enrollment.getTuitionAmountPaid();
+        TuitionPaymentKind kind = ClassroomRegistrationSupport.classifyTuitionPayment(
+                enrollment.getTuitionAmountDue(), paidBefore, paymentAmount);
 
         return applyTuitionPaymentInternal(
                 enrollment,
@@ -899,13 +1022,35 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         BigDecimal paymentAmount = amount == null ? BigDecimal.ZERO : amount;
         BigDecimal paid = enrollment.getTuitionAmountPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
+        BigDecimal balance = enrollment.tuitionBalance();
+        if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Số tiền thanh toán phải lớn hơn 0.");
+        }
+        if (paymentAmount.compareTo(balance) > 0) {
+            throw new RuntimeException("Số tiền thanh toán không được vượt quá học phí còn lại.");
+        }
+        if (paymentKind == TuitionPaymentKind.MANUAL_CONFIRMATION || paymentKind == TuitionPaymentKind.REFUND) {
+            throw new RuntimeException("Loại thanh toán không hợp lệ trong luồng thu học phí.");
+        }
+        TuitionPaymentKind actualKind = ClassroomRegistrationSupport.classifyTuitionPayment(
+                enrollment.getTuitionAmountDue(), paid, paymentAmount);
+        if (paymentKind == TuitionPaymentKind.DEPOSIT) {
+            BigDecimal required = ClassroomRegistrationSupport.remainingDeposit(
+                    enrollment.getTuitionAmountDue(), paid);
+            if (required.compareTo(BigDecimal.ZERO) <= 0 || paymentAmount.compareTo(required) != 0) {
+                throw new RuntimeException("Số tiền cọc phải bằng đúng số tiền cọc còn thiếu.");
+            }
+            actualKind = TuitionPaymentKind.DEPOSIT;
+        } else if (paymentKind == TuitionPaymentKind.FULL && paymentAmount.compareTo(balance) != 0) {
+            throw new RuntimeException("Thanh toán toàn bộ phải bằng đúng học phí còn lại.");
+        }
         enrollment.setTuitionAmountPaid(paid.add(paymentAmount));
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationSupport.resolveRegistrationStatusAfterPayment(
                 enrollment.getTuitionAmountDue(),
                 enrollment.getTuitionAmountPaid(),
                 BigDecimal.ZERO,
-                paymentKind
+                actualKind
         ));
         enrollment.setTuitionRecordedAt(LocalDateTime.now());
         enrollment.setTuitionRecordedBy(recordedBy);
@@ -913,7 +1058,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         tuitionPaymentRepository.save(ClassroomTuitionPayment.builder()
                 .enrollment(enrollment)
                 .amount(paymentAmount)
-                .paymentKind(paymentKind)
+                .paymentKind(actualKind)
                 .note(note)
                 .recordedBy(recordedBy)
                 .build());
@@ -922,7 +1067,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         if (assignIfFullyPaid
                 && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.FULLY_PAID) {
-            tryAssignEnrollment(enrollment, offering, learner, recordedBy, null);
+            try {
+                assertLearnerScheduleForOffering(offering, learner.getId());
+                tryAssignEnrollment(enrollment, offering, learner, recordedBy, null);
+            } catch (RuntimeException conflict) {
+                log.info(
+                        "Tuition recorded for enrollment {}, but automatic assignment was deferred: {}",
+                        enrollment.getId(),
+                        conflict.getMessage()
+                );
+            }
         }
 
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
@@ -1761,7 +1915,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     ) {
         ClassSection lockedOffering = offeringRepository.findByIdForUpdate(offering.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lớp học không tồn tại."));
-        if (isClassFull(lockedOffering)) {
+        long occupied = enrollmentRepository.countByOfferingAndRegistrationStatuses(
+                lockedOffering.getId(), OCCUPIES_CLASS_SLOT);
+        if (enrollment.getRegistrationStatus() != null
+                && OCCUPIES_CLASS_SLOT.contains(enrollment.getRegistrationStatus())) {
+            occupied = Math.max(0L, occupied - 1L);
+        }
+        if (lockedOffering.getCapacity() != null
+                && lockedOffering.getCapacity() > 0
+                && occupied >= lockedOffering.getCapacity()) {
             enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
             return;
         }

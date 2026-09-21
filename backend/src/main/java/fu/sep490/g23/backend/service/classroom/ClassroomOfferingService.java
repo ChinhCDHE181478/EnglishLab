@@ -82,11 +82,15 @@ public interface ClassroomOfferingService {
 
     void removeStudent(Long offeringId, Long studentId);
 
+    void suspendEnrollment(Long enrollmentId, String note);
+
     ClassroomEnrollmentResponse transferStudent(Long offeringId, TransferStudentRequest request);
 
     ClassroomEnrollmentResponse confirmRegistration(Long enrollmentId, String actorEmail);
 
     ClassroomEnrollmentResponse rejectRegistration(Long enrollmentId, RejectRegistrationRequest request, String actorEmail);
+
+    boolean expireOverdueTuitionEnrollment(Long enrollmentId, java.time.LocalDateTime now);
 
     ClassroomEnrollmentResponse recordTuitionPayment(Long enrollmentId, RecordTuitionPaymentRequest request, String actorEmail);
 

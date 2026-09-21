@@ -13,6 +13,8 @@ import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import fu.sep490.g23.backend.dto.request.classroom.CreateChangeRequestRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCourseReturnRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCourseSuspensionRequest;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
 
@@ -21,17 +23,22 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
+import fu.sep490.g23.backend.dto.response.classroom.CourseSuspensionEligibilityResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
 import fu.sep490.g23.backend.service.classroom.ClassroomChangeRequestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
+import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,6 +51,9 @@ import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +62,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Transactional
 public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequestService {
+
+    private static final Collection<ClassroomChangeRequestType> SUSPENSION_REQUEST_TYPES = EnumSet.of(
+            ClassroomChangeRequestType.SUSPEND_STUDENT,
+            ClassroomChangeRequestType.RESUME_STUDENT
+    );
 
     private final ClassroomChangeRequestRepository changeRequestRepository;
     private final ClassSectionRepository offeringRepository;
@@ -65,6 +80,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     private final ClassroomOfferingService offeringService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
+    private final HomeworkAttachmentStorageService attachmentStorageService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -194,6 +210,189 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
     @Override
     @Transactional(readOnly = true)
+    public List<CourseSuspensionEligibilityResponse> listSuspensionEligibility(String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(
+                        learner.getId(),
+                        List.of(ClassroomRegistrationStatus.ASSIGNED)
+                ).stream()
+                .map(enrollment -> suspensionEligibility(enrollment, learner, true))
+                .toList();
+    }
+
+    @Override
+    public ClassroomChangeRequestResponse createSuspensionRequest(
+            CreateCourseSuspensionRequest request,
+            String learnerEmail
+    ) {
+        User authenticatedLearner = accessHelper.requireUser(learnerEmail);
+        User learner = userRepository.findByIdForUpdate(authenticatedLearner.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(request.getEnrollmentId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học cần bảo lưu."));
+        assertEnrollmentOwner(enrollment, learner);
+
+        CourseSuspensionEligibilityResponse eligibility = suspensionEligibility(enrollment, learner, true);
+        if (!eligibility.isEligible()) {
+            throw new RuntimeException(eligibility.getEligibilityMessage());
+        }
+        validateSuspensionDates(request.getRequestedStartDate(), request.getRequestedReturnDate(), true);
+        String proofUrl = normalizeSuspensionProofUrl(request.getProofUrl());
+        if (changeRequestRepository.existsByRequesterIdAndClassSectionIdAndRequestTypeAndStatus(
+                learner.getId(),
+                enrollment.getClassSection().getId(),
+                ClassroomChangeRequestType.SUSPEND_STUDENT,
+                ClassroomChangeRequestStatus.PENDING
+        )) {
+            throw new RuntimeException("Lớp học này đã có yêu cầu bảo lưu đang chờ xử lý.");
+        }
+
+        ClassSection classroom = enrollment.getClassSection();
+        Map<String, Object> oldValues = new LinkedHashMap<>();
+        oldValues.put("enrollmentId", enrollment.getId());
+        oldValues.put("studentId", learner.getId());
+        oldValues.put("studentName", learner.getFullName());
+        oldValues.put("courseId", classroom.getInstructorLedCourse().getId());
+        oldValues.put("courseTitle", classroom.getInstructorLedCourse().getTitle());
+        oldValues.put("registrationStatus", ClassroomRegistrationStatus.ASSIGNED.name());
+        oldValues.put("tuitionAmountDue", enrollment.getTuitionAmountDue());
+        oldValues.put("tuitionAmountPaid", enrollment.getTuitionAmountPaid());
+        oldValues.put("completedSessions", eligibility.getCompletedSessions());
+        oldValues.put("totalSessions", eligibility.getTotalSessions());
+        oldValues.put("progressPercent", eligibility.getProgressPercent());
+
+        Map<String, Object> newValues = new LinkedHashMap<>();
+        newValues.put("enrollmentId", enrollment.getId());
+        newValues.put("registrationStatus", ClassroomRegistrationStatus.SUSPENDED.name());
+        newValues.put("requestedStartDate", request.getRequestedStartDate().toString());
+        newValues.put("requestedReturnDate", request.getRequestedReturnDate().toString());
+        newValues.put("proofUrl", proofUrl);
+
+        ClassroomChangeRequest changeRequest = ClassroomChangeRequest.builder()
+                .requestType(ClassroomChangeRequestType.SUSPEND_STUDENT)
+                .requester(learner)
+                .requesterRole(learner.getPrimaryRoleCode())
+                .classSection(classroom)
+                .oldValuesJson(writeJson(oldValues))
+                .newValuesJson(writeJson(newValues))
+                .reason(request.getReason().trim())
+                .status(ClassroomChangeRequestStatus.PENDING)
+                .reviewer(nextRequestOwner())
+                .build();
+        changeRequest = changeRequestRepository.save(changeRequest);
+        notifyRequestCreated(changeRequest, "Học viên gửi yêu cầu bảo lưu khóa học.");
+        return mapper.toChangeRequestResponse(changeRequest);
+    }
+
+    @Override
+    public ClassroomChangeRequestResponse createReturnRequest(
+            CreateCourseReturnRequest request,
+            String learnerEmail
+    ) {
+        User authenticatedLearner = accessHelper.requireUser(learnerEmail);
+        User learner = userRepository.findByIdForUpdate(authenticatedLearner.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        ClassroomChangeRequest suspension = changeRequestRepository.findById(request.getSuspensionRequestId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu bảo lưu."));
+        if (!suspension.getRequester().getId().equals(learner.getId())
+                || suspension.getRequestType() != ClassroomChangeRequestType.SUSPEND_STUDENT
+                || suspension.getStatus() != ClassroomChangeRequestStatus.APPLIED) {
+            throw new AccessDeniedException("Yêu cầu bảo lưu không hợp lệ.");
+        }
+
+        Map<String, Object> suspensionValues = parseJsonMap(suspension.getNewValuesJson());
+        LocalDate returnDeadline = LocalDate.parse(String.valueOf(suspensionValues.get("requestedReturnDate")));
+        if (LocalDate.now().isAfter(returnDeadline)) {
+            throw new RuntimeException("Đã quá thời hạn đăng ký học lại của yêu cầu bảo lưu này.");
+        }
+        Long enrollmentId = longValue(suspensionValues, "enrollmentId", "Thiếu hồ sơ lớp học đã bảo lưu.");
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ lớp học đã bảo lưu."));
+        assertEnrollmentOwner(enrollment, learner);
+        if (enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.SUSPENDED) {
+            throw new RuntimeException("Hồ sơ này không còn ở trạng thái bảo lưu.");
+        }
+        if (changeRequestRepository.existsByRequesterIdAndClassSectionIdAndRequestTypeAndStatus(
+                learner.getId(),
+                enrollment.getClassSection().getId(),
+                ClassroomChangeRequestType.RESUME_STUDENT,
+                ClassroomChangeRequestStatus.PENDING
+        )) {
+            throw new RuntimeException("Yêu cầu xếp lớp học lại đang được xử lý.");
+        }
+
+        Map<String, Object> oldValues = new LinkedHashMap<>();
+        oldValues.put("enrollmentId", enrollment.getId());
+        oldValues.put("studentId", learner.getId());
+        oldValues.put("studentName", learner.getFullName());
+        oldValues.put("courseId", enrollment.getClassSection().getInstructorLedCourse().getId());
+        oldValues.put("courseTitle", enrollment.getClassSection().getInstructorLedCourse().getTitle());
+        oldValues.put("registrationStatus", ClassroomRegistrationStatus.SUSPENDED.name());
+        oldValues.put("suspensionRequestId", suspension.getId());
+        oldValues.put("returnDeadline", returnDeadline.toString());
+
+        Map<String, Object> newValues = new LinkedHashMap<>();
+        newValues.put("enrollmentId", enrollment.getId());
+        newValues.put("registrationStatus", ClassroomRegistrationStatus.ASSIGNED.name());
+
+        ClassroomChangeRequest changeRequest = ClassroomChangeRequest.builder()
+                .requestType(ClassroomChangeRequestType.RESUME_STUDENT)
+                .requester(learner)
+                .requesterRole(learner.getPrimaryRoleCode())
+                .classSection(enrollment.getClassSection())
+                .oldValuesJson(writeJson(oldValues))
+                .newValuesJson(writeJson(newValues))
+                .reason("Đề nghị xếp lớp để tiếp tục khóa học đã bảo lưu.")
+                .status(ClassroomChangeRequestStatus.PENDING)
+                .reviewer(nextRequestOwner())
+                .build();
+        changeRequest = changeRequestRepository.save(changeRequest);
+        notifyRequestCreated(changeRequest, "Học viên đã sẵn sàng quay lại học.");
+        return mapper.toChangeRequestResponse(changeRequest);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomChangeRequestResponse> listMySuspensionRequests(String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        return changeRequestRepository.findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+                        learner.getId(), SUSPENSION_REQUEST_TYPES
+                ).stream()
+                .map(mapper::toChangeRequestResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomOfferingResponse> listReturnOptions(Long requestId, String reviewerEmail) {
+        User reviewer = accessHelper.requireUser(reviewerEmail);
+        accessHelper.assertStaffOperator(reviewer);
+        ClassroomChangeRequest changeRequest = changeRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu học lại."));
+        assertAssignedReviewer(changeRequest, reviewer);
+        if (changeRequest.getRequestType() != ClassroomChangeRequestType.RESUME_STUDENT
+                || changeRequest.getStatus() != ClassroomChangeRequestStatus.PENDING) {
+            throw new RuntimeException("Yêu cầu học lại không còn hiệu lực.");
+        }
+
+        Map<String, Object> oldValues = parseJsonMap(changeRequest.getOldValuesJson());
+        Long enrollmentId = longValue(oldValues, "enrollmentId", "Thiếu hồ sơ bảo lưu.");
+        ClassEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ bảo lưu."));
+        Long courseId = enrollment.getClassSection().getInstructorLedCourse().getId();
+        LocalDate today = LocalDate.now();
+
+        return offeringRepository.findByStatusIn(List.of(ClassroomOfferingStatus.UPCOMING, ClassroomOfferingStatus.ACTIVE))
+                .stream()
+                .filter(classroom -> classroom.getInstructorLedCourse().getId().equals(courseId))
+                .filter(classroom -> hasFutureSession(classroom, today))
+                .filter(classroom -> canReceiveReturningLearner(classroom, enrollment))
+                .map(classroom -> mapper.toOfferingResponse(classroom, false, null, null, false))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ClassroomChangeRequestResponse> listPending(String reviewerEmail) {
         User reviewer = accessHelper.requireUser(reviewerEmail);
         accessHelper.assertStaffOperator(reviewer);
@@ -215,25 +414,31 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
         ClassroomChangeRequest changeRequest = findPendingRequest(requestId);
         assertAssignedReviewer(changeRequest, reviewer);
-        ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
-        configureSessionLockCheck(conflictRequest, changeRequest);
-
-        scheduleLockService.lockDates(java.util.Arrays.asList(
-                conflictRequest.getSessionDate(),
-                changeRequest.getTargetClassSchedule() == null
-                        ? conflictRequest.getSessionDate()
-                        : changeRequest.getTargetClassSchedule().getSessionDate()
-        ));
-
         boolean overrideConflict = request != null && Boolean.TRUE.equals(request.getOverrideConflict());
 
-        if (!overrideConflict) {
-            conflictService.assertNoBlockingConflict(conflictRequest);
-        } else if (request.getReviewNote() == null || request.getReviewNote().isBlank()) {
-            throw new RuntimeException("Cần ghi chú khi ghi đè xung đột lịch học.");
+        if (changeRequest.getRequestType() == ClassroomChangeRequestType.SUSPEND_STUDENT) {
+            applyCourseSuspension(changeRequest);
+        } else if (changeRequest.getRequestType() == ClassroomChangeRequestType.RESUME_STUDENT) {
+            if (request == null || request.getTargetClassSectionId() == null) {
+                throw new RuntimeException("Vui lòng chọn lớp học phù hợp để xếp lại học viên.");
+            }
+            applyCourseReturn(changeRequest, request.getTargetClassSectionId(), reviewer);
+        } else {
+            ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
+            configureSessionLockCheck(conflictRequest, changeRequest);
+            scheduleLockService.lockDates(java.util.Arrays.asList(
+                    conflictRequest.getSessionDate(),
+                    changeRequest.getTargetClassSchedule() == null
+                            ? conflictRequest.getSessionDate()
+                            : changeRequest.getTargetClassSchedule().getSessionDate()
+            ));
+            if (!overrideConflict) {
+                conflictService.assertNoBlockingConflict(conflictRequest);
+            } else if (request.getReviewNote() == null || request.getReviewNote().isBlank()) {
+                throw new RuntimeException("Cần ghi chú khi ghi đè xung đột lịch học.");
+            }
+            applyChangeRequest(changeRequest, overrideConflict);
         }
-
-        applyChangeRequest(changeRequest, overrideConflict);
         changeRequest.setStatus(ClassroomChangeRequestStatus.APPLIED);
         changeRequest.setReviewer(reviewer);
         changeRequest.setReviewedAt(LocalDateTime.now());
@@ -261,6 +466,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             throw new RuntimeException("Chỉ có thể kiểm tra trùng lịch cho yêu cầu đang chờ duyệt.");
         }
         assertAssignedReviewer(changeRequest, reviewer);
+        if (SUSPENSION_REQUEST_TYPES.contains(changeRequest.getRequestType())) {
+            return ConflictCheckResultResponse.builder().build();
+        }
         ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
         configureSessionLockCheck(conflictRequest, changeRequest);
         return conflictService.check(conflictRequest);
@@ -277,6 +485,10 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         changeRequest.setReviewer(reviewer);
         changeRequest.setReviewedAt(LocalDateTime.now());
         String reviewNote = request == null ? null : request.getReviewNote();
+        if (SUSPENSION_REQUEST_TYPES.contains(changeRequest.getRequestType())
+                && (reviewNote == null || reviewNote.isBlank())) {
+            throw new RuntimeException("Vui lòng nhập lý do từ chối để học viên có thể bổ sung hồ sơ.");
+        }
         changeRequest.setReviewNote(reviewNote);
         changeRequest = changeRequestRepository.save(changeRequest);
 
@@ -361,6 +573,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 case RESCHEDULE_SESSION, CANCEL_SESSION, CHANGE_ROOM, CHANGE_TEACHER, RECREATE_GOOGLE_MEET -> sessionValues(session);
                 case TRANSFER_STUDENT, TRANSFER_CLASS -> Map.of("classSectionId", offering.getId());
                 case CREATE_MAKEUP_SESSION -> sessionValues(session);
+                case SUSPEND_STUDENT, RESUME_STUDENT -> Map.of("classSectionId", offering.getId());
             };
             return objectMapper.writeValueAsString(values);
         } catch (Exception ex) {
@@ -549,6 +762,8 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                     );
                 }
             }
+            case SUSPEND_STUDENT, RESUME_STUDENT ->
+                    throw new RuntimeException("Yêu cầu bảo lưu phải được xử lý qua luồng dành cho học viên.");
             default -> throw new RuntimeException("Loại yêu cầu không được hỗ trợ.");
         }
     }
@@ -599,9 +814,276 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 requireNewValue(newValues, "startTime", "Vui lòng chọn khung giờ học bù.");
                 requireNewValue(newValues, "endTime", "Vui lòng chọn khung giờ học bù.");
             }
+            case SUSPEND_STUDENT, RESUME_STUDENT ->
+                    throw new RuntimeException("Học viên phải gửi yêu cầu này từ Trung tâm hỗ trợ.");
             default -> {
             }
         }
+    }
+
+    private CourseSuspensionEligibilityResponse suspensionEligibility(
+            ClassEnrollment enrollment,
+            User learner,
+            boolean checkPendingRequest
+    ) {
+        List<ClassSchedule> sessions = sessionRepository
+                .findByClassSectionIdOrderBySessionDateAscStartTimeAsc(enrollment.getClassSection().getId()).stream()
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
+                .toList();
+        LocalDateTime now = LocalDateTime.now();
+        long completedSessions = sessions.stream()
+                .filter(session -> !session.getEndDateTime().isAfter(now))
+                .count();
+        long totalSessions = sessions.size();
+        int progressPercent = totalSessions == 0
+                ? 0
+                : (int) Math.round(completedSessions * 100.0 / totalSessions);
+
+        String message = null;
+        if (enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.ASSIGNED) {
+            message = "Chỉ lớp đang học mới có thể gửi yêu cầu bảo lưu.";
+        } else if (!isTuitionFullyPaid(enrollment)) {
+            message = "Khóa học cần được thanh toán đủ trước khi bảo lưu.";
+        } else if (totalSessions == 0) {
+            message = "Lớp học chưa có lịch học để xác định điều kiện bảo lưu.";
+        } else if (completedSessions * 2 > totalSessions) {
+            message = "Khóa học đã vượt quá 50% số buổi.";
+        } else if (hasUsedSuspension(learner.getId(), enrollment.getClassSection().getInstructorLedCourse().getId())) {
+            message = "Khóa học này đã sử dụng quyền bảo lưu một lần.";
+        } else if (checkPendingRequest && hasPendingSuspension(
+                learner.getId(), enrollment.getClassSection().getInstructorLedCourse().getId())) {
+            message = "Yêu cầu bảo lưu của lớp này đang được xử lý.";
+        }
+
+        return CourseSuspensionEligibilityResponse.builder()
+                .enrollmentId(enrollment.getId())
+                .classSectionId(enrollment.getClassSection().getId())
+                .classroomTitle(enrollment.getClassSection().getTitle())
+                .courseTitle(enrollment.getClassSection().getInstructorLedCourse().getTitle())
+                .tuitionAmountDue(enrollment.getTuitionAmountDue())
+                .tuitionAmountPaid(enrollment.getTuitionAmountPaid())
+                .completedSessions(completedSessions)
+                .totalSessions(totalSessions)
+                .progressPercent(progressPercent)
+                .eligible(message == null)
+                .eligibilityMessage(message == null ? "Đủ điều kiện gửi yêu cầu bảo lưu." : message)
+                .build();
+    }
+
+    private boolean isTuitionFullyPaid(ClassEnrollment enrollment) {
+        if (enrollment.getTuitionAmountDue() == null) {
+            return false;
+        }
+        BigDecimal due = enrollment.getTuitionAmountDue();
+        BigDecimal paid = enrollment.getTuitionAmountPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
+        return paid.compareTo(due) >= 0;
+    }
+
+    private boolean hasUsedSuspension(Long learnerId, Long courseId) {
+        return changeRequestRepository.findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+                        learnerId,
+                        List.of(ClassroomChangeRequestType.SUSPEND_STUDENT)
+                ).stream()
+                .filter(request -> request.getStatus() == ClassroomChangeRequestStatus.APPLIED)
+                .map(request -> parseJsonMap(request.getOldValuesJson()).get("courseId"))
+                .filter(java.util.Objects::nonNull)
+                .map(String::valueOf)
+                .anyMatch(value -> value.equals(String.valueOf(courseId)));
+    }
+
+    private boolean hasPendingSuspension(Long learnerId, Long courseId) {
+        return changeRequestRepository.findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+                        learnerId,
+                        List.of(ClassroomChangeRequestType.SUSPEND_STUDENT)
+                ).stream()
+                .filter(request -> request.getStatus() == ClassroomChangeRequestStatus.PENDING)
+                .map(request -> parseJsonMap(request.getOldValuesJson()).get("courseId"))
+                .filter(java.util.Objects::nonNull)
+                .map(String::valueOf)
+                .anyMatch(value -> value.equals(String.valueOf(courseId)));
+    }
+
+    private void validateSuspensionDates(LocalDate startDate, LocalDate returnDate, boolean acceptingNewRequest) {
+        LocalDate today = LocalDate.now();
+        if (acceptingNewRequest && !startDate.equals(today)) {
+            throw new RuntimeException("Yêu cầu bảo lưu bắt đầu từ ngày gửi yêu cầu.");
+        }
+        if (returnDate.isBefore(startDate)) {
+            throw new RuntimeException("Ngày dự kiến quay lại phải từ ngày bắt đầu bảo lưu trở đi.");
+        }
+        if (returnDate.isAfter(startDate.plusMonths(3))) {
+            throw new RuntimeException("Thời gian bảo lưu không được vượt quá 3 tháng.");
+        }
+        if (!acceptingNewRequest && returnDate.isBefore(today)) {
+            throw new RuntimeException("Yêu cầu đã quá thời hạn bảo lưu.");
+        }
+    }
+
+    private void applyCourseSuspension(ClassroomChangeRequest changeRequest) {
+        Map<String, Object> values = parseJsonMap(changeRequest.getNewValuesJson());
+        Long enrollmentId = longValue(values, "enrollmentId", "Thiếu hồ sơ lớp học cần bảo lưu.");
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ lớp học cần bảo lưu."));
+        assertEnrollmentOwner(enrollment, changeRequest.getRequester());
+        CourseSuspensionEligibilityResponse eligibility = suspensionEligibility(
+                enrollment, changeRequest.getRequester(), false);
+        if (!eligibility.isEligible()) {
+            throw new RuntimeException(eligibility.getEligibilityMessage());
+        }
+        validateSuspensionDates(
+                LocalDate.parse(String.valueOf(values.get("requestedStartDate"))),
+                LocalDate.parse(String.valueOf(values.get("requestedReturnDate"))),
+                false
+        );
+        offeringService.suspendEnrollment(
+                enrollment.getId(),
+                "Bảo lưu theo yêu cầu #" + changeRequest.getId()
+        );
+    }
+
+    private void applyCourseReturn(
+            ClassroomChangeRequest changeRequest,
+            Long targetClassSectionId,
+            User reviewer
+    ) {
+        Map<String, Object> oldValues = parseJsonMap(changeRequest.getOldValuesJson());
+        Long enrollmentId = longValue(oldValues, "enrollmentId", "Thiếu hồ sơ bảo lưu.");
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ bảo lưu."));
+        assertEnrollmentOwner(enrollment, changeRequest.getRequester());
+        if (enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.SUSPENDED) {
+            throw new RuntimeException("Hồ sơ này không còn ở trạng thái bảo lưu.");
+        }
+
+        ClassSection target = offeringRepository.findByIdForUpdate(targetClassSectionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học được chọn."));
+        if (!target.getInstructorLedCourse().getId()
+                .equals(enrollment.getClassSection().getInstructorLedCourse().getId())) {
+            throw new RuntimeException("Lớp được chọn không thuộc khóa học đã bảo lưu.");
+        }
+        if (!List.of(ClassroomOfferingStatus.UPCOMING, ClassroomOfferingStatus.ACTIVE).contains(target.getStatus())
+                || !hasFutureSession(target, LocalDate.now())) {
+            throw new RuntimeException("Lớp được chọn không còn nhận học viên học lại.");
+        }
+        if (!canReceiveReturningLearner(target, enrollment)) {
+            throw new RuntimeException("Lớp được chọn đã hết chỗ hoặc trùng lịch học của học viên.");
+        }
+
+        Map<String, Object> newValues = new LinkedHashMap<>(parseJsonMap(changeRequest.getNewValuesJson()));
+        newValues.put("targetClassSectionId", target.getId());
+        newValues.put("targetClassroomTitle", target.getTitle());
+        changeRequest.setNewValuesJson(writeJson(newValues));
+
+        if (target.getId().equals(enrollment.getClassSection().getId())) {
+            enrollment.setRegistrationStatus(ClassroomRegistrationStatus.ASSIGNED);
+            enrollment.setAssignedAt(LocalDateTime.now());
+            enrollment.setAssignedBy(reviewer);
+            enrollment.setAssignmentNote("Tiếp tục học sau bảo lưu");
+            enrollmentRepository.save(enrollment);
+            return;
+        }
+
+        offeringService.transferStudent(
+                enrollment.getClassSection().getId(),
+                TransferStudentRequest.builder()
+                        .studentId(enrollment.getStudent().getId())
+                        .targetClassSectionId(target.getId())
+                        .note("Xếp lớp lại sau bảo lưu theo yêu cầu #" + changeRequest.getId())
+                        .build()
+        );
+    }
+
+    private boolean canReceiveReturningLearner(ClassSection classroom, ClassEnrollment enrollment) {
+        if (!classroom.getId().equals(enrollment.getClassSection().getId())
+                && enrollmentRepository.findByStudentIdAndClassSectionId(
+                        enrollment.getStudent().getId(), classroom.getId()).isPresent()) {
+            return false;
+        }
+        Integer capacity = classroom.getCapacity();
+        if (capacity != null && capacity > 0
+                && enrollmentRepository.countByOfferingAndRegistrationStatuses(
+                        classroom.getId(), ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT) >= capacity) {
+            return false;
+        }
+        List<ClassSchedule> schedules = sessionRepository
+                .findByClassSectionIdOrderBySessionDateAscStartTimeAsc(classroom.getId());
+        for (ClassSchedule session : schedules) {
+            if (session.getStatus() == ClassroomSessionStatus.CANCELLED
+                    || session.getStatus() == ClassroomSessionStatus.COMPLETED
+                    || session.getEndDateTime().isBefore(LocalDateTime.now())) {
+                continue;
+            }
+            ConflictCheckResultResponse result = conflictService.check(ConflictCheckRequest.builder()
+                    .learnerIds(List.of(enrollment.getStudent().getId()))
+                    .sessionDate(session.getSessionDate())
+                    .startTime(session.getStartTime())
+                    .endTime(session.getEndTime())
+                    .excludeSessionId(session.getId())
+                    .checkCapacity(false)
+                    .build());
+            if (result.isHasBlockingConflict()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean hasFutureSession(ClassSection classroom, LocalDate today) {
+        return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(classroom.getId()).stream()
+                .anyMatch(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED
+                        && !session.getSessionDate().isBefore(today));
+    }
+
+    private void assertEnrollmentOwner(ClassEnrollment enrollment, User learner) {
+        if (!enrollment.getStudent().getId().equals(learner.getId())) {
+            throw new AccessDeniedException("Bạn không có quyền thao tác với hồ sơ lớp học này.");
+        }
+    }
+
+    private void notifyRequestCreated(ClassroomChangeRequest changeRequest, String staffMessage) {
+        notificationService.notifyUser(
+                changeRequest.getReviewer(),
+                "CLASSROOM_CHANGE_REQUEST_PENDING",
+                "Yêu cầu bảo lưu khóa học",
+                staffMessage,
+                Map.of("requestId", changeRequest.getId(), "classroomId", changeRequest.getClassSection().getId())
+        );
+        notificationService.notifyUser(
+                changeRequest.getRequester(),
+                "CLASSROOM_CHANGE_REQUEST_CREATED",
+                "Yêu cầu đã được gửi",
+                "Yêu cầu đang chờ Nhân viên đào tạo xử lý.",
+                Map.of("requestId", changeRequest.getId(), "classroomId", changeRequest.getClassSection().getId())
+        );
+    }
+
+    private Long longValue(Map<String, Object> values, String key, String message) {
+        Object value = values.get(key);
+        if (value == null || String.valueOf(value).isBlank()) {
+            throw new RuntimeException(message);
+        }
+        return Long.valueOf(String.valueOf(value));
+    }
+
+    private String normalizeSuspensionProofUrl(String proofUrl) {
+        return attachmentStorageService.loadStoredAttachmentFromUrl(proofUrl.trim())
+                .map(attachment -> "/api/classroom-homework/attachments/" + attachment.fileName())
+                .orElseThrow(() -> new RuntimeException("Giấy tờ minh chứng phải được tải lên EnglishLab."));
+    }
+
+    private String writeJson(Map<String, Object> values) {
+        try {
+            return objectMapper.writeValueAsString(values);
+        } catch (Exception exception) {
+            throw new RuntimeException("Không thể lưu thông tin yêu cầu bảo lưu.", exception);
+        }
+    }
+
+    private String appendNote(String existing, String addition) {
+        if (existing == null || existing.isBlank()) {
+            return addition;
+        }
+        return existing + " | " + addition;
     }
 
     private void requireNewValue(Map<String, Object> values, String key, String message) {
