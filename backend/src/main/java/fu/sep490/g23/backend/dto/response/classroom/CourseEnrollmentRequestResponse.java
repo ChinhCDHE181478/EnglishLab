@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 
 import fu.sep490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
+import fu.sep490.g23.backend.dto.response.assessment.PlacementTestSummaryResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
@@ -48,6 +49,7 @@ public class CourseEnrollmentRequestResponse {
     private LocalDateTime invitationSentAt;
     private Long placementAttemptId;
     private PlacementEligibilityResult placementEligibility;
+    private PlacementTestSummaryResponse latestPlacementResult;
     private Long assignedClassroomId;
     private List<EnrollmentRequestHistoryResponse> history;
     private LocalDateTime createdAt;

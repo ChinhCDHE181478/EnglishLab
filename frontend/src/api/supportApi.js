@@ -19,6 +19,23 @@ const supportApi = {
   async updateMyTicketStatus(ticketId, status) {
     return unwrapData(await axiosClient.patch(`/api/student/support-tickets/${ticketId}/status`, { status }));
   },
+  async getCourseSuspensionEligibility() {
+    return unwrapData(await axiosClient.get('/api/student/classrooms/suspensions/eligibility')) ?? [];
+  },
+  async listMyCourseSuspensionRequests() {
+    return unwrapData(await axiosClient.get('/api/student/classrooms/suspensions/mine')) ?? [];
+  },
+  async createCourseSuspension(data) {
+    return unwrapData(await axiosClient.post('/api/student/classrooms/suspensions', data));
+  },
+  async requestCourseReturn(suspensionRequestId) {
+    return unwrapData(await axiosClient.post('/api/student/classrooms/suspensions/return', { suspensionRequestId }));
+  },
+  async uploadCourseSuspensionProof(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return unwrapData(await axiosClient.post('/api/student/classrooms/suspensions/proofs', formData));
+  },
   async listQueue(params = {}, scope = 'staff') {
     return unwrapData(await axiosClient.get(supportQueueBase(scope), { params })) ?? [];
   },

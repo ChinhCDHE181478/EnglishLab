@@ -47,6 +47,7 @@ import fu.sep490.g23.backend.service.classroom.ClassroomProposalService;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -109,6 +110,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         validateProposalPayload(payload);
         User staff = requireStaff(staffEmail);
         ClassroomProposal proposal = requireProposal(proposalId);
+        assertProposalOwner(proposal, staff);
         if (proposal.getApprovalStatus() != ClassroomApprovalStatus.DRAFT
                 && proposal.getApprovalStatus() != ClassroomApprovalStatus.REJECTED) {
             throw new IllegalArgumentException("Chỉ có thể sửa đề xuất nháp hoặc đã bị từ chối.");
@@ -136,7 +138,8 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             String staffEmail
     ) {
         validateSchedulePayload(payload);
-        requireStaff(staffEmail);
+        User staff = requireStaff(staffEmail);
+        assertExcludedProposalOwnership(excludeProposalId, staff);
         InstructorLedCourse courseOffering = payload.getCourseOfferingId() != null
                 ? instructorLedCourseRepository.findById(payload.getCourseOfferingId()).orElse(null)
                 : null;
@@ -152,7 +155,8 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             String staffEmail
     ) {
         validateSchedulePayload(payload);
-        requireStaff(staffEmail);
+        User staff = requireStaff(staffEmail);
+        assertExcludedProposalOwnership(excludeProposalId, staff);
         InstructorLedCourse courseOffering = payload.getCourseOfferingId() != null
                 ? instructorLedCourseRepository.findById(payload.getCourseOfferingId()).orElse(null)
                 : null;
@@ -264,6 +268,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     public ClassroomProposalResponse submit(Long proposalId, String staffEmail) {
         User staff = requireStaff(staffEmail);
         ClassroomProposal proposal = requireProposal(proposalId);
+        assertProposalOwner(proposal, staff);
         if (proposal.getApprovalStatus() != ClassroomApprovalStatus.DRAFT
                 && proposal.getApprovalStatus() != ClassroomApprovalStatus.REJECTED) {
             throw new IllegalArgumentException("Chỉ có thể gửi duyệt đề xuất nháp hoặc bị từ chối.");
@@ -286,8 +291,14 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             ClassroomApprovalStatus status,
             String staffEmail
     ) {
-        requireStaff(staffEmail);
-        return list(status);
+        User staff = requireStaff(staffEmail);
+        if (staff.hasRole(RoleCodes.ADMIN)) {
+            return list(status);
+        }
+        List<ClassroomProposal> proposals = status == null
+                ? proposalRepository.findByCreatedByOrderByCreatedAtDesc(staff)
+                : proposalRepository.findByCreatedByAndApprovalStatusOrderByCreatedAtAsc(staff, status);
+        return proposals.stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -659,7 +670,14 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         return Arrays.stream(value.split(","))
                 .map(String::trim)
                 .filter(StringUtils::hasText)
-                .map(DayOfWeek::valueOf)
+                .map(raw -> {
+                    try {
+                        return DayOfWeek.valueOf(raw);
+                    } catch (IllegalArgumentException ignoredException) {
+                        // Old data stores day-of-week as integer (e.g. "1" for MONDAY)
+                        return DayOfWeek.of(Integer.parseInt(raw));
+                    }
+                })
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(DayOfWeek.class)));
     }
 
@@ -801,6 +819,22 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     private ClassroomProposal requireProposal(Long id) {
         return proposalRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề xuất lớp."));
+    }
+
+    private void assertProposalOwner(ClassroomProposal proposal, User staff) {
+        if (staff.hasRole(RoleCodes.ADMIN)) {
+            return;
+        }
+        if (proposal.getCreatedBy() == null
+                || !proposal.getCreatedBy().getId().equals(staff.getId())) {
+            throw new AccessDeniedException("Bạn chỉ có thể xử lý đề xuất lớp do mình tạo.");
+        }
+    }
+
+    private void assertExcludedProposalOwnership(Long proposalId, User staff) {
+        if (proposalId != null) {
+            assertProposalOwner(requireProposal(proposalId), staff);
+        }
     }
 
     private User resolveTeacher(Long id) {

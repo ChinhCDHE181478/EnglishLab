@@ -1,4 +1,4 @@
-import { downloadProtectedFile, isProtectedAttachmentUrl } from './protectedFile';
+import { downloadProtectedFile, isProtectedAttachmentUrl, isLocalFileUrl } from './protectedFile';
 
 const resolveDate = (value) => {
   if (!value) return null;
@@ -84,7 +84,7 @@ export const formatDeliveryMode = (mode, label) => {
 
 export const formatAssessmentType = (type) => {
   const labels = {
-    MODULE_TEST: 'Kiểm tra cuối mô-đun',
+    MODULE_TEST: 'Đánh giá kỹ năng',
     LESSON_PRACTICE: 'Luyện tập theo bài',
     MOCK_TEST: 'Thi thử',
     WRITING_TASK: 'Bài viết',
@@ -312,21 +312,15 @@ export const buildMaterialDownloadName = (material) => {
   return baseName;
 };
 
-export const downloadClassroomMaterial = async (material, { openOnFailure = true } = {}) => {
+export const downloadClassroomMaterial = async (material, { openOnFailure = false } = {}) => {
   const url = material?.fileUrl;
   if (!url) return false;
 
   const fileName = buildMaterialDownloadName(material);
   try {
-    if (isProtectedAttachmentUrl(url)) {
-      await downloadProtectedFile(url, fileName);
-      return true;
-    }
+    // Always use blob download for consistent behavior
     const response = await fetch(url, { credentials: 'include' });
-    if (!response.ok) {
-      if (openOnFailure) window.open(url, '_blank', 'noopener,noreferrer');
-      return false;
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -335,7 +329,7 @@ export const downloadClassroomMaterial = async (material, { openOnFailure = true
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(objectUrl);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     return true;
   } catch {
     if (openOnFailure) window.open(url, '_blank', 'noopener,noreferrer');

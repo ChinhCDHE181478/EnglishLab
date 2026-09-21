@@ -2,6 +2,7 @@ package fu.sep490.g23.backend.repository.classroom;
 
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposal;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
+import fu.sep490.g23.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,4 +11,11 @@ public interface ClassroomProposalRepository extends JpaRepository<ClassroomProp
     List<ClassroomProposal> findAllByOrderByCreatedAtDesc();
 
     List<ClassroomProposal> findByApprovalStatusOrderByCreatedAtAsc(ClassroomApprovalStatus status);
+
+    List<ClassroomProposal> findByCreatedByOrderByCreatedAtDesc(User createdBy);
+
+    List<ClassroomProposal> findByCreatedByAndApprovalStatusOrderByCreatedAtAsc(
+            User createdBy,
+            ClassroomApprovalStatus status
+    );
 }

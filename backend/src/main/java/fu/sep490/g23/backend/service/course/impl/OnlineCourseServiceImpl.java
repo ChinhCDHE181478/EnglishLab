@@ -1677,7 +1677,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (type == AssessmentType.MODULE_TEST
                 && (skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING)
                 && aiMode == AiEvaluationMode.NONE) {
-            throw new RuntimeException("Module Test Writing/Speaking phải bật chấm bằng AI.");
+            throw new RuntimeException("Nội dung Writing/Speaking này phải bật chấm bằng AI.");
         }
         if (uiConfigJson == null || uiConfigJson.isBlank()) {
             return;

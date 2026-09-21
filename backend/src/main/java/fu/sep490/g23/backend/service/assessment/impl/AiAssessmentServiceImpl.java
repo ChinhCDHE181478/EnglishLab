@@ -1123,7 +1123,27 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         String normalized = submittedText.toLowerCase(Locale.ROOT);
         return hasText(request.getSubmittedAudioUrl())
                 && normalized.contains("speaking mock test:")
-                && normalized.contains("part prompts shown to the learner:");
+                && normalized.contains("part prompts shown to the learner:")
+                && extractSpeakingTranscript(submittedText).isBlank();
+    }
+
+    private String extractSpeakingTranscript(String submittedText) {
+        String normalized = submittedText == null ? "" : submittedText.trim();
+        String marker = "SPEAKING TRANSCRIPT:";
+        int markerIndex = normalized.toUpperCase(Locale.ROOT).indexOf(marker);
+        if (markerIndex < 0) {
+            return "";
+        }
+
+        String transcript = normalized.substring(markerIndex + marker.length()).trim();
+        int promptsIndex = transcript.toUpperCase(Locale.ROOT).indexOf("PART PROMPTS SHOWN TO THE LEARNER:");
+        if (promptsIndex >= 0) {
+            transcript = transcript.substring(0, promptsIndex).trim();
+        }
+        if (transcript.toLowerCase(Locale.ROOT).startsWith("transcript unavailable")) {
+            return "";
+        }
+        return transcript;
     }
 
     private AiEvaluationResult rewriteSpeakingEvidenceFeedback(AiEvaluationResult aiResult, String evidenceMessage) {

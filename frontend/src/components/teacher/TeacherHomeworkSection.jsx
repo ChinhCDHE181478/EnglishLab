@@ -546,7 +546,7 @@ export default function TeacherHomeworkSection({
       return;
     }
     if (form.aiReviewEnabled && !canEnableAi) {
-      setFormError('Muốn dùng AI, vui lòng chọn một MODULE_TEST Writing hoặc Speaking của hệ thống.');
+      setFormError('Muốn dùng AI, vui lòng chọn một đề Writing hoặc Speaking của hệ thống.');
       return;
     }
     if (!selectedAiAssessment && form.activityType === 'FILE_RESPONSE' && !attachmentFile && !editingHomework?.attachmentUrl) {

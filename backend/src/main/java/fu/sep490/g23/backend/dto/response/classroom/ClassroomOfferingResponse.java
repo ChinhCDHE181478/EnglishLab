@@ -66,6 +66,11 @@ public class ClassroomOfferingResponse {
     private BigDecimal tuitionAmountDue;
     private BigDecimal tuitionAmountPaid;
     private BigDecimal tuitionRemaining;
+    private BigDecimal tuitionDepositRequired;
+    private BigDecimal tuitionDepositRemaining;
+    private LocalDateTime tuitionPaymentDeadline;
+    private boolean tuitionFullPaymentRequired;
+    private boolean tuitionPaymentOverdue;
     private Integer waitlistCount;
     private Integer waitlistPosition;
     /** Lịch học tóm tắt, ví dụ "T2, T4 · 18:00–20:00". */

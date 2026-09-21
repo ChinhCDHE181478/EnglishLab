@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertCircle,
+  CheckCircle,
   Download,
   FileText,
   Paperclip,
@@ -57,6 +59,7 @@ export default function TeacherMaterialsSection({
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [formMessage, setFormMessage] = useState('');
 
   const sessionOptions = useMemo(() => sessionOptionsFor(sessions), [sessions]);
   
@@ -97,6 +100,7 @@ export default function TeacherMaterialsSection({
     setUploadForm(uploadFormInitial);
     setAttachmentFile(null);
     setFormOpen(false);
+    setFormMessage('');
   };
 
   const handleSaveMaterial = async () => {
@@ -131,10 +135,10 @@ export default function TeacherMaterialsSection({
         sessionId: uploadForm.sessionId ? Number(uploadForm.sessionId) : null,
       });
       await refreshMaterials();
-      onMessage?.('Đã thêm tài liệu bổ trợ cho lớp.');
+      setFormMessage('Đã thêm tài liệu bổ trợ cho lớp.');
       resetForm();
     } catch (err) {
-      onMessage?.(getClassroomErrorMessage(err, 'Không thể đăng tài liệu bổ trợ cho lớp.'));
+      setFormMessage(getClassroomErrorMessage(err, 'Không thể đăng tài liệu bổ trợ cho lớp.'));
     } finally {
       setSaving(false);
     }
@@ -199,6 +203,7 @@ export default function TeacherMaterialsSection({
           <SupplementaryMaterialForm
             attachmentFile={attachmentFile}
             form={uploadForm}
+            formMessage={formMessage}
             onAttachmentChange={(file) => {
               setAttachmentFile(file);
               if (file) setUploadForm((current) => ({ ...current, fileUrl: '' }));
@@ -304,14 +309,14 @@ function EditorModal({ children, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-3 py-4 sm:px-6" role="dialog" aria-modal="true" style={{ overflow: 'hidden' }}>
       <button
         aria-label="Đóng modal"
-        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[640px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="relative z-10 w-full max-w-[640px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         {children}
       </div>
     </div>
@@ -321,6 +326,7 @@ function EditorModal({ children, onClose }) {
 function SupplementaryMaterialForm({
   attachmentFile,
   form,
+  formMessage,
   onAttachmentChange,
   onCancel,
   onChange,
@@ -339,6 +345,13 @@ function SupplementaryMaterialForm({
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {formMessage && (
+        <div className={`rounded-xl border px-4 py-3 text-xs font-semibold flex items-center gap-2 ${formMessage.includes('thành công') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+          {formMessage.includes('thành công') ? <CheckCircle className="h-4 w-4 shrink-0 text-emerald-500" /> : <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />}
+          <span>{formMessage}</span>
+        </div>
+      )}
 
       <div className="grid gap-4">
         <TextInput label="Tiêu đề *" onChange={(value) => onChange('title', value)} placeholder="Ví dụ: Worksheet ôn tập buổi 3" value={form.title} />

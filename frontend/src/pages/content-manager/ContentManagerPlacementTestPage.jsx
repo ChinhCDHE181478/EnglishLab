@@ -12,6 +12,7 @@ const RECENT_ATTEMPTS_PAGE_SIZE = 10;
 
 const TABS = [
   { key: 'monitoring', label: 'Kết quả' },
+  { key: 'scoring', label: 'Cách chấm' },
   { key: 'listening', label: 'Nghe', examTypes: ['IELTS', 'SKILL'] },
   { key: 'reading', label: 'Đọc', examTypes: ['IELTS', 'SKILL'] },
   { key: 'writing', label: 'Viết', examTypes: ['IELTS', 'SKILL'] },
@@ -325,6 +326,7 @@ export default function ContentManagerPlacementTestPage() {
           onRefresh={() => refreshMonitoring(activeExamType)}
         />
       ) : null}
+      {activeTab === 'scoring' ? <PlacementScoringGuide examType={activeExamType} /> : null}
       {activeTab === 'listening' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Nghe" skill="LISTENING" config={definition.listening} onChange={(field, value) => applyObjectiveChange('listening', field, value)} /> : null}
       {activeTab === 'reading' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Đọc" skill="READING" config={definition.reading} onChange={(field, value) => applyObjectiveChange('reading', field, value)} /> : null}
       {activeTab === 'writing' ? <SubjectiveEditor config={definition.writing} label="Bài đánh giá kỹ năng Viết" skill="WRITING" onChange={(field, value) => applySubjectiveChange('writing', field, value)} /> : null}
@@ -332,6 +334,109 @@ export default function ContentManagerPlacementTestPage() {
       {activeTab === 'toeic' ? <ToeicEditor config={definition.toeic} onChangeSection={applyToeicSectionChange} onReset={() => updateConfig('toeic', buildDefaultToeicConfig())} /> : null}
     </div>
   );
+}
+
+const IELTS_LISTENING_BANDS = [
+  ['39–40', '9.0'], ['37–38', '8.5'], ['35–36', '8.0'], ['33–34', '7.5'], ['30–32', '7.0'],
+  ['27–29', '6.5'], ['23–26', '6.0'], ['20–22', '5.5'], ['16–19', '5.0'], ['13–15', '4.5'],
+  ['10–12', '4.0'], ['7–9', '3.5'], ['5–6', '3.0'], ['3–4', '2.5'], ['0–2', '0'],
+];
+
+const IELTS_READING_BANDS = [
+  ['40', '9.0'], ['39', '8.5'], ['38', '8.0'], ['36–37', '7.5'], ['34–35', '7.0'],
+  ['32–33', '6.5'], ['30–31', '6.0'], ['27–29', '5.5'], ['23–26', '5.0'], ['19–22', '4.5'],
+  ['15–18', '4.0'], ['12–14', '3.5'], ['8–11', '3.0'], ['5–7', '2.5'], ['0–4', '0'],
+];
+
+function PlacementScoringGuide({ examType }) {
+  if (examType === 'TOEIC') {
+    return (
+      <div className="space-y-6">
+        <ScoringIntro title="Cách tính điểm TOEIC" description="Listening và Reading được chấm theo đáp án, sau đó quy đổi độc lập trước khi cộng tổng." />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <ScoringCard title="Quy đổi từng kỹ năng">
+            <p>Mỗi phần được quy đổi từ tỷ lệ câu đúng sang thang <strong>5–495</strong> và làm tròn đến 5 điểm gần nhất.</p>
+            <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 font-bold text-[#0b1c30]">Tổng điểm = Listening + Reading · Tối đa 990</p>
+          </ScoringCard>
+          <ScoringCard title="Mức trình độ gợi ý">
+            <ScoreThreshold label="Beginner" value="Dưới 450" />
+            <ScoreThreshold label="Intermediate" value="450–699" />
+            <ScoreThreshold label="Advanced" value="Từ 700" />
+          </ScoringCard>
+        </div>
+      </div>
+    );
+  }
+
+  const diagnosticOnly = examType === 'SKILL';
+  return (
+    <div className="space-y-6">
+      <ScoringIntro
+        title={diagnosticOnly ? 'Cách chấm đánh giá kỹ năng' : 'Cách tính band IELTS đầu vào'}
+        description={diagnosticOnly ? 'Chỉ các kỹ năng học viên chọn mới được chấm; kết quả dùng để chẩn đoán năng lực.' : 'Bốn kỹ năng được chấm riêng trên thang 0–9 và làm tròn theo nửa band.'}
+      />
+      <div className="grid gap-5 xl:grid-cols-2">
+        <BandTable rows={IELTS_LISTENING_BANDS} title="Listening" />
+        <BandTable rows={IELTS_READING_BANDS} title="Reading" />
+      </div>
+      <div className="grid gap-5 xl:grid-cols-2">
+        <ScoringCard title="Writing">
+          <CriteriaGrid items={['Task response', 'Coherence', 'Lexical resource', 'Grammar']} />
+          <p className="mt-4">Bài quá ngắn hoặc không có nội dung có thể bị giới hạn band. Kết quả được làm tròn theo nửa band.</p>
+        </ScoringCard>
+        <ScoringCard title="Speaking">
+          <CriteriaGrid items={['Fluency & coherence', 'Lexical resource', 'Grammar', 'Pronunciation']} />
+          <p className="mt-4">Ưu tiên đánh giá bản ghi âm. Nếu không đủ bằng chứng nói thật, kỹ năng này chưa được tính điểm.</p>
+        </ScoringCard>
+      </div>
+      <ScoringCard title={diagnosticOnly ? 'Kết quả chẩn đoán' : 'Band tổng và xếp lớp'}>
+        <p><strong>Band tổng</strong> là trung bình các kỹ năng có kết quả, sau đó làm tròn đến 0,5 gần nhất.</p>
+        <p className="mt-2">{diagnosticOnly ? 'Kết quả này không tự động xác nhận trình độ xếp lớp.' : 'Nhân viên cần rà soát Writing, Speaking và xác nhận trình độ cuối cùng trước khi dùng kết quả để xếp lớp.'}</p>
+      </ScoringCard>
+    </div>
+  );
+}
+
+function ScoringIntro({ description, title }) {
+  return (
+    <section className="rounded-2xl border border-[#eadfdc] bg-[linear-gradient(135deg,#fffdfb,#fff5f5)] p-6">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Quy tắc đánh giá</p>
+      <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-[#584140]">{description}</p>
+    </section>
+  );
+}
+
+function ScoringCard({ children, title }) {
+  return (
+    <Panel className="p-6">
+      <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{title}</h3>
+      <div className="mt-4 text-sm leading-6 text-[#584140]">{children}</div>
+    </Panel>
+  );
+}
+
+function BandTable({ rows, title }) {
+  return (
+    <ScoringCard title={`${title}: số câu đúng → band`}>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        {rows.map(([correct, band]) => (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center" key={correct}>
+            <p className="text-xs font-bold text-slate-500">{correct} câu</p>
+            <p className="mt-1 font-extrabold text-[#730014]">{band}</p>
+          </div>
+        ))}
+      </div>
+    </ScoringCard>
+  );
+}
+
+function CriteriaGrid({ items }) {
+  return <div className="grid gap-2 sm:grid-cols-2">{items.map((item) => <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-bold text-[#0b1c30]" key={item}>{item}</div>)}</div>;
+}
+
+function ScoreThreshold({ label, value }) {
+  return <div className="flex items-center justify-between border-b border-slate-100 py-2 last:border-0"><span className="font-bold text-[#0b1c30]">{label}</span><span>{value}</span></div>;
 }
 
 function Monitoring({ examType = 'IELTS', loading, monitoring, onRefresh }) {

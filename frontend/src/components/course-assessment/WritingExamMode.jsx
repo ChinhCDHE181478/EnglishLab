@@ -47,15 +47,6 @@ const buildInitialResponses = (tasks = [], initialSubmissionText = '') => {
 };
 
 const renderPromptContent = (task) => {
-  const paragraphs = Array.isArray(task?.promptParagraphs) ? task.promptParagraphs : [];
-  if (paragraphs.length) {
-    return paragraphs.map((paragraph, index) => (
-      <p key={`${task?.key || 'task'}-paragraph-${index}`} className="text-[15px] leading-8 text-[#3d2728]">
-        {paragraph}
-      </p>
-    ));
-  }
-
   if (task?.promptHtml) {
     return (
       <div
@@ -63,6 +54,15 @@ const renderPromptContent = (task) => {
         dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(task.promptHtml) }}
       />
     );
+  }
+
+  const paragraphs = Array.isArray(task?.promptParagraphs) ? task.promptParagraphs : [];
+  if (paragraphs.length) {
+    return paragraphs.map((paragraph, index) => (
+      <p key={`${task?.key || 'task'}-paragraph-${index}`} className="text-[15px] leading-8 text-[#3d2728]">
+        {paragraph}
+      </p>
+    ));
   }
 
   return (

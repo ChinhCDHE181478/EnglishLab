@@ -9,6 +9,7 @@ import fu.sep490.g23.backend.dto.response.payment.RevenueAnalyticsResponse;
 import java.util.List;
 import java.util.Map;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,7 +17,10 @@ public interface PaymentService {
     PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail);
     PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail);
     PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail);
+    PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, TuitionPaymentKind classroomPaymentKind, String studentEmail);
     PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail);
+    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, CheckoutPriceSnapshot checkoutSnapshot, String studentEmail);
+    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, CheckoutPriceSnapshot checkoutSnapshot, TuitionPaymentKind classroomPaymentKind, String studentEmail);
     PaymentOrderStatusResponse getOrderStatus(Long orderCode, String studentEmail);
       List<PaymentOrderSummaryResponse> listMyOrders(String studentEmail);
       Page<PaymentOrderSummaryResponse> pageMyOrders(String studentEmail, Pageable pageable);

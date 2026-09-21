@@ -113,6 +113,8 @@ public class ClassroomMapper {
                 ? null
                 : computeProgressPercent(offering, sessions, includeSessions);
         ScheduleSummary scheduleSummary = computeScheduleSummary(offering);
+        boolean hideLearningAccessData = viewerStudentId != null
+                && (enrollment == null || !enrollment.hasClassAccess());
 
         return ClassroomOfferingResponse.builder()
                 .id(offering.getId())
@@ -141,11 +143,13 @@ public class ClassroomMapper {
                 .roomId(offering.getRoom() == null ? null : offering.getRoom().getId())
                 .roomName(offering.getRoom() == null ? null : offering.getRoom().getName())
                 .offlineAddress(offering.getRoom() == null ? null : offering.getRoom().getLocationAddress())
-                .googleMeetOwnerId(offering.getGoogleMeetOwner() == null ? null : offering.getGoogleMeetOwner().getId())
-                .googleMeetUrl(offering.getGoogleMeetUrl())
-                .googleMeetStatus(offering.getGoogleMeetStatus())
-                .googleMeetSyncError(offering.getGoogleMeetSyncError())
-                .teacherGuide(course.getTeacherGuide())
+                .googleMeetOwnerId(hideLearningAccessData || offering.getGoogleMeetOwner() == null
+                        ? null
+                        : offering.getGoogleMeetOwner().getId())
+                .googleMeetUrl(hideLearningAccessData ? null : offering.getGoogleMeetUrl())
+                .googleMeetStatus(hideLearningAccessData ? null : offering.getGoogleMeetStatus())
+                .googleMeetSyncError(hideLearningAccessData ? null : offering.getGoogleMeetSyncError())
+                .teacherGuide(hideLearningAccessData ? null : course.getTeacherGuide())
                 .price(offering.getTuitionFeeVnd())
                 .tuitionFeeVnd(offering.getTuitionFeeVnd())
                 .salePrice(course.getSaleTuitionFeeVnd())
@@ -162,6 +166,16 @@ public class ClassroomMapper {
                         enrollment == null ? null : enrollment.getRegistrationStatus()))
                 .tuitionAmountDue(enrollment == null ? null : enrollment.getTuitionAmountDue())
                 .tuitionAmountPaid(enrollment == null ? null : enrollment.getTuitionAmountPaid())
+                .tuitionRemaining(enrollment == null ? null : enrollment.tuitionBalance().max(BigDecimal.ZERO))
+                .tuitionDepositRequired(enrollment == null ? null : ClassroomRegistrationSupport.requiredDeposit(enrollment.getTuitionAmountDue()))
+                .tuitionDepositRemaining(enrollment == null ? null : ClassroomRegistrationSupport.remainingDeposit(
+                        enrollment.getTuitionAmountDue(), enrollment.getTuitionAmountPaid()))
+                .tuitionPaymentDeadline(enrollment == null ? null : ClassroomRegistrationSupport.tuitionPaymentDeadline(enrollment))
+                .tuitionFullPaymentRequired(enrollment != null
+                        && ClassroomRegistrationSupport.requiresFullTuitionPayment(enrollment))
+                .tuitionPaymentOverdue(enrollment != null
+                        && ClassroomRegistrationSupport.isTuitionPaymentOverdue(
+                                enrollment, ClassroomRegistrationSupport.currentBusinessTime()))
                 .waitlistCount((int) waitlistCount)
                 .waitlistPosition(enrollment != null
                         && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST
@@ -306,6 +320,20 @@ public class ClassroomMapper {
                 .waitlistPosition(waitlisted ? enrollment.getWaitlistPriority() : null)
                 .waitlistSize(waitlistSize)
                 .tuitionAmountDue(enrollment.getTuitionAmountDue())
+                .tuitionAmountPaid(enrollment.getTuitionAmountPaid())
+                .tuitionDepositRequired(ClassroomRegistrationSupport.requiredDeposit(enrollment.getTuitionAmountDue()))
+                .tuitionDepositRemaining(ClassroomRegistrationSupport.remainingDeposit(
+                        enrollment.getTuitionAmountDue(), enrollment.getTuitionAmountPaid()))
+                .tuitionPaymentDeadline(ClassroomRegistrationSupport.tuitionPaymentDeadline(enrollment))
+                .tuitionFullPaymentRequired(ClassroomRegistrationSupport.requiresFullTuitionPayment(enrollment))
+                .tuitionPaymentOverdue(ClassroomRegistrationSupport.isTuitionPaymentOverdue(
+                        enrollment, ClassroomRegistrationSupport.currentBusinessTime()))
+                .hasClassAccess(enrollment.hasClassAccess())
+                .transferredFromEnrollmentId(enrollment.getTransferredFromEnrollmentId())
+                .enrolledAt(enrollment.getEnrolledAt())
+                .assignedAt(enrollment.getAssignedAt())
+                .assignedByName(assignedBy == null ? null : assignedBy.getFullName())
+                .assignmentNote(enrollment.getAssignmentNote())
                 .tuitionRecordedAt(enrollment.getTuitionRecordedAt())
                 .tuitionRecordedByName(tuitionRecordedBy == null ? null : tuitionRecordedBy.getFullName())
                 .note(enrollment.getNote())
@@ -336,7 +364,7 @@ public class ClassroomMapper {
     }
 
     public ClassroomChangeRequestResponse toChangeRequestResponse(ClassroomChangeRequest request) {
-        User reviewer = request.getReviewer();
+        User reviewer = request.getReviewedAt() == null ? null : request.getReviewer();
         return ClassroomChangeRequestResponse.builder()
                 .id(request.getId())
                 .requestType(request.getRequestType())
@@ -772,6 +800,8 @@ public class ClassroomMapper {
             case CREATE_MAKEUP_SESSION -> "Tạo buổi học bù";
             case TRANSFER_STUDENT -> "Chuyển học viên";
             case TRANSFER_CLASS -> "Chuyển lớp";
+            case SUSPEND_STUDENT -> "Bảo lưu khóa học";
+            case RESUME_STUDENT -> "Xếp lớp sau bảo lưu";
             case RECREATE_GOOGLE_MEET -> "Tạo lại liên kết Google Meet";
         };
     }

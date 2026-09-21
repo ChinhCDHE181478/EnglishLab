@@ -47,19 +47,6 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private static final String TEST_CODE = PlacementTestDefinitionService.TEST_CODE;
     // Transcript that is only device metadata, not a real spoken answer.
     private static final Pattern SPEAKING_METADATA_PATTERN = Pattern.compile("speaking mock test:|part prompts shown to the learner:|recording duration seconds:|voice signal detected:", Pattern.CASE_INSENSITIVE);
-    // Topic words used to flag off-topic Writing/Speaking locally (before trusting AI).
-    private static final Set<String> WRITING_TASK_1_KEYWORDS = Set.of(
-            "corn", "ethanol", "fuel", "process", "production", "produce", "diagram", "stages", "ferment", "fermentation", "liquid", "milling", "cook", "cooking", "purify", "purification"
-    );
-    private static final Set<String> WRITING_TASK_2_KEYWORDS = Set.of(
-            "physical", "mental", "strength", "sport", "sports", "athlete", "athletes", "success", "training", "performance", "competition", "competitive"
-    );
-    private static final Set<String> SPEAKING_TOPIC_KEYWORDS = Set.of(
-            "from", "live", "home", "hometown", "films", "film", "movie", "movies", "watch",
-            "leisure", "activity", "activities", "work", "adults", "children", "parents",
-            "generation", "generations", "free", "time", "enjoy"
-    );
-
     private final UserRepository userRepository;
     private final PlacementTestAttemptRepository attemptRepository;
     private final AiEvaluationClient aiEvaluationClient;
@@ -458,7 +445,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 SPEAKING TASK:
                 %s
 
-//                SPEAKING TRANSCRIPT:
+                SPEAKING TRANSCRIPT:
                 %s
                 """.formatted(
                         selectedSkills.stream().map(Enum::name).sorted().toList(),
@@ -512,16 +499,11 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     ? evaluateSpeakingEvidence(request, aiResult.isAudioInputAnalyzed())
                     : null;
 
-            if (writingEvidence != null && writingEvidence.offTopicAllTasks()) {
-                writingBand = band(0); // Both tasks ignore the prompt -> writing is 0.
+            if (writingEvidence != null && writingEvidence.hasSevereProblem()) {
+                writingBand = minBand(writingBand, band(2.5));
                 appendGuardFeedback(root,
-                        "Phần Writing đang lệch đề nặng hoặc nội dung không liên quan tới cả hai task, nên bị chấm 0.",
-                        "Viết lại đúng trọng tâm: Task 1 phải mô tả quy trình sản xuất ethanol từ ngô; Task 2 phải bàn về physical strength và mental strength trong thể thao.");
-            } else if (writingEvidence != null && writingEvidence.hasSevereProblem()) {
-                writingBand = minBand(writingBand, band(2.5)); // Cap AI score when a task is too short / off-topic.
-                appendGuardFeedback(root,
-                        "Phần Writing có ít nhất một task quá ngắn hoặc lệch đề rõ rệt, nên điểm bị hạ mạnh.",
-                        "Hoàn thành đầy đủ cả hai task, bám đúng đề và phát triển ý rõ ràng trước khi nộp lại.");
+                        "Phần Writing có ít nhất một task quá ngắn nên chưa đủ bằng chứng để chấm ở band cao hơn.",
+                        "Hoàn thành đầy đủ cả hai task và phát triển ý rõ ràng trước khi nộp lại.");
             }
 
             if (speakingEvidence != null && speakingEvidence.insufficientEvidence()) {
@@ -529,11 +511,6 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 appendGuardFeedback(root,
                         speakingEvidence.message(),
                         "Hãy nộp lại bài nói với bản ghi thật rõ hoặc transcript thực sự phản ánh câu trả lời của bạn.");
-            } else if (speakingEvidence != null && speakingEvidence.offTopic()) {
-                speakingBand = band(0);
-                appendGuardFeedback(root,
-                        "Phần Speaking lệch đề nặng hoặc nội dung nói không liên quan tới các câu hỏi đã cho, nên bị chấm 0.",
-                        "Trả lời trực tiếp câu hỏi Part 1, mô tả đúng cue card ở Part 2, và bám chủ đề leisure / work / activities ở Part 3.");
             }
 
             BigDecimal productiveAverage = averageAvailable(writingBand, speakingBand);
@@ -697,47 +674,58 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return current.compareTo(cap) <= 0 ? current : cap;
     }
 
-    /** Cheap keyword check: too few topic words or too few words => off-topic / too short. */
+    /** Local guard only checks answer length; topical relevance is evaluated against the current prompt by AI. */
     private WritingEvidence evaluateWritingEvidence(Map<String, Object> writingAnswers) {
         String task1 = safe(asText(writingAnswers == null ? null : writingAnswers.get("task_1")));
         String task2 = safe(asText(writingAnswers == null ? null : writingAnswers.get("task_2")));
 
         int task1Words = countWords(task1);
         int task2Words = countWords(task2);
-        int task1Hits = countKeywordHits(task1, WRITING_TASK_1_KEYWORDS);
-        int task2Hits = countKeywordHits(task2, WRITING_TASK_2_KEYWORDS);
-
-        boolean task1OffTopic = task1Words >= 25 && task1Hits == 0;
-        boolean task2OffTopic = task2Words >= 40 && task2Hits == 0;
         boolean task1TooShort = task1Words < 40;
         boolean task2TooShort = task2Words < 60;
 
-        return new WritingEvidence(task1OffTopic, task2OffTopic, task1TooShort, task2TooShort);
+        return new WritingEvidence(task1TooShort, task2TooShort);
     }
 
-    /** If we did not hear real audio, require a real transcript that mentions the speaking topics. */
+    /** If we did not hear real audio, require enough transcript content to support a reliable score. */
     private SpeakingEvidence evaluateSpeakingEvidence(PlacementTestSubmissionRequest request, boolean audioAnalyzed) {
         String transcript = safe(request.getSpeakingTranscript());
+        String spokenTranscript = extractSpokenTranscript(transcript);
         boolean hasAudioUrl = request.getSpeakingAudioUrl() != null && !request.getSpeakingAudioUrl().isBlank();
-        boolean metadataOnlyTranscript = SPEAKING_METADATA_PATTERN.matcher(transcript).find();
-        int transcriptWords = countWords(transcript);
+        boolean metadataOnlyTranscript = spokenTranscript.isBlank() && SPEAKING_METADATA_PATTERN.matcher(transcript).find();
+        int transcriptWords = countWords(spokenTranscript);
 
         if (!audioAnalyzed) {
             if ((!hasAudioUrl && transcriptWords < 20) || metadataOnlyTranscript) {
-                return new SpeakingEvidence(false, true,
+                return new SpeakingEvidence(true,
                         "Phần Speaking chưa có đủ bằng chứng nói thật để chấm: transcript quá ít hoặc chỉ là metadata của bài thi.");
             }
             if (transcriptWords < 20) {
-                return new SpeakingEvidence(false, true,
+                return new SpeakingEvidence(true,
                         "Phần Speaking quá ngắn nên chưa đủ bằng chứng để chấm đáng tin cậy.");
-            }
-            if (countKeywordHits(transcript, SPEAKING_TOPIC_KEYWORDS) == 0) {
-                return new SpeakingEvidence(true, false,
-                        "Phần Speaking lệch khỏi chủ đề của đề bài.");
             }
         }
 
-        return new SpeakingEvidence(false, false, ""); // Real audio was analyzed, or transcript looks on-topic.
+        return new SpeakingEvidence(false, "");
+    }
+
+    private String extractSpokenTranscript(String submissionText) {
+        String normalized = safe(submissionText).trim();
+        String marker = "SPEAKING TRANSCRIPT:";
+        int markerIndex = normalized.toUpperCase(Locale.ROOT).indexOf(marker);
+        if (markerIndex < 0) {
+            return normalized;
+        }
+
+        String transcript = normalized.substring(markerIndex + marker.length()).trim();
+        int promptsIndex = transcript.toUpperCase(Locale.ROOT).indexOf("PART PROMPTS SHOWN TO THE LEARNER:");
+        if (promptsIndex >= 0) {
+            transcript = transcript.substring(0, promptsIndex).trim();
+        }
+        if (transcript.toLowerCase(Locale.ROOT).startsWith("transcript unavailable")) {
+            return "";
+        }
+        return transcript;
     }
 
     private int countWords(String text) {
@@ -745,26 +733,6 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             return 0;
         }
         return (int) Arrays.stream(text.trim().split("\\s+")).filter(token -> !token.isBlank()).count();
-    }
-
-    /** Count distinct topic words present in the answer (used for off-topic guards). */
-    private int countKeywordHits(String text, Set<String> keywords) {
-        String normalizedText = " " + normalizeForRelevance(text) + " ";
-        int hits = 0;
-        for (String keyword : keywords) {
-            String needle = " " + normalizeForRelevance(keyword) + " ";
-            if (normalizedText.contains(needle)) {
-                hits++;
-            }
-        }
-        return hits;
-    }
-
-    private String normalizeForRelevance(String value) {
-        return safe(value).toLowerCase(Locale.ROOT)
-                .replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}\\s]", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
     }
 
     private String asText(Object value) {
@@ -1003,17 +971,13 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private record ObjectiveScore(int correct, int total) {
     }
 
-    private record WritingEvidence(boolean task1OffTopic, boolean task2OffTopic, boolean task1TooShort, boolean task2TooShort) {
-        private boolean offTopicAllTasks() {
-            return task1OffTopic && task2OffTopic;
-        }
-
+    private record WritingEvidence(boolean task1TooShort, boolean task2TooShort) {
         private boolean hasSevereProblem() {
-            return task1OffTopic || task2OffTopic || task1TooShort || task2TooShort;
+            return task1TooShort || task2TooShort;
         }
     }
 
-    /** Local speaking checks used to override an AI band. */
-    private record SpeakingEvidence(boolean offTopic, boolean insufficientEvidence, String message) {
+    /** Local speaking checks only verify that enough real speech evidence exists. */
+    private record SpeakingEvidence(boolean insufficientEvidence, String message) {
     }
 }

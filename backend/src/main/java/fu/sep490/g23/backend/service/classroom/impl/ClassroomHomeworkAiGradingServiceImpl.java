@@ -87,12 +87,13 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Bài Speaking không có tệp ghi âm hợp lệ trong kho bài tập."
                 ));
-        String prompt = buildPrompt(
-                homework,
-                submission,
-                "The learner's actual spoken response is provided in the attached audio. "
-                        + "Listen to that audio and grade only what the learner says."
-        );
+        String transcript = safe(submission.getTextAnswer()).trim();
+        String speakingEvidence = "The learner's actual spoken response is provided in the attached audio. "
+                + "Use the audio as primary evidence for pronunciation, fluency, pacing, stress, and intonation."
+                + (transcript.isBlank()
+                ? ""
+                : "\n\nSPEAKING TRANSCRIPT AND RECORDING METADATA:\n" + transcript);
+        String prompt = buildPrompt(homework, submission, speakingEvidence);
         return aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType());
     }
 

@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 const configuredTimeout = Number(import.meta.env.VITE_API_TIMEOUT_MS);
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://localhost:8080');
+// Production on englishlab.io.vn serves API same-origin via nginx. Never fall back to
+// localhost:8080 in built assets — that breaks public certificate verification in browsers.
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+  ?? (import.meta.env.DEV ? '' : '');
 
 const axiosClient = axios.create({
   baseURL: apiBaseUrl,

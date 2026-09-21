@@ -257,7 +257,7 @@ export default function ContentManagerExerciseBankPage() {
             {form.exerciseType === 'PRACTICE' && ['LISTENING', 'READING'].includes(form.skill) ? (
               <div className="rounded-2xl border border-[#ead9db] bg-[#fffdfd] p-5">
                 <h4 className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">Biên soạn bài luyện tập trên hệ thống</h4>
-                <p className="mt-2 text-sm leading-6 text-[#584140]">Dùng cùng trình biên soạn với Module Test để tạo phần thi, câu hỏi, lựa chọn và đáp án chấm tự động.</p>
+                <p className="mt-2 text-sm leading-6 text-[#584140]">Tạo phần thi, câu hỏi, lựa chọn và đáp án để hệ thống chấm tự động.</p>
                 <div className="mt-5">
                   <AssessmentExamBuilder
                     assessment={{

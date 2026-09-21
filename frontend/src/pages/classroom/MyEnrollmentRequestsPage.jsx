@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpenCheck, CalendarClock, RefreshCw } from 'lucide-react';
+import { BookOpenCheck, CalendarClock, CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import { EnrollmentRequestTimeline, EnrollmentStatusBadge } from '../../components/classroom/EnrollmentRequestUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
 
 const statusOptions = [
@@ -12,6 +13,7 @@ const statusOptions = [
   { label: 'Mới đăng ký', value: 'SUBMITTED' },
   { label: 'Đã gửi lời mời', value: 'INVITATION_SENT' },
   { label: 'Đã hẹn lịch test', value: 'TEST_SCHEDULED' },
+  { label: 'Chờ xác nhận khóa đề xuất', value: 'CLASS_PROPOSED' },
   { label: 'Đủ điều kiện - chờ xếp lớp', value: 'WAITING_FOR_CLASS' },
   { label: 'Hoàn tất - Đã xếp lớp', value: 'CLASS_ASSIGNED' },
   { label: 'Đã kết thúc', value: 'CLOSED' },
@@ -22,7 +24,9 @@ export default function MyEnrollmentRequestsPage() {
   const [status, setStatus] = useState('ALL');
   const [expandedId, setExpandedId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [workingId, setWorkingId] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -39,6 +43,24 @@ export default function MyEnrollmentRequestsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const respondToRecommendation = async (request, accepted) => {
+    setWorkingId(request.id);
+    setError('');
+    try {
+      const updated = accepted
+        ? await enrollmentRequestApi.acceptCourseRecommendation(request.id)
+        : await enrollmentRequestApi.declineCourseRecommendation(request.id);
+      setRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setSuccess(accepted
+        ? 'Đã xác nhận khóa học đề xuất. Trung tâm sẽ tiếp tục xếp lớp phù hợp.'
+        : 'Đã ghi nhận bạn không tham gia khóa học được đề xuất.');
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || 'Không thể ghi nhận phản hồi. Vui lòng thử lại.');
+    } finally {
+      setWorkingId(null);
+    }
+  };
 
   const filteredRequests = useMemo(() => requests.filter((item) => {
     if (status === 'ALL') return true;
@@ -59,6 +81,8 @@ export default function MyEnrollmentRequestsPage() {
       title="Form đăng ký của tôi"
     >
       <div className="flex flex-1 flex-col">
+
+          <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật yêu cầu" />
 
           {error ? <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div> : null}
 
@@ -92,6 +116,32 @@ export default function MyEnrollmentRequestsPage() {
                           <div className="mt-4 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
                             <CalendarClock className="mt-0.5 h-4 w-4 shrink-0" />
                             <span><strong>Lịch đến trung tâm:</strong> {formatClassroomDateTime(request.testAppointmentAt)}{request.testLocation ? ` · ${request.testLocation}` : ''}</span>
+                          </div>
+                        ) : null}
+                        {request.status === 'CLASS_PROPOSED' ? (
+                          <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-700">Khóa học được đề xuất</p>
+                            <p className="mt-1 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{request.courseOfferingTitle}</p>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <button
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4 py-2.5 text-xs font-extrabold text-white disabled:opacity-60"
+                                disabled={workingId === request.id}
+                                onClick={() => respondToRecommendation(request, true)}
+                                type="button"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Đồng ý khóa học này
+                              </button>
+                              <button
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold text-slate-700 disabled:opacity-60"
+                                disabled={workingId === request.id}
+                                onClick={() => respondToRecommendation(request, false)}
+                                type="button"
+                              >
+                                <XCircle className="h-4 w-4" />
+                                Từ chối đề xuất
+                              </button>
+                            </div>
                           </div>
                         ) : null}
                       </div>
@@ -128,7 +178,7 @@ function requestGuidance(request) {
       ? 'Lịch hẹn đã được xác nhận. Vui lòng có mặt đúng địa điểm và mang theo thông tin cần thiết.'
       : 'Lịch hẹn đã được xác nhận. Vui lòng kiểm tra email để xem chi tiết.',
     WAITING_FOR_CLASS: 'Kết quả đầu vào đã được ghi nhận. Hồ sơ đang chờ lớp phù hợp.',
-    CLASS_PROPOSED: 'Trung tâm đang hoàn thiện thông tin lớp phù hợp với hồ sơ của bạn.',
+    CLASS_PROPOSED: 'Vui lòng xác nhận khóa học được đề xuất để trung tâm tiếp tục xếp lớp.',
     CLASS_ASSIGNED: 'Bạn đã được xếp lớp. Thông tin lớp học có trong mục Lớp của tôi.',
     REJECTED: 'Hồ sơ này đã kết thúc. Bạn có thể đăng ký một khóa học khác.',
     CANCELLED: 'Hồ sơ này đã được hủy.',

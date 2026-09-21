@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,14 +46,23 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     @Override
     public SupportTicketResponse create(String userEmail, CreateSupportTicketRequest request) {
         User learner = requireLearner(userEmail);
+        User assignee = nextSupportOwner();
         SupportTicket ticket = ticketRepository.save(SupportTicket.builder()
                 .requester(learner)
+                .assignee(assignee)
                 .subject(request.getSubject().trim())
                 .category(request.getCategory())
                 .status(SupportTicketStatus.OPEN)
                 .priority(SupportTicketPriority.NORMAL)
                 .build());
         saveMessage(ticket, learner, request.getMessage());
+        appNotificationService.createForUser(
+                assignee,
+                "SUPPORT_TICKET_ASSIGNED",
+                "Yêu cầu hỗ trợ mới #" + ticket.getId(),
+                ticket.getSubject(),
+                Map.of("ticketId", ticket.getId(), "path", "/staff/support-tickets")
+        );
         return toResponse(ticket, true);
     }
 
@@ -128,8 +138,9 @@ public class SupportTicketServiceImpl implements SupportTicketService {
             SupportTicketStatus status,
             SupportTicketPriority priority
     ) {
-        requireSupportStaff(staffEmail);
-        return ticketRepository.findQueue(status, priority).stream()
+        User staff = requireSupportStaff(staffEmail);
+        User assigneeFilter = canAccessEveryTicket(staff) ? null : staff;
+        return ticketRepository.findQueue(status, priority, assigneeFilter).stream()
                 .map(ticket -> toResponse(ticket, false))
                 .toList();
     }
@@ -143,8 +154,12 @@ public class SupportTicketServiceImpl implements SupportTicketService {
             String keyword,
             Pageable pageable
     ) {
-        requireSupportStaff(staffEmail);
+        User staff = requireSupportStaff(staffEmail);
         Specification<SupportTicket> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+        if (!canAccessEveryTicket(staff)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("assignee"), staff));
+        }
         if (status != null) {
             specification = specification.and((root, query, criteriaBuilder) ->
                     criteriaBuilder.equal(root.get("status"), status));
@@ -170,16 +185,24 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     @Override
     @Transactional(readOnly = true)
     public SupportTicketResponse getForStaff(Long ticketId, String staffEmail) {
-        requireSupportStaff(staffEmail);
-        return toResponse(requireTicket(ticketId), true);
+        User staff = requireSupportStaff(staffEmail);
+        SupportTicket ticket = requireTicket(ticketId);
+        assertAssignedStaff(ticket, staff);
+        return toResponse(ticket, true);
     }
 
     @Override
     public SupportTicketResponse claim(Long ticketId, String staffEmail) {
         User staff = requireSupportStaff(staffEmail);
         SupportTicket ticket = requireTicket(ticketId);
+        assertAssignedStaff(ticket, staff);
         assertActive(ticket);
-        ticket.setAssignee(staff);
+        if (ticket.getAssignee() != null && !ticket.getAssignee().getId().equals(staff.getId())) {
+            throw new IllegalArgumentException("Yêu cầu đã được phân công cho nhân viên khác.");
+        }
+        if (ticket.getAssignee() == null) {
+            ticket.setAssignee(staff);
+        }
         ticket.setStatus(SupportTicketStatus.IN_PROGRESS);
         return toResponse(ticketRepository.save(ticket), true);
     }
@@ -192,10 +215,8 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     ) {
         User staff = requireSupportStaff(staffEmail);
         SupportTicket ticket = requireTicket(ticketId);
+        assertAssignedStaff(ticket, staff);
         assertActive(ticket);
-        if (ticket.getAssignee() == null) {
-            ticket.setAssignee(staff);
-        }
         saveMessage(ticket, staff, request.getMessage());
         ticket.setStatus(SupportTicketStatus.WAITING_FOR_LEARNER);
         ticket = ticketRepository.save(ticket);
@@ -214,6 +235,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
             throw new IllegalArgumentException("Cần cung cấp trạng thái hoặc độ ưu tiên cần cập nhật.");
         }
         SupportTicket ticket = requireTicket(ticketId);
+        assertAssignedStaff(ticket, staff);
         SupportTicketStatus previousStatus = ticket.getStatus();
         if (request.getPriority() != null) {
             ticket.setPriority(request.getPriority());
@@ -274,6 +296,39 @@ public class SupportTicketServiceImpl implements SupportTicketService {
             throw new IllegalArgumentException("Bạn không có quyền xử lý support ticket.");
         }
         return user;
+    }
+
+    private User nextSupportOwner() {
+        List<User> staffMembers = userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF);
+        if (staffMembers.isEmpty()) {
+            throw new IllegalStateException("Hiện chưa có nhân viên hỗ trợ đang hoạt động.");
+        }
+        User lastOwner = ticketRepository
+                .findFirstByAssigneeInOrderByCreatedAtDescIdDesc(staffMembers)
+                .map(SupportTicket::getAssignee)
+                .orElse(null);
+        if (lastOwner == null) {
+            return staffMembers.get(0);
+        }
+        for (int index = 0; index < staffMembers.size(); index++) {
+            if (staffMembers.get(index).getId().equals(lastOwner.getId())) {
+                return staffMembers.get((index + 1) % staffMembers.size());
+            }
+        }
+        return staffMembers.get(0);
+    }
+
+    private void assertAssignedStaff(SupportTicket ticket, User staff) {
+        if (canAccessEveryTicket(staff)) {
+            return;
+        }
+        if (ticket.getAssignee() == null || !ticket.getAssignee().getId().equals(staff.getId())) {
+            throw new AccessDeniedException("Yêu cầu này do nhân viên khác phụ trách.");
+        }
+    }
+
+    private boolean canAccessEveryTicket(User user) {
+        return user.hasRole(RoleCodes.MANAGER) || user.hasRole(RoleCodes.ADMIN);
     }
 
     private User requireUser(String email) {

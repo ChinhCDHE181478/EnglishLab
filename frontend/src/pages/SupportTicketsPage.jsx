@@ -1,8 +1,21 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, LifeBuoy, MessageSquarePlus, Plus, Send, X, XCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  ClipboardList,
+  LifeBuoy,
+  MessageSquarePlus,
+  PauseCircle,
+  Plus,
+  RotateCcw,
+  Send,
+  Upload,
+  X,
+  XCircle,
+} from 'lucide-react';
 import supportApi from '../api/supportApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import BrandedSelect from '../components/ui/BrandedSelect';
+import VietnameseDateInput from '../components/ui/VietnameseDateInput';
 import {
   formatSupportTime,
   isSupportTicketTerminal,
@@ -15,6 +28,39 @@ import {
 } from '../utils/supportTicketLabels';
 
 const emptyForm = { subject: '', category: 'ACCOUNT', message: '' };
+const todayKey = () => {
+  const now = new Date();
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-');
+};
+const addMonthsToDateKey = (dateKey, months) => {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const targetMonthStart = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(
+    targetMonthStart.getFullYear(),
+    targetMonthStart.getMonth() + 1,
+    0,
+  ).getDate();
+  const target = new Date(
+    targetMonthStart.getFullYear(),
+    targetMonthStart.getMonth(),
+    Math.min(day, lastDay),
+  );
+  return [
+    target.getFullYear(),
+    String(target.getMonth() + 1).padStart(2, '0'),
+    String(target.getDate()).padStart(2, '0'),
+  ].join('-');
+};
+const createEmptySuspensionForm = () => ({
+  enrollmentId: '', requestedStartDate: todayKey(), requestedReturnDate: '', reason: '', proofUrl: '',
+});
+const parseValues = (value) => {
+  try { return value ? JSON.parse(value) : {}; } catch { return {}; }
+};
 
 export default function SupportTicketsPage() {
   const [tickets, setTickets] = useState([]);
@@ -28,6 +74,11 @@ export default function SupportTicketsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [classroomIssue, setClassroomIssue] = useState('GENERAL');
+  const [suspensionForm, setSuspensionForm] = useState(createEmptySuspensionForm);
+  const [suspensionEnrollments, setSuspensionEnrollments] = useState([]);
+  const [suspensionRequests, setSuspensionRequests] = useState([]);
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   const loadTickets = async (preferredId) => {
     setLoading(true);
@@ -59,13 +110,38 @@ export default function SupportTicketsPage() {
     }
   };
 
-  useEffect(() => { loadTickets(); }, []);
+  const loadSuspensionData = async () => {
+    try {
+      const [eligibility, requests] = await Promise.all([
+        supportApi.getCourseSuspensionEligibility(),
+        supportApi.listMyCourseSuspensionRequests(),
+      ]);
+      setSuspensionEnrollments(Array.isArray(eligibility) ? eligibility : []);
+      setSuspensionRequests(Array.isArray(requests) ? requests : []);
+    } catch (err) {
+      setError(supportApiError(err, 'Không tải được thông tin bảo lưu khóa học.'));
+    }
+  };
+
+  useEffect(() => {
+    loadTickets();
+    loadSuspensionData();
+  }, []);
   useEffect(() => {
     if (selectedId) loadDetail(selectedId);
     else setDetail(null);
   }, [selectedId]);
 
-  const canCreate = form.subject.trim().length >= 5 && form.message.trim().length >= 10;
+  const isSuspensionForm = form.category === 'CLASSROOM' && classroomIssue === 'COURSE_SUSPENSION';
+  const canCreate = isSuspensionForm
+    ? Boolean(
+      suspensionForm.enrollmentId
+      && suspensionForm.requestedStartDate
+      && suspensionForm.requestedReturnDate
+      && suspensionForm.reason.trim().length >= 10
+      && suspensionForm.proofUrl,
+    )
+    : form.subject.trim().length >= 5 && form.message.trim().length >= 10;
 
   const createTicket = async (event) => {
     event.preventDefault();
@@ -74,6 +150,16 @@ export default function SupportTicketsPage() {
     setError('');
     setSuccess('');
     try {
+      if (isSuspensionForm) {
+        const created = await supportApi.createCourseSuspension({
+          ...suspensionForm,
+          enrollmentId: Number(suspensionForm.enrollmentId),
+        });
+        setSuspensionForm(createEmptySuspensionForm());
+        setSuccess(`Đã gửi yêu cầu bảo lưu #${created.id}.`);
+        await loadSuspensionData();
+        return;
+      }
       const created = await supportApi.createTicket(form);
       setForm(emptyForm);
       setShowForm(false);
@@ -83,6 +169,34 @@ export default function SupportTicketsPage() {
       setDetail(created);
     } catch (err) {
       setError(supportApiError(err, 'Không thể gửi yêu cầu hỗ trợ.'));
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const uploadSuspensionProof = async (file) => {
+    if (!file) return;
+    setUploadingProof(true);
+    setError('');
+    try {
+      const uploaded = await supportApi.uploadCourseSuspensionProof(file);
+      setSuspensionForm((current) => ({ ...current, proofUrl: uploaded.url }));
+    } catch (err) {
+      setError(supportApiError(err, 'Không thể tải giấy tờ minh chứng.'));
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
+  const requestCourseReturn = async (suspensionRequestId) => {
+    setWorking(true);
+    setError('');
+    try {
+      await supportApi.requestCourseReturn(suspensionRequestId);
+      setSuccess('Đã gửi yêu cầu xếp lớp để tiếp tục học.');
+      await loadSuspensionData();
+    } catch (err) {
+      setError(supportApiError(err, 'Không thể gửi yêu cầu học lại.'));
     } finally {
       setWorking(false);
     }
@@ -168,38 +282,123 @@ export default function SupportTicketsPage() {
             <p className="mt-2 text-sm text-[#8b706e]">
               Mô tả vấn đề và cung cấp thông tin cần thiết để được hỗ trợ.
             </p>
-            <div className="mt-5 grid gap-4 md:grid-cols-[1fr_240px]">
-              <label className="space-y-2 text-sm font-bold text-[#584140]">
-                Tiêu đề
-                <input
-                  className="w-full rounded-2xl border border-[#dfbfbd] bg-[#fffafa] px-4 py-3 font-medium outline-none focus:border-[#730014]"
-                  maxLength={160}
-                  onChange={(event) => setForm({ ...form, subject: event.target.value })}
-                  placeholder="Ví dụ: Không truy cập được khóa học đã mua"
-                  value={form.subject}
-                />
-              </label>
+            <div className={`mt-5 grid gap-4 ${isSuspensionForm ? '' : 'md:grid-cols-[1fr_240px]'}`}>
+              {!isSuspensionForm ? (
+                <label className="space-y-2 text-sm font-bold text-[#584140]">
+                  Tiêu đề
+                  <input
+                    className="w-full rounded-2xl border border-[#dfbfbd] bg-[#fffafa] px-4 py-3 font-medium outline-none focus:border-[#730014]"
+                    maxLength={160}
+                    onChange={(event) => setForm({ ...form, subject: event.target.value })}
+                    placeholder="Ví dụ: Không truy cập được khóa học đã mua"
+                    value={form.subject}
+                  />
+                </label>
+              ) : null}
               <label className="space-y-2 text-sm font-bold text-[#584140]">
                 Nhóm vấn đề
                 <BrandedSelect
-                  onChange={(event) => setForm({ ...form, category: event.target.value })}
+                  onChange={(event) => {
+                    setForm({ ...form, category: event.target.value });
+                    if (event.target.value !== 'CLASSROOM') setClassroomIssue('GENERAL');
+                  }}
                   options={supportCategoryOptions}
                   value={form.category}
                 />
               </label>
             </div>
-            <label className="mt-4 block space-y-2 text-sm font-bold text-[#584140]">
-              Mô tả chi tiết
-              <textarea
-                className="min-h-36 w-full resize-y rounded-2xl border border-[#dfbfbd] bg-[#fffafa] px-4 py-3 font-medium leading-6 outline-none focus:border-[#730014]"
-                maxLength={5000}
-                onChange={(event) => setForm({ ...form, message: event.target.value })}
-                placeholder="Mô tả rõ vấn đề, thời điểm xảy ra, thao tác đã thử..."
-                value={form.message}
-              />
-            </label>
+            {form.category === 'CLASSROOM' ? (
+              <label className="mt-4 block space-y-2 text-sm font-bold text-[#584140]">
+                Nội dung cần hỗ trợ
+                <BrandedSelect
+                  onChange={(event) => setClassroomIssue(event.target.value)}
+                  options={[
+                    { label: 'Hỗ trợ lớp học khác', value: 'GENERAL' },
+                    { label: 'Bảo lưu khóa học', value: 'COURSE_SUSPENSION' },
+                  ]}
+                  value={classroomIssue}
+                />
+              </label>
+            ) : null}
+            {isSuspensionForm ? (
+              <div className="mt-5 space-y-4 rounded-2xl border border-[#f0e4e2] bg-[#fffafa] p-4 sm:p-5">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2 text-sm font-bold text-[#584140] md:col-span-2">
+                    Lớp học đang học
+                    <BrandedSelect
+                      onChange={(event) => setSuspensionForm((current) => ({ ...current, enrollmentId: event.target.value }))}
+                      options={suspensionEnrollments.filter((item) => item.eligible).map((item) => ({
+                        label: item.classroomTitle,
+                        value: String(item.enrollmentId),
+                        description: `${item.courseTitle} · Đã học ${item.completedSessions}/${item.totalSessions} buổi`,
+                      }))}
+                      placeholder={suspensionEnrollments.some((item) => item.eligible) ? 'Chọn lớp cần bảo lưu' : 'Không có lớp đủ điều kiện'}
+                      value={suspensionForm.enrollmentId}
+                    />
+                  </label>
+                  <div className="space-y-2 text-sm font-bold text-[#584140]">
+                    Ngày bắt đầu bảo lưu
+                    <div className="rounded-2xl border border-[#ead8d6] bg-slate-50 px-4 py-3 font-medium text-[#584140]">
+                      {new Intl.DateTimeFormat('vi-VN').format(new Date(`${suspensionForm.requestedStartDate}T00:00:00`))}
+                    </div>
+                  </div>
+                  <label className="space-y-2 text-sm font-bold text-[#584140]">
+                    Ngày dự kiến quay lại
+                    <VietnameseDateInput
+                      className="w-full rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 font-medium outline-none focus:border-[#730014]"
+                      max={addMonthsToDateKey(suspensionForm.requestedStartDate || todayKey(), 3)}
+                      min={suspensionForm.requestedStartDate || todayKey()}
+                      onChange={(value) => setSuspensionForm((current) => ({ ...current, requestedReturnDate: value }))}
+                      value={suspensionForm.requestedReturnDate}
+                    />
+                  </label>
+                </div>
+                <label className="block space-y-2 text-sm font-bold text-[#584140]">
+                  Lý do bảo lưu
+                  <textarea
+                    className="min-h-28 w-full resize-y rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 font-medium leading-6 outline-none focus:border-[#730014]"
+                    maxLength={2000}
+                    onChange={(event) => setSuspensionForm((current) => ({ ...current, reason: event.target.value }))}
+                    placeholder="Trình bày lý do sức khỏe, công tác, học tập hoặc trường hợp bất khả kháng..."
+                    value={suspensionForm.reason}
+                  />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-dashed border-[#cf9b9e] bg-white px-4 py-3 text-sm font-bold text-[#584140]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    {suspensionForm.proofUrl ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" /> : <Upload className="h-4 w-4 shrink-0 text-[#730014]" />}
+                    <span className="truncate">{suspensionForm.proofUrl ? 'Đã tải giấy tờ minh chứng' : 'Tải giấy tờ minh chứng'}</span>
+                  </span>
+                  <input
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    className="sr-only"
+                    disabled={uploadingProof}
+                    onChange={(event) => uploadSuspensionProof(event.target.files?.[0])}
+                    type="file"
+                  />
+                  <span className="shrink-0 text-xs text-[#8b706e]">{uploadingProof ? 'Đang tải...' : 'PDF, Word hoặc ảnh'}</span>
+                </label>
+                {suspensionEnrollments.filter((item) => !item.eligible).map((item) => (
+                  <p className="text-xs text-[#8b706e]" key={item.enrollmentId}>
+                    {item.classroomTitle}: {item.eligibilityMessage}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <label className="mt-4 block space-y-2 text-sm font-bold text-[#584140]">
+                Mô tả chi tiết
+                <textarea
+                  className="min-h-36 w-full resize-y rounded-2xl border border-[#dfbfbd] bg-[#fffafa] px-4 py-3 font-medium leading-6 outline-none focus:border-[#730014]"
+                  maxLength={5000}
+                  onChange={(event) => setForm({ ...form, message: event.target.value })}
+                  placeholder="Mô tả rõ vấn đề, thời điểm xảy ra, thao tác đã thử..."
+                  value={form.message}
+                />
+              </label>
+            )}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-[#8b706e]">Tiêu đề ≥ 5 ký tự · Mô tả ≥ 10 ký tự</p>
+              <p className="text-xs text-[#8b706e]">
+                {isSuspensionForm ? 'Thời gian bảo lưu tối đa 3 tháng.' : 'Tiêu đề ≥ 5 ký tự · Mô tả ≥ 10 ký tự'}
+              </p>
               <button
                 className="inline-flex items-center gap-2 rounded-2xl bg-[#730014] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
                 disabled={!canCreate || working}
@@ -210,6 +409,79 @@ export default function SupportTicketsPage() {
               </button>
             </div>
           </form>
+        ) : null}
+
+        {suspensionRequests.length ? (
+          <section className="overflow-hidden rounded-[28px] border border-[#dfbfbd]/40 bg-white shadow-sm">
+            <div className="flex items-center gap-2 border-b border-[#f0e4e2] px-5 py-4">
+              <PauseCircle className="h-5 w-5 text-[#730014]" />
+              <h2 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Bảo lưu khóa học</h2>
+            </div>
+            <div className="divide-y divide-[#f0e4e2]">
+              {suspensionRequests.map((request) => {
+                const oldValues = parseValues(request.oldValuesJson);
+                const newValues = parseValues(request.newValuesJson);
+                const isSuspension = request.requestType === 'SUSPEND_STUDENT';
+                const hasReturnRequest = suspensionRequests.some((item) => (
+                  item.requestType === 'RESUME_STUDENT'
+                  && Number(parseValues(item.oldValuesJson).suspensionRequestId) === Number(request.id)
+                  && ['PENDING', 'APPLIED'].includes(item.status)
+                ));
+                const canReturn = isSuspension
+                  && request.status === 'APPLIED'
+                  && newValues.requestedReturnDate >= todayKey()
+                  && !hasReturnRequest;
+                const returnExpired = isSuspension
+                  && request.status === 'APPLIED'
+                  && newValues.requestedReturnDate < todayKey()
+                  && !hasReturnRequest;
+                return (
+                  <article className="flex flex-wrap items-center justify-between gap-4 px-5 py-4" key={request.id}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-extrabold text-[#2b2828]">{request.requestTypeLabel} · #{request.id}</p>
+                      <p className="mt-1 text-xs text-[#8b706e]">
+                        {request.classroomTitle}
+                        {oldValues.courseTitle ? ` · ${oldValues.courseTitle}` : ''}
+                      </p>
+                      {isSuspension ? (
+                        <p className="mt-1 text-xs text-[#584140]">
+                          Dự kiến quay lại: {newValues.requestedReturnDate || '—'}
+                        </p>
+                      ) : null}
+                      {returnExpired ? (
+                        <p className="mt-1 text-xs font-semibold text-rose-600">
+                          Đã quá thời hạn đăng ký học lại. Vui lòng gửi yêu cầu hỗ trợ mới.
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                        request.status === 'APPLIED'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : request.status === 'REJECTED'
+                            ? 'border-rose-200 bg-rose-50 text-rose-700'
+                            : 'border-amber-200 bg-amber-50 text-amber-700'
+                      }`}
+                      >
+                        {request.statusLabel}
+                      </span>
+                      {canReturn ? (
+                        <button
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+                          disabled={working}
+                          onClick={() => requestCourseReturn(request.id)}
+                          type="button"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          Đăng ký học lại
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
         ) : null}
 
         {/* 2. Danh sách ticket của người dùng */}

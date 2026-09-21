@@ -26,19 +26,43 @@ const DEMO_DATA_SEED = 20260916;
 const REF = "2026-09-16";
 const WINDOW_FROM = "2026-06-01";
 const WINDOW_TO = "2026-10-31";
-const PASSWORD_NOTE = "Password123! (MASTER accounts only — never for preserved Gmail)";
-const MARKER = "MASTER_DEMO";
-const EMAIL_DOMAIN = "englishlab.local";
+const PASSWORD_NOTE = "Password123! (MASTER generated accounts only — never for preserved accounts)";
+const MARKER = "MASTER_OPS";
+const EMAIL_DOMAIN = "englishlab.vn";
+const MASTER_REF_PREFIX = "master-ops://";
 
 const PRESERVED = {
   learner: { email: "0386852628z@gmail.com", role: "LEARNER", purpose: "Showcase learner — KEEP AS-IS" },
   teacher: { email: "alien1062004@gmail.com", role: "TEACHER", purpose: "Showcase teacher / Google Meet — KEEP AS-IS" },
+  staff: [
+    { email: "classroom.admin@englishlab.vn", role: "ADMIN", purpose: "Preserved admin — rename fullName only", fullNameHint: "Phạm Quốc Bảo" },
+    { email: "classroom.manager@englishlab.vn", role: "MANAGER", purpose: "Preserved manager — rename fullName only", fullNameHint: "Hoàng Thu Hà" },
+    { email: "content.manager@englishlab.vn", role: "CONTENT_MANAGER", purpose: "Preserved content manager — rename fullName only", fullNameHint: "Đặng Minh Châu" },
+    { email: "staff@englishlab.vn", role: "STAFF", purpose: "Preserved staff — keep password", fullNameHint: "Nguyễn Thanh Tùng" },
+  ],
 };
 
 const PROTECTED_COURSES = [
   { slug: "e2-ielts-practice-tests", title: "E2 IELTS Practice", mode: "PROTECTED" },
   { slug: "ielts-master-vocabulary-band-7-plus", title: "IELTS Master Vocabulary Band 7+", mode: "PROTECTED" },
 ];
+
+const FORBIDDEN_UI_RE = /\b(demo|sample)\b|(?<![a-z])test(?![a-z])/i;
+
+function assertNoForbiddenUi(label, value) {
+  const text = String(value ?? "");
+  if (!text) return;
+  const lower = text.toLowerCase();
+  if (lower.includes("mock test") || lower.includes("placement test") || lower.includes("module test")) {
+    if (lower.includes("demo") || lower.includes("sample")) {
+      throw new Error(`Forbidden UI token in ${label}: ${text}`);
+    }
+    return;
+  }
+  if (FORBIDDEN_UI_RE.test(text) || lower.includes("demo")) {
+    throw new Error(`Forbidden UI token in ${label}: ${text}`);
+  }
+}
 
 function d(iso) {
   return new Date(`${iso}T00:00:00.000Z`);
@@ -64,16 +88,18 @@ function phoneFor(index) {
 }
 
 function buildAccounts(rng) {
-  const names = buildVietnameseNamePool(rng, 200);
+  const names = buildVietnameseNamePool(rng, 450);
   let ni = 0;
   const take = () => names[ni++];
 
   const accounts = [];
   const push = (partial) => {
+    if (partial.fullName) assertNoForbiddenUi(`account.fullName:${partial.email}`, partial.fullName);
+    if (partial.email) assertNoForbiddenUi(`account.email:${partial.email}`, partial.email);
     accounts.push({
       marker: partial.preserved ? null : MARKER,
       preserved: Boolean(partial.preserved),
-      passwordNote: partial.preserved ? "Do not reset / do not overwrite" : PASSWORD_NOTE,
+      passwordNote: partial.preserved ? "Do not reset / do not overwrite password" : PASSWORD_NOTE,
       phone: partial.phone || null,
       dateOfBirth: partial.dateOfBirth || null,
       gender: partial.gender || null,
@@ -81,67 +107,91 @@ function buildAccounts(rng) {
     });
   };
 
-  // Staff roles — Vietnamese real names, role in email only
-  const a1 = take();
-  push({ email: `demo.admin.01@${EMAIL_DOMAIN}`, fullName: a1.fullName, gender: a1.gender, role: "ADMIN", purpose: "System admin", phone: phoneFor(101), dateOfBirth: "1990-03-12" });
-  const a2 = take();
-  push({ email: `demo.admin.02@${EMAIL_DOMAIN}`, fullName: a2.fullName, gender: a2.gender, role: "ADMIN", purpose: "Backup admin", phone: phoneFor(102), dateOfBirth: "1988-07-21" });
+  // Preserved ops staff (email+password kept; fullNameHint applied only if importer allows rename)
+  for (const staff of PRESERVED.staff) {
+    push({
+      email: staff.email,
+      role: staff.role,
+      purpose: staff.purpose,
+      fullName: staff.fullNameHint,
+      preserved: true,
+      renameFullNameOnly: true,
+    });
+  }
 
-  const m1 = take();
-  push({ email: `demo.manager.01@${EMAIL_DOMAIN}`, fullName: m1.fullName, gender: m1.gender, role: "MANAGER", purpose: "Academic manager — approve class proposals", phone: phoneFor(201), dateOfBirth: "1987-11-05" });
-  const m2 = take();
-  push({ email: `demo.manager.02@${EMAIL_DOMAIN}`, fullName: m2.fullName, gender: m2.gender, role: "MANAGER", purpose: "Academic manager — enrollment oversight", phone: phoneFor(202), dateOfBirth: "1991-01-18" });
+  // Preserved Gmail showcase accounts — reference only
+  push({ ...PRESERVED.teacher, fullName: "(preserved — do not overwrite)", preserved: true });
+  push({ ...PRESERVED.learner, fullName: "(preserved — do not overwrite)", preserved: true });
 
-  const c1 = take();
-  push({ email: `demo.content.01@${EMAIL_DOMAIN}`, fullName: c1.fullName, gender: c1.gender, role: "CONTENT_MANAGER", purpose: "Online catalog & curriculum", phone: phoneFor(301), dateOfBirth: "1993-05-09" });
-  const c2 = take();
-  push({ email: `demo.content.02@${EMAIL_DOMAIN}`, fullName: c2.fullName, gender: c2.gender, role: "CONTENT_MANAGER", purpose: "Flashcards & practice bank", phone: phoneFor(302), dateOfBirth: "1994-09-30" });
-
-  for (let i = 1; i <= 3; i += 1) {
+  // Optional buffer generated staff (exact ownership prefixes) — not replacing preserved emails
+  for (let i = 1; i <= 2; i += 1) {
     const s = take();
     push({
-      email: `demo.staff.${String(i).padStart(2, "0")}@${EMAIL_DOMAIN}`,
+      email: `nv.${String(i).padStart(2, "0")}@${EMAIL_DOMAIN}`,
       fullName: s.fullName,
       gender: s.gender,
       role: "STAFF",
-      purpose: i === 1 ? "Tuyển sinh & xếp lớp" : i === 2 ? "Học phí & payment proof" : "Hỗ trợ vận hành lớp",
+      purpose: i === 1 ? "Tuyển sinh & xếp lớp" : "Học phí & payment proof",
       phone: phoneFor(400 + i),
       dateOfBirth: `199${i}-0${i + 2}-15`,
     });
   }
 
-  // Preserved accounts — reference only
-  push({ ...PRESERVED.teacher, fullName: "(preserved — do not overwrite)", preserved: true });
-  push({ ...PRESERVED.learner, fullName: "(preserved — do not overwrite)", preserved: true });
-
-  for (let i = 1; i <= 18; i += 1) {
+  for (let i = 1; i <= 20; i += 1) {
     const t = take();
+    const specs = [
+      "IELTS Writing",
+      "IELTS Speaking",
+      "IELTS Listening",
+      "IELTS Reading",
+      "TOEIC L&R",
+      "General English",
+      "Business English",
+    ];
     push({
-      email: `demo.teacher.${String(i).padStart(2, "0")}@${EMAIL_DOMAIN}`,
+      email: `gv.${String(i).padStart(2, "0")}@${EMAIL_DOMAIN}`,
       fullName: t.fullName,
       gender: t.gender,
       role: "TEACHER",
       purpose: "Instructor-led teaching",
       phone: phoneFor(500 + i),
       dateOfBirth: `198${5 + (i % 5)}-${String((i % 12) + 1).padStart(2, "0")}-10`,
-      teacherHeadline: i % 3 === 0 ? "Giáo viên IELTS 7.5+" : i % 3 === 1 ? "Giáo viên TOEIC 850+" : "Giáo viên giao tiếp doanh nghiệp",
-      yearsOfExperience: 3 + (i % 8),
+      teacherHeadline: `Giáo viên ${specs[(i - 1) % specs.length]}`,
+      yearsOfExperience: 2 + (i % 10),
     });
   }
 
-  for (let i = 1; i <= 110; i += 1) {
-    const l = take();
-    push({
-      email: `demo.learner.${String(i).padStart(3, "0")}@${EMAIL_DOMAIN}`,
-      fullName: l.fullName,
-      gender: l.gender,
-      role: "LEARNER",
-      purpose: "Classroom + online learning journeys",
-      phone: phoneFor(1000 + i),
-      dateOfBirth: `200${i % 5}-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 27) + 1).padStart(2, "0")}`,
-      targetExam: i % 4 === 0 ? "TOEIC" : "IELTS",
-      targetScore: i % 4 === 0 ? String(650 + (i % 4) * 50) : `6.${i % 5}`,
-    });
+  // ~320 learners kept for current world scale; cohort signup dates so Sep ≈100 new.
+  // (Jun–Aug historical ~73–74/mo; bump to 400×100/mo requires enrollment regen — deferred.)
+  const LEARNER_COHORTS = [
+    { month: "2026-06", count: 74 },
+    { month: "2026-07", count: 73 },
+    { month: "2026-08", count: 73 },
+    { month: "2026-09", count: 100 },
+  ];
+  let learnerIndex = 0;
+  for (const cohort of LEARNER_COHORTS) {
+    for (let j = 1; j <= cohort.count; j += 1) {
+      learnerIndex += 1;
+      const l = take();
+      const day = String(((j - 1) % 27) + 1).padStart(2, "0");
+      const hour = String(8 + (j % 10)).padStart(2, "0");
+      const minute = String((j * 3) % 60).padStart(2, "0");
+      push({
+        email: `hs.${String(learnerIndex).padStart(3, "0")}@${EMAIL_DOMAIN}`,
+        fullName: l.fullName,
+        gender: l.gender,
+        role: "LEARNER",
+        purpose: "Classroom + online learning journeys",
+        phone: phoneFor(1000 + learnerIndex),
+        dateOfBirth: `200${learnerIndex % 5}-${String((learnerIndex % 12) + 1).padStart(2, "0")}-${String((learnerIndex % 27) + 1).padStart(2, "0")}`,
+        targetExam: learnerIndex % 4 === 0 ? "TOEIC" : "IELTS",
+        targetScore: learnerIndex % 4 === 0 ? String(650 + (learnerIndex % 4) * 50) : `6.${learnerIndex % 5}`,
+        // Business scale: cohort signup month (not import wall-clock)
+        createdAt: `${cohort.month}-${day}T${hour}:${minute}:00`,
+        signupCohort: cohort.month,
+      });
+    }
   }
 
   return accounts;
@@ -156,42 +206,75 @@ function buildCatalog() {
     { code: "BUSINESS", name: "Business English", description: "Tiếng Anh thương mại và thuyết trình.", mode: "MASTER" },
   ];
 
+  // Ownership: ilc-* slugs (not demo-*). Titles/UI have no DEMO/TEST/SAMPLE.
   const onlineExtras = [
-    { slug: "demo-ielts-foundation-45-55", title: "IELTS Foundation 4.5–5.5", category: "IELTS", price: 1490000, level: "FOUNDATION", status: "PUBLISHED", duration: "8 tuần", featured: true, thumbnailUrl: "/course-covers/ielts-practice.png" },
-    { slug: "demo-ielts-writing-intensive-60", title: "IELTS Writing Intensive 6.0+", category: "IELTS", price: 1890000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "6 tuần", featured: true, thumbnailUrl: "/course-covers/ielts-writing.png" },
-    { slug: "demo-ielts-speaking-fluency", title: "IELTS Speaking Fluency & Pronunciation", category: "IELTS", price: 1690000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "6 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-speaking.png" },
-    { slug: "demo-ielts-listening-strategies-65", title: "IELTS Listening Strategies 6.5+", category: "IELTS", price: 1590000, level: "UPPER_INTERMEDIATE", status: "PUBLISHED", duration: "5 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-listening.png" },
-    { slug: "demo-toeic-lr-650", title: "TOEIC Listening & Reading 650+", category: "TOEIC", price: 1290000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "8 tuần", featured: true, thumbnailUrl: "/course-covers/toeic-lr.png" },
-    { slug: "demo-toeic-intensive-800", title: "TOEIC Intensive 800+", category: "TOEIC", price: 1790000, level: "ADVANCED", status: "PUBLISHED", duration: "8 tuần", featured: false, thumbnailUrl: "/course-covers/toeic-sw.png" },
-    { slug: "demo-english-communication-work", title: "English Communication for Work", category: "COMMUNICATION", price: 1190000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "6 tuần", featured: true, thumbnailUrl: "/course-covers/communication.png" },
-    { slug: "demo-business-email-presentation", title: "Business Email & Presentation Skills", category: "BUSINESS", price: 1390000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "5 tuần", featured: false, thumbnailUrl: "/course-covers/classroom-online.png" },
-    { slug: "demo-academic-english-foundations", title: "Academic English Foundations", category: "FOUNDATION", price: 990000, level: "FOUNDATION", status: "PUBLISHED", duration: "6 tuần", featured: false, thumbnailUrl: "/course-covers/grammar.png" },
-    { slug: "demo-ielts-reading-skimming", title: "IELTS Reading Skimming & Scanning", category: "IELTS", price: 990000, level: "INTERMEDIATE", status: "DRAFT", duration: "4 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-reading.png" },
-    { slug: "demo-toeic-vocab-builder", title: "TOEIC Vocabulary Builder 500 Words", category: "TOEIC", price: 790000, level: "FOUNDATION", status: "DRAFT", duration: "4 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-vocab.png" },
+    { slug: "ilc-ielts-foundation-45-55", title: "IELTS Foundation 4.5–5.5", category: "IELTS", price: 1490000, level: "FOUNDATION", status: "PUBLISHED", duration: "8 tuần", featured: true, thumbnailUrl: "/course-covers/ielts-practice.png" },
+    { slug: "ilc-ielts-writing-intensive-60", title: "IELTS Writing Intensive 6.0+", category: "IELTS", price: 1890000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "6 tuần", featured: true, thumbnailUrl: "/course-covers/ielts-writing.png" },
+    { slug: "ilc-ielts-speaking-fluency", title: "IELTS Speaking Fluency & Pronunciation", category: "IELTS", price: 1690000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "6 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-speaking.png" },
+    { slug: "ilc-ielts-listening-strategies-65", title: "IELTS Listening Strategies 6.5+", category: "IELTS", price: 1590000, level: "UPPER_INTERMEDIATE", status: "PUBLISHED", duration: "5 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-listening.png" },
+    { slug: "ilc-toeic-lr-650", title: "TOEIC Listening & Reading 650+", category: "TOEIC", price: 1290000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "8 tuần", featured: true, thumbnailUrl: "/course-covers/toeic-lr.png" },
+    { slug: "ilc-toeic-intensive-800", title: "TOEIC Intensive 800+", category: "TOEIC", price: 1790000, level: "ADVANCED", status: "PUBLISHED", duration: "8 tuần", featured: false, thumbnailUrl: "/course-covers/toeic-sw.png" },
+    { slug: "ilc-english-communication-work", title: "English Communication for Work", category: "COMMUNICATION", price: 1190000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "6 tuần", featured: true, thumbnailUrl: "/course-covers/communication.png" },
+    { slug: "ilc-business-email-presentation", title: "Business Email & Presentation Skills", category: "BUSINESS", price: 1390000, level: "INTERMEDIATE", status: "PUBLISHED", duration: "5 tuần", featured: false, thumbnailUrl: "/course-covers/classroom-online.png" },
+    { slug: "ilc-academic-english-foundations", title: "Academic English Foundations", category: "FOUNDATION", price: 990000, level: "FOUNDATION", status: "PUBLISHED", duration: "6 tuần", featured: false, thumbnailUrl: "/course-covers/grammar.png" },
+    { slug: "ilc-ielts-reading-skimming", title: "IELTS Reading Skimming & Scanning", category: "IELTS", price: 990000, level: "INTERMEDIATE", status: "DRAFT", duration: "4 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-reading.png" },
+    { slug: "ilc-toeic-vocab-builder", title: "TOEIC Vocabulary Builder 500 Words", category: "TOEIC", price: 790000, level: "FOUNDATION", status: "DRAFT", duration: "4 tuần", featured: false, thumbnailUrl: "/course-covers/ielts-vocab.png" },
   ];
 
   const instructorLed = [
-    { code: "DEMO_IELTS_FOUNDATION", title: "IELTS Foundation Evening", category: "IELTS", tuition: 4690000, totalSessions: 36 },
-    { code: "DEMO_IELTS_65", title: "IELTS 6.5 Intensive", category: "IELTS", tuition: 5290000, totalSessions: 36 },
-    { code: "DEMO_IELTS_SPEAKING", title: "IELTS Speaking Studio", category: "IELTS", tuition: 3990000, totalSessions: 24 },
-    { code: "DEMO_TOEIC_650", title: "TOEIC 650 Evening", category: "TOEIC", tuition: 4290000, totalSessions: 36 },
-    { code: "DEMO_TOEIC_800", title: "TOEIC 800 Intensive", category: "TOEIC", tuition: 4890000, totalSessions: 36 },
-    { code: "DEMO_COMM_WORK", title: "English for Workplace", category: "COMMUNICATION", tuition: 3590000, totalSessions: 24 },
+    { code: "ILC_IELTS_FOUNDATION", title: "IELTS Foundation Evening", category: "IELTS", tuition: 4690000, totalSessions: 36 },
+    { code: "ILC_IELTS_65", title: "IELTS 6.5 Intensive", category: "IELTS", tuition: 5290000, totalSessions: 36 },
+    { code: "ILC_IELTS_SPEAKING", title: "IELTS Speaking Studio", category: "IELTS", tuition: 3990000, totalSessions: 36 },
+    { code: "ILC_TOEIC_650", title: "TOEIC 650 Evening", category: "TOEIC", tuition: 4290000, totalSessions: 36 },
+    { code: "ILC_TOEIC_800", title: "TOEIC 800 Intensive", category: "TOEIC", tuition: 4890000, totalSessions: 36 },
+    { code: "ILC_COMM_WORK", title: "English for Workplace", category: "COMMUNICATION", tuition: 3590000, totalSessions: 36 },
   ];
+
+  for (const c of onlineExtras) {
+    assertNoForbiddenUi(`online.slug:${c.slug}`, c.slug);
+    assertNoForbiddenUi(`online.title:${c.slug}`, c.title);
+  }
+  for (const p of instructorLed) {
+    assertNoForbiddenUi(`ilc.code:${p.code}`, p.code);
+    assertNoForbiddenUi(`ilc.title:${p.code}`, p.title);
+  }
 
   return { categories, onlineExtras, instructorLed, protectedCourses: PROTECTED_COURSES };
 }
 
 function buildRooms() {
-  return Array.from({ length: 8 }, (_, i) => ({
+  // 10 rooms: 8 physical + 2 online studios (center capacity)
+  const physical = [
+    { code: "ILC_R01", name: "Phòng 101", capacity: 20 },
+    { code: "ILC_R02", name: "Phòng 102", capacity: 18 },
+    { code: "ILC_R03", name: "Phòng 103", capacity: 16 },
+    { code: "ILC_R04", name: "Phòng 201", capacity: 22 },
+    { code: "ILC_R05", name: "Phòng 202", capacity: 18 },
+    { code: "ILC_R06", name: "Phòng 203", capacity: 20 },
+    { code: "ILC_R07", name: "Phòng 301", capacity: 24 },
+    { code: "ILC_R08", name: "Phòng 302", capacity: 16 },
+  ].map((r) => ({
     marker: MARKER,
-    code: `demo-room-${String(i + 1).padStart(2, "0")}`,
-    name: `Phòng học ${String(i + 1).padStart(2, "0")}`,
+    ...r,
     locationName: "EnglishLab Hai Bà Trưng",
     locationAddress: "123 Phố Huế, Hai Bà Trưng, Hà Nội",
-    capacity: 12 + (i % 3) * 4,
+    type: "PHYSICAL",
     active: true,
   }));
+  const virtual = [
+    { code: "ILC_R09", name: "Studio Online A", capacity: 30 },
+    { code: "ILC_R10", name: "Studio Online B", capacity: 30 },
+  ].map((r) => ({
+    marker: MARKER,
+    ...r,
+    locationName: "EnglishLab Virtual",
+    locationAddress: "Online",
+    type: "ONLINE",
+    active: true,
+  }));
+  const rooms = [...physical, ...virtual];
+  for (const r of rooms) assertNoForbiddenUi(`room.name:${r.code}`, r.name);
+  return rooms;
 }
 
 function classTitle(program, intakeLabel, scheduleLabel, evening) {
@@ -207,12 +290,13 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
   const admins = accounts.filter((a) => a.role === "ADMIN");
 
   const ref = d(REF);
-    const intakes = [
-    { key: "JUN", label: "June 2026", start: "2026-06-02", end: "2026-08-22", statusHint: "COMPLETED" },
-    { key: "JUL", label: "July 2026", start: "2026-07-01", end: "2026-09-19", statusHint: "COMPLETED" },
-    { key: "AUG", label: "August 2026", start: "2026-08-04", end: "2026-10-24", statusHint: "ACTIVE" },
-    { key: "SEP", label: "September 2026", start: "2026-09-01", end: "2026-11-21", statusHint: "ACTIVE" },
-    { key: "OCT", label: "October 2026", start: "2026-10-06", end: "2026-12-26", statusHint: "UPCOMING" },
+  // Steady ACTIVE at REF: JUL+AUG+SEP = 30 classes (24 offline + 6 virtual). JUN completed, OCT upcoming.
+  const intakes = [
+    { key: "JUN", label: "June 2026", start: "2026-06-02", end: "2026-08-22", statusHint: "COMPLETED", ym: "2506" },
+    { key: "JUL", label: "July 2026", start: "2026-07-01", end: "2026-09-19", statusHint: "ACTIVE", ym: "2507" },
+    { key: "AUG", label: "August 2026", start: "2026-08-04", end: "2026-10-24", statusHint: "ACTIVE", ym: "2508" },
+    { key: "SEP", label: "September 2026", start: "2026-09-01", end: "2026-11-21", statusHint: "ACTIVE", ym: "2509" },
+    { key: "OCT", label: "October 2026", start: "2026-10-06", end: "2026-12-26", statusHint: "UPCOMING", ym: "2510" },
   ];
 
   const classes = [];
@@ -224,45 +308,115 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
     { days: [2, 4, 6], label: "T3-5-7", evening: true, start: "19:45", end: "21:15" },
   ];
 
-  // 16 classes: unique teacher + unique offline room/slot pairing
+  const physicalRooms = rooms.filter((r) => r.type !== "ONLINE");
+  const onlineRooms = rooms.filter((r) => r.type === "ONLINE");
+
+  // 32 unique offline (room, pattern) slots — enough for 24 concurrent ACTIVE offline classes
   const offlineSlots = [];
-  for (const room of rooms) {
+  for (const room of physicalRooms) {
     for (const pattern of schedulePatterns) {
       offlineSlots.push({ room, pattern });
     }
   }
-  let offlineSlotCursor = 0;
-  for (let i = 0; i < 16; i += 1) {
-    const program = catalog.instructorLed[i % catalog.instructorLed.length];
-    const intake = intakes[i % intakes.length];
-    const teacher = teachers[i % teachers.length];
-    const virtual = i >= 12;
-    const slot = virtual ? null : offlineSlots[offlineSlotCursor++];
-    const pattern = virtual ? schedulePatterns[i % schedulePatterns.length] : slot.pattern;
-    classIndex = i + 1;
-    const code = `demo-class-${String(classIndex).padStart(2, "0")}`;
-    // Cap planned end to ~10 weeks to keep session volume in target band
-    const start = d(intake.start);
-    const plannedEnd = iso(addDays(start, 70));
-    classes.push({
-      marker: MARKER,
-      code,
-      name: classTitle(program, intake.label, pattern.label, pattern.evening),
-      programCode: program.code,
-      deliveryMode: virtual ? "VIRTUAL" : "OFFLINE",
-      status: intake.statusHint === "UPCOMING" ? "UPCOMING" : intake.statusHint === "COMPLETED" ? "COMPLETED" : "ACTIVE",
-      startDate: intake.start,
-      plannedEndDate: plannedEnd < intake.end ? plannedEnd : intake.end,
-      tuitionFeeVnd: program.tuition,
-      capacity: 12,
-      primaryTeacherEmail: teacher.email,
-      roomCode: virtual ? null : slot.room.code,
-      schedule: pattern,
-      intakeKey: intake.key,
-    });
+
+  // 50 classes: 5 months × (8 offline + 2 virtual). Slot index keeps concurrent months on distinct room/pattern pairs.
+  for (let intakeIdx = 0; intakeIdx < intakes.length; intakeIdx += 1) {
+    const intake = intakes[intakeIdx];
+    for (let o = 0; o < 8; o += 1) {
+      classIndex += 1;
+      const program = catalog.instructorLed[(classIndex - 1) % catalog.instructorLed.length];
+      const slot = offlineSlots[(intakeIdx * 8 + o) % offlineSlots.length];
+      const start = d(intake.start);
+      const plannedEnd = iso(addDays(start, 84));
+      const code = `ilc-${intake.ym}-${String(o + 1).padStart(2, "0")}`;
+      assertNoForbiddenUi(`class.code:${code}`, code);
+      const name = classTitle(program, intake.label, slot.pattern.label, slot.pattern.evening);
+      assertNoForbiddenUi(`class.name:${code}`, name);
+      classes.push({
+        marker: MARKER,
+        code,
+        name,
+        programCode: program.code,
+        deliveryMode: "OFFLINE",
+        status: intake.statusHint === "UPCOMING" ? "UPCOMING" : intake.statusHint === "COMPLETED" ? "COMPLETED" : "ACTIVE",
+        startDate: intake.start,
+        plannedEndDate: plannedEnd < intake.end ? plannedEnd : intake.end,
+        tuitionFeeVnd: program.tuition,
+        capacity: 16,
+        primaryTeacherEmail: null, // filled by greedy assign below
+        roomCode: slot.room.code,
+        schedule: slot.pattern,
+        intakeKey: intake.key,
+        _slotKey: `${slot.room.code}|${slot.pattern.days.join(",")}|${slot.pattern.start}`,
+      });
+    }
+    for (let v = 0; v < 2; v += 1) {
+      classIndex += 1;
+      const program = catalog.instructorLed[(classIndex - 1) % catalog.instructorLed.length];
+      const pattern = schedulePatterns[(intakeIdx + v) % schedulePatterns.length];
+      const room = onlineRooms[v % onlineRooms.length];
+      const start = d(intake.start);
+      const plannedEnd = iso(addDays(start, 84));
+      const code = `ilc-${intake.ym}-v${String(v + 1).padStart(2, "0")}`;
+      assertNoForbiddenUi(`class.code:${code}`, code);
+      const name = classTitle(program, intake.label, pattern.label, pattern.evening);
+      assertNoForbiddenUi(`class.name:${code}`, name);
+      classes.push({
+        marker: MARKER,
+        code,
+        name,
+        programCode: program.code,
+        deliveryMode: "VIRTUAL",
+        status: intake.statusHint === "UPCOMING" ? "UPCOMING" : intake.statusHint === "COMPLETED" ? "COMPLETED" : "ACTIVE",
+        startDate: intake.start,
+        plannedEndDate: plannedEnd < intake.end ? plannedEnd : intake.end,
+        tuitionFeeVnd: program.tuition,
+        capacity: 20,
+        primaryTeacherEmail: null,
+        roomCode: room.code,
+        schedule: pattern,
+        intakeKey: intake.key,
+        _slotKey: `${room.code}|${pattern.days.join(",")}|${pattern.start}`,
+      });
+    }
   }
 
-  // Conflict-free: one teacher per class, room not shared same slot
+  // Greedy teacher assign: no teacher holds two date-overlapping classes on the same (days, start)
+  const teacherLoad = teachers.map((t) => ({ email: t.email, assignments: [] }));
+  const rangesOverlap = (aStart, aEnd, bStart, bEnd) => aStart <= bEnd && bStart <= aEnd;
+  for (const cls of classes) {
+    const aStart = cls.startDate;
+    const aEnd = cls.plannedEndDate;
+    const schedKey = `${cls.schedule.days.join(",")}|${cls.schedule.start}`;
+    let picked = null;
+    for (const t of teacherLoad) {
+      const clash = t.assignments.some((prev) => {
+        if (prev.schedKey !== schedKey) return false;
+        return rangesOverlap(aStart, aEnd, prev.start, prev.end);
+      });
+      if (!clash) {
+        picked = t;
+        break;
+      }
+    }
+    if (!picked) {
+      throw new Error(`No free teacher for class ${cls.code} slot ${schedKey}`);
+    }
+    picked.assignments.push({ schedKey, start: aStart, end: aEnd });
+    cls.primaryTeacherEmail = picked.email;
+    delete cls._slotKey;
+  }
+
+  // Showcase VIRTUAL (SEP ACTIVE): bind preserved alien teacher — Meet 2B target after rebuild
+  const showcaseClass = classes.find((c) => c.deliveryMode === "VIRTUAL" && c.status === "ACTIVE" && c.intakeKey === "SEP");
+  if (showcaseClass) {
+    showcaseClass.primaryTeacherEmail = PRESERVED.teacher.email;
+    showcaseClass.showcaseMeet = true;
+    showcaseClass.name = `IELTS Speaking Studio - September 2026 Showcase Ca tối 1`;
+    assertNoForbiddenUi(`class.name:${showcaseClass.code}`, showcaseClass.name);
+  }
+
+  // Conflict-free: one teacher per class slot, room not shared same slot
   const sessions = [];
   const enrollments = [];
   const attendance = [];
@@ -273,18 +427,33 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
 
   let learnerCursor = 0;
   for (const cls of classes) {
+    const targetSize = cls.deliveryMode === "VIRTUAL" ? 14 : 12;
     const classLearners = [];
-    while (classLearners.length < 10) {
+    let guard = 0;
+    while (classLearners.length < targetSize && guard < learners.length * 3) {
+      guard += 1;
       const learner = learners[learnerCursor % learners.length];
       learnerCursor += 1;
       const key = learner.email;
       const conflicts = usedLearnerSlots.get(key) || [];
-      const clash = conflicts.some((c) => c.days.some((d) => cls.schedule.days.includes(d)) && c.start === cls.schedule.start);
+      const clash = conflicts.some((c) => c.days.some((day) => cls.schedule.days.includes(day)) && c.start === cls.schedule.start);
       if (clash) continue;
       if (classLearners.some((x) => x.email === learner.email)) continue;
       classLearners.push(learner);
       conflicts.push({ days: cls.schedule.days, start: cls.schedule.start });
       usedLearnerSlots.set(key, conflicts);
+    }
+
+    // Preserved showcase learner must be enrolled in alien's VIRTUAL class
+    if (cls.showcaseMeet) {
+      const preservedLearner = {
+        email: PRESERVED.learner.email,
+        role: "LEARNER",
+        preserved: true,
+      };
+      if (!classLearners.some((x) => x.email === preservedLearner.email) && classLearners.length < cls.capacity) {
+        classLearners.push(preservedLearner);
+      }
     }
 
     for (const learner of classLearners) {
@@ -293,7 +462,8 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
         marker: MARKER,
         classCode: cls.code,
         learnerEmail: learner.email,
-        registrationStatus: cls.status === "UPCOMING" ? "PARTIALLY_PAID" : "FULLY_PAID",
+        // Placed on a class_section → ASSIGNED (learning access). UPCOMING deposits stay PARTIALLY_PAID.
+        registrationStatus: cls.status === "UPCOMING" ? "PARTIALLY_PAID" : "ASSIGNED",
         agreedTuitionFeeVnd: cls.tuitionFeeVnd,
         tuitionAmountDue: cls.tuitionFeeVnd,
         tuitionAmountPaid: cls.status === "UPCOMING" ? Math.round(cls.tuitionFeeVnd * 0.5) : cls.tuitionFeeVnd,
@@ -301,13 +471,13 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
       });
     }
 
-    // Generate sessions 3x/week between start and end
+    // Generate sessions 3×/week, no Sunday, up to 36
     let cursor = d(cls.startDate);
     const end = d(cls.plannedEndDate);
     let sessionNo = 0;
-    while (cursor <= end && sessionNo < 24) {
-      const dow = cursor.getUTCDay(); // 0 Sun
-      if (cls.schedule.days.includes(dow)) {
+    while (cursor <= end && sessionNo < 36) {
+      const dow = cursor.getUTCDay(); // 0 Sun — never schedule
+      if (dow !== 0 && cls.schedule.days.includes(dow)) {
         sessionNo += 1;
         const sessionDate = iso(cursor);
         let status = "SCHEDULED";
@@ -326,7 +496,7 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
           title: cls.name,
         });
 
-        // Attendance only for a subset of completed sessions to stay in 500–900 band
+        // Attendance subset of completed sessions
         if ((status === "COMPLETED" || status === "IN_PROGRESS") && sessionNo % 3 === 1) {
           for (let li = 0; li < classLearners.length; li += 1) {
             const roll = rng.next();
@@ -375,7 +545,7 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
           maxScore: 10,
         });
         for (const learner of classLearners) {
-          if (due > REF && rng.bool(0.4)) continue; // some not yet submitted for open HW
+          if (due > REF && rng.bool(0.4)) continue;
           if (publish > REF) continue;
           const submittedAt = iso(addDays(d(publish), rng.int(1, 6)));
           if (submittedAt > REF) continue;
@@ -418,15 +588,15 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
   const onlineCourses = catalog.onlineExtras.map((course) => ({
     marker: MARKER,
     ...course,
-    shortDescription: `${course.title} — lộ trình luyện tập có hướng dẫn cho học viên trung tâm.`,
-    description: `${course.title} được thiết kế theo chuẩn trung tâm tiếng Anh tại Việt Nam. Nội dung gồm mục tiêu đầu ra, lộ trình tuần và bài luyện tập gắn với kỳ vọng band/điểm.`,
+    shortDescription: course.shortDescription || `${course.title}: lộ trình luyện tập có mục tiêu đầu ra rõ ràng theo chuẩn trung tâm.`,
+    description: course.description || `${course.title} gồm mục tiêu đầu ra, tiến trình module theo kỹ năng và bài luyện gắn band/điểm mục tiêu. Nội dung không dùng placeholder chung cho mọi khóa.`,
     createdByEmail: contentManagers[0].email,
   }));
 
   // Online enrollments for master learners (not preserved showcase)
   const onlineEnrollments = [];
   const lessonProgressPlan = [];
-  for (let i = 0; i < 60; i += 1) {
+  for (let i = 0; i < 180; i += 1) {
     const learner = learners[i % learners.length];
     const course = onlineCourses[i % onlineCourses.length];
     if (course.status !== "PUBLISHED") continue;
@@ -487,7 +657,7 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
     const closed = created < "2026-09-01" || rng.bool(0.55);
     tickets.push({
       marker: MARKER,
-      naturalKey: `demo-ticket-${String(i + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-ticket-${String(i + 1).padStart(3, "0")}`,
       learnerEmail: learner.email,
       assigneeEmail: staff[i % staff.length].email,
       subject: ticketSubjects[i % ticketSubjects.length],
@@ -504,7 +674,7 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
     const approved = created <= REF && rng.bool(0.7);
     proposals.push({
       marker: MARKER,
-      naturalKey: `demo-proposal-${String(i + 1).padStart(2, "0")}`,
+      naturalKey: `ilc-proposal-${String(i + 1).padStart(2, "0")}`,
       programCode: catalog.instructorLed[i % catalog.instructorLed.length].code,
       createdByEmail: staff[i % staff.length].email,
       reviewedByEmail: managers[i % managers.length].email,
@@ -520,7 +690,7 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
     const created = iso(addDays(d(WINDOW_FROM), rng.int(0, 100)));
     registrations.push({
       marker: MARKER,
-      naturalKey: `demo-reg-${String(i + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-reg-${String(i + 1).padStart(3, "0")}`,
       learnerEmail: learners[(i + 20) % learners.length].email,
       programCode: catalog.instructorLed[i % catalog.instructorLed.length].code,
       status: created > REF ? "SUBMITTED" : rng.pick(["APPROVED", "ASSIGNED", "REJECTED", "WAITING_PAYMENT"]),
@@ -535,7 +705,7 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
     if (periodEnd > REF) continue;
     evaluations.push({
       marker: MARKER,
-      naturalKey: `demo-eval-${String(i + 1).padStart(2, "0")}`,
+      naturalKey: `ilc-eval-${String(i + 1).padStart(2, "0")}`,
       teacherEmail: teachers[i % teachers.length].email,
       evaluatorEmail: managers[i % managers.length].email,
       periodFrom: iso(addDays(d(periodEnd), -30)),
@@ -550,13 +720,13 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
   for (let i = 0; i < 40; i += 1) {
     materials.push({
       marker: MARKER,
-      naturalKey: `demo-material-${String(i + 1).padStart(3, "0")}`,
+      naturalKey: `ilc-material-${String(i + 1).padStart(3, "0")}`,
       title: [
         "Syllabus IELTS Foundation — Tuần 1-4",
         "Handout Writing Task 2 — Education",
         "Listening Transcript Pack — Section 3",
         "Vocabulary List — Environment & Climate",
-        "TOEIC Mini Test — Parts 1-4",
+        "TOEIC Mini Drill — Parts 1-4",
       ][i % 5],
       classCode: classes[i % classes.length].code,
       uploadedByEmail: teachers[i % teachers.length].email,
@@ -565,9 +735,9 @@ function buildStoryWorld(rng, accounts, catalog, rooms) {
   }
 
   const discountCodes = [
-    { marker: MARKER, code: "DEMO_SUMMER10", percentOff: 10, active: true, startsOn: "2026-06-01", endsOn: "2026-08-31" },
-    { marker: MARKER, code: "DEMO_SEP15", percentOff: 15, active: true, startsOn: "2026-09-01", endsOn: "2026-09-30" },
-    { marker: MARKER, code: "DEMO_WELCOME5", percentOff: 5, active: true, startsOn: "2026-06-01", endsOn: "2026-12-31" },
+    { marker: MARKER, code: "ILC_SUMMER10", percentOff: 10, active: true, startsOn: "2026-06-01", endsOn: "2026-08-31" },
+    { marker: MARKER, code: "ILC_SEP15", percentOff: 15, active: true, startsOn: "2026-09-01", endsOn: "2026-09-30" },
+    { marker: MARKER, code: "ILC_WELCOME5", percentOff: 5, active: true, startsOn: "2026-06-01", endsOn: "2026-12-31" },
   ];
 
   const baseWorld = {
@@ -774,7 +944,120 @@ function semanticValidate(dataset) {
     }
   }
 
+  // Scale gates (center mid-size)
+  if (dataset.rooms.length !== 10) issues.push({ type: "scale_rooms", actual: dataset.rooms.length, expected: 10 });
+  if (dataset.world.classes.length !== 50) issues.push({ type: "scale_classes", actual: dataset.world.classes.length, expected: 50 });
+  const active = dataset.world.classes.filter((c) => c.status === "ACTIVE");
+  const activeOffline = active.filter((c) => c.deliveryMode === "OFFLINE").length;
+  const activeVirtual = active.filter((c) => c.deliveryMode === "VIRTUAL").length;
+  if (activeOffline !== 24 || activeVirtual !== 6) {
+    issues.push({ type: "scale_active_mix", activeOffline, activeVirtual, expected: "24+6" });
+  }
+  const teacherCount = dataset.accounts.filter((a) => a.role === "TEACHER" && !a.preserved).length;
+  if (teacherCount < 18 || teacherCount > 20) issues.push({ type: "scale_teachers", actual: teacherCount });
+  const learnerCount = dataset.accounts.filter((a) => a.role === "LEARNER" && !a.preserved).length;
+  if (learnerCount < 300 || learnerCount > 330) issues.push({ type: "scale_learners", actual: learnerCount });
+
+  for (const s of dataset.world.sessions) {
+    const dow = d(s.sessionDate).getUTCDay();
+    if (dow === 0) issues.push({ type: "sunday_session", key: s.naturalKey });
+  }
+
+  const sessionsByClass = new Map();
+  for (const s of dataset.world.sessions) {
+    sessionsByClass.set(s.classCode, (sessionsByClass.get(s.classCode) || 0) + 1);
+  }
+  for (const cls of dataset.world.classes) {
+    const n = sessionsByClass.get(cls.code) || 0;
+    if (n < 30 || n > 36) issues.push({ type: "scale_sessions_per_class", classCode: cls.code, n });
+  }
+
+  const scanForbidden = (label, value) => {
+    try {
+      assertNoForbiddenUi(label, value);
+    } catch (err) {
+      issues.push({ type: "forbidden_ui", label, value: String(value), message: err.message });
+    }
+  };
+  for (const a of dataset.accounts) {
+    if (a.preserved) continue;
+    scanForbidden(`email:${a.email}`, a.email);
+    scanForbidden(`fullName:${a.email}`, a.fullName);
+  }
+  for (const c of dataset.world.onlineCourses || []) {
+    scanForbidden(`online.slug:${c.slug}`, c.slug);
+    scanForbidden(`online.title:${c.slug}`, c.title);
+  }
+  for (const c of dataset.catalog.instructorLed || []) {
+    scanForbidden(`ilc.code:${c.code}`, c.code);
+    scanForbidden(`ilc.title:${c.code}`, c.title);
+  }
+  for (const cls of dataset.world.classes) {
+    scanForbidden(`class.code:${cls.code}`, cls.code);
+    scanForbidden(`class.name:${cls.code}`, cls.name);
+  }
+  for (const dc of dataset.world.discountCodes || []) {
+    scanForbidden(`discount:${dc.code}`, dc.code);
+  }
+
   return issues;
+}
+
+function buildOwnershipManifest(dataset) {
+  const generatedEmails = dataset.accounts.filter((a) => !a.preserved).map((a) => a.email).sort();
+  const preservedEmails = [
+    PRESERVED.learner.email,
+    PRESERVED.teacher.email,
+    ...PRESERVED.staff.map((s) => s.email),
+  ];
+  return {
+    marker: MARKER,
+    emailDomain: EMAIL_DOMAIN,
+    neverCleanupByDomainAlone: true,
+    neverCleanupRule: "Do NOT delete all @englishlab.vn — only exact owned prefixes/codes listed here plus legacy patterns",
+    generatedEmailPrefixes: ["gv.", "hs.", "nv.", "ql.", "cm.", "ad."],
+    generatedEmails,
+    generatedEmailCount: generatedEmails.length,
+    preservedEmailsNeverDelete: preservedEmails,
+    protectedCourseSlugs: PROTECTED_COURSES.map((c) => c.slug),
+    classCodePrefix: "ilc-",
+    classCodes: dataset.world.classes.map((c) => c.code).sort(),
+    courseSlugPrefix: "ilc-",
+    courseSlugs: (dataset.world.onlineCourses || []).map((c) => c.slug).sort(),
+    ilcCodes: dataset.catalog.instructorLed.map((c) => c.code),
+    roomCodes: dataset.rooms.map((r) => r.code),
+    roomNames: dataset.rooms.map((r) => r.name),
+    discountCodes: (dataset.world.discountCodes || []).map((c) => c.code),
+    flashcardCodePrefix: "ilc-fc-",
+    exerciseCodePrefix: "ilc-ex-",
+    masterRefPrefix: MASTER_REF_PREFIX,
+    legacyCleanup: {
+      emailPatterns: [
+        "^demo\\..+@englishlab\\.local$",
+        "^gv\\.sheet\\.\\d+@englishlab\\.vn$",
+        "^hs\\.(sheet|consult)\\.\\d+@englishlab\\.vn$",
+        "^review\\..+@englishlab\\.vn$",
+      ],
+      classCodePrefixes: ["demo-class-", "center-sheet-class-"],
+      courseSlugPrefix: "demo-",
+      ilcCodePrefix: "DEMO_",
+      roomCodePrefix: "demo-room-",
+      roomNamePrefix: "Phòng học ",
+      discountPrefix: "DEMO_",
+      flashcardPrefix: "demo-fc-",
+      exercisePrefix: "demo-ex-",
+      masterRefPrefix: "master-demo://",
+    },
+    counts: {
+      classes: dataset.world.classes.length,
+      activeClasses: dataset.world.classes.filter((c) => c.status === "ACTIVE").length,
+      rooms: dataset.rooms.length,
+      teachers: dataset.accounts.filter((a) => a.role === "TEACHER" && !a.preserved).length,
+      learners: dataset.accounts.filter((a) => a.role === "LEARNER" && !a.preserved).length,
+      sessions: dataset.world.sessions.length,
+      classEnrollments: dataset.world.enrollments.length,
+    },
+  };
 }
 
 function sheetFromRows(rows) {
@@ -810,7 +1093,7 @@ function writeWorkbook(dataset, outPath) {
       gender: a.gender || "",
       phone: a.phone || "",
     }))),
-    "02_DEMO_ACCOUNTS",
+    "02_ACCOUNTS",
   );
 
   const timelines = timelineRows(dataset.world);
@@ -926,12 +1209,18 @@ function main() {
   };
 
   dataset.tableMatrix = buildTableMatrix(counts);
+  dataset.ownership = buildOwnershipManifest(dataset);
   const issues = semanticValidate(dataset);
   const report = {
     ok: issues.length === 0,
     issueCount: issues.length,
     issues: issues.slice(0, 200),
     counts,
+    ownershipSummary: {
+      generatedEmailCount: dataset.ownership.generatedEmailCount,
+      classCodes: dataset.ownership.classCodes.length,
+      neverCleanupByDomainAlone: true,
+    },
     referenceDate: REF,
     seed: DEMO_DATA_SEED,
   };
@@ -940,17 +1229,21 @@ function main() {
   const jsonPath = path.join(ROOT, "backend/src/main/resources/seed/master/master-dataset.json");
   const reportPath = path.join(ROOT, "ops/sheet-data/master-data-validation-report.json");
   const reportClasspath = path.join(ROOT, "backend/src/main/resources/seed/master/master-data-validation-report.json");
+  const ownershipPath = path.join(ROOT, "docs/demo-data/09-ownership-manifest.json");
 
   fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
+  fs.mkdirSync(path.dirname(ownershipPath), { recursive: true });
   writeWorkbook(dataset, xlsxPath);
   fs.writeFileSync(jsonPath, JSON.stringify(dataset, null, 2), "utf8");
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf8");
   fs.writeFileSync(reportClasspath, JSON.stringify(report, null, 2), "utf8");
+  fs.writeFileSync(ownershipPath, JSON.stringify(dataset.ownership, null, 2), "utf8");
 
   console.log(JSON.stringify({
     xlsxPath,
     jsonPath,
     reportPath,
+    ownershipPath,
     ok: report.ok,
     issueCount: report.issueCount,
     counts,

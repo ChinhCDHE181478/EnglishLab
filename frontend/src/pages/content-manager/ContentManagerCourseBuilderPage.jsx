@@ -28,7 +28,7 @@ import { getContentManagerError, getContentManagerFeedbackMessage } from '../../
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
-const ASSESSMENT_TYPE_OPTIONS = ['MODULE_TEST', 'LESSON_PRACTICE', 'MOCK_TEST', 'WRITING_TASK', 'SPEAKING_TASK', 'QUIZ'];
+const ASSESSMENT_TYPE_OPTIONS = ['LESSON_PRACTICE', 'MOCK_TEST', 'WRITING_TASK', 'SPEAKING_TASK', 'QUIZ'];
 const ASSESSMENT_SKILL_OPTIONS = ['LISTENING', 'READING', 'WRITING', 'SPEAKING', 'VOCABULARY', 'GRAMMAR', 'MIXED'];
 const AI_MODE_OPTIONS = ['NONE', 'EXPLAIN_ONLY', 'RUBRIC_FEEDBACK', 'ESTIMATED_BAND'];
 const LESSON_ASSESSMENT_TYPES = new Set(['QUIZ', 'ASSIGNMENT']);
@@ -49,7 +49,7 @@ const createAssessmentDraft = ({ moduleKey, moduleTitle = null, lessonKey = '', 
   rubricId: '',
   title: lessonTitle ? `${contentType === 'QUIZ' ? 'Trắc nghiệm' : 'Bài tập'}: ${lessonTitle}` : '',
   description: '',
-  type: contentType === 'QUIZ' ? 'QUIZ' : contentType === 'ASSIGNMENT' ? 'WRITING_TASK' : 'MODULE_TEST',
+  type: contentType === 'QUIZ' ? 'QUIZ' : contentType === 'ASSIGNMENT' ? 'WRITING_TASK' : 'LESSON_PRACTICE',
   skill: contentType === 'QUIZ' ? 'MIXED' : contentType === 'ASSIGNMENT' ? 'WRITING' : 'MIXED',
   aiEvaluationMode: contentType === 'QUIZ' || contentType === 'ASSIGNMENT' ? 'RUBRIC_FEEDBACK' : 'EXPLAIN_ONLY',
   instructions: '',
@@ -73,7 +73,7 @@ const createAssessmentDraftFromBank = ({ bankItem, moduleKey, moduleTitle = null
   rubricId: bankItem.rubric?.id ? String(bankItem.rubric.id) : '',
   title: bankItem.title || '',
   description: bankItem.description || '',
-  type: bankItem.type || 'MODULE_TEST',
+  type: bankItem.type || 'LESSON_PRACTICE',
   skill: bankItem.skill || 'MIXED',
   aiEvaluationMode: bankItem.aiEvaluationMode || 'NONE',
   instructions: bankItem.instructions || '',
@@ -123,7 +123,7 @@ const normalizeAssessmentStructure = (items, modules) => {
       rubricId: assessment.rubric?.id ? String(assessment.rubric.id) : '',
       title: assessment.title || '',
       description: assessment.description || '',
-      type: assessment.type || 'MODULE_TEST',
+      type: assessment.type || 'LESSON_PRACTICE',
       skill: assessment.skill || 'MIXED',
       aiEvaluationMode: assessment.aiEvaluationMode || 'EXPLAIN_ONLY',
       instructions: assessment.instructions || '',
@@ -159,7 +159,7 @@ const buildAssessmentPayload = (items, localModules, persistedModules) => {
     rubricId: assessment.rubricId ? Number(assessment.rubricId) : null,
     title: assessment.title?.trim() || `Bài đánh giá ${index + 1}`,
     description: assessment.description?.trim() || '',
-    type: assessment.type || 'MODULE_TEST',
+    type: assessment.type || 'LESSON_PRACTICE',
     skill: assessment.skill || 'MIXED',
     aiEvaluationMode: assessment.aiEvaluationMode || 'EXPLAIN_ONLY',
     instructions: ['LISTENING', 'READING'].includes(String(assessment.skill || '').toUpperCase())
@@ -238,7 +238,7 @@ export default function ContentManagerCourseBuilderPage() {
         const normalizedCourse = normalizeCourseStructure(courseData);
         setCourse(normalizedCourse);
         setRubrics(Array.isArray(rubricItems) ? rubricItems : []);
-        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter((item) => item.status === 'PUBLISHED'));
+        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter(isPublishedSkillPractice));
         setFlashcardSets((Array.isArray(flashcardItems) ? flashcardItems : []).filter((item) => item.status === 'PUBLISHED'));
 
         if (!normalizedCourse.id) {
@@ -525,30 +525,6 @@ export default function ContentManagerCourseBuilderPage() {
     setActiveLessonIndex(lessons.length);
     setLessonModalOpen(true);
     pushToast('Đã thêm bài học mới. Điền nội dung rồi bấm Lưu thay đổi trình xây dựng.');
-  };
-
-  const addAssessment = (scope = 'module') => {
-    if (scope === 'module' && !activeModule) {
-      pushToast('Hãy chọn mô-đun trước khi thêm bài đánh giá.', 'warning');
-      return;
-    }
-
-    setAssessments((current) => {
-      const groupKey = scope === 'module' ? activeModuleKey : COURSE_LEVEL_KEY;
-      const existingCount = current.filter((item) => item.moduleKey === groupKey).length;
-      return [
-        ...current,
-        createAssessmentDraft({
-          moduleKey: groupKey,
-          moduleTitle: scope === 'module' ? activeModule?.title || 'Mô-đun hiện tại' : null,
-          displayOrder: existingCount + 1,
-        }),
-      ];
-    });
-
-    pushToast(scope === 'module'
-      ? 'Đã thêm bài đánh giá cuối mô-đun.'
-      : 'Đã thêm bài đánh giá cuối khóa.');
   };
 
   const addAssessmentFromBank = (scope = 'module') => {
@@ -1418,9 +1394,9 @@ export default function ContentManagerCourseBuilderPage() {
             <Panel className="p-6">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bài kiểm tra mô-đun</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Đánh giá cuối mô-đun</p>
                   <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">
-                    {activeModule ? `Bài kiểm tra của ${activeModule.title}` : 'Bài kiểm tra'}
+                    {activeModule ? `Nội dung đánh giá của ${activeModule.title}` : 'Nội dung đánh giá'}
                   </h3>
                 </div>
               </div>
@@ -1441,13 +1417,13 @@ export default function ContentManagerCourseBuilderPage() {
                       rubricOptions={buildRubricOptions(rubrics, assessment.skill)}
                       onDelete={() => deleteAssessment(assessment.localKey)}
                       onFieldChange={(field, value) => updateAssessment(assessment.localKey, field, value)}
-                      title={`Bài kiểm tra mô-đun ${index + 1}`}
+                      title={`Đánh giá cuối mô-đun ${index + 1}`}
                     />
                   ))}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-[#dfbfbd] p-4 text-sm text-[#584140]">
-                  Mô-đun này chưa có bài kiểm tra nào.
+                  Chưa gắn nội dung đánh giá nào từ kho kỹ năng.
                 </div>
               )}
             </Panel>
@@ -2297,13 +2273,24 @@ function buildRubricOptions(rubrics, skill) {
 }
 
 function buildAssessmentBankOptions(items) {
-  const base = [{ value: '', label: 'Chọn đề trong ngân hàng đề' }];
+  const base = [{ value: '', label: 'Chọn bài từ kho kỹ năng' }];
   const options = (items || []).map((item) => ({
     value: String(item.id),
     label: item.title || `Đề #${item.id}`,
     description: `${getAssessmentTypeLabel(item.type)} • ${getSkillLabel(item.skill)} • ${getAiModeLabel(item.aiEvaluationMode)}`,
   }));
   return [...base, ...options];
+}
+
+function isPublishedSkillPractice(item) {
+  if (item?.status !== 'PUBLISHED') return false;
+  const skill = String(item.skill || '').toUpperCase();
+  const type = String(item.type || '').toUpperCase();
+  if (!['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(skill)) return false;
+  if (type === 'MODULE_TEST') return true;
+  if (['LISTENING', 'READING'].includes(skill)) return ['LESSON_PRACTICE', 'QUIZ'].includes(type);
+  if (skill === 'WRITING') return type === 'WRITING_TASK';
+  return type === 'SPEAKING_TASK';
 }
 
 function buildFlashcardSetOptions(items) {
@@ -2356,7 +2343,7 @@ function getContentLabel(contentType) {
 
 function getAssessmentTypeLabel(value) {
   const map = {
-    MODULE_TEST: 'Kiểm tra mô-đun',
+    MODULE_TEST: 'Nội dung kỹ năng cũ',
     LESSON_PRACTICE: 'Luyện tập theo bài',
     MOCK_TEST: 'Đề thi thử',
     WRITING_TASK: 'Bài viết',

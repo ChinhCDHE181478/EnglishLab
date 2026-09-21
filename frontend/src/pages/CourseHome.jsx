@@ -635,11 +635,11 @@ const CourseHome = () => {
       <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="border border-[#e5e7eb] bg-white p-4">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Trình độ</p>
-          <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{course.level || 'Đang cập nhật'}</p>
+          <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{course.level || course.targetScore || 'Theo lộ trình'}</p>
         </div>
         <div className="border border-[#e5e7eb] bg-white p-4">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Mục tiêu band</p>
-          <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{course.targetBand || course.targetScore || 'Đang cập nhật'}</p>
+          <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{course.targetBand || course.targetScore || 'Theo lộ trình'}</p>
         </div>
         <div className="border border-[#e5e7eb] bg-white p-4">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Bài học</p>

@@ -382,6 +382,11 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async getCourseReturnOptions(requestId) {
+    const response = await axiosClient.get(`/api/staff/requests/${requestId}/return-options`);
+    return asList(unwrapData(response));
+  },
+
   async getStaffDashboard() {
     const response = await axiosClient.get('/api/staff/dashboard');
     return unwrapData(response);

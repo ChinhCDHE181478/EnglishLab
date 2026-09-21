@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowRightLeft, Bell, ChevronDown, ChevronUp, Pencil, Plus, RefreshCw, Trash2, UserRoundCheck, Users, Video, X, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Bell, Banknote, CheckCircle2, ChevronDown, ChevronUp, Pencil, Plus, RefreshCw, Trash2, UserRoundCheck, Users, Video, X, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -12,6 +12,7 @@ import {
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import ManagementToast from '../../components/ui/ManagementToast';
+import TuitionProofMedia from '../../components/classroom/TuitionProofMedia';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import StaffRecordingsPage from './StaffRecordingsPage';
@@ -19,6 +20,7 @@ import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { validateClassroomSessionForm } from '../../utils/classroomFormValidation';
 import {
   formatClassroomDate,
+  formatClassroomDateTime,
   formatClassroomPrice,
   formatDeliveryMode,
   getLessonOrderInUnit,
@@ -110,6 +112,16 @@ export default function StaffClassroomDetailPage() {
   const [replacement, setReplacement] = useState({ open: false, teacherId: '', options: [], loading: false });
   const [replacingTeacher, setReplacingTeacher] = useState(false);
   const [closingClass, setClosingClass] = useState(false);
+  const [tuitionModal, setTuitionModal] = useState({
+    enrollment: null,
+    paymentKind: 'DEPOSIT',
+    paymentMethod: 'CASH',
+    note: '',
+    proofs: [],
+    loadingProofs: false,
+    rejectReasons: {},
+  });
+  const [tuitionWorking, setTuitionWorking] = useState(false);
 
   const teacherOptions = useMemo(
     () => [
@@ -156,6 +168,30 @@ export default function StaffClassroomDetailPage() {
     () => (classroom?.enrollments || []).filter((item) => item.registrationStatus === 'ASSIGNED'),
     [classroom],
   );
+  const pendingTuitionStudents = useMemo(
+    () => (classroom?.enrollments || []).filter((item) => [
+      'PENDING_TUITION_PAYMENT',
+      'DEPOSIT_PAID',
+      'PARTIALLY_PAID',
+      'FULLY_PAID',
+    ].includes(item.registrationStatus)),
+    [classroom],
+  );
+
+  const tuitionBalance = tuitionModal.enrollment
+    ? Math.max(0, Number(tuitionModal.enrollment.tuitionAmountDue || 0) - Number(tuitionModal.enrollment.tuitionAmountPaid || 0))
+    : 0;
+  const tuitionDepositRemaining = tuitionModal.enrollment
+    ? Math.min(
+      tuitionBalance,
+      tuitionModal.enrollment.tuitionFullPaymentRequired
+        ? 0
+        : Math.max(0, Number(tuitionModal.enrollment.tuitionDepositRemaining || 0)),
+    )
+    : 0;
+  const tuitionPaymentAmount = tuitionModal.paymentKind === 'DEPOSIT'
+    ? tuitionDepositRemaining
+    : tuitionBalance;
 
   const scheduledSessions = useMemo(
     () => [...(classroom?.sessions || [])].sort((left, right) => {
@@ -415,6 +451,147 @@ export default function StaffClassroomDetailPage() {
     }
   };
 
+  const closeTuitionModal = () => {
+    setTuitionModal({
+      enrollment: null,
+      paymentKind: 'DEPOSIT',
+      paymentMethod: 'CASH',
+      note: '',
+      proofs: [],
+      loadingProofs: false,
+      rejectReasons: {},
+    });
+  };
+
+  const openTuitionModal = async (enrollment) => {
+    const depositRemaining = enrollment.tuitionFullPaymentRequired
+      ? 0
+      : Number(enrollment.tuitionDepositRemaining || 0);
+    setTuitionModal({
+      enrollment,
+      paymentKind: depositRemaining > 0 ? 'DEPOSIT' : 'FULL',
+      paymentMethod: 'CASH',
+      note: '',
+      proofs: [],
+      loadingProofs: true,
+      rejectReasons: {},
+    });
+    try {
+      const proofs = await classroomApi.getEnrollmentTuitionProofs(enrollment.id);
+      setTuitionModal((current) => (
+        current.enrollment?.id === enrollment.id
+          ? { ...current, proofs, loadingProofs: false }
+          : current
+      ));
+    } catch (err) {
+      setTuitionModal((current) => (
+        current.enrollment?.id === enrollment.id
+          ? { ...current, loadingProofs: false }
+          : current
+      ));
+      setActionTone('error');
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể tải minh chứng học phí.'));
+    }
+  };
+
+  const handleRecordCenterPayment = async () => {
+    const enrollment = tuitionModal.enrollment;
+    if (!enrollment || tuitionPaymentAmount <= 0) return;
+    const confirmed = await confirmDialog(
+      `Xác nhận đã nhận ${formatClassroomPrice(tuitionPaymentAmount)} tại trung tâm?`,
+      { confirmLabel: 'Xác nhận đã thu', title: 'Ghi nhận học phí' },
+    );
+    if (!confirmed) return;
+    setTuitionWorking(true);
+    setActionMessage('');
+    try {
+      const methodLabel = tuitionModal.paymentMethod === 'CASH' ? 'Tiền mặt tại trung tâm' : 'Chuyển khoản tại trung tâm';
+      await classroomApi.recordTuitionPayment(enrollment.id, {
+        amount: tuitionPaymentAmount,
+        paymentKind: tuitionModal.paymentKind,
+        note: [methodLabel, tuitionModal.note.trim()].filter(Boolean).join(' · '),
+        assignIfFullyPaid: true,
+      });
+      setActionTone('success');
+      setActionMessage('Đã xác nhận khoản thu học phí tại trung tâm.');
+      setTuitionModal({
+        enrollment: null,
+        paymentKind: 'DEPOSIT',
+        paymentMethod: 'CASH',
+        note: '',
+        proofs: [],
+        loadingProofs: false,
+        rejectReasons: {},
+      });
+      await loadClassroom();
+    } catch (err) {
+      setActionTone('error');
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể ghi nhận khoản thu học phí.'));
+    } finally {
+      setTuitionWorking(false);
+    }
+  };
+
+  const handleConfirmProof = async (proof) => {
+    const confirmed = await confirmDialog(
+      `Xác nhận minh chứng ${formatClassroomPrice(proof.amount)} đã vào tài khoản trung tâm?`,
+      { confirmLabel: 'Xác nhận minh chứng', title: 'Duyệt thanh toán' },
+    );
+    if (!confirmed) return;
+    setTuitionWorking(true);
+    try {
+      await classroomApi.confirmTuitionProof(proof.id);
+      setActionTone('success');
+      setActionMessage('Đã xác nhận minh chứng thanh toán.');
+      const proofs = await classroomApi.getEnrollmentTuitionProofs(tuitionModal.enrollment.id);
+      setTuitionModal((current) => ({ ...current, proofs }));
+      await loadClassroom();
+    } catch (err) {
+      setActionTone('error');
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể xác nhận minh chứng.'));
+    } finally {
+      setTuitionWorking(false);
+    }
+  };
+
+  const handleRejectProof = async (proof) => {
+    const reason = tuitionModal.rejectReasons[proof.id]?.trim();
+    if (!reason) {
+      setActionTone('error');
+      setActionMessage('Vui lòng nhập lý do từ chối minh chứng.');
+      return;
+    }
+    setTuitionWorking(true);
+    try {
+      await classroomApi.rejectTuitionProof(proof.id, { reason });
+      setActionTone('success');
+      setActionMessage('Đã từ chối minh chứng thanh toán.');
+      const proofs = await classroomApi.getEnrollmentTuitionProofs(tuitionModal.enrollment.id);
+      setTuitionModal((current) => ({ ...current, proofs }));
+    } catch (err) {
+      setActionTone('error');
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể từ chối minh chứng.'));
+    } finally {
+      setTuitionWorking(false);
+    }
+  };
+
+  const handleAssignPaidStudent = async (enrollment) => {
+    setStudentActionId(enrollment.id);
+    setActionMessage('');
+    try {
+      await classroomApi.assignStudentToClass(enrollment.id, {});
+      setActionTone('success');
+      setActionMessage('Đã xếp học viên vào lớp.');
+      await loadClassroom();
+    } catch (err) {
+      setActionTone('error');
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể xếp học viên vào lớp.'));
+    } finally {
+      setStudentActionId(null);
+    }
+  };
+
   const openSessionEditor = (session) => {
     setEditingSessionId(session.id);
     setSessionForm({
@@ -583,7 +760,7 @@ export default function StaffClassroomDetailPage() {
         </div>
       </div>
 
-      {!sessionModalOpen && !replacement.open && !transfer.enrollment ? (
+      {!sessionModalOpen && !replacement.open && !transfer.enrollment && !tuitionModal.enrollment ? (
         <ManagementToast
           message={actionMessage}
           onClose={() => setActionMessage('')}
@@ -666,6 +843,54 @@ export default function StaffClassroomDetailPage() {
               title="Chưa có học viên"
             />
           )}
+          {pendingTuitionStudents.length ? (
+            <div className="mt-6 border-t border-slate-100 pt-5">
+              <div className="flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-[#730014]" />
+                <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Hồ sơ học phí</h3>
+              </div>
+              <div className="mt-4 space-y-3">
+                {pendingTuitionStudents.map((enrollment) => {
+                  const paid = Number(enrollment.tuitionAmountPaid || 0);
+                  const due = Number(enrollment.tuitionAmountDue || 0);
+                  const canRecord = !['WAITLIST', 'PENDING_CONFIRMATION', 'CANCELLED', 'REJECTED', 'SUSPENDED'].includes(enrollment.registrationStatus)
+                    && paid < due;
+                  return (
+                    <article className="flex flex-col gap-3 rounded-xl border border-[#f0e4e2] px-4 py-3 text-sm text-[#584140] sm:flex-row sm:items-center sm:justify-between" key={enrollment.id}>
+                      <div>
+                        <p className="font-extrabold text-[#2b2828]">{enrollment.studentName || enrollment.studentEmail}</p>
+                        <p className="mt-1">
+                          {formatRegistrationStatus(enrollment.registrationStatus, enrollment.registrationStatusLabel)}
+                          {' · '}
+                          {formatClassroomPrice(paid)} / {formatClassroomPrice(due)}
+                        </p>
+                      </div>
+                      {canRecord ? (
+                        <button
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#730014] px-3 py-2 text-xs font-extrabold text-white transition hover:bg-[#59000f]"
+                          onClick={() => openTuitionModal(enrollment)}
+                          type="button"
+                        >
+                          <Banknote className="h-3.5 w-3.5" />
+                          Xử lý học phí
+                        </button>
+                      ) : enrollment.registrationStatus === 'FULLY_PAID' ? (
+                        <button
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-emerald-800 disabled:opacity-50"
+                          disabled={studentActionId === enrollment.id}
+                          onClick={() => handleAssignPaidStudent(enrollment)}
+                          type="button"
+                        >
+                          <UserRoundCheck className="h-3.5 w-3.5" />
+                          {studentActionId === enrollment.id ? 'Đang kiểm tra lịch...' : 'Xếp vào lớp'}
+                        </button>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -701,6 +926,122 @@ export default function StaffClassroomDetailPage() {
       ) : null}
 
       {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Học viên sẽ được chuyển sang lớp đã chọn.</p>{actionMessage && actionTone === 'error' ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{actionMessage}</div> : null}<div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${formatClassroomDate(item.startDate)} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
+
+      {tuitionModal.enrollment && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[100] flex min-h-[100dvh] w-screen items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+          <section aria-modal="true" className="flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Xác nhận học phí</p>
+                <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
+                  {tuitionModal.enrollment.studentName || tuitionModal.enrollment.studentEmail}
+                </h2>
+                <p className="mt-1 text-xs text-[#8b706e]">
+                  Đã thu {formatClassroomPrice(tuitionModal.enrollment.tuitionAmountPaid || 0)} / {formatClassroomPrice(tuitionModal.enrollment.tuitionAmountDue || 0)}
+                </p>
+                {tuitionModal.enrollment.tuitionPaymentDeadline ? (
+                  <p className={`mt-1 text-xs font-semibold ${tuitionModal.enrollment.tuitionPaymentOverdue ? 'text-rose-600' : 'text-amber-700'}`}>
+                    {tuitionModal.enrollment.tuitionPaymentOverdue
+                      ? 'Đã quá hạn thanh toán'
+                      : `Hạn thanh toán: ${formatClassroomDateTime(tuitionModal.enrollment.tuitionPaymentDeadline)}`}
+                  </p>
+                ) : null}
+              </div>
+              <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={tuitionWorking} onClick={closeTuitionModal} type="button"><X className="h-5 w-5" /></button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+              {actionMessage && actionTone === 'error' ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{actionMessage}</div> : null}
+
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                <div>
+                  <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Khoản thu tại trung tâm</h3>
+                  <p className="mt-1 text-xs text-slate-500">Chỉ xác nhận sau khi trung tâm đã thực nhận tiền.</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Field label="Hình thức thanh toán">
+                      <BrandedSelect
+                        onChange={(event) => setTuitionModal((current) => ({ ...current, paymentKind: event.target.value }))}
+                        options={[
+                          ...(tuitionDepositRemaining > 0 ? [{ label: `Đặt cọc ${formatClassroomPrice(tuitionDepositRemaining)}`, value: 'DEPOSIT' }] : []),
+                          { label: `Thanh toán toàn bộ ${formatClassroomPrice(tuitionBalance)}`, value: 'FULL' },
+                        ]}
+                        value={tuitionModal.paymentKind}
+                      />
+                    </Field>
+                  </div>
+                  <div>
+                    <Field label="Phương thức nhận tiền">
+                      <BrandedSelect
+                        onChange={(event) => setTuitionModal((current) => ({ ...current, paymentMethod: event.target.value }))}
+                        options={[
+                          { label: 'Tiền mặt tại trung tâm', value: 'CASH' },
+                          { label: 'Chuyển khoản tại trung tâm', value: 'BANK_TRANSFER' },
+                        ]}
+                        value={tuitionModal.paymentMethod}
+                      />
+                    </Field>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Số tiền xác nhận</p>
+                  <p className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#730014]">{formatClassroomPrice(tuitionPaymentAmount)}</p>
+                </div>
+                <input
+                  className={inputClass}
+                  onChange={(event) => setTuitionModal((current) => ({ ...current, note: event.target.value }))}
+                  placeholder="Mã phiếu thu hoặc ghi chú"
+                  value={tuitionModal.note}
+                />
+                <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#730014] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50" disabled={tuitionWorking || tuitionPaymentAmount <= 0 || tuitionModal.enrollment.tuitionPaymentOverdue} onClick={handleRecordCenterPayment} type="button">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Xác nhận đã nhận tiền
+                </button>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Minh chứng chuyển khoản</h3>
+                {tuitionModal.loadingProofs ? <p className="text-sm text-slate-500">Đang tải minh chứng...</p> : null}
+                {!tuitionModal.loadingProofs && !tuitionModal.proofs.length ? <p className="rounded-xl border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">Chưa có minh chứng nào.</p> : null}
+                {tuitionModal.proofs.map((proof) => (
+                  <article className="rounded-2xl border border-slate-200 p-4" key={proof.id}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-extrabold text-[#0b1c30]">{formatClassroomPrice(proof.amount)}</p>
+                        <p className="mt-1 text-xs text-slate-500">{proof.paymentKindLabel} · {proof.statusLabel}</p>
+                      </div>
+                      {proof.fileUrl ? <TuitionProofMedia alt={`Minh chứng #${proof.id}`} url={proof.fileUrl} /> : null}
+                    </div>
+                    {proof.status === 'PENDING' ? (
+                      <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
+                        <input
+                          className={inputClass}
+                          onChange={(event) => setTuitionModal((current) => ({
+                            ...current,
+                            rejectReasons: { ...current.rejectReasons, [proof.id]: event.target.value },
+                          }))}
+                          placeholder="Lý do nếu từ chối"
+                          value={tuitionModal.rejectReasons[proof.id] || ''}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-extrabold text-rose-700 disabled:opacity-50" disabled={tuitionWorking} onClick={() => handleRejectProof(proof)} type="button">Từ chối</button>
+                          <button className="rounded-xl bg-[#730014] px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50" disabled={tuitionWorking} onClick={() => handleConfirmProof(proof)} type="button">Xác nhận</button>
+                        </div>
+                      </div>
+                    ) : proof.reviewNote ? <p className="mt-3 text-xs text-rose-700">{proof.reviewNote}</p> : null}
+                  </article>
+                ))}
+              </section>
+            </div>
+
+            <div className="flex justify-end border-t border-slate-100 px-6 py-4">
+              <button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 disabled:opacity-50" disabled={tuitionWorking} onClick={closeTuitionModal} type="button">Đóng</button>
+            </div>
+          </section>
+        </div>,
+        document.body,
+      ) : null}
 
       {sessionModalOpen && typeof document !== 'undefined' ? createPortal(
         <div className="fixed inset-0 z-[100] flex min-h-[100dvh] w-screen items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">

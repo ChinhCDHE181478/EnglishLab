@@ -63,6 +63,9 @@ public class TuitionProofServiceImpl implements TuitionProofService {
         User learner = accessHelper.requireUser(learnerEmail);
         ClassEnrollment enrollment = requireActiveEnrollment(offeringId, learner.getId());
 
+        if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.PENDING_CONFIRMATION) {
+            throw new RuntimeException("Đăng ký đang chờ Nhân viên đào tạo xác nhận.");
+        }
         if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST) {
             throw new RuntimeException("Bạn đang ở trong danh sách chờ và chưa cần thanh toán học phí.");
         }
@@ -72,7 +75,36 @@ public class TuitionProofServiceImpl implements TuitionProofService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Số tiền chuyển khoản phải lớn hơn 0.");
         }
-        TuitionPaymentKind kind = resolvePaymentKind(paymentKind);
+        if (ClassroomRegistrationSupport.isTuitionPaymentOverdue(
+                enrollment, ClassroomRegistrationSupport.currentBusinessTime())) {
+            throw new RuntimeException("Đăng ký đã quá hạn thanh toán học phí.");
+        }
+        BigDecimal pendingAmount = proofRepository.findByEnrollmentIdOrderByCreatedAtDesc(enrollment.getId())
+                .stream()
+                .filter(item -> item.getStatus() == TuitionProofStatus.PENDING)
+                .map(ClassroomTuitionPaymentProof::getAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (amount.add(pendingAmount).compareTo(enrollment.tuitionBalance()) > 0) {
+            throw new RuntimeException("Tổng minh chứng chờ xác nhận vượt quá học phí còn lại.");
+        }
+        TuitionPaymentKind requestedKind = resolvePaymentKind(paymentKind);
+        TuitionPaymentKind kind = ClassroomRegistrationSupport.classifyTuitionPayment(
+                enrollment.getTuitionAmountDue(), enrollment.getTuitionAmountPaid(), amount);
+        if (requestedKind == TuitionPaymentKind.DEPOSIT) {
+            if (ClassroomRegistrationSupport.requiresFullTuitionPayment(enrollment)) {
+                throw new RuntimeException("Đăng ký gần ngày khai giảng cần thanh toán toàn bộ học phí.");
+            }
+            BigDecimal required = ClassroomRegistrationSupport.remainingDeposit(
+                    enrollment.getTuitionAmountDue(), enrollment.getTuitionAmountPaid());
+            if (required.compareTo(BigDecimal.ZERO) <= 0 || amount.compareTo(required) != 0) {
+                throw new RuntimeException("Số tiền cọc phải bằng đúng số tiền cọc còn thiếu.");
+            }
+            kind = TuitionPaymentKind.DEPOSIT;
+        } else if (requestedKind == TuitionPaymentKind.FULL
+                && amount.compareTo(enrollment.tuitionBalance()) != 0) {
+            throw new RuntimeException("Thanh toán toàn bộ phải bằng đúng học phí còn lại.");
+        }
 
         HomeworkAttachmentUploadResponse uploaded = attachmentStorageService.store(file, publicUrlBase, learnerEmail);
         ClassroomTuitionPaymentProof proof = proofRepository.save(ClassroomTuitionPaymentProof.builder()
@@ -230,7 +262,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     }
 
     private ClassroomTuitionPaymentProof findPendingProof(Long proofId) {
-        ClassroomTuitionPaymentProof proof = proofRepository.findById(proofId)
+        ClassroomTuitionPaymentProof proof = proofRepository.findByIdForUpdate(proofId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy minh chứng thanh toán."));
         if (proof.getStatus() != TuitionProofStatus.PENDING) {
             throw new RuntimeException("Minh chứng đã được xử lý trước đó.");
@@ -244,7 +276,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
         }
         try {
             TuitionPaymentKind kind = TuitionPaymentKind.valueOf(value.trim().toUpperCase(Locale.ROOT));
-            if (kind == TuitionPaymentKind.MANUAL_CONFIRMATION) {
+            if (kind == TuitionPaymentKind.MANUAL_CONFIRMATION || kind == TuitionPaymentKind.REFUND) {
                 throw new RuntimeException("Loại thanh toán không hợp lệ.");
             }
             return kind;
