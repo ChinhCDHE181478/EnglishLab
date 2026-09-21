@@ -316,10 +316,10 @@ export default function TeacherSessionPage() {
                   </div>
                 </div>
               )}
-              {sessionMeta && (
+              {sessionMeta?.classSectionId && (
                 <Link
                   className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
-                  to={`/teacher/classrooms/${sessionMeta.classroomOfferingId || sessionMeta.classroomId}`}
+                  to={`/teacher/classrooms/${sessionMeta.classSectionId}`}
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Quay lại lớp học

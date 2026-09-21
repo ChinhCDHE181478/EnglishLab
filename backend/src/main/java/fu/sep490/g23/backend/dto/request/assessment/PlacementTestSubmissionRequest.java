@@ -16,6 +16,9 @@ public class PlacementTestSubmissionRequest {
     @Pattern(regexp = "(?i)IELTS|TOEIC|SKILL", message = "Loại bài đánh giá chỉ hỗ trợ IELTS, TOEIC hoặc đánh giá kỹ năng")
     private String examType;
 
+    @Size(max = 2000, message = "Phiên làm bài không hợp lệ")
+    private String sessionToken;
+
     @Size(max = 4, message = "Chỉ có thể chọn tối đa 4 kỹ năng")
     private List<AssessmentSkill> selectedSkills;
 

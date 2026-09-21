@@ -159,6 +159,12 @@ export default function StaffEnrollmentRequestsPage() {
     return counts;
   }, [requests]);
 
+  const statusFilterOptions = useMemo(() => views.map((item) => ({
+    ...item,
+    buttonLabel: item.label,
+    description: `${tabCounts[item.value] || 0} hồ sơ`,
+  })), [tabCounts]);
+
   // Stats computation for top cards
   const stats = useMemo(() => ({
     total: requests.length,
@@ -359,37 +365,6 @@ export default function StaffEnrollmentRequestsPage() {
         <MetricCard icon={UserRoundCheck} label="Đủ điều kiện" value={stats.waitingForClass} />
       </section>
 
-      {/* Status Tabs Bar */}
-      <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
-          {views.map((item) => {
-            const count = item.value === 'ALL' ? requests.length : (tabCounts[item.value] || 0);
-            const isActive = view === item.value;
-            return (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setView(item.value)}
-                className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-extrabold transition-all duration-200 ease-out active:scale-95 ${
-                  isActive
-                    ? 'bg-[#4b0009] text-white shadow-md shadow-[#4b0009]/15'
-                    : 'bg-slate-50 text-slate-600 hover:bg-[#fff0f2] hover:text-[#730014]'
-                }`}
-              >
-                <span>{item.label}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold transition-all duration-200 ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
       {/* Filter and Action Bar */}
       <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="relative min-w-[240px] flex-1">
@@ -399,6 +374,13 @@ export default function StaffEnrollmentRequestsPage() {
             onChange={(event) => setKeyword(event.target.value)}
             placeholder="Tìm học viên, email, SĐT, khóa học..."
             value={keyword}
+          />
+        </div>
+        <div className="w-full sm:w-52">
+          <BrandedSelect
+            onChange={(event) => setView(event.target.value)}
+            options={statusFilterOptions}
+            value={view}
           />
         </div>
         <div className="w-full sm:w-52">

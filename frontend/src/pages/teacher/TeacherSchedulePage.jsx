@@ -114,6 +114,26 @@ const getEffectiveStatus = (session) => {
   return 'SCHEDULED';
 };
 
+const getSessionDurationMinutes = (session) => {
+  const toMinutes = (value) => {
+    const [hours, minutes] = String(value || '').split(':').map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+    return hours * 60 + minutes;
+  };
+  const start = toMinutes(session.startTime);
+  const end = toMinutes(session.endTime);
+  if (start == null || end == null) return 0;
+  return Math.max(0, end - start);
+};
+
+const formatTeachingDuration = (totalMinutes) => {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!minutes) return `${hours}h`;
+  if (!hours) return `${minutes}p`;
+  return `${hours}h ${minutes}p`;
+};
+
 const getSessionStyle = (session) => {
   const s = getEffectiveStatus(session);
   if (s === 'COMPLETED')
@@ -219,14 +239,19 @@ export default function TeacherSchedulePage() {
     return Object.entries(g);
   }, [sortedWeekSessions]);
 
-  const weekStats = useMemo(() => ({
-    hours: weekSessions.reduce((acc, s) => {
-      const sh = parseInt(s.startTime?.split(':')[0] || '0', 10);
-      const eh = parseInt(s.endTime?.split(':')[0] || '0', 10);
-      return acc + Math.max(0, eh - sh);
-    }, 0),
-    upcoming: weekSessions.filter((s) => s.sessionDate >= todayStr && s.status !== 'CANCELLED').length,
-  }), [weekSessions, todayStr]);
+  const teachingStats = useMemo(() => {
+    let completedMinutes = 0;
+    let upcoming = 0;
+    sessions.forEach((session) => {
+      const status = getEffectiveStatus(session);
+      if (status === 'COMPLETED') completedMinutes += getSessionDurationMinutes(session);
+      if (status === 'SCHEDULED') upcoming += 1;
+    });
+    return {
+      completedDuration: formatTeachingDuration(completedMinutes),
+      upcoming,
+    };
+  }, [sessions]);
 
   const prevWeek = () => setWeekMonday((m) => { const d = new Date(m); d.setDate(d.getDate() - 7); return d; });
   const nextWeek = () => setWeekMonday((m) => { const d = new Date(m); d.setDate(d.getDate() + 7); return d; });
@@ -424,15 +449,15 @@ export default function TeacherSchedulePage() {
                   </div>
 
                   <div className="border-t border-[#eeeeed] p-4">
-                    <p className="mb-3 text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e]">Tổng kết tuần này</p>
+                    <p className="mb-3 text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e]">Thống kê lịch dạy</p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-xl border border-gray-100 bg-[#fafafa] p-3">
-                        <p className="text-[10px] font-semibold uppercase text-[#8b706e]">Giờ dạy</p>
-                        <p className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{weekStats.hours}h</p>
+                        <p className="text-[10px] font-semibold uppercase text-[#8b706e]">Giờ đã dạy</p>
+                        <p className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{teachingStats.completedDuration}</p>
                       </div>
                       <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
-                        <p className="text-[10px] font-semibold uppercase text-[#8b706e]">Sắp tới</p>
-                        <p className="font-['Manrope'] text-xl font-extrabold text-emerald-700">{weekStats.upcoming}</p>
+                        <p className="text-[10px] font-semibold uppercase text-[#8b706e]">Buổi dạy sắp tới</p>
+                        <p className="font-['Manrope'] text-xl font-extrabold text-emerald-700">{teachingStats.upcoming}</p>
                       </div>
                     </div>
                   </div>

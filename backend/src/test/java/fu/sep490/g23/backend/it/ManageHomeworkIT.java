@@ -46,7 +46,7 @@ public class ManageHomeworkIT {
     }
 
     @Test
-    @DisplayName("IT_MNGHW_02")
+    @DisplayName("IT_MNGHW_04")
     void itMnghw02() throws Exception {
         String teacherToken = login(mockMvc, TEACHER, PASSWORD);
         String learnerToken = login(mockMvc, LEARNER, PASSWORD);
@@ -86,6 +86,7 @@ public class ManageHomeworkIT {
                           "allowResubmission":false,
                           "status":"OPEN",
                           "activityType":"TEXT_RESPONSE",
+                          "skill":"WRITING",
                           "gradingMode":"TEACHER"
                         }
                         """.formatted(UUID.randomUUID(), deadline.withNano(0))));

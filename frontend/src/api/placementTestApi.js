@@ -6,8 +6,15 @@ const unwrapData = (response) => {
 };
 
 const placementTestApi = {
-  async getCurrent() {
-    return unwrapData(await axiosClient.get('/api/student/placement-tests/current'));
+  async getCurrent(resume = {}) {
+    const params = resume?.examType && resume?.sessionToken
+      ? { resumeExamType: resume.examType, sessionToken: resume.sessionToken }
+      : undefined;
+    return unwrapData(await axiosClient.get('/api/student/placement-tests/current', { params }));
+  },
+
+  async startCurrent(examType) {
+    return unwrapData(await axiosClient.post('/api/student/placement-tests/current/start', { examType }));
   },
 
   async submitCurrent(payload) {

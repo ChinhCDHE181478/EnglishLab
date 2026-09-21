@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   BookOpen,
@@ -8,13 +8,11 @@ import {
   MapPin,
   Video,
   Users,
-  ArrowRight,
   FileText,
   HelpCircle,
   ExternalLink,
   ChevronRight,
   CalendarDays,
-  Inbox,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
@@ -31,7 +29,6 @@ import {
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomTime } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
-import TeacherHomeworkClassPickerModal from '../../components/teacher/TeacherHomeworkClassPickerModal';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 
 const toLocalDateStr = (d) => {
@@ -42,12 +39,10 @@ const toLocalDateStr = (d) => {
 };
 
 export default function TeacherDashboardPage() {
-  const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState([]);
   const [todaySessions, setTodaySessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [homeworkPickerOpen, setHomeworkPickerOpen] = useState(false);
 
   const { page, setPage, totalPages, pageItems: paginatedClassrooms, totalItems } = usePagination(classrooms, 4);
 
@@ -105,25 +100,6 @@ export default function TeacherDashboardPage() {
     ];
   }, [classrooms]);
 
-  const homeworkTargetClassrooms = useMemo(() => {
-    const active = classrooms.filter((item) => ['ACTIVE', 'IN_PROGRESS'].includes(item.classroomStatus));
-    return active.length ? active : classrooms;
-  }, [classrooms]);
-
-  const goToHomeworkCreate = (classroomId) => {
-    if (!classroomId) return;
-    setHomeworkPickerOpen(false);
-    navigate(`/teacher/classrooms/${classroomId}?tab=homework&action=create`);
-  };
-
-  const handleHomeworkQuickAction = () => {
-    if (homeworkTargetClassrooms.length === 1) {
-      goToHomeworkCreate(homeworkTargetClassrooms[0].id);
-      return;
-    }
-    setHomeworkPickerOpen(true);
-  };
-
   return (
     <div className={PAGE_SHELL_CLASS}>
       <CourseGlobalStyles />
@@ -152,12 +128,6 @@ export default function TeacherDashboardPage() {
                 <span className="h-5 w-1 rounded-full bg-[#8a0018]" />
                 Buổi dạy hôm nay
               </h2>
-              <Link
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#8a0018] transition hover:text-[#4b0009]"
-                to="/teacher/schedule"
-              >
-                Xem toàn bộ lịch dạy <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
             </div>
 
             {todaySessions.length ? (
@@ -202,74 +172,6 @@ export default function TeacherDashboardPage() {
             )}
           </div>
         )}
-
-        {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link
-            to="/teacher/schedule"
-            className="group rounded-xl border border-[#e5e7eb] bg-white p-5 flex items-start gap-4 transition hover:border-[#dfbfbd] hover:shadow-sm"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50 text-[#8a0018] flex-shrink-0">
-              <CalendarDays className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <h4 className="flex items-center justify-between font-semibold text-sm text-[#1a1c1c]">
-                Lịch dạy của tôi
-                <ArrowRight className="h-4 w-4 text-[#9a8b8a] transition group-hover:translate-x-0.5 group-hover:text-[#8a0018]" />
-              </h4>
-              <p className="mt-1 text-xs text-[#8b706e] leading-5">Xem toàn bộ buổi dạy theo lịch tuần, theo dõi phòng học và trạng thái.</p>
-            </div>
-          </Link>
-
-          <Link
-            to="/teacher/requests"
-            className="group rounded-xl border border-[#e5e7eb] bg-white p-5 flex items-start gap-4 transition hover:border-[#dfbfbd] hover:shadow-sm"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-700 flex-shrink-0">
-              <Inbox className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <h4 className="flex items-center justify-between font-semibold text-sm text-[#1a1c1c]">
-                Theo dõi yêu cầu
-                <ArrowRight className="h-4 w-4 text-[#9a8b8a] transition group-hover:translate-x-0.5 group-hover:text-[#8a0018]" />
-              </h4>
-              <p className="mt-1 text-xs text-[#8b706e] leading-5">Theo dõi trạng thái duyệt các đề xuất đổi lịch, phòng học, giáo viên.</p>
-            </div>
-          </Link>
-
-          {homeworkTargetClassrooms.length ? (
-            <button
-              className="group rounded-xl border border-[#e5e7eb] bg-white p-5 flex items-start gap-4 transition hover:border-[#dfbfbd] hover:shadow-sm text-left"
-              onClick={handleHomeworkQuickAction}
-              type="button"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700 flex-shrink-0">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <h4 className="flex items-center justify-between font-semibold text-sm text-[#1a1c1c]">
-                  Giao bài tập & chấm điểm
-                  <ArrowRight className="h-4 w-4 text-[#9a8b8a] transition group-hover:translate-x-0.5 group-hover:text-[#8a0018]" />
-                </h4>
-                <p className="mt-1 text-xs text-[#8b706e] leading-5">
-                  {homeworkTargetClassrooms.length === 1
-                    ? 'Mở thẳng tab Bài tập để giao bài, chấm điểm và công bố bảng điểm.'
-                    : 'Chọn lớp trong danh sách để mở tab Bài tập và tạo bài mới.'}
-                </p>
-              </div>
-            </button>
-          ) : (
-            <div className="rounded-xl border border-dashed border-[#e5e7eb] bg-white p-5 flex items-start gap-4 opacity-80">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700 flex-shrink-0">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-[#1a1c1c]">Giao bài tập & chấm điểm</h4>
-                <p className="mt-1 text-xs text-[#8b706e] leading-5">Bạn cần được phân công lớp học trước khi giao bài tập.</p>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Classrooms List Section */}
         <div className="space-y-6" id="teacher-assigned-classrooms">
@@ -410,12 +312,6 @@ export default function TeacherDashboardPage() {
         </div>
       </motion.main>
       </div>
-      <TeacherHomeworkClassPickerModal
-        classrooms={homeworkTargetClassrooms}
-        onClose={() => setHomeworkPickerOpen(false)}
-        onConfirm={goToHomeworkCreate}
-        open={homeworkPickerOpen && homeworkTargetClassrooms.length > 1}
-      />
       <CourseFooter />
     </div>
   );
