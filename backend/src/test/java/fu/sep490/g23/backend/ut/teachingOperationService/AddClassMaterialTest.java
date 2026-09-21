@@ -15,11 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * UC-76: Add Class Material - test đầy đủ với request validation.
- * Service: ClassroomContentService.createMaterial()
- * Request DTO: CreateMaterialRequest
- */
+
 @ExtendWith(MockitoExtension.class)
 public class AddClassMaterialTest {
 
@@ -28,7 +24,7 @@ public class AddClassMaterialTest {
 
     // TC01: Thêm tài liệu PDF thành công
     @Test
-    void tc01_addValidMaterial_succeeds() {
+    void addClassMaterial_UTC01_addValidMaterial() {
         ClassroomMaterialResponse expected = ClassroomMaterialResponse.builder()
                 .id(101L)
                 .title("Slide bai giang Buoi 1")
@@ -88,7 +84,7 @@ public class AddClassMaterialTest {
 
     // TC02: File vuot 20MB -> IllegalArgumentException
     @Test
-    void tc02_fileTooLarge_throwsException() {
+    void addClassMaterial_UTC02_fileTooLarge() {
         when(contentService.createMaterial(any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("MSG-15: File dinh kem khong duoc vuot qua 20 MB."));
 
@@ -121,7 +117,7 @@ public class AddClassMaterialTest {
 
     // TC03: Giao vien khong phan cong -> AccessDenied
     @Test
-    void tc03_teacherNotAssigned_throwsAccessDenied() {
+    void addClassMaterial_UTC03_teacherNotAssigned() {
         when(contentService.createMaterial(any(), any(), any()))
                 .thenThrow(new org.springframework.security.access.AccessDeniedException(
                         "MSG-19: Ban khong duoc phan cong phu trach lop hoc nay."));
@@ -146,7 +142,7 @@ public class AddClassMaterialTest {
 
     // TC04: Thieu title/fileUrl -> Validation
     @Test
-    void tc04_missingRequiredFields_throwsException() {
+    void addClassMaterial_UTC04_missingRequiredFields() {
         when(contentService.createMaterial(any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("MSG-46: Vui long nhap day du thong tin bat buoc."));
 
@@ -174,7 +170,7 @@ public class AddClassMaterialTest {
 
     // TC05: Lop CLOSED -> BusinessRule
     @Test
-    void tc05_classClosed_throwsException() {
+    void addClassMaterial_UTC05_classClosed() {
         when(contentService.createMaterial(any(), any(), any()))
                 .thenThrow(new IllegalStateException("MSG-49: Lop hoc da dong, khong the cap nhat."));
 
@@ -207,7 +203,7 @@ public class AddClassMaterialTest {
 
     // TC06: classId khong ton tai -> EntityNotFoundException
     @Test
-    void tc06_classNotFound_throwsException() {
+    void addClassMaterial_UTC06_classNotFound() {
         when(contentService.createMaterial(any(), any(), any()))
                 .thenThrow(new jakarta.persistence.EntityNotFoundException("MSG-48: Khong tim thay du lieu yeu cau."));
 

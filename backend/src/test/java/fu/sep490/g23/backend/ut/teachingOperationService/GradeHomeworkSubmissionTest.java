@@ -24,11 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * UC-70: Grade Homework Submission - test đầy đủ với request validation.
- * Service: ClassroomHomeworkService.grade()
- * Request DTO: GradeHomeworkRequest
- */
 @ExtendWith(MockitoExtension.class)
 public class GradeHomeworkSubmissionTest {
 
@@ -37,7 +32,7 @@ public class GradeHomeworkSubmissionTest {
 
     // TC01: Chấm điểm SUBMITTED -> GRADED
     @Test
-    void tc01_gradeSubmitted_succeeds() {
+    void gradeHomeworkSubmission_UTC01_gradeSubmitted() {
         ClassroomHomeworkSubmissionResponse expected = ClassroomHomeworkSubmissionResponse.builder()
                 .id(101L)
                 .status(HomeworkSubmissionStatus.GRADED)
@@ -111,9 +106,9 @@ public class GradeHomeworkSubmissionTest {
         verifyNoMoreInteractions(homeworkService);
     }
 
-    // TC03: AI gợi ý chấm điểm
+    // TC02: AI gợi ý chấm điểm
     @Test
-    void tc03_aiGradeSuggestion_returnsSuggestion() {
+    void gradeHomeworkSubmission_UTC02_aiGradeSuggestion_returnsSuggestion() {
         when(homeworkService.listAiAssessmentOptions("teacher@test.com"))
                 .thenReturn(List.of());
 
@@ -123,9 +118,9 @@ public class GradeHomeworkSubmissionTest {
         verifyNoMoreInteractions(homeworkService);
     }
 
-    // TC05: Điểm 15.0 vượt phạm vi -> IllegalArgumentException
+    // TC03: Điểm 15.0 vượt phạm vi -> IllegalArgumentException
     @Test
-    void tc05_invalidScore_throwsException() {
+    void gradeHomeworkSubmission_UTC03_invalidScore() {
         when(homeworkService.grade(any(), any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("Điểm vượt quá thang điểm tối đa"));
 
@@ -150,9 +145,9 @@ public class GradeHomeworkSubmissionTest {
         verifyNoMoreInteractions(homeworkService);
     }
 
-    // TC06: Bài nộp DRAFT -> RuntimeException
+    // TC04: Bài nộp DRAFT -> RuntimeException
     @Test
-    void tc06_draftStatus_throwsException() {
+    void gradeHomeworkSubmission_UTC04_draftStatus() {
         when(homeworkService.grade(any(), any(), any(), any()))
                 .thenThrow(new IllegalStateException("Bài nộp không ở trạng thái cho phép chấm điểm"));
 
@@ -176,9 +171,9 @@ public class GradeHomeworkSubmissionTest {
         verifyNoMoreInteractions(homeworkService);
     }
 
-    // TC07: Giáo viên không phụ trách lớp -> AccessDenied
+    // TC05: Giáo viên không phụ trách lớp -> AccessDenied
     @Test
-    void tc07_teacherNotAssigned_throwsAccessDenied() {
+    void gradeHomeworkSubmission_UTC05_teacherNotAssigned() {
         when(homeworkService.grade(any(), any(), any(), any()))
                 .thenThrow(new org.springframework.security.access.AccessDeniedException("MSG-19: Bạn không được phân công phụ trách lớp học này."));
 
@@ -200,9 +195,9 @@ public class GradeHomeworkSubmissionTest {
         verifyNoMoreInteractions(homeworkService);
     }
 
-    // TC08: submissionId không tồn tại -> EntityNotFoundException
+    // TC06: submissionId không tồn tại -> EntityNotFoundException
     @Test
-    void tc08_submissionNotFound_throwsException() {
+    void gradeHomeworkSubmission_UTC06_submissionNotFound() {
         when(homeworkService.grade(any(), any(), any(), any()))
                 .thenThrow(new jakarta.persistence.EntityNotFoundException("MSG-48: Không tìm thấy dữ liệu yêu cầu."));
 

@@ -18,10 +18,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * UC-100: Approve Classroom Proposal - test đầy đủ với parameter validation.
- * Service: ClassroomProposalService.approve(Long proposalId, String managerEmail)
- */
+
 @ExtendWith(MockitoExtension.class)
 public class ApproveClassroomProposalTest {
 

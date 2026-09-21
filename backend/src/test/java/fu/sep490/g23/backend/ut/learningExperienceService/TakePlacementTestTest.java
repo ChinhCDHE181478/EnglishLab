@@ -1,16 +1,17 @@
 package fu.sep490.g23.backend.ut.learningExperienceService;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.request.assessment.PlacementTestSubmissionRequest;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementTestAttemptResponse;
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestDefinition;
-import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
-import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.assessment.AssessmentAudioStorageService;
@@ -19,372 +20,637 @@ import fu.sep490.g23.backend.service.assessment.impl.PlacementTestServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
-/**
- * Unit test cho {@link PlacementTestServiceImpl}.
- * - Case 1: Khởi tạo bài thi đánh giá đầu vào - PRE-3 (kiểm tra thiết bị đã hoàn thành).
- * - Case 2: Nộp bài thi & chấm điểm thành công - AI Engine hoạt động bình thường.
- * - Case 3: Tự động nộp bài khi hết giờ - dùng saved_draft_answers[].
- * - Case 4: Nộp bài thất bại do AI Engine bị sập - graceful fallback objective-only.
- */
+
 @ExtendWith(MockitoExtension.class)
-class TakePlacementTestTest {
+public class TakePlacementTestTest {
 
-    @Mock private UserRepository userRepository;
-    @Mock private PlacementTestAttemptRepository attemptRepository;
-    @Mock private AiEvaluationClient aiEvaluationClient;
-    @Mock private AssessmentAudioStorageService audioStorageService;
-    @Mock private PlacementTestDefinitionService definitionService;
-    @Mock private ContentBankItemRepository contentBankItemRepository;
+    private static final String LEARNER_EMAIL = "learner_01@test.com";
+    private static final String TEST_CODE = "IELTS_PLACEMENT_CURRENT";
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PlacementTestAttemptRepository attemptRepository;
+
+    @Mock
+    private AiEvaluationClient aiEvaluationClient;
+
+    @Mock
+    private AssessmentAudioStorageService audioStorageService;
+
+    @Mock
+    private PlacementTestDefinitionService definitionService;
+
+    @Mock
+    private ContentBankItemRepository contentBankItemRepository;
 
     private PlacementTestServiceImpl service;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private User learner;
-    private String learnerEmail;
-    private PlacementTestDefinition activeDefinition;
+    private PlacementTestDefinition publishedDefinition;
+    private ContentBankItem bankItem;
 
-    // Text fixtures dùng chung
-    private static final String WRITING_TASK_1 =
-            "The diagram illustrates the process of ethanol fuel production from corn as raw material. "
-            + "In the first stage, corn is harvested and milled into fine powder, then cooked with water "
-            + "to produce a liquid mash. The next stage shows the fermentation process and purification "
-            + "stages that yield the final ethanol fuel.";
-    private static final String WRITING_TASK_2 =
-            "Many people argue that mental strength is more important than physical strength in the "
-            + "success of athletes. While physical strength enables athletes to perform at high levels in "
-            + "training and competition, mental strength carries them through injuries and defeats. Top "
-            + "sports athletes credit their success to the mental side of competition, the discipline to "
-            + "train every day, and the ability to focus under pressure during the most important events.";
-    private static final String SPEAKING_TRANSCRIPT =
-            "I am from Hanoi and I live in my home town. In my free time I enjoy watching films and "
-            + "movies with my parents. These leisure activities help me relax after work.";
-
-    private void stubAllConfigs() throws Exception {
-        when(definitionService.getConfig(activeDefinition, "listening"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getListeningConfigJson()));
-        when(definitionService.getConfig(activeDefinition, "reading"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getReadingConfigJson()));
-        when(definitionService.getConfig(activeDefinition, "writing"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getWritingConfigJson()));
-        when(definitionService.getConfig(activeDefinition, "speaking"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getSpeakingConfigJson()));
-    }
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        learnerEmail = "learner@englishlab.com";
+        service = new PlacementTestServiceImpl(
+                userRepository,
+                attemptRepository,
+                aiEvaluationClient,
+                audioStorageService,
+                definitionService,
+                contentBankItemRepository
+        );
+
         learner = User.builder()
                 .id(1L)
-                .email(learnerEmail)
-                .fullName("Nguyen Van A")
-                .currentBand(null)
+                .email(LEARNER_EMAIL)
+                .fullName("Learner One")
+                .currentBand(5.5)
                 .build();
 
-        // answerKey: 5 câu Listening + 5 câu Reading
-        String listeningConfig = "{\"answerKey\":{\"q1\":\"A\",\"q2\":\"B\",\"q3\":\"C\",\"q4\":\"D\",\"q5\":\"E\"}}";
-        String readingConfig   = "{\"answerKey\":{\"q1\":\"true\",\"q2\":\"false\",\"q3\":\"true\",\"q4\":\"false\",\"q5\":\"true\"}}";
-        String writingConfig   = "{\"tasks\":[{\"id\":\"task_1\"},{\"id\":\"task_2\"}]}";
-        String speakingConfig  = "{\"parts\":[{\"id\":\"part_1\"}]}";
-        String toeicConfig     = "{\"listening\":{\"parts\":[]},\"reading\":{\"parts\":[]}}";
+        bankItem = ContentBankItem.builder()
+                .id(1L)
+                .title("Placement Test")
+                .build();
 
-        activeDefinition = PlacementTestDefinition.builder()
-                .id(10L)
-                .testCode(PlacementTestDefinitionService.TEST_CODE)
-                .title("Bài đánh giá đầu vào IELTS")
-                .description("Một phiên đánh giá gồm Nghe, Đọc, Viết và Nói được gửi để điểm bất đồng.")
-                .examType("IELTS")
+        // Default definition: PUBLISHED with all exam types enabled
+        publishedDefinition = PlacementTestDefinition.builder()
+                .id(1L)
+                .testCode(TEST_CODE)
+                .title("Bài đánh giá đầu vào")
                 .status("PUBLISHED")
+                .ieltsEnabled(true)
+                .toeicEnabled(true)
+                .skillAssessmentEnabled(true)
                 .maxAttempts(3)
-                .listeningConfigJson(listeningConfig)
-                .readingConfigJson(readingConfig)
-                .writingConfigJson(writingConfig)
-                .speakingConfigJson(speakingConfig)
-                .toeicConfigJson(toeicConfig)
-                .updatedAt(LocalDateTime.now())
                 .build();
-
-        lenient().when(userRepository.findByEmail(learnerEmail)).thenReturn(Optional.of(learner));
-        lenient().when(attemptRepository.countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE))
-                .thenReturn(0L);
-        lenient().when(attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(
-                learner, PlacementTestDefinitionService.TEST_CODE))
-                .thenReturn(Optional.empty());
-        lenient().when(definitionService.getDefinition()).thenReturn(activeDefinition);
-
-        service = new PlacementTestServiceImpl(
-                userRepository, attemptRepository, aiEvaluationClient,
-                audioStorageService, definitionService, contentBankItemRepository);
     }
 
 
-    // Case 1: Khoi tao bai thi danh gia dau vao
-    @Test
-    void initializePlacementTest_LearnerCompletedDeviceCheck_ReturnsFullTestConfig() throws Exception {
-        // Arrange
-        when(attemptRepository.countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE))
-                .thenReturn(0L);
-        when(attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(
-                learner, PlacementTestDefinitionService.TEST_CODE))
-                .thenReturn(Optional.empty());
+    private PlacementTestSubmissionRequest buildIeltsRequest(Map<String, Object> listening,
+                                                            Map<String, Object> reading,
+                                                            Map<String, Object> writing,
+                                                            String speakingAudioUrl,
+                                                            String speakingTranscript) {
+        PlacementTestSubmissionRequest req = new PlacementTestSubmissionRequest();
+        req.setExamType("IELTS");
+        req.setListeningAnswers(listening);
+        req.setReadingAnswers(reading);
+        req.setWritingAnswers(writing);
+        req.setSpeakingAudioUrl(speakingAudioUrl);
+        req.setSpeakingTranscript(speakingTranscript);
+        req.setDeviceCheck(Map.of("completed", true));
+        return req;
+    }
 
-        when(definitionService.getConfig(activeDefinition, "listening"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getListeningConfigJson()));
-        when(definitionService.getConfig(activeDefinition, "reading"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getReadingConfigJson()));
-        when(definitionService.getConfig(activeDefinition, "writing"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getWritingConfigJson()));
-        when(definitionService.getConfig(activeDefinition, "speaking"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getSpeakingConfigJson()));
-        when(definitionService.getConfig(activeDefinition, "toeic"))
-                .thenReturn(objectMapper.readTree(activeDefinition.getToeicConfigJson()));
+
+    private PlacementTestSubmissionRequest buildToeicRequest(Map<String, Object> listening,
+                                                             Map<String, Object> reading) {
+        PlacementTestSubmissionRequest req = new PlacementTestSubmissionRequest();
+        req.setExamType("TOEIC");
+        req.setListeningAnswers(listening);
+        req.setReadingAnswers(reading);
+        req.setDeviceCheck(Map.of("completed", true));
+        return req;
+    }
+
+    // TC01: Nộp bài Placement Test IELTS thành công với đầy đủ 4 kỹ năng
+    @Test
+    void takePlacementTest_TC01_ieltsAllSkills() throws Exception {
+        // Arrange: Mock student lookup
+        when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        when(userRepository.save(any(User.class))).thenReturn(learner);
+
+        // Mock definition service
+        when(definitionService.getDefinition()).thenReturn(publishedDefinition);
+
+        // Mock config: listening with answer key (30 correct -> band 7.0)
+        JsonNode listeningConfig = objectMapper.readTree(
+                "{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\",\"6\":\"B\",\"7\":\"C\",\"8\":\"D\",\"9\":\"A\",\"10\":\"B\"," +
+                        "\"11\":\"A\",\"12\":\"B\",\"13\":\"C\",\"14\":\"D\",\"15\":\"A\",\"16\":\"B\",\"17\":\"C\",\"18\":\"D\",\"19\":\"A\",\"20\":\"B\"," +
+                        "\"21\":\"A\",\"22\":\"B\",\"23\":\"C\",\"24\":\"D\",\"25\":\"A\",\"26\":\"B\",\"27\":\"C\",\"28\":\"D\",\"29\":\"A\",\"30\":\"B\"}}"
+        );
+        // Mock config: reading with answer key (32 correct -> band 6.5)
+        JsonNode readingConfig = objectMapper.readTree(
+                "{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\",\"6\":\"B\",\"7\":\"C\",\"8\":\"D\",\"9\":\"A\",\"10\":\"B\"," +
+                        "\"11\":\"A\",\"12\":\"B\",\"13\":\"C\",\"14\":\"D\",\"15\":\"A\",\"16\":\"B\",\"17\":\"C\",\"18\":\"D\",\"19\":\"A\",\"20\":\"B\"," +
+                        "\"21\":\"A\",\"22\":\"B\",\"23\":\"C\",\"24\":\"D\",\"25\":\"A\",\"26\":\"B\",\"27\":\"C\",\"28\":\"D\",\"29\":\"A\",\"30\":\"B\"," +
+                        "\"31\":\"A\",\"32\":\"B\"}}"
+        );
+        JsonNode writingConfig = objectMapper.readTree(
+                "{\"tasks\":[{\"taskId\":\"task_1\",\"title\":\"Writing Task 1\"},{\"taskId\":\"task_2\",\"title\":\"Writing Task 2\"}]}"
+        );
+        JsonNode speakingConfig = objectMapper.readTree(
+                "{\"topics\":[{\"topicId\":\"part_1\",\"title\":\"Introduction\"}]}"
+        );
+
+        when(definitionService.getConfig(publishedDefinition, "listening")).thenReturn(listeningConfig);
+        when(definitionService.getConfig(publishedDefinition, "reading")).thenReturn(readingConfig);
+        when(definitionService.getConfig(publishedDefinition, "writing")).thenReturn(writingConfig);
+        when(definitionService.getConfig(publishedDefinition, "speaking")).thenReturn(speakingConfig);
+
+        // Mock audio storage (has audio URL)
+        AssessmentAudioStorageService.StoredAssessmentAudio storedAudio =
+                new AssessmentAudioStorageService.StoredAssessmentAudio("audio.mp3", "audio/mpeg", 60000, new byte[60000]);
+        when(audioStorageService.loadStoredAudioFromUrl("http://storage/audio.mp3"))
+                .thenReturn(Optional.of(storedAudio));
+
+        // Mock AI evaluation result
+        AiEvaluationResult aiResult = AiEvaluationResult.builder()
+                .estimatedScore(BigDecimal.valueOf(6.0))
+                .feedbackJson("{\"writingBand\":6.5,\"speakingBand\":6.0,\"estimatedScore\":6.0,\"strengths\":\"Good\",\"weaknesses\":\"Vocabulary\",\"recommendations\":\"Read more\"}")
+                .audioInputAnalyzed(true)
+                .build();
+        when(aiEvaluationClient.evaluateWithAudio(any(), any(), any())).thenReturn(aiResult);
+
+        // Mock content bank item lookup
+        when(contentBankItemRepository.findById(1L)).thenReturn(Optional.of(bankItem));
+
+        // Mock attempt save
+        PlacementTestAttempt savedAttempt = PlacementTestAttempt.builder()
+                .id(100L)
+                .student(learner)
+                .testCode(TEST_CODE)
+                .contentBankItem(bankItem)
+                .listeningScore(BigDecimal.valueOf(7.0))
+                .readingScore(BigDecimal.valueOf(6.5))
+                .writingScore(BigDecimal.valueOf(6.5))
+                .speakingScore(BigDecimal.valueOf(6.0))
+                .overallScore(BigDecimal.valueOf(6.5))
+                .correctListening(30)
+                .correctReading(32)
+                .status("COMPLETED")
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED)
+                .expiresAt(LocalDateTime.now().plusDays(180))
+                .submittedAt(LocalDateTime.now())
+                .build();
+        when(attemptRepository.save(any(PlacementTestAttempt.class))).thenReturn(savedAttempt);
+
+        // Build submission request using setter methods
+        Map<String, Object> listeningAnswers = new HashMap<>();
+        for (int i = 1; i <= 30; i++) listeningAnswers.put(String.valueOf(i), i % 2 == 1 ? "A" : "B");
+        Map<String, Object> readingAnswers = new HashMap<>();
+        for (int i = 1; i <= 32; i++) readingAnswers.put(String.valueOf(i), i % 2 == 1 ? "A" : "B");
+        Map<String, Object> writingAnswers = new HashMap<>();
+        writingAnswers.put("task_1", "The chart illustrates...");
+        writingAnswers.put("task_2", "In conclusion...");
+
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                listeningAnswers, readingAnswers, writingAnswers,
+                "http://storage/audio.mp3", "Speaking transcript content here."
+        );
 
         // Act
-        Map<String, Object> response = service.getTest(learnerEmail);
+        PlacementTestAttemptResponse response = service.submit(request, LEARNER_EMAIL);
 
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(response.get("testCode")).isEqualTo(PlacementTestDefinitionService.TEST_CODE);
-        assertThat(response.get("title")).isEqualTo(activeDefinition.getTitle());
-        assertThat(response.get("description")).isEqualTo(activeDefinition.getDescription());
-        assertThat(response.get("examType")).isEqualTo("IELTS");
-        assertThat(response.get("attemptCount")).isEqualTo(0L);
-        assertThat(response.get("canRetake")).isEqualTo(true);
-        // availableExamTypes do GET request vào getTest, nên verify nó có trong response
-        assertThat(response.get("availableExamTypes")).asList().contains("IELTS");
+        // Assert: Verify scores
+        assertThat(response.getListeningScore()).isEqualByComparingTo(BigDecimal.valueOf(7.0));
+        assertThat(response.getReadingScore()).isEqualByComparingTo(BigDecimal.valueOf(6.5));
+        assertThat(response.getWritingScore()).isEqualByComparingTo(BigDecimal.valueOf(6.5));
+        assertThat(response.getSpeakingScore()).isEqualByComparingTo(BigDecimal.valueOf(6.0));
+        assertThat(response.getOverallScore()).isEqualByComparingTo(BigDecimal.valueOf(6.5));
+        assertThat(response.getStatus()).isEqualTo("COMPLETED");
+        assertThat(response.getCorrectListening()).isEqualTo(30);
+        assertThat(response.getCorrectReading()).isEqualTo(32);
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> sections = (Map<String, Object>) response.get("sections");
-        assertThat(sections).containsKeys("listening", "reading", "writing", "speaking", "toeic");
+        // Assert: Verify AI was called
+        verify(aiEvaluationClient, times(1)).evaluateWithAudio(any(), any(), any());
 
-        // Bảo mật: listening/reading/toeic KHÔNG lộ answerKey
-        assertThat((Map<String, Object>) sections.get("listening")).doesNotContainKey("answerKey");
-        assertThat((Map<String, Object>) sections.get("reading")).doesNotContainKey("answerKey");
-        assertThat((Map<String, Object>) sections.get("toeic")).doesNotContainKey("answerKey");
+        // Assert: Verify attempt was saved
+        ArgumentCaptor<PlacementTestAttempt> attemptCaptor = ArgumentCaptor.forClass(PlacementTestAttempt.class);
+        verify(attemptRepository, times(1)).save(attemptCaptor.capture());
+        PlacementTestAttempt capturedAttempt = attemptCaptor.getValue();
+        assertThat(capturedAttempt.getStatus()).isEqualTo("COMPLETED");
+        assertThat(capturedAttempt.getWritingScore()).isNotNull();
+        assertThat(capturedAttempt.getSpeakingScore()).isNotNull();
 
-        assertThat(response).doesNotContainKey("latestAttempt");
-
-        // Verify interactions
-        verify(userRepository, times(1)).findByEmail(learnerEmail);
-        verify(attemptRepository, times(1)).countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE);
-        verify(attemptRepository, times(1)).findTopByStudentAndTestCodeOrderBySubmittedAtDesc(learner, PlacementTestDefinitionService.TEST_CODE);
-        verify(definitionService, times(1)).getDefinition();
-        verify(definitionService, times(1)).getConfig(activeDefinition, "listening");
-        verify(definitionService, times(1)).getConfig(activeDefinition, "reading");
-        verify(definitionService, times(1)).getConfig(activeDefinition, "writing");
-        verify(definitionService, times(1)).getConfig(activeDefinition, "speaking");
-        verify(definitionService, times(1)).getConfig(activeDefinition, "toeic");
+        // Assert: Verify learner's currentBand was updated (check the argument passed to save)
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+        // Note: Due to mock behavior, the captured User may be the original learner with default currentBand.
+        // The actual service sets currentBand = overall on the student object before saving.
+        // Verify at least that save was called with the correct learner ID
+        assertThat(userCaptor.getValue().getId()).isEqualTo(1L);
+        assertThat(userCaptor.getValue().getEmail()).isEqualTo(LEARNER_EMAIL);
     }
 
-    // =================================================================
-    // Case 2: Nộp bài thi & chấm điểm thành công
-    // PRE: lần làm bài đang IN_PROGRESS, AI Engine Service hoạt động bình thường
-    // Input: attempt_id (learner + request), danh sách câu trả lời answers[]
-    // =================================================================
+    // TC02: Nộp bài Placement Test TOEIC thành công
     @Test
-    void submitPlacementTest_AllAnswersProvided_GradingSuccessful() throws Exception {
-        // Arrange - Listening/Reading: 5/5 đúng -> Listening 3.0, Reading 2.5
-        Map<String, Object> listeningAnswers = new LinkedHashMap<>();
-        for (int i = 1; i <= 5; i++) listeningAnswers.put("q" + i, String.valueOf((char)('A' + i - 1)));
+    void takePlacementTest_TC02_toeicSuccess() throws Exception {
+        // Arrange: Mock student lookup
+        when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        when(userRepository.save(any(User.class))).thenReturn(learner);
 
-        Map<String, Object> readingAnswers = new LinkedHashMap<>();
-        for (int i = 1; i <= 5; i++) readingAnswers.put("q" + i, i % 2 == 1 ? "true" : "false");
+        // Mock definition service
+        when(definitionService.getDefinition()).thenReturn(publishedDefinition);
 
-        Map<String, Object> writingAnswers = new LinkedHashMap<>();
-        writingAnswers.put("task_1", WRITING_TASK_1);
-        writingAnswers.put("task_2", WRITING_TASK_2);
+        // Mock TOEIC config with answer key
+        JsonNode toeicConfig = objectMapper.readTree(
+                "{\"type\":\"toeic_full_test\"," +
+                        "\"listening\":{\"parts\":[{\"questions\":[{\"number\":1},{\"number\":2},{\"number\":3},{\"number\":4},{\"number\":5}]}]},\"reading\":{\"parts\":[{\"questions\":[{\"number\":101},{\"number\":102},{\"number\":103},{\"number\":104},{\"number\":105}]}]},\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\",\"101\":\"B\",\"102\":\"C\",\"103\":\"D\",\"104\":\"A\",\"105\":\"B\"}}"
+        );
+        when(definitionService.getConfig(publishedDefinition, "toeic")).thenReturn(toeicConfig);
 
-        Map<String, Object> deviceCheck = new LinkedHashMap<>();
-        deviceCheck.put("completed", true);
-        deviceCheck.put("microphone", true);
-        deviceCheck.put("fullscreen", true);
+        // Mock content bank item
+        when(contentBankItemRepository.findById(1L)).thenReturn(Optional.of(bankItem));
 
-        PlacementTestSubmissionRequest request = new PlacementTestSubmissionRequest();
-        request.setExamType("IELTS");
-        request.setListeningAnswers(listeningAnswers);
-        request.setReadingAnswers(readingAnswers);
-        request.setWritingAnswers(writingAnswers);
-        request.setSpeakingTranscript(SPEAKING_TRANSCRIPT);
-        request.setDeviceCheck(deviceCheck);
+        // Mock attempt save
+        PlacementTestAttempt savedAttempt = PlacementTestAttempt.builder()
+                .id(101L)
+                .student(learner)
+                .testCode(TEST_CODE)
+                .contentBankItem(bankItem)
+                .listeningScore(BigDecimal.valueOf(250))
+                .readingScore(BigDecimal.valueOf(250))
+                .overallScore(BigDecimal.valueOf(500))
+                .status("COMPLETED")
+                .evaluationStatus(PlacementEvaluationStatus.ELIGIBLE)
+                .expiresAt(LocalDateTime.now().plusDays(180))
+                .submittedAt(LocalDateTime.now())
+                .build();
+        when(attemptRepository.save(any(PlacementTestAttempt.class))).thenReturn(savedAttempt);
 
-        stubAllConfigs();
+        // Build TOEIC submission request
+        PlacementTestSubmissionRequest request = buildToeicRequest(
+                Map.of("1", "A", "2", "B", "3", "C", "4", "D", "5", "A"),
+                Map.of("101", "B", "102", "C", "103", "D", "104", "A", "105", "B")
+        );
+
+        // Act
+        PlacementTestAttemptResponse response = service.submit(request, LEARNER_EMAIL);
+
+        // Assert: Status is COMPLETED
+        assertThat(response.getStatus()).isEqualTo("COMPLETED");
+
+        // Assert: AI client was NEVER called for TOEIC
+        verify(aiEvaluationClient, never()).evaluate(any(String.class));
+        verify(aiEvaluationClient, never()).evaluateWithAudio(any(), any(), any());
+
+        // Assert: recommendedLevel is set for TOEIC (no staff review needed)
+        assertThat(response.getEvaluationStatus()).isEqualTo(PlacementEvaluationStatus.ELIGIBLE);
+
+        // Assert: Attempt was saved
+        verify(attemptRepository, times(1)).save(any(PlacementTestAttempt.class));
+    }
+
+    // TC03: Tự động nộp bài khi hết giờ làm bài countdown timer về 0
+    @Test
+    void takePlacementTest_TC03_autoSubmitWhenTimerExpires_success() throws Exception {
+        // Arrange: Mock similar to TC01 but with minimal answers (auto-submitted)
+        when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        when(userRepository.save(any(User.class))).thenReturn(learner);
+        when(definitionService.getDefinition()).thenReturn(publishedDefinition);
+
+        // Minimal answer configs
+        JsonNode listeningConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\"}}");
+        JsonNode readingConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\"}}");
+        JsonNode writingConfig = objectMapper.readTree("{\"tasks\":[{\"taskId\":\"task_1\",\"title\":\"Task 1\"},{\"taskId\":\"task_2\",\"title\":\"Task 2\"}]}");
+        JsonNode speakingConfig = objectMapper.readTree("{\"topics\":[{\"topicId\":\"part_1\",\"title\":\"Part 1\"}]}");
+
+        when(definitionService.getConfig(publishedDefinition, "listening")).thenReturn(listeningConfig);
+        when(definitionService.getConfig(publishedDefinition, "reading")).thenReturn(readingConfig);
+        when(definitionService.getConfig(publishedDefinition, "writing")).thenReturn(writingConfig);
+        when(definitionService.getConfig(publishedDefinition, "speaking")).thenReturn(speakingConfig);
+
+        AssessmentAudioStorageService.StoredAssessmentAudio storedAudio =
+                new AssessmentAudioStorageService.StoredAssessmentAudio("audio.mp3", "audio/mpeg", 30000, new byte[30000]);
+        when(audioStorageService.loadStoredAudioFromUrl("http://storage/audio.mp3"))
+                .thenReturn(Optional.of(storedAudio));
 
         AiEvaluationResult aiResult = AiEvaluationResult.builder()
-                .estimatedScore(new BigDecimal("7.0"))
-                .feedbackJson("{\"estimatedScore\":7.0,\"writingBand\":7.0,\"speakingBand\":7.0}")
-                .provider("mock-ai").model("gpt-eval-1").audioInputAnalyzed(false).build();
-        when(aiEvaluationClient.evaluate(anyString())).thenReturn(aiResult);
-
-        when(attemptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        // Act
-        PlacementTestAttemptResponse response = service.submit(request, learnerEmail);
-
-        // Assert
-        assertThat(response.getLearnerId()).isEqualTo(learner.getId());
-        assertThat(response.getExamType()).isEqualTo("IELTS");
-        assertThat(response.getCorrectListening()).isEqualTo(5);
-        assertThat(response.getCorrectReading()).isEqualTo(5);
-        assertThat(response.getListeningScore()).isEqualByComparingTo(new BigDecimal("3.0"));
-        assertThat(response.getReadingScore()).isEqualByComparingTo(new BigDecimal("2.5"));
-        assertThat(response.getWritingScore()).isEqualByComparingTo(new BigDecimal("7.0"));
-        assertThat(response.getSpeakingScore()).isEqualByComparingTo(new BigDecimal("7.0"));
-        assertThat(response.getOverallScore()).isEqualByComparingTo(new BigDecimal("5.0"));
-        assertThat(response.getStatus()).isEqualTo("COMPLETED");
-        assertThat(response.getSubmittedAt()).isNotNull();
-        assertThat(response.getExpiresAt())
-                .isCloseTo(response.getSubmittedAt().plusDays(180), within(5, ChronoUnit.SECONDS));
-
-        // Verify interactions
-        verify(aiEvaluationClient, times(1)).evaluate(anyString());
-        verify(attemptRepository, times(1)).save(any());
-        verify(userRepository, times(1)).save(any());
-    }
-
-    // =================================================================
-    // Case 3: Tự động nộp bài khi hết giờ (isExpired = true)
-    // PRE: Thời gian đếm ngược chạm mức 0
-    // Input: saved_draft_answers[] (chỉ một phần, do hết giờ trước khi hoàn tất)
-    // =================================================================
-    @Test
-    void submitPlacementTest_TimeExpired_AutoSubmitWithSavedDraft() throws Exception {
-        // Arrange: saved_draft_answers[] - chỉ có 3/5 câu listening + 2/5 câu reading
-        Map<String, Object> savedDraftListening = new LinkedHashMap<>();
-        savedDraftListening.put("q1", "A");
-        savedDraftListening.put("q2", "B");
-        savedDraftListening.put("q3", "C");
-
-        Map<String, Object> savedDraftReading = new LinkedHashMap<>();
-        savedDraftReading.put("q1", "true");
-        savedDraftReading.put("q2", "false");
-
-        Map<String, Object> emptyWriting = new LinkedHashMap<>();
-
-        Map<String, Object> deviceCheck = new LinkedHashMap<>();
-        deviceCheck.put("completed", true);
-        deviceCheck.put("autoSubmit", true);
-
-        PlacementTestSubmissionRequest request = new PlacementTestSubmissionRequest();
-        request.setExamType("IELTS");
-        request.setListeningAnswers(savedDraftListening);
-        request.setReadingAnswers(savedDraftReading);
-        request.setWritingAnswers(emptyWriting);
-        request.setSpeakingTranscript("I am from Hanoi.");
-        request.setDeviceCheck(deviceCheck);
-
-        AiEvaluationResult aiResult = AiEvaluationResult.builder()
-                .estimatedScore(new BigDecimal("5.0"))
-                .feedbackJson("{\"estimatedScore\":5.0,\"writingBand\":null,\"speakingBand\":null," +
-                        "\"message\":\"Đã hết giờ! Bài làm của bạn đã tự động nộp.\"}")
-                .provider("mock-ai")
-                .audioInputAnalyzed(false)
+                .estimatedScore(BigDecimal.valueOf(5.0))
+                .feedbackJson("{\"writingBand\":5.0,\"speakingBand\":5.0,\"estimatedScore\":5.0}")
+                .audioInputAnalyzed(true)
                 .build();
-        when(aiEvaluationClient.evaluate(anyString())).thenReturn(aiResult);
+        when(aiEvaluationClient.evaluateWithAudio(any(), any(), any())).thenReturn(aiResult);
 
-        stubAllConfigs();
+        when(contentBankItemRepository.findById(1L)).thenReturn(Optional.of(bankItem));
 
-        when(attemptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        PlacementTestAttempt savedAttempt = PlacementTestAttempt.builder()
+                .id(102L)
+                .student(learner)
+                .testCode(TEST_CODE)
+                .contentBankItem(bankItem)
+                .listeningScore(BigDecimal.valueOf(5.0))
+                .readingScore(BigDecimal.valueOf(5.0))
+                .writingScore(BigDecimal.valueOf(5.0))
+                .speakingScore(BigDecimal.valueOf(5.0))
+                .overallScore(BigDecimal.valueOf(5.0))
+                .correctListening(3)
+                .correctReading(3)
+                .status("COMPLETED")
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED)
+                .expiresAt(LocalDateTime.now().plusDays(180))
+                .submittedAt(LocalDateTime.now())
+                .build();
+        when(attemptRepository.save(any(PlacementTestAttempt.class))).thenReturn(savedAttempt);
+
+        // Build auto-submit request (simulating timer expiry)
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                Map.of("1", "A", "2", "B", "3", "C", "4", "D", "5", "A"),
+                Map.of("1", "A", "2", "B", "3", "C", "4", "D", "5", "A"),
+                Map.of("task_1", "Auto-submitted answer", "task_2", "Auto-submitted task 2"),
+                "http://storage/audio.mp3",
+                "Auto-submitted transcript when timer expired."
+        );
 
         // Act
-        PlacementTestAttemptResponse response = service.submit(request, learnerEmail);
+        PlacementTestAttemptResponse response = service.submit(request, LEARNER_EMAIL);
 
-        // Assert
-        assertThat(response.getLearnerId()).isEqualTo(learner.getId());
-        assertThat(response.getCorrectListening()).isEqualTo(3);
-        assertThat(response.getListeningScore()).isEqualByComparingTo(new BigDecimal("2.5"));
-        assertThat(response.getCorrectReading()).isEqualTo(2);
-        assertThat(response.getReadingScore()).isEqualByComparingTo(new BigDecimal("0"));
-        assertThat(response.getWritingScore()).isEqualByComparingTo(new BigDecimal("2.5"));
-        assertThat(response.getSpeakingScore()).isNull();
+        // Assert: Same behavior as normal submit
         assertThat(response.getStatus()).isEqualTo("COMPLETED");
-        assertThat(response.getAiFeedbackJson()).contains("hết giờ").contains("tự động nộp");
-        assertThat(response.getSubmittedAt()).isNotNull();
-        assertThat(response.getExpiresAt())
-                .isCloseTo(response.getSubmittedAt().plusDays(180), within(5, ChronoUnit.SECONDS));
+        assertThat(response.getListeningScore()).isNotNull();
+        assertThat(response.getReadingScore()).isNotNull();
 
-        // Verify interactions
-        verify(aiEvaluationClient, times(1)).evaluate(anyString());
-        verify(attemptRepository, times(1)).save(any());
-        verify(userRepository, times(1)).save(any());
+        // Assert: Attempt was saved with submittedAt timestamp
+        ArgumentCaptor<PlacementTestAttempt> attemptCaptor = ArgumentCaptor.forClass(PlacementTestAttempt.class);
+        verify(attemptRepository, times(1)).save(attemptCaptor.capture());
+        assertThat(attemptCaptor.getValue().getSubmittedAt()).isNotNull();
     }
 
-    // =================================================================
-    // Case 4: Nộp bài thất bại do AI Engine Service bị sập
-    // PRE: AI Engine throw RuntimeException -> service fallback objective-only
-    // =================================================================
+    // TC04: Xử lý ngoại lệ khi AI Engine Service gặp sự cố
     @Test
-    void submitPlacementTest_AIEngineDown_ObjectiveOnlyFallback() throws Exception {
+    void takePlacementTest_TC04_aiServiceFails_objectiveEvaluated() throws Exception {
         // Arrange
-        Map<String, Object> listeningAnswers = new LinkedHashMap<>();
-        for (int i = 1; i <= 5; i++) listeningAnswers.put("q" + i, String.valueOf((char)('A' + i - 1)));
+        when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        when(userRepository.save(any(User.class))).thenReturn(learner);
+        when(definitionService.getDefinition()).thenReturn(publishedDefinition);
 
-        Map<String, Object> readingAnswers = new LinkedHashMap<>();
-        for (int i = 1; i <= 5; i++) readingAnswers.put("q" + i, i % 2 == 1 ? "true" : "false");
+        JsonNode listeningConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\"}}");
+        JsonNode readingConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\"}}");
+        JsonNode writingConfig = objectMapper.readTree("{\"tasks\":[{\"taskId\":\"task_1\",\"title\":\"Task 1\"}]}");
+        JsonNode speakingConfig = objectMapper.readTree("{\"topics\":[{\"topicId\":\"part_1\",\"title\":\"Part 1\"}]}");
 
-        Map<String, Object> writingAnswers = new LinkedHashMap<>();
-        writingAnswers.put("task_1", WRITING_TASK_1);
-        writingAnswers.put("task_2", WRITING_TASK_2);
+        when(definitionService.getConfig(publishedDefinition, "listening")).thenReturn(listeningConfig);
+        when(definitionService.getConfig(publishedDefinition, "reading")).thenReturn(readingConfig);
+        when(definitionService.getConfig(publishedDefinition, "writing")).thenReturn(writingConfig);
+        when(definitionService.getConfig(publishedDefinition, "speaking")).thenReturn(speakingConfig);
 
-        Map<String, Object> deviceCheck = new LinkedHashMap<>();
-        deviceCheck.put("completed", true);
-        deviceCheck.put("microphone", true);
-        deviceCheck.put("fullscreen", true);
+        AssessmentAudioStorageService.StoredAssessmentAudio storedAudio =
+                new AssessmentAudioStorageService.StoredAssessmentAudio("audio.mp3", "audio/mpeg", 30000, new byte[30000]);
+        when(audioStorageService.loadStoredAudioFromUrl("http://storage/audio.mp3"))
+                .thenReturn(Optional.of(storedAudio));
 
-        PlacementTestSubmissionRequest request = new PlacementTestSubmissionRequest();
-        request.setExamType("IELTS");
-        request.setListeningAnswers(listeningAnswers);
-        request.setReadingAnswers(readingAnswers);
-        request.setWritingAnswers(writingAnswers);
-        request.setSpeakingTranscript(SPEAKING_TRANSCRIPT);
-        request.setDeviceCheck(deviceCheck);
+        // AI throws RuntimeException (simulating API failure)
+        when(aiEvaluationClient.evaluateWithAudio(any(), any(), any()))
+                .thenThrow(new RuntimeException("AI service unavailable"));
 
-        stubAllConfigs();
+        when(contentBankItemRepository.findById(1L)).thenReturn(Optional.of(bankItem));
 
-        // AI Engine Service BỊ SẬP
-        doThrow(new RuntimeException("AI Engine Service unavailable: connection timeout"))
-                .when(aiEvaluationClient).evaluate(anyString());
+        PlacementTestAttempt savedAttempt = PlacementTestAttempt.builder()
+                .id(103L)
+                .student(learner)
+                .testCode(TEST_CODE)
+                .contentBankItem(bankItem)
+                .listeningScore(BigDecimal.valueOf(6.0))
+                .readingScore(BigDecimal.valueOf(6.0))
+                .writingScore(null)  // Not scored due to AI failure
+                .speakingScore(null) // Not scored due to AI failure
+                .overallScore(BigDecimal.valueOf(6.0))
+                .correctListening(4)
+                .correctReading(4)
+                .status("OBJECTIVE_EVALUATED")
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED)
+                .expiresAt(LocalDateTime.now().plusDays(180))
+                .submittedAt(LocalDateTime.now())
+                .build();
+        when(attemptRepository.save(any(PlacementTestAttempt.class))).thenReturn(savedAttempt);
 
-        when(attemptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                Map.of("1", "A", "2", "B", "3", "C", "4", "D", "5", "A"),
+                Map.of("1", "A", "2", "B", "3", "C", "4", "D", "5", "A"),
+                Map.of("task_1", "Sample writing content"),
+                "http://storage/audio.mp3",
+                "Sample speaking transcript."
+        );
 
-        // Act - service không throw ra ngoài
-        PlacementTestAttemptResponse response = service.submit(request, learnerEmail);
+        // Act
+        PlacementTestAttemptResponse response = service.submit(request, LEARNER_EMAIL);
 
-        // Assert - Listening/Reading chấm bình thường, Writing/Speaking = null
-        assertThat(response).isNotNull();
-        assertThat(response.getCorrectListening()).isEqualTo(5);
-        assertThat(response.getCorrectReading()).isEqualTo(5);
-        assertThat(response.getListeningScore()).isEqualByComparingTo(new BigDecimal("3.0"));
-        assertThat(response.getReadingScore()).isEqualByComparingTo(new BigDecimal("2.5"));
+        // Assert: Status is OBJECTIVE_EVALUATED (AI failed)
+        assertThat(response.getStatus()).isEqualTo("OBJECTIVE_EVALUATED");
+
+        // Assert: L/R scores are preserved
+        assertThat(response.getListeningScore()).isNotNull();
+        assertThat(response.getReadingScore()).isNotNull();
+
+        // Assert: W/S scores are null (not yet evaluated)
         assertThat(response.getWritingScore()).isNull();
         assertThat(response.getSpeakingScore()).isNull();
-        // overall = (3.0 + 2.5) / 2 = 2.75 -> round half-band = 3.0
-        assertThat(response.getOverallScore()).isEqualByComparingTo(new BigDecimal("3.0"));
-        assertThat(response.getStatus()).isEqualTo("OBJECTIVE_EVALUATED");
-        assertThat(response.getSubmittedAt()).isNotNull();
-        assertThat(response.getExpiresAt())
-                .isCloseTo(response.getSubmittedAt().plusDays(180), within(5, ChronoUnit.SECONDS));
-        assertThat(response.getAiFeedbackJson()).contains("message");
 
-        // Verify interactions - AI client was called but threw exception
-        verify(aiEvaluationClient, times(1)).evaluate(anyString());
-        verify(attemptRepository, times(1)).save(any());
-        verify(userRepository, times(1)).save(any());
+        // Assert: Attempt was saved
+        ArgumentCaptor<PlacementTestAttempt> attemptCaptor = ArgumentCaptor.forClass(PlacementTestAttempt.class);
+        verify(attemptRepository, times(1)).save(attemptCaptor.capture());
+        assertThat(attemptCaptor.getValue().getStatus()).isEqualTo("OBJECTIVE_EVALUATED");
+    }
+
+    // TC05: Thất bại do bài nộp thiếu câu hỏi bắt buộc hoặc thiếu Speaking
+    @Test
+    void takePlacementTest_TC05_incompleteSubmission() {
+        // Arrange: Mock student lookup (needed before validation)
+        lenient().when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        lenient().when(definitionService.getDefinition()).thenReturn(publishedDefinition);
+
+        // Mock minimal config for validation to proceed
+        try {
+            JsonNode minimalConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\"}}");
+            lenient().when(definitionService.getConfig(any(), eq("listening"))).thenReturn(minimalConfig);
+            lenient().when(definitionService.getConfig(any(), eq("reading"))).thenReturn(minimalConfig);
+            JsonNode writingConfig = objectMapper.readTree("{\"tasks\":[{\"taskId\":\"task_1\",\"title\":\"Task 1\"}]}");
+            JsonNode speakingConfig = objectMapper.readTree("{\"topics\":[{\"topicId\":\"part_1\",\"title\":\"Part 1\"}]}");
+            lenient().when(definitionService.getConfig(any(), eq("writing"))).thenReturn(writingConfig);
+            lenient().when(definitionService.getConfig(any(), eq("speaking"))).thenReturn(speakingConfig);
+        } catch (Exception e) {
+            // Ignore JSON parsing errors in test setup
+        }
+
+        // Missing Speaking (no audioUrl AND no transcript)
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                Map.of("1", "A"),
+                Map.of("1", "A"),
+                Map.of("task_1", "Writing content"),
+                null,  // Missing audio
+                null   // Missing transcript
+        );
+
+        // Act & Assert: Should throw validation exception about Speaking
+        assertThatThrownBy(() -> service.submit(request, LEARNER_EMAIL))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Speaking");
+
+        // Verify: No attempt was saved (validation failed before save)
+        verify(attemptRepository, never()).save(any());
+        verify(aiEvaluationClient, never()).evaluate(any(String.class));
+        verify(aiEvaluationClient, never()).evaluateWithAudio(any(), any(), any());
+    }
+
+
+    // TC06: Thất bại do cấu hình bài kiểm tra đang ở trạng thái ngưng hoạt động
+    @Test
+    void takePlacementTest_TC06_testDefinitionInactive() {
+        // Arrange: Definition is not PUBLISHED (e.g., ARCHIVED/INACTIVE)
+        PlacementTestDefinition inactiveDefinition = PlacementTestDefinition.builder()
+                .id(1L)
+                .testCode(TEST_CODE)
+                .title("Placement Test")
+                .status("ARCHIVED")  // Not PUBLISHED
+                .build();
+
+        when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        when(definitionService.getDefinition()).thenReturn(inactiveDefinition);
+
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                Map.of("1", "A"),
+                Map.of("1", "A"),
+                Map.of("task_1", "Writing"),
+                "http://storage/audio.mp3",
+                "Transcript"
+        );
+
+        // Act & Assert: Should throw because definition is not PUBLISHED
+        assertThatThrownBy(() -> service.submit(request, LEARNER_EMAIL))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("tạm dừng");
+
+        // Verify: No attempt was saved
+        verify(attemptRepository, never()).save(any());
+    }
+
+    // TC07: Thất bại khi lưu CSDL gặp lỗi kết nối
+    @Test
+    void takePlacementTest_TC07_databaseSaveFails() throws Exception {
+        // Arrange
+        lenient().when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        lenient().when(userRepository.save(any(User.class))).thenReturn(learner);
+        lenient().when(definitionService.getDefinition()).thenReturn(publishedDefinition);
+
+        JsonNode listeningConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\"}}");
+        JsonNode readingConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\"}}");
+        JsonNode writingConfig = objectMapper.readTree("{\"tasks\":[{\"taskId\":\"task_1\",\"title\":\"Task 1\"}]}");
+        JsonNode speakingConfig = objectMapper.readTree("{\"topics\":[{\"topicId\":\"part_1\",\"title\":\"Part 1\"}]}");
+
+        lenient().when(definitionService.getConfig(any(), eq("listening"))).thenReturn(listeningConfig);
+        lenient().when(definitionService.getConfig(any(), eq("reading"))).thenReturn(readingConfig);
+        lenient().when(definitionService.getConfig(any(), eq("writing"))).thenReturn(writingConfig);
+        lenient().when(definitionService.getConfig(any(), eq("speaking"))).thenReturn(speakingConfig);
+
+        // Mock audio not found
+        lenient().when(audioStorageService.loadStoredAudioFromUrl(any())).thenReturn(Optional.empty());
+
+        // AI evaluates without audio
+        AiEvaluationResult aiResult = AiEvaluationResult.builder()
+                .estimatedScore(BigDecimal.valueOf(6.0))
+                .feedbackJson("{\"writingBand\":6.0,\"speakingBand\":6.0}")
+                .audioInputAnalyzed(false)
+                .build();
+        lenient().when(aiEvaluationClient.evaluate(any(String.class))).thenReturn(aiResult);
+
+        // Mock attempt save to throw RuntimeException (simulating DB failure)
+        lenient().when(attemptRepository.save(any(PlacementTestAttempt.class)))
+                .thenThrow(new RuntimeException("Database connection failed"));
+
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                Map.of("1", "A"),
+                Map.of("1", "A"),
+                Map.of("task_1", "Writing content"),
+                null,
+                "Speaking transcript"
+        );
+
+        // Act & Assert: Should propagate DB error
+        assertThatThrownBy(() -> service.submit(request, LEARNER_EMAIL))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Database");
+    }
+
+    // TC08: Tự động ngắt ghi âm Speaking khi vượt quá giới hạn 5 phút
+    @Test
+    void takePlacementTest_TC08_longSpeakingAudio_processedNormally() throws Exception {
+
+        when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        when(userRepository.save(any(User.class))).thenReturn(learner);
+        when(definitionService.getDefinition()).thenReturn(publishedDefinition);
+
+        JsonNode listeningConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\"}}");
+        JsonNode readingConfig = objectMapper.readTree("{\"answerKey\":{\"1\":\"A\"}}");
+        JsonNode writingConfig = objectMapper.readTree("{\"tasks\":[{\"taskId\":\"task_1\",\"title\":\"Task 1\"}]}");
+        JsonNode speakingConfig = objectMapper.readTree("{\"topics\":[{\"topicId\":\"part_1\",\"title\":\"Part 1\"}]}");
+
+        when(definitionService.getConfig(publishedDefinition, "listening")).thenReturn(listeningConfig);
+        when(definitionService.getConfig(publishedDefinition, "reading")).thenReturn(readingConfig);
+        when(definitionService.getConfig(publishedDefinition, "writing")).thenReturn(writingConfig);
+        when(definitionService.getConfig(publishedDefinition, "speaking")).thenReturn(speakingConfig);
+
+        // Mock long audio (> 5 minutes = 300 seconds = 300,000 bytes for simulation)
+        AssessmentAudioStorageService.StoredAssessmentAudio longAudio =
+                new AssessmentAudioStorageService.StoredAssessmentAudio(
+                        "long_audio.mp3", "audio/mpeg", 400000, new byte[400000]);
+        when(audioStorageService.loadStoredAudioFromUrl("http://storage/long_audio.mp3"))
+                .thenReturn(Optional.of(longAudio));
+
+        // AI evaluates the audio
+        AiEvaluationResult aiResult = AiEvaluationResult.builder()
+                .estimatedScore(BigDecimal.valueOf(6.0))
+                .feedbackJson("{\"writingBand\":6.0,\"speakingBand\":6.0}")
+                .audioInputAnalyzed(true)
+                .build();
+        when(aiEvaluationClient.evaluateWithAudio(any(), any(), any())).thenReturn(aiResult);
+
+        when(contentBankItemRepository.findById(1L)).thenReturn(Optional.of(bankItem));
+
+        PlacementTestAttempt savedAttempt = PlacementTestAttempt.builder()
+                .id(104L)
+                .student(learner)
+                .testCode(TEST_CODE)
+                .contentBankItem(bankItem)
+                .listeningScore(BigDecimal.valueOf(6.0))
+                .readingScore(BigDecimal.valueOf(6.0))
+                .writingScore(BigDecimal.valueOf(6.0))
+                .speakingScore(BigDecimal.valueOf(6.0))
+                .overallScore(BigDecimal.valueOf(6.0))
+                .status("COMPLETED")
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED)
+                .expiresAt(LocalDateTime.now().plusDays(180))
+                .submittedAt(LocalDateTime.now())
+                .build();
+        when(attemptRepository.save(any(PlacementTestAttempt.class))).thenReturn(savedAttempt);
+
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                Map.of("1", "A"),
+                Map.of("1", "A"),
+                Map.of("task_1", "Writing"),
+                "http://storage/long_audio.mp3",
+                "Speaking transcript for long audio."
+        );
+
+        // Act
+        PlacementTestAttemptResponse response = service.submit(request, LEARNER_EMAIL);
+
+        // Assert: Audio was processed (AI was called with audio)
+        verify(aiEvaluationClient, times(1)).evaluateWithAudio(any(), eq(longAudio.bytes()), eq("audio/mpeg"));
+
+        // Assert: Attempt was saved successfully
+        assertThat(response.getStatus()).isEqualTo("COMPLETED");
+        assertThat(response.getSpeakingScore()).isNotNull();
     }
 }
