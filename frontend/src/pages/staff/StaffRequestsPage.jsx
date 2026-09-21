@@ -22,9 +22,10 @@ import {
   ConflictPanel,
   StatusBadge,
 } from '../../components/classroom/ClassroomUi';
-import { buildChangeRequestDiff, hasBlockingConflict } from '../../utils/changeRequestHelpers';
+import { buildChangeRequestDiff, hasBlockingConflict, parseChangeRequestValues } from '../../utils/changeRequestHelpers';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 
 export default function StaffRequestsPage() {
   const [searchParams] = useSearchParams();
@@ -36,6 +37,9 @@ export default function StaffRequestsPage() {
   const [selectedId, setSelectedId] = useState(searchParams.get('requestId') || '');
   const [conflictResults, setConflictResults] = useState({});
   const [checkingConflicts, setCheckingConflicts] = useState({});
+  const [returnOptions, setReturnOptions] = useState([]);
+  const [targetClassSectionId, setTargetClassSectionId] = useState('');
+  const [loadingReturnOptions, setLoadingReturnOptions] = useState(false);
 
   const loadRequests = async () => {
     setLoading(true);
@@ -76,12 +80,48 @@ export default function StaffRequestsPage() {
 
   const selectedConflict = selected ? conflictResults[selected.id] : null;
   const conflictDetected = hasBlockingConflict(selectedConflict);
+  const isSuspensionRequest = selected?.requestType === 'SUSPEND_STUDENT';
+  const isReturnRequest = selected?.requestType === 'RESUME_STUDENT';
+  const isCourseSuspensionFlow = isSuspensionRequest || isReturnRequest;
+  const selectedOldValues = useMemo(
+    () => parseChangeRequestValues(selected?.oldValuesJson),
+    [selected?.oldValuesJson],
+  );
+  const selectedNewValues = useMemo(
+    () => parseChangeRequestValues(selected?.newValuesJson),
+    [selected?.newValuesJson],
+  );
 
   useEffect(() => {
-    if (selected?.id && !conflictResults[selected.id] && !checkingConflicts[selected.id]) {
+    if (selected?.id && !isCourseSuspensionFlow && !conflictResults[selected.id] && !checkingConflicts[selected.id]) {
       handleConflictCheck(selected.id, { silent: true });
     }
-  }, [selected?.id]);
+  }, [selected?.id, isCourseSuspensionFlow]);
+
+  useEffect(() => {
+    if (!selected?.id || selected.requestType !== 'RESUME_STUDENT') {
+      setReturnOptions([]);
+      setTargetClassSectionId('');
+      return;
+    }
+    let active = true;
+    const loadReturnOptions = async () => {
+      setLoadingReturnOptions(true);
+      try {
+        const options = await classroomApi.getCourseReturnOptions(selected.id);
+        if (active) {
+          setReturnOptions(options);
+          setTargetClassSectionId('');
+        }
+      } catch (err) {
+        if (active) setActionMessage(getClassroomErrorMessage(err, 'Không thể tải lớp phù hợp.'));
+      } finally {
+        if (active) setLoadingReturnOptions(false);
+      }
+    };
+    loadReturnOptions();
+    return () => { active = false; };
+  }, [selected?.id, selected?.requestType]);
 
   const handleReview = async (requestId, action, overrideConflict = false) => {
     setActionMessage('');
@@ -90,10 +130,21 @@ export default function StaffRequestsPage() {
       setActionMessage('Cần ghi chú khi duyệt và ghi đè xung đột lịch học.');
       return;
     }
+    if (action === 'approve' && isReturnRequest && !targetClassSectionId) {
+      setActionMessage('Vui lòng chọn lớp phù hợp trước khi duyệt học viên quay lại.');
+      return;
+    }
+    if (action === 'reject' && isCourseSuspensionFlow && !note.trim()) {
+      setActionMessage('Vui lòng nhập lý do từ chối để học viên có thể bổ sung hồ sơ.');
+      return;
+    }
     try {
       const payload = {
         reviewNote: note,
         overrideConflict: action === 'approve' ? overrideConflict : false,
+        targetClassSectionId: action === 'approve' && isReturnRequest
+          ? Number(targetClassSectionId)
+          : null,
       };
       if (action === 'approve') {
         await classroomApi.approveChangeRequest(requestId, payload);
@@ -189,7 +240,7 @@ export default function StaffRequestsPage() {
                         {item.classroomTitle}
                       </p>
                       <p className={`mt-2 text-[10px] ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
-                        GV: {item.requesterName || '—'}
+                        {['SUSPEND_STUDENT', 'RESUME_STUDENT'].includes(item.requestType) ? 'HV' : 'GV'}: {item.requesterName || '—'}
                       </p>
                     </button>
                   );
@@ -225,7 +276,28 @@ export default function StaffRequestsPage() {
                     ) : null}
                   </div>
 
-                  {diffRows.length ? (
+                  {isCourseSuspensionFlow ? (
+                    <div className="grid gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-5 text-sm text-[#584140] sm:grid-cols-2">
+                      <p>Học viên: <strong>{selectedOldValues.studentName || selected.requesterName}</strong></p>
+                      <p>Khóa học: <strong>{selectedOldValues.courseTitle || selected.classroomTitle}</strong></p>
+                      {isSuspensionRequest ? (
+                        <>
+                          <p>Tiến độ: <strong>{selectedOldValues.completedSessions}/{selectedOldValues.totalSessions} buổi ({selectedOldValues.progressPercent}%)</strong></p>
+                          <p>Thời gian: <strong>{selectedNewValues.requestedStartDate} đến {selectedNewValues.requestedReturnDate}</strong></p>
+                          <a
+                            className="inline-flex items-center gap-2 font-bold text-[#730014] hover:underline sm:col-span-2"
+                            href={selectedNewValues.proofUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Xem giấy tờ minh chứng
+                          </a>
+                        </>
+                      ) : (
+                        <p>Hạn đăng ký quay lại: <strong>{selectedOldValues.returnDeadline || '—'}</strong></p>
+                      )}
+                    </div>
+                  ) : diffRows.length ? (
                     <div className="rounded-2xl border border-[#f0e4e2] overflow-hidden">
                       <div className="bg-[#fffafb] px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#8b706e]">
                         Thay đổi đề xuất
@@ -246,7 +318,7 @@ export default function StaffRequestsPage() {
                   <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 space-y-2">
                     <h4 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider flex items-center gap-1">
                       <MessageSquare className="h-4 w-4 text-[#730014]" />
-                      Lý do từ giảng viên
+                      Lý do từ {isCourseSuspensionFlow ? 'học viên' : 'giảng viên'}
                     </h4>
                     <p className="text-sm text-[#584140] whitespace-pre-wrap leading-6">
                       {selected.reason || 'Không có mô tả chi tiết.'}
@@ -264,15 +336,38 @@ export default function StaffRequestsPage() {
                     <ConflictPanel conflictResult={selectedConflict} />
                   ) : null}
 
+                  {isReturnRequest ? (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-[#8b706e]">
+                        Lớp học phù hợp
+                      </label>
+                      <BrandedSelect
+                        disabled={loadingReturnOptions}
+                        onChange={(event) => setTargetClassSectionId(event.target.value)}
+                        options={returnOptions.map((item) => ({
+                          label: item.title,
+                          value: String(item.id),
+                          description: [item.scheduleSummary, item.primaryTeacherName].filter(Boolean).join(' · '),
+                        }))}
+                        placeholder={loadingReturnOptions
+                          ? 'Đang kiểm tra lớp phù hợp...'
+                          : returnOptions.length ? 'Chọn lớp để xếp học viên' : 'Chưa có lớp phù hợp'}
+                        searchable
+                        value={targetClassSectionId}
+                      />
+                    </div>
+                  ) : null}
+
                   <div className="flex flex-wrap gap-3">
                     {!conflictDetected ? (
                       <button
                         className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-800"
+                        disabled={isReturnRequest && !targetClassSectionId}
                         onClick={() => handleReview(selected.id, 'approve', false)}
                         type="button"
                       >
                         <Check className="h-4 w-4" />
-                        Duyệt và áp dụng
+                        {isSuspensionRequest ? 'Duyệt bảo lưu' : isReturnRequest ? 'Xác nhận xếp lớp' : 'Duyệt và áp dụng'}
                       </button>
                     ) : (
                       <button
@@ -292,24 +387,28 @@ export default function StaffRequestsPage() {
                       <X className="h-4 w-4" />
                       Từ chối
                     </button>
-                    <button
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-extrabold text-[#584140] hover:bg-gray-50"
-                      disabled={checkingConflicts[selected.id]}
-                      onClick={() => handleConflictCheck(selected.id)}
-                      type="button"
-                    >
-                      {checkingConflicts[selected.id] ? 'Đang kiểm tra...' : 'Kiểm tra lại trùng lịch'}
-                    </button>
+                    {!isCourseSuspensionFlow ? (
+                      <button
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-extrabold text-[#584140] hover:bg-gray-50"
+                        disabled={checkingConflicts[selected.id]}
+                        onClick={() => handleConflictCheck(selected.id)}
+                        type="button"
+                      >
+                        {checkingConflicts[selected.id] ? 'Đang kiểm tra...' : 'Kiểm tra lại trùng lịch'}
+                      </button>
+                    ) : null}
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
-                      Ghi chú phản hồi {conflictDetected ? '(bắt buộc khi ghi đè xung đột)' : ''}
+                      Ghi chú phản hồi {conflictDetected
+                        ? '(bắt buộc khi ghi đè xung đột)'
+                        : isCourseSuspensionFlow ? '(bắt buộc khi từ chối)' : ''}
                     </label>
                     <textarea
                       className="min-h-[100px] w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014] focus:bg-white"
                       onChange={(event) => setReviewNotes((current) => ({ ...current, [selected.id]: event.target.value }))}
-                      placeholder="Ghi chú gửi lại cho giảng viên hoặc lý do từ chối..."
+                      placeholder={`Ghi chú gửi lại cho ${isCourseSuspensionFlow ? 'học viên' : 'giảng viên'} hoặc lý do từ chối...`}
                       value={reviewNotes[selected.id] || ''}
                     />
                   </div>

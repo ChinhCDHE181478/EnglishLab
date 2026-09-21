@@ -5,6 +5,7 @@ import { formatIsoDateForDisplay, maskVietnameseDate, parseVietnameseDate } from
 export default function VietnameseDateInput({
   className = '',
   id,
+  max,
   min,
   onChange,
   required = false,
@@ -35,7 +36,8 @@ export default function VietnameseDateInput({
     }
     const parsed = parseVietnameseDate(displayValue);
     const belowMinimum = parsed && min && parsed < min;
-    setInvalid(!parsed || Boolean(belowMinimum));
+    const aboveMaximum = parsed && max && parsed > max;
+    setInvalid(!parsed || Boolean(belowMinimum) || Boolean(aboveMaximum));
   };
 
   const selectDate = (event) => {
@@ -59,6 +61,8 @@ export default function VietnameseDateInput({
     picker.focus();
     picker.click();
   };
+
+  const parsedDisplayValue = parseVietnameseDate(displayValue);
 
   return (
     <div>
@@ -87,6 +91,7 @@ export default function VietnameseDateInput({
         <input
           aria-hidden="true"
           className="pointer-events-none absolute h-px w-px opacity-0"
+          max={max}
           min={min}
           onChange={selectDate}
           ref={pickerRef}
@@ -97,7 +102,11 @@ export default function VietnameseDateInput({
       </div>
       {invalid ? (
         <p className="mt-1 text-xs font-semibold text-rose-600">
-          {min && parseVietnameseDate(displayValue) ? `Ngày phải từ ${formatIsoDateForDisplay(min)} trở đi.` : 'Nhập ngày theo định dạng dd/mm/yyyy.'}
+          {min && parsedDisplayValue && parsedDisplayValue < min
+            ? `Ngày phải từ ${formatIsoDateForDisplay(min)} trở đi.`
+            : max && parsedDisplayValue && parsedDisplayValue > max
+              ? `Ngày không được sau ${formatIsoDateForDisplay(max)}.`
+              : 'Nhập ngày theo định dạng dd/mm/yyyy.'}
         </p>
       ) : null}
     </div>

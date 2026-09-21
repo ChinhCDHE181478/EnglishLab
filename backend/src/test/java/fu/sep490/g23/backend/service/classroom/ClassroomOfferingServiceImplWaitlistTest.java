@@ -14,10 +14,12 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.*;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomOfferingServiceImpl;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
@@ -29,7 +31,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,6 +49,8 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Mock private ClassScheduleRepository sessionRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomTuitionPaymentRepository tuitionPaymentRepository;
+    @Mock private ClassroomTuitionPaymentProofRepository tuitionPaymentProofRepository;
+    @Mock private PaymentOrderItemRepository paymentOrderItemRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
     @Mock private OnlineCourseEnrollmentRepository packageEnrollmentRepository;
@@ -64,7 +70,68 @@ class ClassroomOfferingServiceImplWaitlistTest {
     private ClassroomOfferingServiceImpl service;
 
     @Test
-    void getMyClasses_ReturnsOnlyStaffAssignedClassrooms() {
+    void expireOverdueTuitionEnrollment_rejectsAndReleasesSeat() {
+        LocalDateTime now = LocalDateTime.of(2026, 10, 14, 9, 0);
+        User learner = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
+        ClassSection offering = ClassSection.builder()
+                .id(10L)
+                .name("IELTS Evening")
+                .capacity(0)
+                .startDate(LocalDate.of(2026, 10, 20))
+                .build();
+        ClassEnrollment enrollment = ClassEnrollment.builder()
+                .id(30L)
+                .student(learner)
+                .classSection(offering)
+                .registrationStatus(ClassroomRegistrationStatus.DEPOSIT_PAID)
+                .tuitionAmountDue(new BigDecimal("5000000"))
+                .tuitionAmountPaid(new BigDecimal("1500000"))
+                .enrolledAt(LocalDateTime.of(2026, 10, 1, 9, 0))
+                .build();
+        when(enrollmentRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(enrollment));
+        when(tuitionPaymentProofRepository.countByEnrollmentIdAndStatus(30L, TuitionProofStatus.PENDING))
+                .thenReturn(0L);
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(30L), any()))
+                .thenReturn(false);
+        when(enrollmentRepository.saveAndFlush(enrollment)).thenReturn(enrollment);
+
+        boolean expired = service.expireOverdueTuitionEnrollment(30L, now);
+
+        assertTrue(expired);
+        assertEquals(ClassroomRegistrationStatus.REJECTED, enrollment.getRegistrationStatus());
+        assertTrue(enrollment.getNote().contains("quá hạn"));
+        verify(notificationService).notifyUser(eq(learner), eq("CLASSROOM_TUITION_EXPIRED"), any(), any(), any());
+        verify(notificationService).notifyTrainingStaff(eq("CLASSROOM_TUITION_REVIEW_REQUIRED"), any(), any(), any());
+    }
+
+    @Test
+    void expireOverdueTuitionEnrollment_keepsSeatWhileProofIsPending() {
+        LocalDateTime now = LocalDateTime.of(2026, 10, 14, 9, 0);
+        ClassEnrollment enrollment = ClassEnrollment.builder()
+                .id(30L)
+                .student(User.builder().id(7L).email("learner@example.com").build())
+                .classSection(ClassSection.builder()
+                        .id(10L)
+                        .startDate(LocalDate.of(2026, 10, 20))
+                        .build())
+                .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
+                .tuitionAmountDue(new BigDecimal("5000000"))
+                .tuitionAmountPaid(BigDecimal.ZERO)
+                .enrolledAt(LocalDateTime.of(2026, 10, 1, 9, 0))
+                .build();
+        when(enrollmentRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(enrollment));
+        when(tuitionPaymentProofRepository.countByEnrollmentIdAndStatus(30L, TuitionProofStatus.PENDING))
+                .thenReturn(1L);
+
+        boolean expired = service.expireOverdueTuitionEnrollment(30L, now);
+
+        assertTrue(!expired);
+        assertEquals(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT, enrollment.getRegistrationStatus());
+        verify(enrollmentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void getMyClasses_ReturnsActiveRegistrationsIncludingPaymentPending() {
         long learnerId = 7L;
         long offeringId = 10L;
         User learner = User.builder().id(learnerId).email("learner@example.com").build();
@@ -86,7 +153,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
         when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
         when(enrollmentRepository.findByStudentIdAndRegistrationStatusIn(
                 learnerId,
-                ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
+                ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS
         )).thenReturn(List.of(assigned));
         when(enrollmentRepository.findByStudentIdAndClassSectionId(learnerId, offeringId))
                 .thenReturn(Optional.of(assigned));
@@ -97,12 +164,12 @@ class ClassroomOfferingServiceImplWaitlistTest {
         assertEquals(List.of(mapped), result);
         verify(enrollmentRepository).findByStudentIdAndRegistrationStatusIn(
                 learnerId,
-                ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
+                ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS
         );
     }
 
     @Test
-    void getLearnerOffering_RejectsLegacyPendingEnrollment() {
+    void getLearnerOffering_AllowsPaymentPendingWithoutLearningContent() {
         long learnerId = 7L;
         long offeringId = 10L;
         User learner = User.builder().id(learnerId).email("learner@example.com").build();
@@ -115,14 +182,20 @@ class ClassroomOfferingServiceImplWaitlistTest {
         when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
         when(enrollmentRepository.findByStudentIdAndClassSectionId(learnerId, offeringId))
                 .thenReturn(Optional.of(pending));
+        when(offeringRepository.findById(offeringId)).thenReturn(Optional.of(pending.getClassSection()));
+        ClassroomOfferingResponse mapped = ClassroomOfferingResponse.builder()
+                .id(offeringId)
+                .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
+                .hasClassAccess(false)
+                .build();
+        when(mapper.toOfferingResponse(
+                pending.getClassSection(), false, learnerId, pending, false)).thenReturn(mapped);
 
-        RuntimeException error = assertThrows(
-                RuntimeException.class,
-                () -> service.getLearnerOffering(offeringId, learner.getEmail())
-        );
+        ClassroomOfferingResponse result = service.getLearnerOffering(offeringId, learner.getEmail());
 
-        assertTrue(error.getMessage().contains("không có quyền"));
-        verify(offeringRepository, never()).findById(anyLong());
+        assertEquals(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT, result.getRegistrationStatus());
+        assertTrue(!result.isHasClassAccess());
+        verify(mapper).toOfferingResponse(pending.getClassSection(), false, learnerId, pending, false);
     }
 
     @Test
@@ -275,7 +348,9 @@ class ClassroomOfferingServiceImplWaitlistTest {
         request.setPaymentKind(TuitionPaymentKind.FULL);
 
         when(accessHelper.requireUser("manager@example.com")).thenReturn(manager);
-        when(enrollmentRepository.findById(32L)).thenReturn(Optional.of(enrollment));
+        when(enrollmentRepository.findByIdForUpdate(32L)).thenReturn(Optional.of(enrollment));
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(32L), any()))
+                .thenReturn(false);
 
         RuntimeException ex = assertThrows(
                 RuntimeException.class,
@@ -284,6 +359,82 @@ class ClassroomOfferingServiceImplWaitlistTest {
 
         assertTrue(ex.getMessage().contains("danh sách chờ"));
         verifyNoInteractions(tuitionPaymentRepository);
+    }
+
+    @Test
+    void recordTuitionPayment_centerDeposit_reservesSeatWithoutClassAccess() {
+        User manager = User.builder().id(99L).email("manager@example.com").build();
+        User learner = User.builder().id(7L).email("learner@example.com").build();
+        ClassSection offering = ClassSection.builder().id(10L).name("IELTS Evening").build();
+        ClassEnrollment enrollment = ClassEnrollment.builder()
+                .id(33L)
+                .student(learner)
+                .classSection(offering)
+                .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
+                .tuitionAmountDue(new BigDecimal("5000000"))
+                .tuitionAmountPaid(BigDecimal.ZERO)
+                .build();
+        RecordTuitionPaymentRequest request = new RecordTuitionPaymentRequest();
+        request.setAmount(new BigDecimal("1500000"));
+        request.setPaymentKind(TuitionPaymentKind.DEPOSIT);
+
+        when(accessHelper.requireUser("manager@example.com")).thenReturn(manager);
+        when(enrollmentRepository.findByIdForUpdate(33L)).thenReturn(Optional.of(enrollment));
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(33L), any()))
+                .thenReturn(false);
+        when(enrollmentRepository.saveAndFlush(enrollment)).thenReturn(enrollment);
+        when(mapper.toEnrollmentResponse(enrollment)).thenReturn(ClassroomEnrollmentResponse.builder()
+                .id(33L)
+                .registrationStatus(ClassroomRegistrationStatus.DEPOSIT_PAID)
+                .hasClassAccess(false)
+                .build());
+
+        ClassroomEnrollmentResponse result = service.recordTuitionPayment(
+                33L, request, "manager@example.com");
+
+        assertEquals(new BigDecimal("1500000"), enrollment.getTuitionAmountPaid());
+        assertEquals(ClassroomRegistrationStatus.DEPOSIT_PAID, enrollment.getRegistrationStatus());
+        assertTrue(!result.isHasClassAccess());
+        verify(tuitionPaymentRepository).save(argThat(payment ->
+                payment.getPaymentKind() == TuitionPaymentKind.DEPOSIT
+                        && payment.getAmount().compareTo(new BigDecimal("1500000")) == 0));
+    }
+
+    @Test
+    void recordTuitionPayment_centerBalance_marksFullyPaid() {
+        User manager = User.builder().id(99L).email("manager@example.com").build();
+        User learner = User.builder().id(7L).email("learner@example.com").build();
+        ClassSection offering = ClassSection.builder().id(10L).name("IELTS Evening").build();
+        ClassEnrollment enrollment = ClassEnrollment.builder()
+                .id(34L)
+                .student(learner)
+                .classSection(offering)
+                .registrationStatus(ClassroomRegistrationStatus.DEPOSIT_PAID)
+                .tuitionAmountDue(new BigDecimal("5000000"))
+                .tuitionAmountPaid(new BigDecimal("1500000"))
+                .build();
+        RecordTuitionPaymentRequest request = new RecordTuitionPaymentRequest();
+        request.setAmount(new BigDecimal("3500000"));
+        request.setPaymentKind(TuitionPaymentKind.FULL);
+        request.setAssignIfFullyPaid(false);
+
+        when(accessHelper.requireUser("manager@example.com")).thenReturn(manager);
+        when(enrollmentRepository.findByIdForUpdate(34L)).thenReturn(Optional.of(enrollment));
+        when(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(eq(34L), any()))
+                .thenReturn(false);
+        when(enrollmentRepository.saveAndFlush(enrollment)).thenReturn(enrollment);
+        when(mapper.toEnrollmentResponse(enrollment)).thenReturn(ClassroomEnrollmentResponse.builder()
+                .id(34L)
+                .registrationStatus(ClassroomRegistrationStatus.FULLY_PAID)
+                .build());
+
+        service.recordTuitionPayment(34L, request, "manager@example.com");
+
+        assertEquals(new BigDecimal("5000000"), enrollment.getTuitionAmountPaid());
+        assertEquals(ClassroomRegistrationStatus.FULLY_PAID, enrollment.getRegistrationStatus());
+        verify(tuitionPaymentRepository).save(argThat(payment ->
+                payment.getPaymentKind() == TuitionPaymentKind.FULL
+                        && payment.getAmount().compareTo(new BigDecimal("3500000")) == 0));
     }
 
     private ClassEnrollment waitlistedEnrollment(

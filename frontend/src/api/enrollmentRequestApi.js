@@ -29,6 +29,20 @@ const enrollmentRequestApi = {
     return Array.isArray(data) ? data : [];
   },
 
+  async acceptCourseRecommendation(requestId) {
+    const response = await axiosClient.patch(
+      `/api/student/course-enrollment-requests/${requestId}/course-recommendation/accept`,
+    );
+    return unwrapData(response);
+  },
+
+  async declineCourseRecommendation(requestId) {
+    const response = await axiosClient.patch(
+      `/api/student/course-enrollment-requests/${requestId}/course-recommendation/decline`,
+    );
+    return unwrapData(response);
+  },
+
   async listForStaff(status) {
     const response = await axiosClient.get('/api/staff/enrollment-requests', {
       params: status && status !== 'ALL' ? { status } : undefined,

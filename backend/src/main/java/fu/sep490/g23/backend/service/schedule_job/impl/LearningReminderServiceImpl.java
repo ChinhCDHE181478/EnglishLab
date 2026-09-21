@@ -11,6 +11,8 @@ import fu.sep490.g23.backend.service.notification.AppNotificationService;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.service.schedule_job.LearningReminderService;
+import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
@@ -37,10 +39,12 @@ public class LearningReminderServiceImpl implements LearningReminderService {
             ClassroomSessionStatus.OPEN
     );
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATION_STATUSES = EnumSet.of(
-            ClassroomRegistrationStatus.ASSIGNED,
+            ClassroomRegistrationStatus.ASSIGNED
+    );
+    private static final Set<ClassroomRegistrationStatus> TUITION_PENDING_STATUSES = EnumSet.of(
+            ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT,
             ClassroomRegistrationStatus.DEPOSIT_PAID,
-            ClassroomRegistrationStatus.PARTIALLY_PAID,
-            ClassroomRegistrationStatus.FULLY_PAID
+            ClassroomRegistrationStatus.PARTIALLY_PAID
     );
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy");
 
@@ -52,6 +56,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
     private final AppNotificationService notificationService;
     private final NotificationPreferenceService preferenceService;
     private final LearningReminderMailService mailService;
+    private final ClassroomOfferingService classroomOfferingService;
 
     @Override
     @Scheduled(
@@ -60,10 +65,66 @@ public class LearningReminderServiceImpl implements LearningReminderService {
     )
     @Transactional
     public void dispatchDueReminders() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = ClassroomRegistrationSupport.currentBusinessTime();
         runBatchSafely("lịch học", () -> dispatchSessionReminders(now));
         runBatchSafely("hạn bài tập", () -> dispatchHomeworkReminders(now));
         runBatchSafely("gián đoạn học tập", () -> dispatchStudyInactivityAlerts(now));
+        runBatchSafely("hạn học phí", () -> dispatchTuitionReminders(now));
+    }
+
+    private void dispatchTuitionReminders(LocalDateTime now) {
+        enrollmentRepository.findByRegistrationStatusIn(TUITION_PENDING_STATUSES)
+                .forEach(enrollment -> runItemSafely("học phí đăng ký #" + enrollment.getId(), () -> {
+                    LocalDateTime deadline = ClassroomRegistrationSupport.tuitionPaymentDeadline(enrollment);
+                    if (deadline == null || enrollment.tuitionBalance().signum() <= 0) return;
+
+                    User learner = enrollment.getStudent();
+                    String classTitle = enrollment.getClassSection().getTitle();
+                    String actionPath = "/my-classrooms/" + enrollment.getClassSection().getId() + "?tab=payment";
+                    if (now.isAfter(deadline)) {
+                        boolean expired = classroomOfferingService.expireOverdueTuitionEnrollment(
+                                enrollment.getId(), now);
+                        if (expired) {
+                            mailService.sendReminder(
+                                    learner,
+                                    "Đăng ký lớp đã hết hạn thanh toán - EnglishLab",
+                                    "Đăng ký lớp đã hết hạn thanh toán",
+                                    "Đăng ký lớp “" + classTitle
+                                            + "” đã bị từ chối do chưa hoàn tất học phí đúng hạn.",
+                                    "/my-classrooms"
+                            );
+                        }
+                        return;
+                    }
+
+                    long hours = Math.max(1, Duration.between(now, deadline).toHours());
+                    if (hours > 72) return;
+                    String window = hours <= 6 ? "6H" : hours <= 24 ? "24H" : "72H";
+                    String body = "Học phí còn lại của lớp “" + classTitle + "” cần hoàn tất trước "
+                            + deadline.format(DATE_TIME) + ".";
+                    boolean created = notificationService.createForUserOnce(
+                            learner,
+                            "CLASSROOM_TUITION_DEADLINE",
+                            "Nhắc hạn thanh toán học phí",
+                            body,
+                            actionPath,
+                            "TUITION_" + enrollment.getId() + "_" + window,
+                            Map.of(
+                                    "enrollmentId", enrollment.getId(),
+                                    "classroomId", enrollment.getClassSection().getId(),
+                                    "deadline", deadline.toString()
+                            )
+                    );
+                    if (created) {
+                        mailService.sendReminder(
+                                learner,
+                                "Nhắc hạn thanh toán học phí - EnglishLab",
+                                "Nhắc hạn thanh toán học phí",
+                                body,
+                                actionPath
+                        );
+                    }
+                }));
     }
 
     private void dispatchSessionReminders(LocalDateTime now) {

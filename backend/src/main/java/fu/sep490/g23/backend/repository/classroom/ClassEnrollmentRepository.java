@@ -4,6 +4,8 @@ import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
@@ -15,6 +17,17 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
     boolean existsByStudentIdAndClassSectionId(Long studentId, Long classSectionId);
 
     Optional<ClassEnrollment> findByStudentIdAndClassSectionId(Long studentId, Long classSectionId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select enrollment from ClassEnrollment enrollment where enrollment.student.id = :studentId and enrollment.classSection.id = :classSectionId")
+    Optional<ClassEnrollment> findByStudentIdAndClassSectionIdForUpdate(
+            @Param("studentId") Long studentId,
+            @Param("classSectionId") Long classSectionId
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select enrollment from ClassEnrollment enrollment where enrollment.id = :id")
+    Optional<ClassEnrollment> findByIdForUpdate(@Param("id") Long id);
 
     boolean existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
             Long studentId,
@@ -60,4 +73,6 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
 
     List<ClassEnrollment> findAllByOrderByEnrolledAtDesc();
+
+    Optional<ClassEnrollment> findByTransferredFromEnrollmentId(Long enrollmentId);
 }

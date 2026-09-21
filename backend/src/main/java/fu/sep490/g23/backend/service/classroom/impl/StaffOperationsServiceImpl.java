@@ -14,6 +14,8 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
@@ -22,6 +24,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryReposit
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
+import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
@@ -71,14 +74,21 @@ public class StaffOperationsServiceImpl implements StaffOperationsService {
     private final CourseRegistrationRequestRepository enrollmentRequestRepository;
     private final TeacherPerformanceEvaluationRepository evaluationRepository;
     private final ClassroomGradebookEntryRepository gradebookRepository;
+    private final UserRepository userRepository;
     private final ClassroomMapper mapper;
 
     @Override
-    public StaffDashboardResponse getDashboard() {
+    public StaffDashboardResponse getDashboard(String staffEmail) {
+        User staff = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
         List<ClassEnrollment> pendingRegistrations = enrollmentRepository
                 .findByRegistrationStatusIn(ClassroomRegistrationSupport.NEEDS_ACTION_STATUSES);
-        List<ClassroomChangeRequest> pendingRequests = changeRequestRepository
-                .findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING);
+        List<ClassroomChangeRequest> pendingRequests = staff.hasRole(RoleCodes.MANAGER) || staff.hasRole(RoleCodes.ADMIN)
+                ? changeRequestRepository.findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING)
+                : changeRequestRepository.findByReviewerAndStatusOrderByCreatedAtDesc(
+                        staff,
+                        ClassroomChangeRequestStatus.PENDING
+                );
 
         List<StaffActionItemResponse> actionItems = new ArrayList<>();
         pendingRegistrations.stream()

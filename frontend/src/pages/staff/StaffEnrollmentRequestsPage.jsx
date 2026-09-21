@@ -4,6 +4,7 @@ import {
   BookOpenCheck,
   CalendarClock,
   CheckCircle2,
+  Eye,
   RefreshCw,
   Search,
   Send,
@@ -33,6 +34,7 @@ const views = [
   { label: 'Tất cả của tôi', value: 'ALL' },
   { label: 'Mới đăng ký', value: 'SUBMITTED' },
   { label: 'Đã hẹn test', value: 'TEST_SCHEDULED' },
+  { label: 'Chờ học viên xác nhận', value: 'CLASS_PROPOSED' },
   { label: 'Đủ điều kiện', value: 'WAITING_FOR_CLASS' },
   { label: 'Hoàn tất', value: 'CLASS_ASSIGNED' },
   { label: 'Không phù hợp', value: 'REJECTED' },
@@ -62,13 +64,13 @@ const initialAction = {
   type: '',
   item: null,
   classroomId: '',
+  recommendedCourseOfferingId: '',
   note: '',
   reason: '',
   appointmentDate: '',
   appointmentTime: '',
   location: 'EnglishLab Campus, Hà Nội',
   eligible: 'true',
-  placementLevel: '',
 };
 
 export default function StaffEnrollmentRequestsPage() {
@@ -84,6 +86,7 @@ export default function StaffEnrollmentRequestsPage() {
 
   const [requests, setRequests] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
+  const [courseOfferings, setCourseOfferings] = useState([]);
   const [keyword, setKeyword] = useState('');
   const [trackFilter, setTrackFilter] = useState('ALL');
   const [sourceFilter, setSourceFilter] = useState('ALL');
@@ -92,19 +95,32 @@ export default function StaffEnrollmentRequestsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [classroomLoadError, setClassroomLoadError] = useState('');
+  const [courseOfferingLoadError, setCourseOfferingLoadError] = useState('');
   const [success, setSuccess] = useState('');
   const [action, setAction] = useState(initialAction);
   const [assignmentAvailability, setAssignmentAvailability] = useState({ loading: false, ids: null });
   const [centerEnrollmentOpen, setCenterEnrollmentOpen] = useState(false);
+  const [detailRequest, setDetailRequest] = useState(null);
 
   const load = async () => {
     setLoading(true);
     setError('');
     setClassroomLoadError('');
-    const result = await loadStaffEnrollmentData(
-      () => enrollmentRequestApi.listForStaff(),
-      () => classroomApi.getStaffClassrooms(),
-    );
+    setCourseOfferingLoadError('');
+    const loadCourseOfferings = async () => {
+      try {
+        return { items: await classroomApi.getStaffInstructorLedCourses(), error: null };
+      } catch (requestError) {
+        return { items: [], error: requestError };
+      }
+    };
+    const [result, courseOfferingResult] = await Promise.all([
+      loadStaffEnrollmentData(
+        () => enrollmentRequestApi.listForStaff(),
+        () => classroomApi.getStaffClassrooms(),
+      ),
+      loadCourseOfferings(),
+    ]);
     if (result.requestError) {
       setRequests([]);
       setError(getStaffEnrollmentLoadError(result.requestError, 'requests'));
@@ -118,6 +134,10 @@ export default function StaffEnrollmentRequestsPage() {
       setClassrooms(result.classrooms
         .filter((classroom) => isAssignableClassroom(classroom))
         .sort((left, right) => String(left.startDate).localeCompare(String(right.startDate))));
+    }
+    setCourseOfferings(courseOfferingResult.items || []);
+    if (courseOfferingResult.error) {
+      setCourseOfferingLoadError('Không thể tải danh sách khóa học phù hợp để đề xuất. Vui lòng tải lại.');
     }
     setLoading(false);
   };
@@ -181,6 +201,7 @@ export default function StaffEnrollmentRequestsPage() {
 
   const applyTransition = (updated) => {
     setRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+    setDetailRequest((current) => (current?.id === updated.id ? updated : current));
   };
 
   const runAction = async (operation, successMessage, fallbackMessage) => {
@@ -220,6 +241,11 @@ export default function StaffEnrollmentRequestsPage() {
     }
   };
 
+  const openActionFromDetail = async (type, item) => {
+    setDetailRequest(null);
+    await openAction(type, item);
+  };
+
   const scheduleTest = () => {
     const appointmentAt = combineLocalDateTime(action.appointmentDate, action.appointmentTime);
     if (!appointmentAt || !action.location.trim()) {
@@ -238,10 +264,6 @@ export default function StaffEnrollmentRequestsPage() {
   };
 
   const completeTest = () => {
-    if (action.eligible === 'true' && !action.placementLevel) {
-      setError('Vui lòng chọn trình độ phù hợp của học viên.');
-      return;
-    }
     if (action.eligible === 'false' && !action.note.trim()) {
       setError('Vui lòng ghi rõ lý do học viên chưa đủ điều kiện.');
       return;
@@ -249,12 +271,20 @@ export default function StaffEnrollmentRequestsPage() {
     runAction(
       () => enrollmentRequestApi.completeTest(action.item.id, {
         eligible: action.eligible === 'true',
-        placementLevel: action.eligible === 'true' ? action.placementLevel : null,
+        recommendedCourseOfferingId: action.eligible === 'false' && action.recommendedCourseOfferingId
+          ? Number(action.recommendedCourseOfferingId)
+          : null,
         note: action.note.trim() || null,
       }),
-      (updated) => updated.status === 'WAITING_FOR_CLASS'
-        ? `Đã xác nhận ${updated.contactName || updated.learnerName} đủ điều kiện học.`
-        : `Đã hoàn tất hồ sơ test của ${updated.contactName || updated.learnerName}.`,
+      (updated) => {
+        if (updated.status === 'WAITING_FOR_CLASS') {
+          return `Đã gửi kết quả và chuyển ${updated.contactName || updated.learnerName} sang chờ xếp lớp.`;
+        }
+        if (updated.status === 'CLASS_PROPOSED') {
+          return `Đã gửi khóa học đề xuất để ${updated.contactName || updated.learnerName} xác nhận.`;
+        }
+        return `Đã gửi kết quả đánh giá cho ${updated.contactName || updated.learnerName}.`;
+      },
       'Không thể ghi nhận kết quả test.',
     );
   };
@@ -422,13 +452,13 @@ export default function StaffEnrollmentRequestsPage() {
           }`}
         >
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1250px] text-left text-sm">
+            <table className="w-full min-w-[1120px] text-left text-sm">
               <thead className="border-b border-[#dfbfbd]/30 bg-[#fbf3f4] text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">
                 <tr>
                   <th className="w-16 px-5 py-4">Mã</th>
                   <th className="w-64 px-5 py-4">Học viên / Liên hệ</th>
                   <th className="w-64 px-5 py-4">Khóa học quan tâm</th>
-                  <th className="min-w-[310px] px-5 py-4">Lịch test / Kết quả tham khảo</th>
+                  <th className="min-w-[220px] px-5 py-4">Lịch test</th>
                   <th className="w-40 px-5 py-4">Ngày đăng ký</th>
                   <th className="w-44 px-5 py-4 text-center">Trạng thái</th>
                   <th className="w-56 px-5 py-4 text-right">Thao tác</th>
@@ -463,15 +493,6 @@ export default function StaffEnrollmentRequestsPage() {
                           <p className="font-semibold text-slate-400">Chưa chốt lịch test</p>
                         )}
                         {item.testLocation ? <p>{item.testLocation}</p> : null}
-                        {item.preferredSchedule ? <p className="mt-1">Giờ học mong muốn: {item.preferredSchedule}</p> : null}
-                        {item.latestPlacementResult ? (
-                          <PlacementScoreSummary result={item.latestPlacementResult} />
-                        ) : null}
-                        {item.staffNote ? (
-                          <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-2 text-amber-900">
-                            <span className="font-extrabold">Ghi chú xử lý:</span> {item.staffNote}
-                          </p>
-                        ) : null}
                       </td>
                       <td className="px-5 py-4 text-xs text-slate-500">{formatClassroomDateTime(item.createdAt)}</td>
                       <td className="px-5 py-4 text-center">
@@ -479,6 +500,7 @@ export default function StaffEnrollmentRequestsPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap justify-end gap-1.5">
+                          <ActionButton icon={Eye} label="Xem chi tiết" neutral onClick={() => setDetailRequest(item)} />
                           {actions.canSchedule ? (
                             <ActionButton icon={CalendarClock} label="Xếp lịch & gửi email" onClick={() => openAction('SCHEDULE', item)} />
                           ) : null}
@@ -507,12 +529,22 @@ export default function StaffEnrollmentRequestsPage() {
 
       {!loading && !error && !filteredRequests.length ? <EmptyState /> : null}
 
+      {detailRequest ? (
+        <EnrollmentRequestDetailModal
+          item={detailRequest}
+          onAction={openActionFromDetail}
+          onClose={() => setDetailRequest(null)}
+        />
+      ) : null}
+
       {action.type ? (
         <ActionModal
           action={action}
           assignmentAvailability={assignmentAvailability}
           classroomLoadError={classroomLoadError}
           classrooms={classrooms}
+          courseOfferings={courseOfferings}
+          courseOfferingLoadError={courseOfferingLoadError}
           error={error}
           onChange={setAction}
           onClose={() => setAction(initialAction)}
@@ -535,17 +567,160 @@ export default function StaffEnrollmentRequestsPage() {
   );
 }
 
-function ActionButton({ danger = false, icon: Icon, label, onClick, success = false }) {
+function ActionButton({ danger = false, icon: Icon, label, modal = false, neutral = false, onClick, success = false }) {
   const tone = danger
     ? 'border border-rose-200 text-rose-700 hover:bg-rose-50'
     : success
       ? 'bg-emerald-700 text-white hover:bg-emerald-800'
-      : 'bg-[#4b0009] text-white hover:bg-[#730014]';
+      : neutral
+        ? 'border border-slate-200 bg-white text-slate-700 hover:border-[#dfbfbd] hover:bg-[#fff4f5] hover:text-[#730014]'
+        : 'bg-[#4b0009] text-white hover:bg-[#730014]';
   return (
-    <button className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${tone}`} onClick={onClick} type="button">
-      <Icon className="h-3.5 w-3.5" />
+    <button
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition active:scale-95 ${modal ? 'h-10 px-4' : 'px-2.5 py-1.5'} ${tone}`}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon className={modal ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
       {label}
     </button>
+  );
+}
+
+function EnrollmentRequestDetailModal({ item, onAction, onClose }) {
+  const history = item.history || [];
+  const actions = getEnrollmentRequestActions(item.status);
+  const hasActions = actions.canSchedule || actions.canCompleteTest || actions.canAssign || actions.canReject;
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section aria-labelledby="enrollment-detail-title" aria-modal="true" className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" role="dialog">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white p-6">
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Chi tiết hồ sơ đăng ký</p>
+            <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]" id="enrollment-detail-title">
+              {item.contactName || item.learnerName || 'Học viên'} · #{item.id}
+            </h2>
+            <p className="mt-1 text-xs text-[#8b706e]">{item.statusLabel || item.status}</p>
+          </div>
+          <button aria-label="Đóng" autoFocus className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" onClick={onClose} type="button">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-slate-50/40 p-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <DetailSection title="Thông tin liên hệ">
+              <DetailRow label="Họ tên" value={item.contactName || item.learnerName} />
+              <DetailRow label="Email" value={item.contactEmail || item.learnerEmail} />
+              <DetailRow label="Số điện thoại" value={item.contactPhone} />
+              <DetailRow label="Nguồn đăng ký" value={item.requestSource === 'CENTER' ? 'Tại trung tâm' : 'Online'} />
+            </DetailSection>
+            <DetailSection title="Nhu cầu học tập">
+              <DetailRow label="Khóa học" value={item.courseOfferingTitle} />
+              <DetailRow label="Chương trình" value={formatConsultationTrack(item.consultationTrack)} />
+              <DetailRow label="Mục tiêu" value={item.studyWorkGoal} />
+              <DetailRow label="Lịch mong muốn" value={item.preferredSchedule} />
+            </DetailSection>
+          </div>
+
+          <DetailSection title="Lịch đánh giá tại trung tâm">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailRow label="Thời gian" value={item.testAppointmentAt ? formatClassroomDateTime(item.testAppointmentAt) : 'Chưa chốt lịch'} />
+              <DetailRow label="Địa điểm" value={item.testLocation} />
+              <DetailRow label="Trình độ xác nhận" value={formatPlacementLevel(item.confirmedLevel)} />
+              <DetailRow label="Ngày đăng ký" value={formatClassroomDateTime(item.createdAt)} />
+            </div>
+          </DetailSection>
+
+          {item.latestPlacementResult ? <PlacementScoreSummary detailed result={item.latestPlacementResult} /> : null}
+
+          {item.learnerNote || item.staffNote || item.rejectionReason ? (
+            <DetailSection title="Ghi chú">
+              {item.learnerNote ? <DetailRow label="Học viên" value={item.learnerNote} /> : null}
+              {item.staffNote ? <DetailRow label="Nhân viên" value={item.staffNote} /> : null}
+              {item.rejectionReason ? <DetailRow label="Lý do kết thúc" value={item.rejectionReason} /> : null}
+            </DetailSection>
+          ) : null}
+
+          <DetailSection title="Lịch sử xử lý">
+            {history.length ? (
+              <div className="space-y-3">
+                {history.map((entry) => (
+                  <div className="border-l-2 border-[#dfbfbd] pl-4" key={entry.id}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-[#0b1c30]">{entry.statusLabel || entry.toStatus}</p>
+                      <p className="text-xs text-slate-500">{formatClassroomDateTime(entry.createdAt)}</p>
+                    </div>
+                    {entry.actorName ? <p className="mt-1 text-xs text-slate-500">Thực hiện bởi {entry.actorName}</p> : null}
+                    {entry.reason ? <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">{entry.reason}</p> : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Chưa có lịch sử xử lý.</p>
+            )}
+          </DetailSection>
+        </div>
+
+        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <button className={`${SECONDARY_BUTTON_CLASS} justify-center`} onClick={onClose} type="button">
+            Đóng
+          </button>
+          {hasActions ? (
+            <div className="flex flex-wrap justify-end gap-2">
+              {actions.canSchedule ? (
+                <ActionButton icon={CalendarClock} label="Xếp lịch & gửi email" modal onClick={() => onAction('SCHEDULE', item)} />
+              ) : null}
+              {actions.canCompleteTest ? (
+                <ActionButton icon={CheckCircle2} label="Ghi kết quả" modal onClick={() => onAction('COMPLETE_TEST', item)} />
+              ) : null}
+              {actions.canAssign ? (
+                <ActionButton icon={UserRoundCheck} label="Xếp lớp" modal onClick={() => onAction('ASSIGN', item)} success />
+              ) : null}
+              {actions.canReject ? (
+                <ActionButton danger icon={XCircle} label="Kết thúc" modal onClick={() => onAction('REJECT', item)} />
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DetailSection({ children, title }) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{title}</h3>
+      <div className="mt-3 space-y-2">{children}</div>
+    </section>
+  );
+}
+
+function DetailRow({ label, value }) {
+  return (
+    <div className="grid gap-1 text-sm sm:grid-cols-[130px_1fr]">
+      <span className="font-bold text-slate-500">{label}</span>
+      <span className="whitespace-pre-wrap font-semibold text-slate-800">{value || 'Chưa có thông tin'}</span>
+    </div>
   );
 }
 
@@ -583,11 +758,11 @@ function PlacementScoreSummary({ detailed = false, result }) {
   );
 }
 
-function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, error, onChange, onClose, onConfirm, working }) {
+function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, courseOfferingLoadError, courseOfferings, error, onChange, onClose, onConfirm, working }) {
   const titles = {
     SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
     COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá trực tiếp tại trung tâm.'],
-    ASSIGN: ['Xếp lớp chính thức', 'Chọn lớp phù hợp theo kết quả test; khóa học học viên quan tâm ban đầu chỉ dùng để tham khảo.'],
+    ASSIGN: ['Xếp lớp chính thức', 'Chọn lớp thuộc khóa học đã được xác nhận và không trùng lịch của học viên.'],
     REJECT: ['Kết thúc hồ sơ', 'Dùng khi học viên từ chối tiếp tục hoặc hồ sơ không thể xử lý.'],
   };
   const [title, description] = titles[action.type];
@@ -632,12 +807,41 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
             <div className="space-y-4">
               <div>
                 <FieldLabel>Kết quả *</FieldLabel>
-                <BrandedSelect onChange={(event) => onChange({ ...action, eligible: event.target.value, note: event.target.value === 'false' ? '' : action.note })} options={[{ label: 'Đủ điều kiện học', value: 'true' }, { label: 'Chưa đủ điều kiện', value: 'false' }]} value={action.eligible} />
+                <BrandedSelect
+                  onChange={(event) => onChange({
+                    ...action,
+                    eligible: event.target.value,
+                    recommendedCourseOfferingId: event.target.value === 'true' ? '' : action.recommendedCourseOfferingId,
+                  })}
+                  options={[
+                    { label: 'Phù hợp với khóa học đã đăng ký', value: 'true' },
+                    { label: 'Cần chuyển sang khóa học khác', value: 'false' },
+                  ]}
+                  value={action.eligible}
+                />
               </div>
-              {action.eligible === 'true' ? (
+              {action.eligible === 'false' ? (
                 <div>
-                  <FieldLabel>Trình độ phù hợp *</FieldLabel>
-                  <BrandedSelect onChange={(event) => onChange({ ...action, placementLevel: event.target.value })} options={placementOptions} placeholder="Chọn trình độ" value={action.placementLevel} />
+                  <FieldLabel>Khóa học phù hợp đề xuất</FieldLabel>
+                  <BrandedSelect
+                    onChange={(event) => onChange({ ...action, recommendedCourseOfferingId: event.target.value })}
+                    options={courseOfferings
+                      .filter((item) => String(item.id) !== String(action.item.courseOfferingId))
+                      .map((item) => ({
+                        label: item.title,
+                        value: String(item.id),
+                        description: item.entryLevel || item.code || '',
+                      }))}
+                    placeholder="Không đề xuất khóa học khác"
+                    searchable
+                    value={action.recommendedCourseOfferingId}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Nếu chọn khóa khác, học viên phải xác nhận trước khi hồ sơ được chuyển sang chờ xếp lớp.
+                  </p>
+                  {courseOfferingLoadError ? (
+                    <p className="mt-2 text-xs font-semibold text-rose-600">{courseOfferingLoadError}</p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -808,6 +1012,14 @@ function formatConsultationTrack(value) {
     TOEIC_4_SKILLS: 'TOEIC 4 kỹ năng',
     ENGLISH_FOUNDATION: 'Tiếng Anh nền tảng',
   }[value] || value || 'Chưa chọn';
+}
+
+function formatPlacementLevel(value) {
+  return {
+    BEGINNER: 'Cơ bản',
+    INTERMEDIATE: 'Trung cấp',
+    ADVANCED: 'Nâng cao',
+  }[value] || value || 'Chưa xác nhận';
 }
 
 function FieldLabel({ children }) {

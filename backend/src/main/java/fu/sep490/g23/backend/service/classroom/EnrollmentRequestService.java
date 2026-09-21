@@ -19,6 +19,12 @@ public interface EnrollmentRequestService {
 
     List<CourseEnrollmentRequestResponse> listMine(String learnerEmail);
 
+    CourseEnrollmentRequestResponse respondToCourseRecommendation(
+            Long requestId,
+            boolean accepted,
+            String learnerEmail
+    );
+
     List<CourseEnrollmentRequestResponse> listForStaff(EnrollmentRequestStatus status, String staffEmail);
 
     CourseEnrollmentRequestResponse scheduleTest(

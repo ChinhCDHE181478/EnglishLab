@@ -13,4 +13,5 @@ public class ReviewChangeRequestRequest {
 
     private String reviewNote;
     private Boolean overrideConflict;
+    private Long targetClassSectionId;
 }

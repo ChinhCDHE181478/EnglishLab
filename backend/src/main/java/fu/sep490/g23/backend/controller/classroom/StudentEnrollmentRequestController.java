@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,6 +34,30 @@ public class StudentEnrollmentRequestController {
     @GetMapping("/my")
     public ResponseEntity<List<CourseEnrollmentRequestResponse>> listMine(Authentication authentication) {
         return ResponseEntity.ok(enrollmentRequestService.listMine(authentication.getName()));
+    }
+
+    @PatchMapping("/{requestId}/course-recommendation/accept")
+    public ResponseEntity<CourseEnrollmentRequestResponse> acceptCourseRecommendation(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.respondToCourseRecommendation(
+                requestId,
+                true,
+                authentication.getName()
+        ));
+    }
+
+    @PatchMapping("/{requestId}/course-recommendation/decline")
+    public ResponseEntity<CourseEnrollmentRequestResponse> declineCourseRecommendation(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.respondToCourseRecommendation(
+                requestId,
+                false,
+                authentication.getName()
+        ));
     }
 
 }

@@ -21,7 +21,6 @@ import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.EnrollmentRequestStatusHistory;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
@@ -259,6 +258,42 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     }
 
     @Override
+    public CourseEnrollmentRequestResponse respondToCourseRecommendation(
+            Long requestId,
+            boolean accepted,
+            String learnerEmail
+    ) {
+        User learner = requireUser(learnerEmail);
+        CourseRegistrationRequest request = enrollmentRequestRepository.findByIdForUpdate(requestId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu đăng ký."));
+        if (request.getLearner() == null || !request.getLearner().getId().equals(learner.getId())) {
+            throw new AccessDeniedException("Bạn không có quyền phản hồi đề xuất này.");
+        }
+        if (request.getStatus() != EnrollmentRequestStatus.CLASS_PROPOSED) {
+            throw new IllegalArgumentException("Đề xuất khóa học này không còn chờ xác nhận.");
+        }
+        if (accepted) {
+            request.setRejectionReason(null);
+            transition(
+                    request,
+                    EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                    learner,
+                    "Học viên đã đồng ý với khóa học được đề xuất."
+            );
+        } else {
+            request.setCancelledAt(LocalDateTime.now());
+            request.setRejectionReason("Học viên không đồng ý với khóa học được đề xuất.");
+            transition(
+                    request,
+                    EnrollmentRequestStatus.CANCELLED,
+                    learner,
+                    request.getRejectionReason()
+            );
+        }
+        return toResponse(request);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<CourseEnrollmentRequestResponse> listForStaff(
             EnrollmentRequestStatus status,
@@ -287,7 +322,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
+        CourseRegistrationRequest request = requireOwnedRequestForUpdate(requestId, staff);
         if (request.getStatus() != EnrollmentRequestStatus.SUBMITTED
                 && request.getStatus() != EnrollmentRequestStatus.INVITATION_SENT
                 && request.getStatus() != EnrollmentRequestStatus.TEST_SCHEDULED) {
@@ -318,37 +353,58 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
+        CourseRegistrationRequest request = requireOwnedRequestForUpdate(requestId, staff);
         if (request.getStatus() != EnrollmentRequestStatus.TEST_SCHEDULED) {
             throw new IllegalArgumentException("Chỉ có thể ghi kết quả sau khi hồ sơ đã được xếp lịch test.");
         }
+        String evaluatedCourseTitle = request.getCourseOffering() == null
+                ? null
+                : request.getCourseOffering().getTitle();
         request.setStaffNote(trimOrNull(payload.getNote()));
         if (Boolean.TRUE.equals(payload.getEligible())) {
-            if (payload.getPlacementLevel() == null) {
-                throw new IllegalArgumentException("Vui lòng chọn trình độ phù hợp trước khi chuyển hồ sơ sang chờ xếp lớp.");
-            }
-            request.setConfirmedLevel(payload.getPlacementLevel());
+            request.setConfirmedLevel(null);
             request.setRejectionReason(null);
             transition(
                     request,
                     EnrollmentRequestStatus.WAITING_FOR_CLASS,
                     staff,
-                    "Học viên đã hoàn thành test, đủ điều kiện học và phù hợp trình độ "
-                            + placementLevelLabel(payload.getPlacementLevel()) + "."
+                    "Học viên đã hoàn thành đánh giá và phù hợp với khóa học đã đăng ký."
             );
         } else {
             if (!StringUtils.hasText(payload.getNote())) {
                 throw new IllegalArgumentException("Vui lòng ghi rõ lý do học viên chưa đủ điều kiện.");
             }
             request.setConfirmedLevel(null);
-            request.setRejectionReason(payload.getNote().trim());
-            transition(
-                    request,
-                    EnrollmentRequestStatus.REJECTED,
-                    staff,
-                    "Học viên đã test nhưng chưa đủ điều kiện: " + payload.getNote().trim()
-            );
+            if (payload.getRecommendedCourseOfferingId() != null) {
+                InstructorLedCourse recommendation = requirePublishedProgram(payload.getRecommendedCourseOfferingId());
+                if (request.getCourseOffering() != null
+                        && request.getCourseOffering().getId().equals(recommendation.getId())) {
+                    throw new IllegalArgumentException("Khóa học đề xuất phải khác khóa học đang được đánh giá.");
+                }
+                request.setCourseOffering(recommendation);
+                request.setRejectionReason(null);
+                transition(
+                        request,
+                        EnrollmentRequestStatus.CLASS_PROPOSED,
+                        staff,
+                        "Khóa học ban đầu chưa phù hợp. Đã đề xuất khóa "
+                                + recommendation.getTitle() + " và chờ học viên xác nhận."
+                );
+            } else {
+                request.setRejectionReason(payload.getNote().trim());
+                transition(
+                        request,
+                        EnrollmentRequestStatus.REJECTED,
+                        staff,
+                        "Học viên đã test nhưng chưa đủ điều kiện: " + payload.getNote().trim()
+                );
+            }
         }
+        enrollmentRequestMailService.sendTestResult(
+                request,
+                Boolean.TRUE.equals(payload.getEligible()),
+                evaluatedCourseTitle
+        );
         return toResponse(request);
     }
 
@@ -360,7 +416,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
+        CourseRegistrationRequest request = requireOwnedRequestForUpdate(requestId, staff);
         if (TERMINAL_STATUSES.contains(request.getStatus())
                 || request.getStatus() == EnrollmentRequestStatus.CLASS_PROPOSED) {
             throw new IllegalArgumentException("Không thể từ chối yêu cầu ở trạng thái hiện tại.");
@@ -378,17 +434,27 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     ) {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
-        CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
+        CourseRegistrationRequest request = requireOwnedRequestForUpdate(requestId, staff);
         if (request.getStatus() != EnrollmentRequestStatus.WAITING_FOR_CLASS) {
             throw new IllegalArgumentException(
                     "Chỉ có thể xếp lớp sau khi học viên đã test, đủ điều kiện và hồ sơ đang chờ xếp lớp."
             );
         }
-        ClassSection target = requireAssignableClassroom(payload.getClassroomId());
+        ClassSection target = requireAssignableClassroomForUpdate(payload.getClassroomId());
+        if (!matchesRequestedCourse(target, request)) {
+            throw new IllegalArgumentException("Lớp đã chọn không thuộc khóa học đã được học viên xác nhận.");
+        }
+        User learner = userRepository.findByIdForUpdate(request.getLearner().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        if (!isAvailableForLearner(target, learner.getId())) {
+            throw new IllegalArgumentException(
+                    "Lớp không còn phù hợp: có thể đã đủ chỗ, học viên đã được ghi danh hoặc lịch học bị trùng. Vui lòng chọn lại."
+            );
+        }
         ClassroomEnrollmentResponse enrollment = classSectionService.enrollStudent(
                 target.getId(),
                 EnrollStudentRequest.builder()
-                        .studentId(request.getLearner().getId())
+                        .studentId(learner.getId())
                         .note(trimOrNull(payload.getNote()))
                         .build()
         );
@@ -415,6 +481,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         Long learnerId = request.getLearner().getId();
         return classSectionRepository.findAll().stream()
                 .filter(this::isAssignableClassroom)
+                .filter(offering -> matchesRequestedCourse(offering, request))
                 .filter(offering -> isAvailableForLearner(offering, learnerId))
                 .map(ClassSection::getId)
                 .toList();
@@ -649,6 +716,17 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         return request;
     }
 
+    private CourseRegistrationRequest requireOwnedRequestForUpdate(Long id, User staff) {
+        CourseRegistrationRequest request = enrollmentRequestRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu đăng ký."));
+        if (!staff.hasRole(RoleCodes.ADMIN)
+                && (request.getReviewedBy() == null
+                || !request.getReviewedBy().getId().equals(staff.getId()))) {
+            throw new AccessDeniedException("Hồ sơ này do nhân viên khác phụ trách.");
+        }
+        return request;
+    }
+
     private User nextEnrollmentOwner() {
         List<User> staffMembers = userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF);
         if (staffMembers.isEmpty()) {
@@ -697,7 +775,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             case PLACEMENT_TEST_COMPLETED -> "Đã hoàn thành placement test";
             case UNDER_STAFF_REVIEW -> "Nhân viên đang rà soát";
             case WAITING_FOR_CLASS -> "Đủ điều kiện - chờ xếp lớp";
-            case CLASS_PROPOSED -> "Đã có đề xuất lớp";
+            case CLASS_PROPOSED -> "Chờ học viên xác nhận khóa đề xuất";
             case CLASS_ASSIGNED -> "Hoàn tất - Đã xếp lớp";
             case REJECTED -> "Đã từ chối";
             case CANCELLED -> "Đã hủy";
@@ -706,6 +784,17 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
 
     private ClassSection requireAssignableClassroom(Long classroomId) {
         ClassSection target = classSectionRepository.findById(classroomId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
+        if (!isAssignableClassroom(target)) {
+            throw new IllegalArgumentException(
+                    "Chỉ có thể xếp vào lớp đã công bố, còn chỗ và có ngày khai giảng trong tương lai."
+            );
+        }
+        return target;
+    }
+
+    private ClassSection requireAssignableClassroomForUpdate(Long classroomId) {
+        ClassSection target = classSectionRepository.findByIdForUpdate(classroomId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
@@ -745,11 +834,13 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         .build()).isHasBlockingConflict());
     }
 
-    private String placementLevelLabel(fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel level) {
-        return switch (level) {
-            case BEGINNER -> "Cơ bản";
-            case INTERMEDIATE -> "Trung cấp";
-            case ADVANCED -> "Nâng cao";
-        };
+    private boolean matchesRequestedCourse(
+            ClassSection classroom,
+            CourseRegistrationRequest request
+    ) {
+        return classroom.getInstructorLedCourse() != null
+                && request.getCourseOffering() != null
+                && classroom.getInstructorLedCourse().getId().equals(request.getCourseOffering().getId());
     }
+
 }

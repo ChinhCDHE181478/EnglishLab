@@ -11,6 +11,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRep
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.impl.HomeworkAttachmentAccessServiceImpl;
@@ -43,6 +44,7 @@ class HomeworkAttachmentAccessServiceImplTest {
     @Mock private AssessmentBankItemRepository assessmentBankItemRepository;
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
+    @Mock private ClassroomChangeRequestRepository changeRequestRepository;
     @Mock private Resource resource;
 
     private HomeworkAttachmentAccessServiceImpl service;
@@ -59,7 +61,8 @@ class HomeworkAttachmentAccessServiceImplTest {
                 centerMaterialRepository,
                 assessmentBankItemRepository,
                 enrollmentRepository,
-                teacherAssignmentRepository
+                teacherAssignmentRepository,
+                changeRequestRepository
         );
     }
 

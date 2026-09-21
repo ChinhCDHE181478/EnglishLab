@@ -6,6 +6,7 @@ import fu.sep490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest
 import fu.sep490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.AuthToken;
@@ -14,7 +15,6 @@ import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
-import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
@@ -252,7 +252,7 @@ class EnrollmentRequestServiceImplTest {
         CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.SUBMITTED);
         request.setReviewedBy(secondStaff);
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
-        when(requestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(requestRepository.findByIdForUpdate(request.getId())).thenReturn(Optional.of(request));
         ScheduleEnrollmentTestRequest payload = new ScheduleEnrollmentTestRequest();
         payload.setAppointmentAt(LocalDateTime.now().plusDays(1));
         payload.setLocation("EnglishLab Campus");
@@ -319,6 +319,7 @@ class EnrollmentRequestServiceImplTest {
         );
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        verify(enrollmentRequestMailService).sendTestResult(request, true, program.getTitle());
     }
 
     @Test
@@ -330,26 +331,89 @@ class EnrollmentRequestServiceImplTest {
         CourseEnrollmentRequestResponse response = service.completeTest(request.getId(), eligibleResult(), staff.getEmail());
 
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
-        assertThat(response.getConfirmedLevel()).isEqualTo(PlacementLevel.INTERMEDIATE);
+        assertThat(response.getConfirmedLevel()).isNull();
     }
 
     @Test
-    void staffCanAssignAClassFromDifferentCourseAfterPlacementTestAndEmailsLearner() {
-        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
-        InstructorLedCourse placementProgram = InstructorLedCourse.builder()
-                .id(99L)
-                .code("IELTS-INTERMEDIATE")
-                .title("IELTS Intermediate")
+    void failedTestWithAlternativeCourseWaitsForLearnerConfirmationAndEmailsResult() {
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
+        InstructorLedCourse recommendation = InstructorLedCourse.builder()
+                .id(21L)
+                .code("IELTS-STARTER")
+                .title("IELTS Starter")
                 .publicationStatus(PackageStatus.PUBLISHED)
                 .build();
-        classroom.setInstructorLedCourse(InstructorLedCourse.builder()
-                .id(placementProgram.getId())
-                .code(placementProgram.getCode())
-                .title(placementProgram.getTitle())
-                .publicationStatus(PackageStatus.PUBLISHED)
-                .build());
         stubStaffRequest(request);
-        when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(instructorLedCourseRepository.findById(recommendation.getId())).thenReturn(Optional.of(recommendation));
+        stubPersistence();
+        CompleteEnrollmentTestRequest payload = new CompleteEnrollmentTestRequest();
+        payload.setEligible(false);
+        payload.setRecommendedCourseOfferingId(recommendation.getId());
+        payload.setNote("Nên củng cố nền tảng trước.");
+
+        CourseEnrollmentRequestResponse response = service.completeTest(request.getId(), payload, staff.getEmail());
+
+        assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.CLASS_PROPOSED);
+        assertThat(response.getCourseOfferingId()).isEqualTo(recommendation.getId());
+        verify(enrollmentRequestMailService).sendTestResult(request, false, program.getTitle());
+    }
+
+    @Test
+    void failedTestWithoutAlternativeCourseEndsRequestAndEmailsResult() {
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
+        stubStaffRequest(request);
+        stubPersistence();
+        CompleteEnrollmentTestRequest payload = new CompleteEnrollmentTestRequest();
+        payload.setEligible(false);
+        payload.setNote("Chưa đáp ứng đầu vào tối thiểu.");
+
+        CourseEnrollmentRequestResponse response = service.completeTest(request.getId(), payload, staff.getEmail());
+
+        assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.REJECTED);
+        verify(enrollmentRequestMailService).sendTestResult(request, false, program.getTitle());
+    }
+
+    @Test
+    void learnerAcceptsRecommendedCourseBeforeWaitingForClass() {
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.CLASS_PROPOSED);
+        when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
+        when(requestRepository.findByIdForUpdate(request.getId())).thenReturn(Optional.of(request));
+        stubPersistence();
+
+        CourseEnrollmentRequestResponse response = service.respondToCourseRecommendation(
+                request.getId(),
+                true,
+                learner.getEmail()
+        );
+
+        assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+    }
+
+    @Test
+    void learnerDeclinesRecommendedCourseAndClosesRequest() {
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.CLASS_PROPOSED);
+        when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
+        when(requestRepository.findByIdForUpdate(request.getId())).thenReturn(Optional.of(request));
+        stubPersistence();
+
+        CourseEnrollmentRequestResponse response = service.respondToCourseRecommendation(
+                request.getId(),
+                false,
+                learner.getEmail()
+        );
+
+        assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.CANCELLED);
+        assertThat(response.getRejectionReason()).contains("không đồng ý");
+    }
+
+    @Test
+    void staffCanAssignClassFromConfirmedCourseAndEmailsLearner() {
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        stubStaffRequest(request);
+        when(classroomOfferingRepository.findByIdForUpdate(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(userRepository.findByIdForUpdate(learner.getId())).thenReturn(Optional.of(learner));
+        when(classroomConflictService.check(any()))
+                .thenReturn(ConflictCheckResultResponse.builder().build());
         when(classroomOfferingService.enrollStudent(any(), any()))
                 .thenReturn(ClassroomEnrollmentResponse.builder().hasClassAccess(true).build());
         stubPersistence();
@@ -361,6 +425,44 @@ class EnrollmentRequestServiceImplTest {
         assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.CLASS_ASSIGNED);
         assertThat(response.getAssignedClassroomId()).isEqualTo(classroom.getId());
         verify(enrollmentRequestMailService).sendClassAssignment(request, classroom);
+    }
+
+    @Test
+    void staffCannotAssignClassFromAnotherCourse() {
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        classroom.setInstructorLedCourse(InstructorLedCourse.builder()
+                .id(99L)
+                .title("Khóa học khác")
+                .publicationStatus(PackageStatus.PUBLISHED)
+                .build());
+        stubStaffRequest(request);
+        when(classroomOfferingRepository.findByIdForUpdate(classroom.getId())).thenReturn(Optional.of(classroom));
+        AssignEnrollmentClassRequest payload = new AssignEnrollmentClassRequest();
+        payload.setClassroomId(classroom.getId());
+
+        assertThatThrownBy(() -> service.assignClass(request.getId(), payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("khóa học đã được học viên xác nhận");
+
+        verify(classroomOfferingService, never()).enrollStudent(any(), any());
+    }
+
+    @Test
+    void staffCannotAssignClassWhenLearnerScheduleConflictsAtConfirmationTime() {
+        CourseRegistrationRequest request = courseRegistrationRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        stubStaffRequest(request);
+        when(classroomOfferingRepository.findByIdForUpdate(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(userRepository.findByIdForUpdate(learner.getId())).thenReturn(Optional.of(learner));
+        when(classroomConflictService.check(any()))
+                .thenReturn(ConflictCheckResultResponse.builder().hasBlockingConflict(true).build());
+        AssignEnrollmentClassRequest payload = new AssignEnrollmentClassRequest();
+        payload.setClassroomId(classroom.getId());
+
+        assertThatThrownBy(() -> service.assignClass(request.getId(), payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("lịch học bị trùng");
+
+        verify(classroomOfferingService, never()).enrollStudent(any(), any());
     }
 
     @Test
@@ -481,7 +583,6 @@ class EnrollmentRequestServiceImplTest {
     private CompleteEnrollmentTestRequest eligibleResult() {
         CompleteEnrollmentTestRequest payload = new CompleteEnrollmentTestRequest();
         payload.setEligible(true);
-        payload.setPlacementLevel(PlacementLevel.INTERMEDIATE);
         payload.setNote("Phù hợp lớp trung cấp.");
         return payload;
     }
@@ -521,7 +622,7 @@ class EnrollmentRequestServiceImplTest {
 
     private void stubStaffRequest(CourseRegistrationRequest request) {
         when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
-        when(requestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(requestRepository.findByIdForUpdate(request.getId())).thenReturn(Optional.of(request));
     }
 
     private void stubPersistence() {

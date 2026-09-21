@@ -404,9 +404,9 @@ function MinimalistClassroomCard({ classroom }) {
         <div className="flex gap-2 w-full">
           <Link
             className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#730014] to-[#4b0009] py-3 text-xs font-bold text-white shadow-sm transition hover:shadow-md active:scale-95 btn-hover"
-            to={`/my-classrooms/${classroom.id}`}
+            to={`/my-classrooms/${classroom.id}${classroom.hasClassAccess ? '' : '?tab=payment'}`}
           >
-            Vào học
+            {classroom.hasClassAccess ? 'Vào học' : tuitionRemaining > 0 ? 'Thanh toán học phí' : 'Xem trạng thái'}
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>

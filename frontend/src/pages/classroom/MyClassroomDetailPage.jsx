@@ -315,6 +315,23 @@ export default function MyClassroomDetailPage() {
     setLoading(true);
     setError('');
     try {
+      const classroomData = await classroomApi.getMyClassroom(id);
+      setClassroom(classroomData);
+      if (!classroomData.hasClassAccess) {
+        setSessions([]);
+        setHomework([]);
+        setAttendance([]);
+        setAttendanceDisputes([]);
+        setGradebook(null);
+        setMaterials([]);
+        setAnnouncements([]);
+        setSyllabus([]);
+        if (!['overview', 'payment'].includes(activeTab)) {
+          setActiveTab('payment');
+        }
+        return;
+      }
+
       const loadAttendanceDisputes = async () => {
         try {
           return await classroomApi.listMyAttendanceDisputes();
@@ -323,8 +340,7 @@ export default function MyClassroomDetailPage() {
         }
       };
 
-      const [classroomData, sessionsData, homeworkData, attendanceData, materialsData, announcementsData, syllabusData, disputeData] = await Promise.all([
-        classroomApi.getMyClassroom(id),
+      const [sessionsData, homeworkData, attendanceData, materialsData, announcementsData, syllabusData, disputeData] = await Promise.all([
         classroomApi.getMyClassroomSessions(id),
         classroomApi.getMyClassroomHomework(id),
         classroomApi.getMyAttendance(id),
@@ -339,7 +355,6 @@ export default function MyClassroomDetailPage() {
       } catch {
         gradebookData = null;
       }
-      setClassroom(classroomData);
       setSessions(sessionsData);
       setHomework(homeworkData);
       setAttendance(attendanceData);
@@ -362,6 +377,10 @@ export default function MyClassroomDetailPage() {
       setLoading(false);
     }
   };
+
+  const visibleDetailTabs = classroom?.hasClassAccess
+    ? detailTabs
+    : detailTabs.filter((tab) => ['overview', 'payment'].includes(tab.id));
 
   useEffect(() => {
     loadClassroom();
@@ -1089,7 +1108,7 @@ export default function MyClassroomDetailPage() {
     if (activeTab === 'payment') {
       const tuitionDue = classroom.tuitionAmountDue ?? 0;
       const tuitionRemaining = tuitionDue - (classroom.tuitionAmountPaid ?? 0);
-      const canSubmitProof = classroom.registrationStatus !== 'WAITLIST'
+      const canSubmitProof = ['PENDING_TUITION_PAYMENT', 'DEPOSIT_PAID', 'PARTIALLY_PAID'].includes(classroom.registrationStatus)
         && tuitionDue > 0
         && (classroom.tuitionAmountPaid ?? 0) < tuitionDue;
       return (
@@ -1120,6 +1139,10 @@ export default function MyClassroomDetailPage() {
           <TuitionPaymentSection
             canSubmitProof={canSubmitProof}
             classroomId={id}
+            tuitionDepositRemaining={classroom.tuitionDepositRemaining ?? 0}
+            tuitionFullPaymentRequired={Boolean(classroom.tuitionFullPaymentRequired)}
+            tuitionPaymentDeadline={classroom.tuitionPaymentDeadline}
+            tuitionPaymentOverdue={Boolean(classroom.tuitionPaymentOverdue)}
             tuitionRemaining={tuitionRemaining}
             onUpdated={async () => {
               try {
@@ -1940,7 +1963,7 @@ export default function MyClassroomDetailPage() {
           <div className="space-y-6">
             {/* Minimal Tab Bar */}
             <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-              {detailTabs.map((tab) => {
+              {visibleDetailTabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button

@@ -4,5 +4,5 @@ import fu.sep490.g23.backend.dto.response.classroom.StaffDashboardResponse;
 
 public interface StaffOperationsService {
 
-    StaffDashboardResponse getDashboard();
+    StaffDashboardResponse getDashboard(String staffEmail);
 }

@@ -51,6 +51,7 @@ public class StudentPaymentController {
                         request.getDisplayedCouponDiscountAmount(),
                         request.getFinalAmount()
                 ),
+                request.getClassroomPaymentKind(),
                 authentication.getName()
         ));
     }
@@ -65,6 +66,7 @@ public class StudentPaymentController {
                 request.getClassroomOfferingIds(),
                 request.getLearningPathId(),
                 request.getCouponCode(),
+                request.getClassroomPaymentKind(),
                 authentication.getName()
         ));
     }

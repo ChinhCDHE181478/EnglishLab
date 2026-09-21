@@ -5,6 +5,8 @@ import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.service.mail.impl.EnrollmentRequestMailServiceImpl;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import jakarta.mail.Multipart;
@@ -75,6 +77,33 @@ class EnrollmentRequestMailServiceImplTest {
         assertThat(message.getAllRecipients()[0].toString()).isEqualTo("contact@example.com");
         assertThat(message.getSubject()).isEqualTo("Bạn đã được xếp lớp thành công - EnglishLab");
         assertThat(readTextContent(message)).contains("05/08/2026");
+    }
+
+    @Test
+    void sendsEligibleTestResultEmail() throws Exception {
+        request.setStatus(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+
+        service.sendTestResult(request, true, "IELTS Foundation");
+
+        verify(mailSender).send(message);
+        assertThat(message.getSubject()).isEqualTo("Kết quả đánh giá đầu vào - EnglishLab");
+        assertThat(readTextContent(message))
+                .contains("Phù hợp với khóa học đã đăng ký")
+                .contains("IELTS Foundation");
+    }
+
+    @Test
+    void sendsAlternativeCourseAndConfirmationLinkInTestResultEmail() throws Exception {
+        request.setStatus(EnrollmentRequestStatus.CLASS_PROPOSED);
+        request.setCourseOffering(InstructorLedCourse.builder().title("IELTS Starter").build());
+
+        service.sendTestResult(request, false, "IELTS Intermediate");
+
+        verify(mailSender).send(message);
+        assertThat(readTextContent(message))
+                .contains("IELTS Starter")
+                .contains("IELTS Intermediate")
+                .contains("/my-enrollment-requests");
     }
 
     private String readTextContent(Part part) throws Exception {

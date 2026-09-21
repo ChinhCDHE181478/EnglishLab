@@ -13,6 +13,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRep
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentAccessService;
@@ -43,6 +44,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
     private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
+    private final ClassroomChangeRequestRepository changeRequestRepository;
 
     @Override
     public Resource loadAuthorized(String fileName, String requesterEmail) {
@@ -94,6 +96,11 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
             return proof.get().getEnrollment().getStudent().getId().equals(requester.getId());
         }
 
+        var suspensionProof = changeRequestRepository.findFirstByNewValuesJsonContaining(suffix);
+        if (suspensionProof.isPresent()) {
+            return suspensionProof.get().getRequester().getId().equals(requester.getId());
+        }
+
         var submission = submissionRepository.findFirstByAttachmentUrlEndingWith(suffix);
         if (submission.isPresent()) {
             if (submission.get().getStudent().getId().equals(requester.getId())) {
@@ -129,6 +136,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
                 || submissionRepository.existsByAttachmentUrlEndingWith(suffix)
                 || homeworkRepository.existsByAttachmentUrlEndingWith(suffix)
                 || materialRepository.existsByFileUrlEndingWith(suffix)
+                || changeRequestRepository.existsByNewValuesJsonContaining(suffix)
                 || assessmentBankItemRepository.existsByUiConfigJsonContaining(suffix)
                 || centerMaterialRepository.existsByFileUrlEndingWith(suffix);
     }

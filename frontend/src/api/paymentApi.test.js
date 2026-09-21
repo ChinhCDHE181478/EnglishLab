@@ -47,4 +47,18 @@ describe('payment checkout API', () => {
       couponCode: '',
     });
   });
+
+  it('sends the selected classroom payment kind to PayOS checkout', async () => {
+    axiosClient.post.mockResolvedValue({ data: { checkoutUrl: 'https://pay.payos.vn/web/deposit' } });
+
+    await paymentApi.createPayosLink([], '', [12], null, null, 'DEPOSIT');
+
+    expect(axiosClient.post).toHaveBeenCalledWith('/api/student/payments/payos/link', {
+      courseIds: [],
+      classroomOfferingIds: [12],
+      learningPathId: null,
+      couponCode: '',
+      classroomPaymentKind: 'DEPOSIT',
+    });
+  });
 });

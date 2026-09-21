@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.service.mail.impl;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
+import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.service.mail.EmailTemplateUtil;
 import fu.sep490.g23.backend.service.mail.EnrollmentRequestMailService;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
@@ -70,6 +71,54 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
         );
 
         send(request, "Xác nhận lịch tư vấn và kiểm tra đầu vào - EnglishLab", html);
+    }
+
+    @Override
+    public void sendTestResult(
+            CourseRegistrationRequest request,
+            boolean eligible,
+            String evaluatedCourseTitle
+    ) {
+        boolean hasRecommendation = request.getStatus() == EnrollmentRequestStatus.CLASS_PROPOSED
+                && request.getCourseOffering() != null;
+        String result = eligible
+                ? "Phù hợp với khóa học đã đăng ký"
+                : hasRecommendation ? "Đề xuất khóa học phù hợp hơn" : "Chưa phù hợp với khóa học đã đăng ký";
+        String recommendation = hasRecommendation
+                ? """
+                  <p style="margin:12px 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">KHÓA HỌC ĐỀ XUẤT</p>
+                  <p style="margin:0;font-size:16px;font-weight:700;color:#730014;">%s</p>
+                  """.formatted(EmailTemplateUtil.escapeHtml(request.getCourseOffering().getTitle()))
+                : "";
+        String highlightContent = """
+                <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">KẾT QUẢ ĐÁNH GIÁ</p>
+                <p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#730014;">%s</p>
+                <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">KHÓA HỌC ĐÃ ĐÁNH GIÁ</p>
+                <p style="margin:0;font-size:14px;font-weight:700;color:#2b1f1f;">%s</p>
+                %s
+                """.formatted(
+                EmailTemplateUtil.escapeHtml(result),
+                EmailTemplateUtil.escapeHtml(valueOrDefault(evaluatedCourseTitle, "Khóa học đã đăng ký")),
+                recommendation
+        );
+        String description = eligible
+                ? "EnglishLab đã ghi nhận kết quả đánh giá đầu vào của bạn. Hồ sơ đang được chuyển sang bước xếp lớp phù hợp."
+                : hasRecommendation
+                    ? "Khóa học ban đầu chưa phù hợp với kết quả đánh giá hiện tại. Vui lòng đăng nhập để xác nhận khóa học được trung tâm đề xuất."
+                    : "EnglishLab đã ghi nhận kết quả đánh giá đầu vào. Hiện chưa có khóa học phù hợp để tiếp tục hồ sơ này.";
+
+        String html = EmailTemplateUtil.buildBrandedEmailHtml(
+                name(request),
+                "Kết quả đánh giá đầu vào",
+                description,
+                highlightContent,
+                normalizedBaseUrl() + "/my-enrollment-requests",
+                hasRecommendation ? "Xác nhận khóa học đề xuất" : "Xem kết quả hồ sơ",
+                supportEmail,
+                "Nếu cần trao đổi thêm, vui lòng liên hệ EnglishLab để được tư vấn."
+        );
+
+        send(request, "Kết quả đánh giá đầu vào - EnglishLab", html);
     }
 
     @Override
