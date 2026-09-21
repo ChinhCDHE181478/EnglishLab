@@ -3,11 +3,13 @@ import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
 import fu.sep490.g23.backend.service.assessment.AssessmentAudioStorageService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.service.assessment.PlacementTestSessionToken;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fu.sep490.g23.backend.dto.request.assessment.PlacementTestSubmissionRequest;
+import fu.sep490.g23.backend.dto.request.assessment.PlacementTestStartRequest;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementTestAttemptResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
@@ -52,12 +54,19 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private final AiEvaluationClient aiEvaluationClient;
     private final AssessmentAudioStorageService audioStorageService;
     private final PlacementTestDefinitionService definitionService;
+    private final PlacementTestSessionToken sessionTokenService;
     private final ContentBankItemRepository contentBankItemRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** Build the test payload for the student UI. Answer keys are stripped so they cannot cheat. */
     @Transactional
     public Map<String, Object> getTest(String studentEmail) {
+        return getTest(studentEmail, null, null);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> getTest(String studentEmail, String resumeExamType, String sessionToken) {
         User student = requireStudent(studentEmail);
         var definition = definitionService.getDefinition();
         if (!"PUBLISHED".equalsIgnoreCase(definition.getStatus())) {
@@ -73,15 +82,20 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         response.put("canRetake", true);
         List<String> availableExamTypes = availableExamTypes(definition);
         response.put("availableExamTypes", availableExamTypes);
+        String normalizedResumeType = normalizeExamType(resumeExamType);
+        boolean canResume = resumeExamType != null
+                && sessionTokenService.isValid(sessionToken, studentEmail, normalizedResumeType);
+        if (canResume) response.put("resumableExamType", normalizedResumeType);
         Map<String, Object> sections = new LinkedHashMap<>();
         // Objective sections: send questions only. Writing/Speaking have no answer key.
-        if (availableExamTypes.contains("IELTS") || availableExamTypes.contains("SKILL")) {
+        if (availableExamTypes.contains("IELTS") || availableExamTypes.contains("SKILL")
+                || (canResume && ("IELTS".equals(normalizedResumeType) || "SKILL".equals(normalizedResumeType)))) {
             sections.put("listening", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "listening"))));
             sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
             sections.put("writing", toPlainObject(definitionService.getConfig(definition, "writing")));
             sections.put("speaking", toPlainObject(definitionService.getConfig(definition, "speaking")));
         }
-        if (availableExamTypes.contains("TOEIC")) {
+        if (availableExamTypes.contains("TOEIC") || (canResume && "TOEIC".equals(normalizedResumeType))) {
             sections.put("toeic", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "toeic"))));
         }
         response.put("sections", sections);
@@ -89,6 +103,22 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(student, TEST_CODE)
                 .ifPresent(attempt -> response.put("latestAttempt", toResponse(attempt)));
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> start(PlacementTestStartRequest request, String studentEmail) {
+        requireStudent(studentEmail);
+        PlacementTestDefinition definition = definitionService.getDefinition();
+        if (!"PUBLISHED".equalsIgnoreCase(definition.getStatus())) {
+            throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
+        }
+        String examType = normalizeExamType(request.getExamType());
+        assertExamTypeEnabled(definition, examType);
+        return Map.of(
+                "examType", examType,
+                "sessionToken", sessionTokenService.issue(studentEmail, examType)
+        );
     }
 
     /**
@@ -103,7 +133,10 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
         }
         String examType = normalizeExamType(request.getExamType() == null ? definition.getExamType() : request.getExamType());
-        assertExamTypeEnabled(definition, examType);
+        if (!availableExamTypes(definition).contains(examType)
+                && !sessionTokenService.isValid(request.getSessionToken(), studentEmail, examType)) {
+            throw new IllegalArgumentException("Dạng bài đánh giá đã tạm dừng.");
+        }
         if ("TOEIC".equals(examType)) {
             validateToeicSubmission(request);
             return submitToeicPlacement(request, student, definition);
@@ -365,7 +398,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 collectQuestionNumbers(group.withArray("questions"), numbers);
             }
         }
-        return numbers.stream().distinct().sorted().toList();
+        return new ArrayList<>(numbers.stream().distinct().sorted().toList());
     }
 
     private void collectQuestionNumbers(JsonNode questions, List<Integer> numbers) {
