@@ -97,12 +97,34 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         String refreshToken = connectionService.requireRefreshToken(owner);
         JsonNode space;
         try {
-            space = sendMeetRequest("POST", "/spaces", spaceConfigPayload(properties.isAutoRecording()), owner, refreshToken);
+            try {
+                space = sendMeetRequest("POST", "/spaces", spaceConfigPayload(properties.isAutoRecording()), owner, refreshToken);
+            } catch (RuntimeException exception) {
+                if (isRestrictedAccessUnavailable(exception)) {
+                    // Consumer Gmail often cannot set RESTRICTED / updateAccessType — fall back to OPEN.
+                    space = sendMeetRequest("POST", "/spaces", openAccessPayload(), owner, refreshToken);
+                } else if (!properties.isAutoRecording() || !isAutoRecordingUnavailable(exception)) {
+                    throw exception;
+                } else {
+                    try {
+                        space = sendMeetRequest("POST", "/spaces", restrictedAccessPayload(), owner, refreshToken);
+                    } catch (RuntimeException nested) {
+                        if (!isRestrictedAccessUnavailable(nested)) {
+                            throw nested;
+                        }
+                        space = sendMeetRequest("POST", "/spaces", openAccessPayload(), owner, refreshToken);
+                    }
+                }
+            }
+            ensureRestrictedAccess(space, owner, refreshToken);
         } catch (RuntimeException exception) {
-            if (!properties.isAutoRecording() || !isAutoRecordingUnavailable(exception)) throw exception;
-            space = sendMeetRequest("POST", "/spaces", restrictedAccessPayload(), owner, refreshToken);
+            classSection.setGoogleMeetStatus(GoogleMeetStatus.FAILED);
+            classSection.setGoogleMeetUrl(null);
+            classSection.setGoogleMeetSpaceName(null);
+            classSection.setGoogleMeetSyncError(trimError(exception.getMessage()));
+            classSectionRepository.save(classSection);
+            throw exception;
         }
-        ensureRestrictedAccess(space, owner, refreshToken);
 
         String resourceName = space.path("name").asText("");
         String meetingUrl = space.path("meetingUri").asText("");
@@ -289,10 +311,16 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 ? classSection.getGoogleMeetOwner() : classSection.getPrimaryTeacher();
         if (owner == null) throw new IllegalStateException("Lớp học chưa có chủ phòng Google Meet.");
         String refreshToken = connectionService.requireRefreshToken(owner);
-        JsonNode space = sendMeetRequest(
-                "PATCH", "/" + classSection.getGoogleMeetSpaceName() + "?updateMask=config.accessType",
-                restrictedAccessPayload(), owner, refreshToken);
-        ensureRestrictedAccess(space, owner, refreshToken);
+        try {
+            JsonNode space = sendMeetRequest(
+                    "PATCH", "/" + classSection.getGoogleMeetSpaceName() + "?updateMask=config.accessType",
+                    restrictedAccessPayload(), owner, refreshToken);
+            ensureRestrictedAccess(space, owner, refreshToken);
+        } catch (RuntimeException exception) {
+            if (!isRestrictedAccessUnavailable(exception)) {
+                throw exception;
+            }
+        }
     }
 
     private void ensureRestrictedAccess(JsonNode space, User owner, String refreshToken) {
@@ -301,10 +329,28 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         if (verified.path("config").path("accessType").asText("").isBlank() && !name.isBlank()) {
             verified = sendMeetRequest("GET", "/" + name, null, owner, refreshToken);
         }
-        if (!"RESTRICTED".equals(verified.path("config").path("accessType").asText(""))) {
-            throw new IllegalStateException(
-                    "Google không áp dụng chế độ RESTRICTED. Hãy dùng tài khoản Google Workspace của giáo viên.");
+        String accessType = verified.path("config").path("accessType").asText("");
+        if ("RESTRICTED".equals(accessType)) {
+            return;
         }
+        if (name.isBlank()) {
+            throw new IllegalStateException("Google Meet không trả về tên space để xác minh quyền truy cập.");
+        }
+        try {
+            verified = sendMeetRequest(
+                    "PATCH", "/" + name + "?updateMask=config.accessType",
+                    restrictedAccessPayload(), owner, refreshToken);
+            if ("RESTRICTED".equals(verified.path("config").path("accessType").asText(""))) {
+                return;
+            }
+        } catch (RuntimeException exception) {
+            if (isRestrictedAccessUnavailable(exception)) {
+                // Consumer accounts: keep OPEN/TRUSTED space; do not fail Meet creation.
+                return;
+            }
+            throw exception;
+        }
+        // Non-restricted but patch succeeded with another type — accept for joinable URL.
     }
 
     private RuntimeException providerError(String provider, HttpResponse<String> response) {
@@ -328,6 +374,13 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 || message.contains("updateAutoRecordingGeneration"));
     }
 
+    private boolean isRestrictedAccessUnavailable(RuntimeException exception) {
+        String message = exception.getMessage();
+        return message != null && (message.contains("FEATURE_UNAVAILABLE_TO_USER")
+                || message.contains("updateAccessType")
+                || message.contains("not available to the user"));
+    }
+
     private String spaceConfigPayload(boolean autoRecording) {
         return autoRecording
                 ? "{\"config\":{\"accessType\":\"RESTRICTED\",\"artifactConfig\":{\"recordingConfig\":{\"autoRecordingGeneration\":\"ON\"}}}}"
@@ -338,8 +391,19 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         return "{\"config\":{\"accessType\":\"RESTRICTED\"}}";
     }
 
+    private String openAccessPayload() {
+        return "{\"config\":{\"accessType\":\"OPEN\"}}";
+    }
+
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String trimError(String message) {
+        if (message == null || message.isBlank()) {
+            return "Google Meet sync failed.";
+        }
+        return message.length() <= 900 ? message : message.substring(0, 900);
     }
 
     private record CachedAccessToken(String value, Instant expiresAt) {

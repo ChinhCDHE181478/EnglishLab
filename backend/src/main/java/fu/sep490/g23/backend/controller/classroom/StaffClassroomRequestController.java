@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.controller.classroom;
 import fu.sep490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.service.classroom.ClassroomChangeRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +21,8 @@ public class StaffClassroomRequestController {
     private final ClassroomChangeRequestService changeRequestService;
 
     @GetMapping("/pending")
-    public ResponseEntity<List<ClassroomChangeRequestResponse>> listPending() {
-        return ResponseEntity.ok(changeRequestService.listPending());
+    public ResponseEntity<List<ClassroomChangeRequestResponse>> listPending(Authentication authentication) {
+        return ResponseEntity.ok(changeRequestService.listPending(authentication.getName()));
     }
 
     @PostMapping("/{requestId}/approve")
@@ -43,7 +44,18 @@ public class StaffClassroomRequestController {
     }
 
     @PostMapping("/{requestId}/conflict-check")
-    public ResponseEntity<ConflictCheckResultResponse> checkConflict(@PathVariable Long requestId) {
-        return ResponseEntity.ok(changeRequestService.checkPendingConflict(requestId));
+    public ResponseEntity<ConflictCheckResultResponse> checkConflict(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(changeRequestService.checkPendingConflict(requestId, authentication.getName()));
+    }
+
+    @GetMapping("/{requestId}/return-options")
+    public ResponseEntity<List<ClassroomOfferingResponse>> listReturnOptions(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(changeRequestService.listReturnOptions(requestId, authentication.getName()));
     }
 }

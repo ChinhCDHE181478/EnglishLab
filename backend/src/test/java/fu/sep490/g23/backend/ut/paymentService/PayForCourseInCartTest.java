@@ -1,4 +1,4 @@
-package fu.sep490.g23.backend.ut.paymentService;
+package fu.sep490.g23.backend.service.payment.impl;
 
 import fu.sep490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sep490.g23.backend.entity.User;
@@ -23,10 +23,12 @@ import fu.sep490.g23.backend.service.payment.PaymentReceiptPdfService;
 import fu.sep490.g23.backend.service.payment.PayosProperties;
 import fu.sep490.g23.backend.service.payment.impl.PaymentServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import vn.payos.PayOS;
 
@@ -41,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,8 +72,14 @@ public class PayForCourseInCartTest {
     @Mock private PaymentReceiptPdfService paymentReceiptPdfService;
     @Mock private StudentCommerceService studentCommerceService;
 
+    @Spy
     @InjectMocks
     private PaymentServiceImpl service;
+
+    @BeforeEach
+    void useMockPayosClient() {
+        lenient().doReturn(payOS).when(service).createClient();
+    }
 
     @Test
     void createPayosPaymentLink_WithFee() throws Exception {
@@ -124,6 +133,7 @@ public class PayForCourseInCartTest {
 
         User learner = User.builder().id(1L).email(email).build();
         PaymentOrder pendingOrder = PaymentOrder.builder()
+                .id(10L)
                 .orderCode(orderCode)
                 .student(learner)
                 .status(PaymentOrderStatus.PENDING)
@@ -134,7 +144,14 @@ public class PayForCourseInCartTest {
         when(payosProperties.getClientId()).thenReturn("c");
         when(payosProperties.getApiKey()).thenReturn("a");
         when(payosProperties.getChecksumKey()).thenReturn("k");
-        when(paymentOrderRepository.findByOrderCode(orderCode)).thenReturn(Optional.of(pendingOrder));
+        when(paymentOrderRepository.findByOrderCodeForUpdate(orderCode)).thenReturn(Optional.of(pendingOrder));
+        when(paymentOrderItemRepository.findByPaymentOrderIdOrderById(10L)).thenReturn(List.of(
+                fu.sep490.g23.backend.entity.payment.PaymentOrderItem.builder()
+                        .itemType(fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType.ONLINE_COURSE)
+                        .onlineCourse(OnlineCourse.builder().id(100L).title("IELTS").build())
+                        .titleSnapshot("IELTS")
+                        .build()
+        ));
 
         var crypto = org.mockito.Mockito.mock(vn.payos.crypto.CryptoProvider.class);
         when(payOS.getCrypto()).thenReturn(crypto);
@@ -169,7 +186,7 @@ public class PayForCourseInCartTest {
                 .id(100L)
                 .title("FreeCourse")
                 .slug("free")
-                .price(BigDecimal.ZERO)
+                .price(BigDecimal.valueOf(500_000))
                 .status(PackageStatus.PUBLISHED)
                 .build();
         DiscountCode coupon = DiscountCode.builder()
@@ -179,10 +196,20 @@ public class PayForCourseInCartTest {
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(learner));
         when(onlineCourseRepository.findById(100L)).thenReturn(Optional.of(course));
-        when(discountCodeRepository.findByCodeIgnoreCase("FREE100"))
-                .thenReturn(Optional.of(coupon));
         when(discountCodeRepository.findByCodeIgnoreCaseForUpdate("FREE100"))
                 .thenReturn(Optional.of(coupon));
+        when(paymentOrderRepository.save(any())).thenAnswer(invocation -> {
+            PaymentOrder order = invocation.getArgument(0);
+            order.setId(20L);
+            return order;
+        });
+        when(paymentOrderItemRepository.findByPaymentOrderIdOrderById(20L)).thenReturn(List.of(
+                fu.sep490.g23.backend.entity.payment.PaymentOrderItem.builder()
+                        .itemType(fu.sep490.g23.backend.entity.payment.enums.PaymentOrderItemType.ONLINE_COURSE)
+                        .onlineCourse(course)
+                        .titleSnapshot(course.getTitle())
+                        .build()
+        ));
 
         PaymentLinkResponse response = service.createPaymentLink(List.of(100L), List.of(), "FREE100", email);
 
@@ -216,7 +243,7 @@ public class PayForCourseInCartTest {
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(learner));
         when(onlineCourseRepository.findById(100L)).thenReturn(Optional.of(course));
-        when(discountCodeRepository.findByCodeIgnoreCase("EXPIRED2026"))
+        when(discountCodeRepository.findByCodeIgnoreCaseForUpdate("EXPIRED2026"))
                 .thenReturn(Optional.of(expiredCoupon));
 
         org.assertj.core.api.Assertions
@@ -245,7 +272,7 @@ public class PayForCourseInCartTest {
         when(payosProperties.getClientId()).thenReturn("c");
         when(payosProperties.getApiKey()).thenReturn("a");
         when(payosProperties.getChecksumKey()).thenReturn("k");
-        when(paymentOrderRepository.findByOrderCode(orderCode)).thenReturn(Optional.of(pendingOrder));
+        when(paymentOrderRepository.findByOrderCodeForUpdate(orderCode)).thenReturn(Optional.of(pendingOrder));
 
         var crypto = org.mockito.Mockito.mock(vn.payos.crypto.CryptoProvider.class);
         when(payOS.getCrypto()).thenReturn(crypto);

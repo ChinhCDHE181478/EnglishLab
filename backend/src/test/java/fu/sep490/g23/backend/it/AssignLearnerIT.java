@@ -150,7 +150,7 @@ public class AssignLearnerIT {
         mockMvc.perform(patch("/api/staff/enrollment-requests/" + requestId + "/complete-test")
                         .header("Authorization", bearer(staffToken))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"eligible\":true,\"placementLevel\":\"INTERMEDIATE\",\"note\":\"Qualified\"}"))
+                        .content("{\"eligible\":true,\"note\":\"Qualified\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("WAITING_FOR_CLASS"));
     }

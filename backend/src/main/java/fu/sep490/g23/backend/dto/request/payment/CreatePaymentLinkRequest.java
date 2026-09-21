@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.dto.request.payment;
 
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -19,4 +20,17 @@ public class CreatePaymentLinkRequest {
 
     @Size(max = 40)
     private String couponCode;
+
+    private Long displayedOriginalAmount;
+
+    private Long displayedSystemDiscountAmount;
+
+    private Long displayedLearningPathDiscountAmount;
+
+    private Long displayedCouponDiscountAmount;
+
+    private Long finalAmount;
+
+    /** Chỉ áp dụng cho học phí lớp: DEPOSIT hoặc FULL. */
+    private TuitionPaymentKind classroomPaymentKind;
 }

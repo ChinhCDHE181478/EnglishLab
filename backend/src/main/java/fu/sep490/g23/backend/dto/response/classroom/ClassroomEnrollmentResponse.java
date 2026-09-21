@@ -27,6 +27,11 @@ public class ClassroomEnrollmentResponse {
     private Integer waitlistSize;
     private BigDecimal tuitionAmountDue;
     private BigDecimal tuitionAmountPaid;
+    private BigDecimal tuitionDepositRequired;
+    private BigDecimal tuitionDepositRemaining;
+    private LocalDateTime tuitionPaymentDeadline;
+    private boolean tuitionFullPaymentRequired;
+    private boolean tuitionPaymentOverdue;
     private boolean hasClassAccess;
     private Long transferredFromEnrollmentId;
     private LocalDateTime enrolledAt;

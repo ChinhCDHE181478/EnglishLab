@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.repository.classroom;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
+import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -14,6 +15,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,11 +35,34 @@ public interface ClassroomChangeRequestRepository extends JpaRepository<Classroo
 
     List<ClassroomChangeRequest> findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus status);
 
+    List<ClassroomChangeRequest> findByReviewerAndStatusOrderByCreatedAtDesc(
+            User reviewer,
+            ClassroomChangeRequestStatus status
+    );
+
+    Optional<ClassroomChangeRequest> findFirstByReviewerInOrderByCreatedAtDescIdDesc(Collection<User> reviewers);
+
     List<ClassroomChangeRequest> findByRequesterIdOrderByCreatedAtDesc(Long requesterId);
+
+    List<ClassroomChangeRequest> findByRequesterIdAndRequestTypeInOrderByCreatedAtDesc(
+            Long requesterId,
+            Collection<ClassroomChangeRequestType> requestTypes
+    );
+
+    boolean existsByRequesterIdAndClassSectionIdAndRequestTypeAndStatus(
+            Long requesterId,
+            Long classSectionId,
+            ClassroomChangeRequestType requestType,
+            ClassroomChangeRequestStatus status
+    );
 
     Optional<ClassroomChangeRequest> findByTargetClassScheduleIdAndRequestTypeAndStatus(
             Long targetClassScheduleId,
             ClassroomChangeRequestType requestType,
             ClassroomChangeRequestStatus status
     );
+
+    Optional<ClassroomChangeRequest> findFirstByNewValuesJsonContaining(String value);
+
+    boolean existsByNewValuesJsonContaining(String value);
 }

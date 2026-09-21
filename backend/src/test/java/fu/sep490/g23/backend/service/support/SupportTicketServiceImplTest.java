@@ -43,6 +43,7 @@ class SupportTicketServiceImplTest {
     private User learner;
     private User otherLearner;
     private User manager;
+    private User secondStaff;
 
     @BeforeEach
     void setUp() {
@@ -55,6 +56,7 @@ class SupportTicketServiceImplTest {
         learner = user(1L, "learner@test.vn", "Learner", RoleCodes.LEARNER);
         otherLearner = user(2L, "other@test.vn", "Other", RoleCodes.LEARNER);
         manager = user(3L, "staff@test.vn", "Nhân viên đào tạo", RoleCodes.STAFF);
+        secondStaff = user(4L, "staff2@test.vn", "Nhân viên hỗ trợ", RoleCodes.STAFF);
     }
 
     @Test
@@ -64,6 +66,9 @@ class SupportTicketServiceImplTest {
         request.setCategory(SupportTicketCategory.ONLINE_COURSE);
         request.setMessage("  Tôi không thể mở bài học đã mua.  ");
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
+        when(userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF)).thenReturn(List.of(manager));
+        when(ticketRepository.findFirstByAssigneeInOrderByCreatedAtDescIdDesc(List.of(manager)))
+                .thenReturn(Optional.empty());
         when(ticketRepository.save(any())).thenAnswer(invocation -> {
             SupportTicket ticket = invocation.getArgument(0);
             ticket.setId(11L);
@@ -76,9 +81,42 @@ class SupportTicketServiceImplTest {
         ArgumentCaptor<SupportTicket> ticketCaptor = ArgumentCaptor.forClass(SupportTicket.class);
         verify(ticketRepository).save(ticketCaptor.capture());
         assertThat(ticketCaptor.getValue().getSubject()).isEqualTo("Không truy cập được khóa học");
+        assertThat(ticketCaptor.getValue().getAssignee()).isEqualTo(manager);
         assertThat(response.getStatus()).isEqualTo(SupportTicketStatus.OPEN);
         assertThat(response.getPriority()).isEqualTo(SupportTicketPriority.NORMAL);
         verify(messageRepository).save(any());
+    }
+
+    @Test
+    void create_AssignsNextStaffInRoundRobinOrder() {
+        CreateSupportTicketRequest request = new CreateSupportTicketRequest();
+        request.setSubject("Cần hỗ trợ thanh toán");
+        request.setCategory(SupportTicketCategory.PAYMENT);
+        request.setMessage("Tôi cần kiểm tra lại giao dịch thanh toán.");
+        SupportTicket previous = ticket(10L, otherLearner);
+        previous.setAssignee(manager);
+        List<User> staffMembers = List.of(manager, secondStaff);
+        when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
+        when(userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF)).thenReturn(staffMembers);
+        when(ticketRepository.findFirstByAssigneeInOrderByCreatedAtDescIdDesc(staffMembers))
+                .thenReturn(Optional.of(previous));
+        when(ticketRepository.save(any())).thenAnswer(invocation -> {
+            SupportTicket ticket = invocation.getArgument(0);
+            ticket.setId(12L);
+            return ticket;
+        });
+        when(messageRepository.findByTicketIdOrderByCreatedAtAsc(12L)).thenReturn(List.of());
+
+        var response = service.create(learner.getEmail(), request);
+
+        assertThat(response.getAssigneeId()).isEqualTo(secondStaff.getId());
+        verify(appNotificationService).createForUser(
+                secondStaff,
+                "SUPPORT_TICKET_ASSIGNED",
+                "Yêu cầu hỗ trợ mới #12",
+                "Cần hỗ trợ thanh toán",
+                java.util.Map.of("ticketId", 12L, "path", "/staff/support-tickets")
+        );
     }
 
     @Test
@@ -105,8 +143,9 @@ class SupportTicketServiceImplTest {
     }
 
     @Test
-    void replyAsStaff_ClaimsTicketWaitsForLearnerAndNotifiesRequester() {
+    void replyAsAssignedStaff_WaitsForLearnerAndNotifiesRequester() {
         SupportTicket ticket = ticket(22L, learner);
+        ticket.setAssignee(manager);
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(ticketRepository.findById(22L)).thenReturn(Optional.of(ticket));
         when(ticketRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -122,6 +161,7 @@ class SupportTicketServiceImplTest {
     @Test
     void updateAsStaff_ResolvedRecordsResolver() {
         SupportTicket ticket = ticket(23L, learner);
+        ticket.setAssignee(manager);
         UpdateSupportTicketRequest request = new UpdateSupportTicketRequest();
         request.setStatus(SupportTicketStatus.RESOLVED);
         request.setPriority(SupportTicketPriority.HIGH);
@@ -136,6 +176,56 @@ class SupportTicketServiceImplTest {
         assertThat(response.getPriority()).isEqualTo(SupportTicketPriority.HIGH);
         assertThat(ticket.getResolvedBy()).isEqualTo(manager);
         assertThat(ticket.getResolvedAt()).isNotNull();
+    }
+
+    @Test
+    void getForStaff_WhenAssignedToAnotherStaff_IsRejected() {
+        SupportTicket ticket = ticket(25L, learner);
+        ticket.setAssignee(secondStaff);
+        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
+        when(ticketRepository.findById(25L)).thenReturn(Optional.of(ticket));
+
+        assertThatThrownBy(() -> service.getForStaff(25L, manager.getEmail()))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("nhân viên khác");
+    }
+
+    @Test
+    void listQueue_ForStaffOnlyLoadsAssignedTickets() {
+        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
+        when(ticketRepository.findQueue(null, null, manager)).thenReturn(List.of());
+
+        service.listQueue(manager.getEmail(), null, null);
+
+        verify(ticketRepository).findQueue(null, null, manager);
+    }
+
+    @Test
+    void getForStaff_ManagerCanInspectAnotherStaffTicket() {
+        User supervisor = user(5L, "manager@test.vn", "Quản lý", RoleCodes.MANAGER);
+        SupportTicket ticket = ticket(26L, learner);
+        ticket.setAssignee(secondStaff);
+        when(userRepository.findByEmail(supervisor.getEmail())).thenReturn(Optional.of(supervisor));
+        when(ticketRepository.findById(26L)).thenReturn(Optional.of(ticket));
+        when(messageRepository.findByTicketIdOrderByCreatedAtAsc(26L)).thenReturn(List.of());
+
+        var response = service.getForStaff(26L, supervisor.getEmail());
+
+        assertThat(response.getAssigneeId()).isEqualTo(secondStaff.getId());
+    }
+
+    @Test
+    void claim_WhenTicketAlreadyAssigned_DoesNotReplaceOwner() {
+        User supervisor = user(6L, "manager2@test.vn", "Quản lý", RoleCodes.MANAGER);
+        SupportTicket ticket = ticket(27L, learner);
+        ticket.setAssignee(secondStaff);
+        when(userRepository.findByEmail(supervisor.getEmail())).thenReturn(Optional.of(supervisor));
+        when(ticketRepository.findById(27L)).thenReturn(Optional.of(ticket));
+
+        assertThatThrownBy(() -> service.claim(27L, supervisor.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("đã được phân công");
+        assertThat(ticket.getAssignee()).isEqualTo(secondStaff);
     }
 
     @Test

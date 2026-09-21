@@ -10,6 +10,7 @@ public enum ClassroomRegistrationStatus {
     PARTIALLY_PAID,
     FULLY_PAID,
     ASSIGNED,
+    SUSPENDED,
     WAITLIST,
     REJECTED,
     CANCELLED

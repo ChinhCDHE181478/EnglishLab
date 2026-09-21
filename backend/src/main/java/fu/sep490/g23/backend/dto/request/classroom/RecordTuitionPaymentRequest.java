@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Setter
 public class RecordTuitionPaymentRequest {
     @NotNull(message = "Số tiền không hợp lệ.")
-    @DecimalMin(value = "0", message = "Số tiền phải lớn hơn hoặc bằng 0.")
+    @DecimalMin(value = "0.01", message = "Số tiền phải lớn hơn 0.")
     private BigDecimal amount;
 
     @NotNull(message = "Loại thanh toán không hợp lệ.")

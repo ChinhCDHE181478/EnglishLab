@@ -340,17 +340,18 @@ export default function ContentManagerDiscountCodesPage() {
             </table>
           </div>
         )}
-        {totalPages > 1 && (
+        {totalItems > 0 ? (
           <div className="border-t border-[#dfbfbd]/45 px-6 py-4 bg-[#fffafb]/25">
             <Pagination
-              page={page}
-              totalPages={totalPages}
+              alwaysVisible
               onChange={setPage}
-              totalItems={totalItems}
+              page={page}
               pageSize={PAGE_SIZE}
+              totalItems={totalItems}
+              totalPages={totalPages}
             />
           </div>
-        )}
+        ) : null}
       </Panel>
     </div>
   );

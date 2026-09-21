@@ -39,7 +39,17 @@ const formatBandCompactText = (course) => {
     return `Từ Band ${formatBandValue(min)}`;
   }
 
-  return 'Đang cập nhật';
+  const targetScore = String(course?.targetScore || '').trim();
+  if (targetScore) {
+    return targetScore;
+  }
+
+  const levelLabel = formatLevelLabel(course?.level);
+  if (levelLabel && levelLabel !== 'Tự học theo lộ trình') {
+    return levelLabel;
+  }
+
+  return 'Theo lộ trình';
 };
 
 const buildStatItems = (course, bandFit) => {
