@@ -697,7 +697,7 @@ public class PaymentServiceImpl implements PaymentService {
                 || status == PaymentOrderStatus.FAILED;
     }
 
-    private PayOS createClient() {
+    protected PayOS createClient() {
         return new PayOS(
                 vn.payos.core.ClientOptions.builder()
                         .clientId(payosProperties.getClientId())

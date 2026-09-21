@@ -30,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -105,6 +107,8 @@ public class VIewPublicCourseTest {
         assertNotNull(result);
         assertEquals(100L, result.getId());
         assertEquals(PackageStatus.PUBLISHED, result.getStatus());
+
+        verify(mapper, times(1)).toResponse(course);
     }
 
     @Test
@@ -132,6 +136,9 @@ public class VIewPublicCourseTest {
         assertEquals(2, result.size());
         assertTrue(result.stream().allMatch(c -> c.getStatus() == PackageStatus.PUBLISHED));
         assertTrue(result.stream().anyMatch(c -> c.getTitle().contains("IELTS")));
+
+        verify(versionService, times(1)).readPublishedSnapshot(course, false);
+        verify(versionService, times(1)).readPublishedSnapshot(course2, false);
     }
 
     @Test
@@ -179,6 +186,10 @@ public class VIewPublicCourseTest {
         assertEquals(1, filtered.size());
         assertTrue(filtered.stream().allMatch(c -> c.getCategory().equals("IELTS")));
         assertTrue(filtered.stream().allMatch(c -> c.getLevel() == CourseLevel.BEGINNER));
+
+        verify(versionService, times(1)).readPublishedSnapshot(course, false);
+        verify(versionService, times(1)).readPublishedSnapshot(ieltsIntermediate, false);
+        verify(versionService, times(1)).readPublishedSnapshot(toeicBeginner, false);
     }
 
     @Test
@@ -209,5 +220,7 @@ public class VIewPublicCourseTest {
                 .toList();
 
         assertTrue(filtered.isEmpty(), "No search results found.");
+
+        verify(versionService, times(1)).readPublishedSnapshot(toeicCourse, false);
     }
 }

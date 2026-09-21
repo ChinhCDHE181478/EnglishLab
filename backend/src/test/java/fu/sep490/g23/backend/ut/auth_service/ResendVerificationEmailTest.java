@@ -3,6 +3,7 @@ import java.util.Set;
 
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
+import fu.sep490.g23.backend.entity.Role;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -51,7 +52,7 @@ public class ResendVerificationEmailTest {
                 .id(1L)
                 .email("test@example.com")
                 .emailVerified(false)
-                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
+                .roles(Set.of(Role.builder().code(RoleCodes.LEARNER).displayName("Learner").active(true).build()))
                 .build();
 
         lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_CURRENT")))

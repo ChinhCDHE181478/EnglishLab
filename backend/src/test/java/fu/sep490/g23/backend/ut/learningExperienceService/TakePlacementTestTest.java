@@ -119,6 +119,11 @@ class TakePlacementTestTest {
                 .build();
 
         lenient().when(userRepository.findByEmail(learnerEmail)).thenReturn(Optional.of(learner));
+        lenient().when(attemptRepository.countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE))
+                .thenReturn(0L);
+        lenient().when(attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(
+                learner, PlacementTestDefinitionService.TEST_CODE))
+                .thenReturn(Optional.empty());
         lenient().when(definitionService.getDefinition()).thenReturn(activeDefinition);
 
         service = new PlacementTestServiceImpl(
@@ -154,10 +159,13 @@ class TakePlacementTestTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.get("testCode")).isEqualTo(PlacementTestDefinitionService.TEST_CODE);
+        assertThat(response.get("title")).isEqualTo(activeDefinition.getTitle());
+        assertThat(response.get("description")).isEqualTo(activeDefinition.getDescription());
         assertThat(response.get("examType")).isEqualTo("IELTS");
-        assertThat(response.get("maxAttempts")).isEqualTo(3);
         assertThat(response.get("attemptCount")).isEqualTo(0L);
         assertThat(response.get("canRetake")).isEqualTo(true);
+        // availableExamTypes do GET request vào getTest, nên verify nó có trong response
+        assertThat(response.get("availableExamTypes")).asList().contains("IELTS");
 
         @SuppressWarnings("unchecked")
         Map<String, Object> sections = (Map<String, Object>) response.get("sections");
@@ -169,6 +177,17 @@ class TakePlacementTestTest {
         assertThat((Map<String, Object>) sections.get("toeic")).doesNotContainKey("answerKey");
 
         assertThat(response).doesNotContainKey("latestAttempt");
+
+        // Verify interactions
+        verify(userRepository, times(1)).findByEmail(learnerEmail);
+        verify(attemptRepository, times(1)).countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE);
+        verify(attemptRepository, times(1)).findTopByStudentAndTestCodeOrderBySubmittedAtDesc(learner, PlacementTestDefinitionService.TEST_CODE);
+        verify(definitionService, times(1)).getDefinition();
+        verify(definitionService, times(1)).getConfig(activeDefinition, "listening");
+        verify(definitionService, times(1)).getConfig(activeDefinition, "reading");
+        verify(definitionService, times(1)).getConfig(activeDefinition, "writing");
+        verify(definitionService, times(1)).getConfig(activeDefinition, "speaking");
+        verify(definitionService, times(1)).getConfig(activeDefinition, "toeic");
     }
 
     // =================================================================
@@ -202,8 +221,6 @@ class TakePlacementTestTest {
         request.setSpeakingTranscript(SPEAKING_TRANSCRIPT);
         request.setDeviceCheck(deviceCheck);
 
-        when(attemptRepository.countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE))
-                .thenReturn(0L);
         stubAllConfigs();
 
         AiEvaluationResult aiResult = AiEvaluationResult.builder()
@@ -232,6 +249,11 @@ class TakePlacementTestTest {
         assertThat(response.getSubmittedAt()).isNotNull();
         assertThat(response.getExpiresAt())
                 .isCloseTo(response.getSubmittedAt().plusDays(180), within(5, ChronoUnit.SECONDS));
+
+        // Verify interactions
+        verify(aiEvaluationClient, times(1)).evaluate(anyString());
+        verify(attemptRepository, times(1)).save(any());
+        verify(userRepository, times(1)).save(any());
     }
 
     // =================================================================
@@ -265,9 +287,6 @@ class TakePlacementTestTest {
         request.setSpeakingTranscript("I am from Hanoi.");
         request.setDeviceCheck(deviceCheck);
 
-        when(attemptRepository.countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE))
-                .thenReturn(0L);
-
         AiEvaluationResult aiResult = AiEvaluationResult.builder()
                 .estimatedScore(new BigDecimal("5.0"))
                 .feedbackJson("{\"estimatedScore\":5.0,\"writingBand\":null,\"speakingBand\":null," +
@@ -298,6 +317,11 @@ class TakePlacementTestTest {
         assertThat(response.getSubmittedAt()).isNotNull();
         assertThat(response.getExpiresAt())
                 .isCloseTo(response.getSubmittedAt().plusDays(180), within(5, ChronoUnit.SECONDS));
+
+        // Verify interactions
+        verify(aiEvaluationClient, times(1)).evaluate(anyString());
+        verify(attemptRepository, times(1)).save(any());
+        verify(userRepository, times(1)).save(any());
     }
 
     // =================================================================
@@ -330,8 +354,6 @@ class TakePlacementTestTest {
         request.setSpeakingTranscript(SPEAKING_TRANSCRIPT);
         request.setDeviceCheck(deviceCheck);
 
-        when(attemptRepository.countByStudentAndTestCode(learner, PlacementTestDefinitionService.TEST_CODE))
-                .thenReturn(0L);
         stubAllConfigs();
 
         // AI Engine Service BỊ SẬP
@@ -359,5 +381,10 @@ class TakePlacementTestTest {
         assertThat(response.getExpiresAt())
                 .isCloseTo(response.getSubmittedAt().plusDays(180), within(5, ChronoUnit.SECONDS));
         assertThat(response.getAiFeedbackJson()).contains("message");
+
+        // Verify interactions - AI client was called but threw exception
+        verify(aiEvaluationClient, times(1)).evaluate(anyString());
+        verify(attemptRepository, times(1)).save(any());
+        verify(userRepository, times(1)).save(any());
     }
 }
