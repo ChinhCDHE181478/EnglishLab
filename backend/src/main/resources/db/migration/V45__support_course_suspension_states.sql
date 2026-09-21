@@ -20,10 +20,10 @@ ALTER TABLE classroom_change_requests
             'RESUME_STUDENT'
         ));
 
-ALTER TABLE classroom_enrollments
+ALTER TABLE class_enrollments
     DROP CONSTRAINT IF EXISTS classroom_enrollments_registration_status_check;
 
-ALTER TABLE classroom_enrollments
+ALTER TABLE class_enrollments
     ADD CONSTRAINT classroom_enrollments_registration_status_check
         CHECK (registration_status IN (
             'PENDING_CONFIRMATION',
