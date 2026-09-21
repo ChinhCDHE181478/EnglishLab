@@ -48,7 +48,7 @@ public class CartIT {
     }
 
     @Test
-    @DisplayName("IT_CART_02")
+    @DisplayName("IT_CART_05")
     void itCart02() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
         mockMvc.perform(delete("/api/student/commerce/cart").header("Authorization", bearer(token)))

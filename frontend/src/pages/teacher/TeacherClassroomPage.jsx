@@ -227,7 +227,6 @@ export default function TeacherClassroomPage() {
           name: enrollment.studentName || entry?.studentName || `Learner #${enrollment.studentId}`,
           email: enrollment.studentEmail || entry?.studentEmail || 'Not available',
           attendance: entry?.attendancePercent != null ? `${entry.attendancePercent}%` : '—',
-          assignmentScore: entry?.homeworkAverage ?? '—',
           result: entry ? formatGradebookFinalResult(entry.finalResult) : '—',
           isAtRisk: entry?.attendancePercent != null && entry.attendancePercent < 80,
         };
@@ -463,12 +462,8 @@ export default function TeacherClassroomPage() {
                     </div>
                   </div>
 
-                  {/* Scores */}
-                  <div className="flex items-center gap-6 flex-shrink-0 text-sm">
-                    <div className="text-center">
-                      <p className="text-[10px] font-bold text-[#8b706e]">Bài tập</p>
-                      <p className="font-['Manrope'] font-extrabold text-[#2b2828]">{student.assignmentScore}</p>
-                    </div>
+                  {/* Final result */}
+                  <div className="flex flex-shrink-0 items-center text-sm">
                     <div className="text-center">
                       <p className="text-[10px] font-bold text-[#8b706e]">Kết quả</p>
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
