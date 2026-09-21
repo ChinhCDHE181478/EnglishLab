@@ -16,6 +16,7 @@ import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.assessment.AssessmentAudioStorageService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.service.assessment.PlacementTestSessionToken;
 import fu.sep490.g23.backend.service.assessment.impl.PlacementTestServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,9 @@ public class TakePlacementTestTest {
     private PlacementTestDefinitionService definitionService;
 
     @Mock
+    private PlacementTestSessionToken sessionTokenService;
+
+    @Mock
     private ContentBankItemRepository contentBankItemRepository;
 
     private PlacementTestServiceImpl service;
@@ -78,6 +82,7 @@ public class TakePlacementTestTest {
                 aiEvaluationClient,
                 audioStorageService,
                 definitionService,
+                sessionTokenService,
                 contentBankItemRepository
         );
 
@@ -505,10 +510,11 @@ public class TakePlacementTestTest {
     }
 
 
-    // TC06: Thất bại do cấu hình bài kiểm tra đang ở trạng thái ngưng hoạt động
+    // TC06_E3: Bài kiểm tra bị ngưng hoạt động
+    // Nhánh a: Learner chưa bắt đầu (không có session hợp lệ) → hệ thống phải chặn nộp bài và hiển thị thông báo lỗi.
     @Test
-    void takePlacementTest_TC06_testDefinitionInactive() {
-        // Arrange: Definition is not PUBLISHED (e.g., ARCHIVED/INACTIVE)
+    void takePlacementTest_TC06a_testDefinitionInactive_blocksSubmitWithoutValidSession() {
+        // Arrange: Definition is not PUBLISHED (e.g., ARCHIVED/INACTIVE) and learner has no valid session.
         PlacementTestDefinition inactiveDefinition = PlacementTestDefinition.builder()
                 .id(1L)
                 .testCode(TEST_CODE)
@@ -518,6 +524,8 @@ public class TakePlacementTestTest {
 
         when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
         when(definitionService.getDefinition()).thenReturn(inactiveDefinition);
+        // No valid session token → learner is treated as "has not started".
+        when(sessionTokenService.isValid(null, LEARNER_EMAIL, "IELTS")).thenReturn(false);
 
         PlacementTestSubmissionRequest request = buildIeltsRequest(
                 Map.of("1", "A"),
@@ -527,13 +535,117 @@ public class TakePlacementTestTest {
                 "Transcript"
         );
 
-        // Act & Assert: Should throw because definition is not PUBLISHED
+        // Act & Assert: Should throw because definition is inactive and no session covers this attempt.
         assertThatThrownBy(() -> service.submit(request, LEARNER_EMAIL))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("tạm dừng");
 
-        // Verify: No attempt was saved
+        // Verify: No attempt was saved and learner profile was not touched.
         verify(attemptRepository, never()).save(any());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    // TC06_E3:
+    // Nhánh b: Learner đã bắt đầu trong khi bài đang hoạt động và session còn hiệu lực
+    // → hệ thống cho phép nộp bài và tiếp tục flow chấm điểm bình thường.
+    @Test
+    void takePlacementTest_TC06b_testDefinitionInactive_allowsSubmitWithValidSession() throws Exception {
+        // Arrange: Definition is now inactive, but learner still holds a valid session from when it was PUBLISHED.
+        PlacementTestDefinition inactiveDefinition = PlacementTestDefinition.builder()
+                .id(1L)
+                .testCode(TEST_CODE)
+                .title("Placement Test")
+                .status("ARCHIVED")  // Not PUBLISHED anymore
+                .build();
+
+        String validSessionToken = "valid-jwt-token-for-ielts";
+
+        when(userRepository.findByEmail(LEARNER_EMAIL)).thenReturn(Optional.of(learner));
+        when(userRepository.save(any(User.class))).thenReturn(learner);
+        when(definitionService.getDefinition()).thenReturn(inactiveDefinition);
+        when(sessionTokenService.isValid(validSessionToken, LEARNER_EMAIL, "IELTS")).thenReturn(true);
+
+        // Mock config used by the normal IELTS scoring flow.
+        JsonNode listeningConfig = objectMapper.readTree(
+                "{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\",\"6\":\"B\",\"7\":\"C\",\"8\":\"D\",\"9\":\"A\",\"10\":\"B\"," +
+                        "\"11\":\"A\",\"12\":\"B\",\"13\":\"C\",\"14\":\"D\",\"15\":\"A\",\"16\":\"B\",\"17\":\"C\",\"18\":\"D\",\"19\":\"A\",\"20\":\"B\"," +
+                        "\"21\":\"A\",\"22\":\"B\",\"23\":\"C\",\"24\":\"D\",\"25\":\"A\",\"26\":\"B\",\"27\":\"C\",\"28\":\"D\",\"29\":\"A\",\"30\":\"B\"}}"
+        );
+        JsonNode readingConfig = objectMapper.readTree(
+                "{\"answerKey\":{\"1\":\"A\",\"2\":\"B\",\"3\":\"C\",\"4\":\"D\",\"5\":\"A\",\"6\":\"B\",\"7\":\"C\",\"8\":\"D\",\"9\":\"A\",\"10\":\"B\"," +
+                        "\"11\":\"A\",\"12\":\"B\",\"13\":\"C\",\"14\":\"D\",\"15\":\"A\",\"16\":\"B\",\"17\":\"C\",\"18\":\"D\",\"19\":\"A\",\"20\":\"B\"," +
+                        "\"21\":\"A\",\"22\":\"B\",\"23\":\"C\",\"24\":\"D\",\"25\":\"A\",\"26\":\"B\",\"27\":\"C\",\"28\":\"D\",\"29\":\"A\",\"30\":\"B\"," +
+                        "\"31\":\"A\",\"32\":\"B\"}}"
+        );
+        JsonNode writingConfig = objectMapper.readTree(
+                "{\"tasks\":[{\"taskId\":\"task_1\",\"title\":\"Writing Task 1\"}]}"
+        );
+        JsonNode speakingConfig = objectMapper.readTree(
+                "{\"topics\":[{\"topicId\":\"part_1\",\"title\":\"Introduction\"}]}"
+        );
+
+        lenient().when(definitionService.getConfig(inactiveDefinition, "listening")).thenReturn(listeningConfig);
+        lenient().when(definitionService.getConfig(inactiveDefinition, "reading")).thenReturn(readingConfig);
+        lenient().when(definitionService.getConfig(inactiveDefinition, "writing")).thenReturn(writingConfig);
+        lenient().when(definitionService.getConfig(inactiveDefinition, "speaking")).thenReturn(speakingConfig);
+
+        AssessmentAudioStorageService.StoredAssessmentAudio storedAudio =
+                new AssessmentAudioStorageService.StoredAssessmentAudio("audio.mp3", "audio/mpeg", 60000, new byte[60000]);
+        lenient().when(audioStorageService.loadStoredAudioFromUrl("http://storage/audio.mp3"))
+                .thenReturn(Optional.of(storedAudio));
+
+        AiEvaluationResult aiResult = AiEvaluationResult.builder()
+                .estimatedScore(BigDecimal.valueOf(6.0))
+                .feedbackJson("{\"writingBand\":6.5,\"speakingBand\":6.0,\"estimatedScore\":6.0}")
+                .audioInputAnalyzed(true)
+                .build();
+        lenient().when(aiEvaluationClient.evaluateWithAudio(any(), any(), any())).thenReturn(aiResult);
+
+        lenient().when(contentBankItemRepository.findById(1L)).thenReturn(Optional.of(bankItem));
+
+        PlacementTestAttempt savedAttempt = PlacementTestAttempt.builder()
+                .id(101L)
+                .student(learner)
+                .testCode(TEST_CODE)
+                .contentBankItem(bankItem)
+                .listeningScore(BigDecimal.valueOf(7.0))
+                .readingScore(BigDecimal.valueOf(6.5))
+                .writingScore(BigDecimal.valueOf(6.5))
+                .speakingScore(BigDecimal.valueOf(6.0))
+                .overallScore(BigDecimal.valueOf(6.5))
+                .correctListening(30)
+                .correctReading(32)
+                .status("COMPLETED")
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED)
+                .expiresAt(LocalDateTime.now().plusDays(180))
+                .submittedAt(LocalDateTime.now())
+                .build();
+        lenient().when(attemptRepository.save(any(PlacementTestAttempt.class))).thenReturn(savedAttempt);
+
+        Map<String, Object> listeningAnswers = new HashMap<>();
+        for (int i = 1; i <= 30; i++) listeningAnswers.put(String.valueOf(i), i % 2 == 1 ? "A" : "B");
+        Map<String, Object> readingAnswers = new HashMap<>();
+        for (int i = 1; i <= 32; i++) readingAnswers.put(String.valueOf(i), i % 2 == 1 ? "A" : "B");
+        Map<String, Object> writingAnswers = Map.of("task_1", "The chart illustrates...");
+
+        PlacementTestSubmissionRequest request = buildIeltsRequest(
+                listeningAnswers, readingAnswers, writingAnswers,
+                "http://storage/audio.mp3", "Speaking transcript content here."
+        );
+        request.setSessionToken(validSessionToken);
+
+        // Act: Submission should succeed because the session token is still valid.
+        PlacementTestAttemptResponse response = service.submit(request, LEARNER_EMAIL);
+
+        // Assert: Normal scoring flow continues — attempt is saved, profile is updated, scores are returned.
+        assertThat(response.getStatus()).isEqualTo("COMPLETED");
+        assertThat(response.getOverallScore()).isEqualByComparingTo(BigDecimal.valueOf(6.5));
+        assertThat(response.getCorrectListening()).isEqualTo(30);
+        assertThat(response.getCorrectReading()).isEqualTo(32);
+
+        verify(sessionTokenService, times(1)).isValid(validSessionToken, LEARNER_EMAIL, "IELTS");
+        verify(attemptRepository, times(1)).save(any(PlacementTestAttempt.class));
+        verify(userRepository, times(1)).save(any(User.class));
     }
 
     // TC07: Thất bại khi lưu CSDL gặp lỗi kết nối
