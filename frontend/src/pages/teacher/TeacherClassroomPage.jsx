@@ -523,7 +523,7 @@ export default function TeacherClassroomPage() {
       return (
         <TeacherGradebookSection
           classroomId={id}
-          courseUnits={classroom?.instructorLedCourse?.units || []}
+          curriculumUnits={classroom?.instructorLedCourse?.units || []}
           gradebook={gradebook}
           homework={homework}
           onExport={handleExportGradebook}

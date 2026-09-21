@@ -7,6 +7,7 @@ import fu.sep490.g23.backend.dto.request.classroom.UpdateGradebookHomeworkScoreR
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomGradebookHomeworkResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomGradebookResponse;
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
@@ -14,7 +15,9 @@ import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,6 +51,7 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
     private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
     private final ClassroomHomeworkSubmissionRepository submissionRepository;
+    private final ClassroomAttendanceRepository attendanceRepository;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomMapper mapper;
     private final ClassroomHomeworkScoreCalculator homeworkScoreCalculator;
@@ -266,10 +271,37 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
         BigDecimal homeworkAverage = homeworkScoreCalculator.calculateAverage(homeworks, submissions);
         ClassroomGradebookResponse response = mapper.toGradebookResponse(entry);
         response.setHomeworkAverage(homeworkAverage);
+        response.setAttendancePercent(resolveAttendancePercent(entry));
         response.setHomeworks(homeworks.stream()
                 .map(homework -> toHomeworkResponse(homework, submissionByHomeworkId.get(homework.getId())))
                 .toList());
         return response;
+    }
+
+    private BigDecimal resolveAttendancePercent(ClassroomGradebookEntry entry) {
+        List<ClassroomAttendance> confirmedRecords = attendanceRepository
+                .findByStudentIdAndSession_ClassSectionId(
+                        entry.getStudent().getId(),
+                        entry.getClassSection().getId()
+                ).stream()
+                .filter(ClassroomAttendance::isTeacherConfirmed)
+                .toList();
+
+        if (confirmedRecords.isEmpty()) {
+            return entry.getAttendancePercent();
+        }
+
+        long attendedCount = confirmedRecords.stream()
+                .filter(record -> record.getStatus() == ClassroomAttendanceStatus.PRESENT
+                        || record.getStatus() == ClassroomAttendanceStatus.LATE)
+                .count();
+        long scaledPercent = attendedCount * 100;
+        long totalCount = confirmedRecords.size();
+        if (scaledPercent % totalCount == 0) {
+            return BigDecimal.valueOf(scaledPercent / totalCount);
+        }
+        return BigDecimal.valueOf(scaledPercent)
+                .divide(BigDecimal.valueOf(totalCount), 1, RoundingMode.HALF_UP);
     }
 
     private ClassroomGradebookHomeworkResponse toHomeworkResponse(

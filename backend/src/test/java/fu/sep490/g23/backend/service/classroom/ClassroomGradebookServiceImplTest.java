@@ -5,14 +5,17 @@ import fu.sep490.g23.backend.dto.request.classroom.UpdateGradebookHomeworkScoreR
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomGradebookResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
@@ -41,6 +44,7 @@ class ClassroomGradebookServiceImplTest {
     @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomHomeworkRepository homeworkRepository;
     @Mock private ClassroomHomeworkSubmissionRepository submissionRepository;
+    @Mock private ClassroomAttendanceRepository attendanceRepository;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomMapper mapper;
 
@@ -55,6 +59,7 @@ class ClassroomGradebookServiceImplTest {
                 enrollmentRepository,
                 homeworkRepository,
                 submissionRepository,
+                attendanceRepository,
                 accessHelper,
                 mapper,
                 new ClassroomHomeworkScoreCalculator()
@@ -138,6 +143,41 @@ class ClassroomGradebookServiceImplTest {
         assertThat(entry.getUpdatedBy()).isNotNull();
         verify(accessHelper).assertTeacher(entry.getUpdatedBy());
         verify(submissionRepository).saveAll(List.of(submission));
+    }
+
+    @Test
+    void getClassGradebook_CalculatesAttendanceFromTeacherConfirmedRecords() {
+        when(homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(21L)).thenReturn(List.of());
+        when(submissionRepository.findAllForGradebook(21L)).thenReturn(List.of());
+        when(gradebookEntryRepository.findByClassSectionId(21L)).thenReturn(List.of(entry));
+        when(attendanceRepository.findByStudentIdAndSession_ClassSectionId(31L, 21L))
+                .thenReturn(List.of(
+                        ClassroomAttendance.builder()
+                                .status(ClassroomAttendanceStatus.PRESENT)
+                                .teacherConfirmed(true)
+                                .build(),
+                        ClassroomAttendance.builder()
+                                .status(ClassroomAttendanceStatus.LATE)
+                                .teacherConfirmed(true)
+                                .build(),
+                        ClassroomAttendance.builder()
+                                .status(ClassroomAttendanceStatus.ABSENT)
+                                .teacherConfirmed(true)
+                                .build(),
+                        ClassroomAttendance.builder()
+                                .status(ClassroomAttendanceStatus.PRESENT)
+                                .teacherConfirmed(false)
+                                .build()
+                ));
+        when(mapper.toGradebookResponse(entry)).thenReturn(ClassroomGradebookResponse.builder()
+                .studentId(31L)
+                .build());
+
+        List<ClassroomGradebookResponse> responses = service.getClassGradebook(21L);
+
+        assertThat(responses).singleElement()
+                .extracting(ClassroomGradebookResponse::getAttendancePercent)
+                .isEqualTo(new BigDecimal("66.7"));
     }
 
     @Test

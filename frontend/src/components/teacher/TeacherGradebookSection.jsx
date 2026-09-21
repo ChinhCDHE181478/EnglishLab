@@ -23,7 +23,6 @@ import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
   ConfirmModal,
-  StatusBadge,
 } from '../classroom/ClassroomUi';
 import Pagination, { usePagination } from '../ui/Pagination';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
@@ -59,6 +58,23 @@ const SHOW_LESSON_GRADING_WORKSPACE = false;
 const formatScore = (score, maxScore = 10) => (
   score == null ? '—' : `${score} /${maxScore ?? 10}`
 );
+
+const formatAggregateFinalResult = (value) => (
+  value == null || value === '' ? 'Chưa chấm' : formatGradebookFinalResult(value)
+);
+
+function GradebookPublicationBadge({ status }) {
+  const published = status === 'PUBLISHED';
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-extrabold ${
+      published
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        : 'border-amber-100 bg-amber-50 text-amber-700'
+    }`}>
+      {published ? 'Đã công bố' : 'Chưa công bố'}
+    </span>
+  );
+}
 
 const toEditForm = (entry, homeworks) => ({
   homeworkScores: Object.fromEntries(
@@ -200,10 +216,10 @@ function AggregateGradebookTable({ gradebook, onOpenStudent }) {
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
                     isGradebookPassed(entry.finalResult) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
                   }`}>
-                    {formatGradebookFinalResult(entry.finalResult)}
+                    {formatAggregateFinalResult(entry.finalResult)}
                   </span>
                 </td>
-                <td className="px-5 py-4"><StatusBadge status={entry.status} /></td>
+                <td className="px-5 py-4"><GradebookPublicationBadge status={entry.status} /></td>
                 <td className="px-5 py-4 text-right">
                   <button
                     className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd]/50 bg-white px-3 py-2 text-xs font-extrabold text-[#730014] transition hover:bg-rose-50"
@@ -736,22 +752,6 @@ export default function TeacherGradebookSection({
           </div>
         </div>
 
-        <div className="grid border-t border-[#dfbfbd]/20 bg-white/75 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Học viên', value: gradebook.length, icon: Users, className: 'text-[#9b1c31]' },
-            { label: 'Bài tập', value: homework.length, icon: BookOpenCheck, className: 'text-blue-600' },
-            { label: 'Lượt bài chờ chấm', value: pendingSubmissionCount, icon: AlertTriangle, className: 'text-amber-600' },
-            { label: 'Học viên đã công bố', value: publishedStudentCount, icon: CheckCircle2, className: 'text-emerald-600' },
-          ].map((item) => (
-            <div className="flex items-center gap-3 border-b border-[#dfbfbd]/15 px-5 py-4 last:border-b-0 sm:odd:border-r lg:border-b-0 lg:border-r lg:last:border-r-0" key={item.label}>
-              <item.icon className={`h-5 w-5 flex-shrink-0 ${item.className}`} />
-              <div>
-                <p className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">{item.value}</p>
-                <p className="text-[11px] font-bold text-[#8b706e]">{item.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
 
       {gradebook.length ? (
@@ -761,7 +761,7 @@ export default function TeacherGradebookSection({
         />
       ) : null}
 
-      {!gradebook.length ? (
+      {SHOW_LESSON_GRADING_WORKSPACE ? (!gradebook.length ? (
         <ClassroomEmptyState
           description="Chưa có học viên hoặc dữ liệu bảng điểm để tổ chức theo bài học."
           title="Chưa có dữ liệu chấm điểm"
@@ -959,7 +959,7 @@ export default function TeacherGradebookSection({
             )}
           </div>
         </section>
-      )}
+      )) : null}
 
       {selectedEntry && modalLesson ? (
         <GradebookStudentModal
