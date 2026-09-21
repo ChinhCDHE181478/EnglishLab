@@ -123,7 +123,9 @@ class TakePlacementTestTest {
 
         service = new PlacementTestServiceImpl(
                 userRepository, attemptRepository, aiEvaluationClient,
-                audioStorageService, definitionService, contentBankItemRepository);
+                audioStorageService, definitionService,
+                mock(fu.sep490.g23.backend.service.assessment.PlacementTestSessionToken.class),
+                contentBankItemRepository);
     }
 
 

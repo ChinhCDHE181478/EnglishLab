@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.controller.assessment;
 
 import fu.sep490.g23.backend.dto.request.assessment.PlacementTestSubmissionRequest;
+import fu.sep490.g23.backend.dto.request.assessment.PlacementTestStartRequest;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementTestAttemptResponse;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationService;
@@ -25,8 +26,20 @@ public class PlacementTestController {
 
     /** Return the current paper (questions only) plus this student's latest attempt. */
     @GetMapping("/current")
-    public ResponseEntity<Map<String, Object>> getCurrent(Authentication authentication) {
-        return ResponseEntity.ok(placementTestService.getTest(authentication.getName()));
+    public ResponseEntity<Map<String, Object>> getCurrent(
+            @RequestParam(required = false) String resumeExamType,
+            @RequestParam(required = false) String sessionToken,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(placementTestService.getTest(authentication.getName(), resumeExamType, sessionToken));
+    }
+
+    @PostMapping("/current/start")
+    public ResponseEntity<Map<String, Object>> startCurrent(
+            @Valid @RequestBody PlacementTestStartRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(placementTestService.start(request, authentication.getName()));
     }
 
     /** Score the submitted answers and persist one attempt. */
