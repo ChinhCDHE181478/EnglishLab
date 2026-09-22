@@ -1,8 +1,8 @@
 package fu.sep490.g23.backend.ut.auth_service;
-import java.util.Set;
 
 import fu.sep490.g23.backend.dto.request.LoginRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
+import fu.sep490.g23.backend.entity.Role;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -12,6 +12,7 @@ import fu.sep490.g23.backend.service.auth.impl.AuthServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,6 +21,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,7 +56,7 @@ public class LoginTest {
                 .password("encoded_password")
                 .fullName("Test User")
                 .emailVerified(true)
-                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
+                .roles(Set.of(Role.builder().code(RoleCodes.LEARNER).displayName("Learner").active(true).build()))
                 .build();
 
         loginRequest = new LoginRequest();
@@ -74,7 +76,6 @@ public class LoginTest {
         // Arrange
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(validUser));
         when(jwtService.generateToken(validUser)).thenReturn("mocked.jwt.token");
-        // authenticationManager.authenticate() returns void or Authentication object, we just need it to not throw exception
 
         // Act
         AuthResponse response = authService.login(loginRequest);
@@ -86,8 +87,19 @@ public class LoginTest {
         assertEquals("Bearer", response.getTokenType());
         assertEquals("test@example.com", response.getUser().getEmail());
 
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtService, times(1)).generateToken(validUser);
+        // CRITICAL: Verify email and password were passed correctly to authentication
+        ArgumentCaptor<UsernamePasswordAuthenticationToken> authCaptor = 
+                ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
+        verify(authenticationManager, times(1)).authenticate(authCaptor.capture());
+        
+        UsernamePasswordAuthenticationToken capturedAuth = authCaptor.getValue();
+        assertEquals("test@example.com", capturedAuth.getPrincipal());
+        assertEquals("password123", capturedAuth.getCredentials());
+
+        // Verify JWT was generated for the correct user
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(jwtService, times(1)).generateToken(userCaptor.capture());
+        assertEquals("test@example.com", userCaptor.getValue().getEmail());
     }
 
     /**
@@ -97,7 +109,6 @@ public class LoginTest {
     @Test
     void login_Failure_EmailNotFound_ThrowsException() {
         // Arrange
-        when(userRepository.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
         loginRequest.setEmail("notfound@example.com");
 
         // Act & Assert
@@ -106,6 +117,12 @@ public class LoginTest {
         });
 
         assertEquals("Email hoặc mật khẩu không đúng.", exception.getMessage());
+        
+        // Verify the exact email was looked up
+        ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
+        verify(userRepository, times(1)).findByEmail(emailCaptor.capture());
+        assertEquals("notfound@example.com", emailCaptor.getValue());
+        
         verify(authenticationManager, never()).authenticate(any());
         verify(jwtService, never()).generateToken(any());
     }
@@ -126,6 +143,12 @@ public class LoginTest {
         });
 
         assertEquals("Tài khoản của bạn chưa xác thực email. Vui lòng kiểm tra hộp thư, nhập mã xác thực rồi thử lại.", exception.getMessage());
+        
+        // Verify the correct email was looked up
+        ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
+        verify(userRepository, times(1)).findByEmail(emailCaptor.capture());
+        assertEquals("test@example.com", emailCaptor.getValue());
+        
         verify(authenticationManager, never()).authenticate(any());
         verify(jwtService, never()).generateToken(any());
     }
@@ -146,6 +169,7 @@ public class LoginTest {
             authService.login(loginRequest);
         });
 
+        // Verify JWT was never generated for bad credentials
         verify(jwtService, never()).generateToken(any());
     }
 
@@ -165,6 +189,10 @@ public class LoginTest {
 
         // Assert
         assertNotNull(response);
-        verify(userRepository, times(1)).findByEmail("test@example.com");
+        
+        // Verify the normalized email was used (trimmed and lowercased)
+        ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
+        verify(userRepository, times(1)).findByEmail(emailCaptor.capture());
+        assertEquals("test@example.com", emailCaptor.getValue());
     }
 }
