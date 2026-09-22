@@ -24,6 +24,7 @@ import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
 import { canAutoFetchTranscript, isBunnyVideoUrl, isYouTubeVideoUrl } from '../../utils/youtubeVideoUrl';
 import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
+import { isIeltsModuleAssessment } from '../../utils/assessmentExamPolicy';
 import { getContentManagerError, getContentManagerFeedbackMessage } from '../../utils/contentManagerFeedback';
 
 const COURSE_LEVEL_KEY = 'course';
@@ -363,6 +364,10 @@ export default function ContentManagerCourseBuilderPage() {
   };
   const assessmentBankOptions = useMemo(
     () => buildAssessmentBankOptions(assessmentBankItems),
+    [assessmentBankItems],
+  );
+  const moduleAssessmentBankOptions = useMemo(
+    () => buildAssessmentBankOptions(assessmentBankItems.filter(isIeltsModuleAssessment)),
     [assessmentBankItems],
   );
   const flashcardSetOptions = useMemo(
@@ -1404,7 +1409,7 @@ export default function ContentManagerCourseBuilderPage() {
                 disabled={!activeModule}
                 onAdd={() => addAssessmentFromBank('module')}
                 onChange={(event) => setSelectedModuleBankAssessmentId(event.target.value)}
-                options={assessmentBankOptions}
+                options={moduleAssessmentBankOptions}
                 value={selectedModuleBankAssessmentId}
               />
               {moduleAssessments.length ? (

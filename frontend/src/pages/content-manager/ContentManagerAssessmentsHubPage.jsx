@@ -40,6 +40,7 @@ import ManagementToast from '../../components/ui/ManagementToast';
 import WritingPracticeWorkspace from '../../components/content-manager/skill-practice/WritingPracticeWorkspace';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { usePagination } from '../../components/ui/Pagination';
+import { getMockExamMaxScore } from '../../utils/assessmentExamPolicy';
 import { getContentManagerError } from '../../utils/contentManagerFeedback';
 import {
   FIELD_CLASS,
@@ -244,7 +245,7 @@ const emptyForm = (pageConfig) => {
     objectiveAnswerKey: '',
     uiConfigJson: isMock ? withExamTypeInConfig('{}', examCategory, skill) : '',
     passingScore: '',
-    maxScore: isProductiveSkill(skill) ? 9 : 100,
+    maxScore: isMock ? getMockExamMaxScore({ examCategory }) : (isProductiveSkill(skill) ? 9 : 100),
     timeLimitMinutes: '',
     status: 'DRAFT',
   };
@@ -266,7 +267,9 @@ const toForm = (item = {}, pageConfig) => {
     objectiveAnswerKey: item.objectiveAnswerKey || '',
     uiConfigJson: item.uiConfigJson || '',
     passingScore: normalizeAssessmentPassingScore(assessment) ?? '',
-    maxScore: normalizeAssessmentMaxScore(assessment) ?? (isProductiveSkill(skill) ? 9 : 100),
+    maxScore: pageConfig?.type === 'MOCK_TEST'
+      ? getMockExamMaxScore({ examCategory })
+      : normalizeAssessmentMaxScore(assessment) ?? (isProductiveSkill(skill) ? 9 : 100),
     timeLimitMinutes: item.timeLimitMinutes ?? '',
     status: item.status || 'DRAFT',
   };
@@ -375,6 +378,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           examCategory,
           skill,
           type: 'MOCK_TEST',
+          maxScore: getMockExamMaxScore({ examCategory }),
           uiConfigJson: withExamTypeInConfig(current.uiConfigJson, examCategory, skill),
         };
       }
@@ -393,7 +397,12 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       if (field === 'skill') {
         next.rubricId = '';
         next.aiEvaluationMode = resolveAutomaticEvaluationMode(value);
-        next.maxScore = isProductiveSkill(value) ? 9 : 100;
+        next.maxScore = isMockExamsPage
+          ? getMockExamMaxScore({ examCategory: next.examCategory })
+          : (isProductiveSkill(value) ? 9 : 100);
+      }
+      if (isMockExamsPage && field === 'maxScore') {
+        next.maxScore = getMockExamMaxScore({ examCategory: next.examCategory });
       }
       return next;
     });
@@ -441,7 +450,9 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         ? withExamTypeInConfig(lockedDraft.uiConfigJson, examCategory, lockedDraft.skill)
         : lockedDraft.uiConfigJson,
       passingScore: lockedDraft.passingScore === '' ? null : Number(lockedDraft.passingScore),
-      maxScore: lockedDraft.maxScore === '' ? null : Number(lockedDraft.maxScore),
+      maxScore: isMockExamsPage
+        ? getMockExamMaxScore({ examCategory })
+        : (lockedDraft.maxScore === '' ? null : Number(lockedDraft.maxScore)),
       timeLimitMinutes: lockedDraft.timeLimitMinutes === '' ? null : Number(lockedDraft.timeLimitMinutes),
     };
   };
@@ -878,6 +889,10 @@ function AssessmentAuthoringFlow({
   const [step, setStep] = useState(0);
   const [stepError, setStepError] = useState('');
   const productive = isProductiveSkill(form.skill);
+  const scoreMaximum = isMockExamsPage ? getMockExamMaxScore(form) : (productive ? 9 : undefined);
+  const scoreStep = isMockExamsPage
+    ? ((form.examCategory || 'IELTS') === 'TOEIC' ? 5 : 0.5)
+    : (productive ? 0.5 : 1);
   const hasContent = hasAuthoredContent(form.uiConfigJson);
   const steps = [
     { label: 'Thông tin chung', description: 'Tên, kỹ năng và thời lượng' },
@@ -1010,15 +1025,24 @@ function AssessmentAuthoringFlow({
                 )}
                 <label className="block">
                   <FieldLabel>Điểm đạt</FieldLabel>
-                  <input className={FIELD_CLASS} max={productive ? '9' : undefined} min="0" onChange={(event) => onUpdate('passingScore', event.target.value)} step={productive ? '0.5' : '1'} type="number" value={form.passingScore} />
+                  <input className={FIELD_CLASS} max={scoreMaximum} min="0" onChange={(event) => onUpdate('passingScore', event.target.value)} step={scoreStep} type="number" value={form.passingScore} />
                 </label>
-                <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <summary className="cursor-pointer text-sm font-bold text-[#730014]">Thiết lập nâng cao</summary>
-                  <label className="mt-4 block">
+                {isMockExamsPage ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <FieldLabel>Điểm tối đa</FieldLabel>
-                    <input className={FIELD_CLASS} max={productive ? '9' : undefined} min="1" onChange={(event) => onUpdate('maxScore', event.target.value)} step={productive ? '0.5' : '1'} type="number" value={form.maxScore} />
-                  </label>
-                </details>
+                    <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-[#0b1c30]">
+                      {getMockExamMaxScore(form)} điểm
+                    </div>
+                  </div>
+                ) : (
+                  <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <summary className="cursor-pointer text-sm font-bold text-[#730014]">Thiết lập nâng cao</summary>
+                    <label className="mt-4 block">
+                      <FieldLabel>Điểm tối đa</FieldLabel>
+                      <input className={FIELD_CLASS} max={productive ? '9' : undefined} min="1" onChange={(event) => onUpdate('maxScore', event.target.value)} step={productive ? '0.5' : '1'} type="number" value={form.maxScore} />
+                    </label>
+                  </details>
+                )}
               </div>
             </AuthoringSection>
             <AuthoringSection description="Nội dung này được hiển thị cho học viên trước khi làm bài." title="Hướng dẫn làm bài">

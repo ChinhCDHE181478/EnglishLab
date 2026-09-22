@@ -44,6 +44,7 @@ import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
+import fu.sep490.g23.backend.service.curriculum.AssessmentExamPolicy;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
@@ -653,8 +654,12 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
             throw new RuntimeException("Điểm đạt không được nhỏ hơn 0.");
         }
 
-        BigDecimal maxScore = IeltsBandScale.normalizeConfiguredMaxScore(
-                request.getMaxScore(), request.getType(), request.getSkill(), evaluationMode);
+        BigDecimal examMaximum = AssessmentExamPolicy.resolveMockExamMaximum(
+                request.getType(), request.getUiConfigJson());
+        BigDecimal maxScore = examMaximum == null
+                ? IeltsBandScale.normalizeConfiguredMaxScore(
+                        request.getMaxScore(), request.getType(), request.getSkill(), evaluationMode)
+                : examMaximum;
         BigDecimal passingScore = IeltsBandScale.normalizeConfiguredPassingScore(
                 request.getPassingScore(), request.getType(), request.getSkill(), evaluationMode);
         if (passingScore != null && passingScore.compareTo(maxScore) > 0) {
@@ -1440,15 +1445,18 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     /** Derives grading behavior from skill so clients cannot persist incompatible modes. */
     private AiEvaluationMode resolveAiEvaluationMode(AssessmentBankItemRequest request) {
+        AiEvaluationMode requestedMode;
         if (request.getSkill() == AssessmentSkill.LISTENING
                 || request.getSkill() == AssessmentSkill.READING
                 || request.getSkill() == AssessmentSkill.WRITING
                 || request.getSkill() == AssessmentSkill.SPEAKING) {
-            return AiEvaluationMode.ESTIMATED_BAND;
+            requestedMode = AiEvaluationMode.ESTIMATED_BAND;
+        } else {
+            requestedMode = request.getAiEvaluationMode() == null
+                    ? AiEvaluationMode.EXPLAIN_ONLY
+                    : request.getAiEvaluationMode();
         }
-        return request.getAiEvaluationMode() == null
-                ? AiEvaluationMode.EXPLAIN_ONLY
-                : request.getAiEvaluationMode();
+        return AssessmentExamPolicy.resolveEvaluationMode(request.getType(), request.getSkill(), requestedMode);
     }
 
     /** Resolves a published rubric and verifies that it matches the assessment skill. */

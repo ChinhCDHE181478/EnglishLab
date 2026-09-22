@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
+import fu.sep490.g23.backend.service.curriculum.AssessmentExamPolicy;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -126,6 +127,7 @@ public class AssessmentBankItem {
         Map<String, Object> payload = ContentBankPayloadSupport.ensure(contentData);
         type = parseType(ContentBankPayloadSupport.getString(payload, "type"));
         aiEvaluationMode = parseAiMode(ContentBankPayloadSupport.getString(payload, "aiEvaluationMode"));
+        aiEvaluationMode = AssessmentExamPolicy.resolveEvaluationMode(type, skill, aiEvaluationMode);
         instructions = ContentBankPayloadSupport.getString(payload, "instructions");
         objectiveAnswerKey = ContentBankPayloadSupport.getString(payload, "objectiveAnswerKey");
         uiConfigJson = ContentBankPayloadSupport.getString(payload, "uiConfigJson");
@@ -151,6 +153,7 @@ public class AssessmentBankItem {
         }
         AssessmentType effectiveType = type == null ? AssessmentType.MODULE_TEST : type;
         type = effectiveType;
+        aiEvaluationMode = AssessmentExamPolicy.resolveEvaluationMode(effectiveType, skill, aiEvaluationMode);
         ContentBankPayloadSupport.put(contentData, "type", effectiveType.name());
         ContentBankPayloadSupport.put(contentData, "aiEvaluationMode",
                 aiEvaluationMode == null ? AiEvaluationMode.NONE.name() : aiEvaluationMode.name());
