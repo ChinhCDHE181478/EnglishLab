@@ -4,6 +4,7 @@ import fu.sep490.g23.backend.dto.request.ResetPasswordRequest;
 import fu.sep490.g23.backend.dto.request.VerifyEmailRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
+import fu.sep490.g23.backend.entity.Role;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,7 +55,7 @@ public class VerifyEmailTest {
                 .id(1L)
                 .email("test@example.com")
                 .emailVerified(false)
-                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
+                .roles(Set.of(Role.builder().code(RoleCodes.LEARNER).displayName("Learner").active(true).build()))
                 .build();
 
         validToken = new AuthToken();
@@ -198,7 +200,7 @@ public class VerifyEmailTest {
                     .email("test@example.com")
                     .password("old_password")
                     .emailVerified(true)
-                    .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
+                    .roles(Set.of(Role.builder().code(RoleCodes.LEARNER).displayName("Learner").active(true).build()))
                     .build();
 
             validToken = new AuthToken();

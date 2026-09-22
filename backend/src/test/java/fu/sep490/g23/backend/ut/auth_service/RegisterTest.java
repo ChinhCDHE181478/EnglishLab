@@ -1,9 +1,9 @@
 package fu.sep490.g23.backend.ut.auth_service;
-import java.util.Set;
 
 import fu.sep490.g23.backend.dto.request.RegisterRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
+import fu.sep490.g23.backend.entity.Role;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -15,15 +15,18 @@ import fu.sep490.g23.backend.service.mail.AuthMailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,7 +87,7 @@ public class RegisterTest {
                 .id(1L)
                 .email("newuser@example.com")
                 .fullName("New User")
-                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER))
+                .roles(Set.of(Role.builder().code(RoleCodes.LEARNER).displayName("Learner").active(true).build()))
                 .build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
@@ -100,8 +103,24 @@ public class RegisterTest {
         assertEquals("Đăng ký thành công. Vui lòng kiểm tra email và nhập mã xác thực để kích hoạt tài khoản.", response.getMessage());
         assertEquals("newuser@example.com", response.getUser().getEmail());
 
-        verify(userRepository, times(1)).save(any(User.class));
+        // CRITICAL: Verify the request data passed to userRepository.save()
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+        
+        User capturedUser = userCaptor.getValue();
+        assertEquals("New User", capturedUser.getFullName());
+        assertEquals("newuser@example.com", capturedUser.getEmail());
+        assertEquals("encoded_pass", capturedUser.getPassword());
+
+        // CRITICAL: Verify password was encoded with correct original password
+        ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(passwordEncoder, times(1)).encode(passwordCaptor.capture());
+        assertEquals("StrongPass123!", passwordCaptor.getValue());
+
+        // Verify role assignment
         verify(userRoleService, times(1)).assignRole(any(User.class), eq(RoleCodes.LEARNER));
+        
+        // Verify email was sent to correct user
         verify(authMailService, times(1)).sendVerificationEmail(savedUser, "123456");
     }
 
@@ -113,7 +132,7 @@ public class RegisterTest {
     void register_Success_ExistingUnverifiedUser_UpdatesAndResendsEmail() {
         // Arrange
         existingUser.setEmailVerified(false);
-        existingUser.setRoles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER));
+        existingUser.setRoles(Set.of(Role.builder().code(RoleCodes.LEARNER).displayName("Learner").active(true).build()));
 
         when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(existingUser));
         when(passwordEncoder.encode("StrongPass123!")).thenReturn("encoded_pass_2");
@@ -130,12 +149,20 @@ public class RegisterTest {
         assertNotNull(response);
         assertEquals("Đăng ký thành công. Vui lòng kiểm tra email và nhập mã xác thực để kích hoạt tài khoản.", response.getMessage());
 
+        // CRITICAL: Verify existing user was updated with correct data
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+        
+        User capturedUser = userCaptor.getValue();
+        assertEquals("New User", capturedUser.getFullName());
+        assertEquals("encoded_pass_2", capturedUser.getPassword());
 
-        assertEquals("New User", existingUser.getFullName());
-        assertEquals("encoded_pass_2", existingUser.getPassword());
+        // CRITICAL: Verify password was encoded with correct original password
+        ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(passwordEncoder, times(1)).encode(passwordCaptor.capture());
+        assertEquals("StrongPass123!", passwordCaptor.getValue());
 
         verify(userRoleService, times(1)).replaceRoles(existingUser, RoleCodes.LEARNER);
-        verify(userRepository, times(1)).save(existingUser);
         verify(authMailService, times(1)).sendVerificationEmail(existingUser, "654321");
     }
 
@@ -154,6 +181,8 @@ public class RegisterTest {
         });
 
         assertEquals("Email này đã được đăng ký.", exception.getMessage());
+        
+        // Verify save was never called for duplicate email
         verify(userRepository, never()).save(any());
         verify(authMailService, never()).sendVerificationEmail(any(), any());
     }
@@ -170,16 +199,24 @@ public class RegisterTest {
         when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
 
         User savedUser = User.builder().id(1L).email("newuser@example.com")
-                .roles(fu.sep490.g23.backend.support.TestRoles.roles(RoleCodes.LEARNER)).build();
+                .roles(Set.of(Role.builder().code(RoleCodes.LEARNER).displayName("Learner").active(true).build())).build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         when(authTokenService.issueEmailVerificationTokenForRegistration(any())).thenReturn(new AuthToken());
 
         // Act
         authService.register(registerRequest);
 
-        // Assert
-        verify(userRepository, times(1)).findByEmail("newuser@example.com");
-        // Verify the saved user has trimmed full name
-        verify(userRepository).save(argThat(user -> user.getFullName().equals("New User") && user.getEmail().equals("newuser@example.com")));
+        // Assert - verify the normalized email was looked up
+        ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
+        verify(userRepository, times(1)).findByEmail(emailCaptor.capture());
+        assertEquals("newuser@example.com", emailCaptor.getValue());
+        
+        // CRITICAL: Verify the saved user has trimmed full name
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        
+        User capturedUser = userCaptor.getValue();
+        assertEquals("New User", capturedUser.getFullName()); // Should be trimmed
+        assertEquals("newuser@example.com", capturedUser.getEmail()); // Should be lowercased
     }
 }
