@@ -79,8 +79,8 @@ const createAssessmentDraftFromBank = ({ bankItem, moduleKey, moduleTitle = null
   instructions: bankItem.instructions || '',
   objectiveAnswerKey: bankItem.objectiveAnswerKey || '',
   uiConfigJson: bankItem.uiConfigJson || extractEmbeddedUiConfig(bankItem.instructions),
-  passingScore: normalizeScalar(bankItem.passingScore),
-  maxScore: normalizeScalar(bankItem.maxScore, '9'),
+  passingScore: normalizeScalar(normalizeAssessmentPassingScore(bankItem)),
+  maxScore: normalizeScalar(normalizeAssessmentMaxScore(bankItem), '9'),
   timeLimitMinutes: normalizeScalar(bankItem.timeLimitMinutes),
   displayOrder,
   active: true,
@@ -129,8 +129,8 @@ const normalizeAssessmentStructure = (items, modules) => {
       instructions: assessment.instructions || '',
       objectiveAnswerKey: assessment.objectiveAnswerKey || '',
       uiConfigJson: assessment.uiConfigJson || extractEmbeddedUiConfig(assessment.instructions),
-      passingScore: normalizeScalar(assessment.passingScore),
-      maxScore: normalizeScalar(assessment.maxScore, '9'),
+      passingScore: normalizeScalar(normalizeAssessmentPassingScore(assessment)),
+      maxScore: normalizeScalar(normalizeAssessmentMaxScore(assessment), '9'),
       timeLimitMinutes: normalizeScalar(assessment.timeLimitMinutes),
       displayOrder: assessment.displayOrder ?? index + 1,
       active: assessment.active !== false,
@@ -238,7 +238,7 @@ export default function ContentManagerCourseBuilderPage() {
         const normalizedCourse = normalizeCourseStructure(courseData);
         setCourse(normalizedCourse);
         setRubrics(Array.isArray(rubricItems) ? rubricItems : []);
-        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter(isPublishedSkillPractice));
+        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter(isPublishedReusableAssessment));
         setFlashcardSets((Array.isArray(flashcardItems) ? flashcardItems : []).filter((item) => item.status === 'PUBLISHED'));
 
         if (!normalizedCourse.id) {
@@ -2282,12 +2282,12 @@ function buildAssessmentBankOptions(items) {
   return [...base, ...options];
 }
 
-function isPublishedSkillPractice(item) {
+export function isPublishedReusableAssessment(item) {
   if (item?.status !== 'PUBLISHED') return false;
   const skill = String(item.skill || '').toUpperCase();
   const type = String(item.type || '').toUpperCase();
   if (!['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(skill)) return false;
-  if (type === 'MODULE_TEST') return true;
+  if (['MODULE_TEST', 'MOCK_TEST'].includes(type)) return true;
   if (['LISTENING', 'READING'].includes(skill)) return ['LESSON_PRACTICE', 'QUIZ'].includes(type);
   if (skill === 'WRITING') return type === 'WRITING_TASK';
   return type === 'SPEAKING_TASK';

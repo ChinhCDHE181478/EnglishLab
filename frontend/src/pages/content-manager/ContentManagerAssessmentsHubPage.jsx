@@ -49,6 +49,10 @@ import {
 } from '../../utils/formStyles';
 import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 import { formatCriteriaSetName } from '../../utils/assessmentRubricLabels';
+import {
+  normalizeAssessmentMaxScore,
+  normalizeAssessmentPassingScore,
+} from '../../utils/ieltsBandScale';
 
 const pageMap = {
   listening: {
@@ -249,6 +253,7 @@ const emptyForm = (pageConfig) => {
 const toForm = (item = {}, pageConfig) => {
   const examCategory = resolveExamCategory(item);
   const skill = item.skill || pageConfig?.skill || 'LISTENING';
+  const assessment = { ...item, skill };
   return {
     title: item.title || '',
     description: item.description || '',
@@ -260,8 +265,8 @@ const toForm = (item = {}, pageConfig) => {
     instructions: item.instructions || '',
     objectiveAnswerKey: item.objectiveAnswerKey || '',
     uiConfigJson: item.uiConfigJson || '',
-    passingScore: item.passingScore ?? '',
-    maxScore: item.maxScore ?? (isProductiveSkill(skill) ? 9 : 100),
+    passingScore: normalizeAssessmentPassingScore(assessment) ?? '',
+    maxScore: normalizeAssessmentMaxScore(assessment) ?? (isProductiveSkill(skill) ? 9 : 100),
     timeLimitMinutes: item.timeLimitMinutes ?? '',
     status: item.status || 'DRAFT',
   };

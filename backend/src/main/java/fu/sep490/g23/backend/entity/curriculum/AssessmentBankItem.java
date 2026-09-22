@@ -162,6 +162,14 @@ public class AssessmentBankItem {
         ContentBankPayloadSupport.put(contentData, "timeLimitMinutes", timeLimitMinutes);
     }
 
+    /**
+     * Persists changes made only to transient assessment fields into the JSON column.
+     * JPA does not invoke {@code @PreUpdate} when no mapped scalar field is dirty.
+     */
+    public void synchronizeContentData() {
+        flushToPayload();
+    }
+
     private static AssessmentType parseType(String value) {
         if (value == null || value.isBlank()) {
             return AssessmentType.MODULE_TEST;

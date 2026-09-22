@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { validateBuilderState } from './ContentManagerCourseBuilderPage';
+import {
+  isPublishedReusableAssessment,
+  validateBuilderState,
+} from './ContentManagerCourseBuilderPage';
 
 const modules = [
   { id: 11, title: 'Listening Foundation', lessons: [] },
@@ -83,5 +86,27 @@ describe('validateBuilderState', () => {
     });
 
     expect(validateBuilderState(quizModules, [quiz])).toBeNull();
+  });
+});
+
+describe('isPublishedReusableAssessment', () => {
+  it.each([
+    ['bài luyện nghe', { status: 'PUBLISHED', skill: 'LISTENING', type: 'LESSON_PRACTICE' }],
+    ['bài luyện đọc', { status: 'PUBLISHED', skill: 'READING', type: 'QUIZ' }],
+    ['bài luyện viết', { status: 'PUBLISHED', skill: 'WRITING', type: 'WRITING_TASK' }],
+    ['bài luyện nói', { status: 'PUBLISHED', skill: 'SPEAKING', type: 'SPEAKING_TASK' }],
+    ['đề thi thử', { status: 'PUBLISHED', skill: 'LISTENING', type: 'MOCK_TEST' }],
+    ['đề mô-đun cũ', { status: 'PUBLISHED', skill: 'WRITING', type: 'MODULE_TEST' }],
+  ])('cho phép gắn %s đã xuất bản', (_label, item) => {
+    expect(isPublishedReusableAssessment(item)).toBe(true);
+  });
+
+  it.each([
+    ['đề nháp', { status: 'DRAFT', skill: 'LISTENING', type: 'MOCK_TEST' }],
+    ['đề lưu trữ', { status: 'ARCHIVED', skill: 'READING', type: 'LESSON_PRACTICE' }],
+    ['nội dung ngoài bốn kỹ năng', { status: 'PUBLISHED', skill: 'VOCABULARY', type: 'QUIZ' }],
+    ['loại đề không phù hợp với kỹ năng', { status: 'PUBLISHED', skill: 'WRITING', type: 'QUIZ' }],
+  ])('không cho phép gắn %s', (_label, item) => {
+    expect(isPublishedReusableAssessment(item)).toBe(false);
   });
 });
