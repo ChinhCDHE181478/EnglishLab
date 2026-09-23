@@ -125,8 +125,6 @@ function AppRoutes() {
       <Route path="/learning-paths" element={<LearningPathCatalogPage />} />
       <Route path="/learning-paths/:code" element={<LearningPathReferencePage />} />
       <Route path="/courses/:slugOrId" element={<CourseDetailRoute />} />
-      <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
-      <Route path="/courses/:slugOrId/learn" element={<CourseWorkspaceRoute />} />
 
       {/* Placement must be available before the learner completes their profile. */}
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['LEARNER']} />}>
@@ -135,6 +133,8 @@ function AppRoutes() {
 
       {/* Student-only routes */}
       <Route element={<ProtectedRoute allowedRoles={['LEARNER']} />}>
+        <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
+        <Route path="/courses/:slugOrId/learn" element={<CourseWorkspaceRoute />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />

@@ -95,11 +95,7 @@ const CourseHome = () => {
 
     const loadEnrollments = async () => {
       if (!hasAccessToken()) return [];
-      try {
-        return await courseApi.getMyOnlineCourses();
-      } catch {
-        return [];
-      }
+      return courseApi.getMyOnlineCourses();
     };
 
     const loadOptionalCourseData = async (loader, fallback) => {
@@ -307,13 +303,13 @@ const CourseHome = () => {
       try { return localStorage.getItem(`englishlab.activeLesson.${course?.slug}`); } catch { return null; }
     })();
     if (lastLessonId) {
-      // Tìm bài học đang active trong modules
       for (const module of course?.modules ?? []) {
-        const lessonIndex = module.lessons?.findIndex(
-          (l) => getLessonId(module, l, module.lessons.indexOf(l)) === lastLessonId,
+        const lessons = module.lessons ?? [];
+        const lessonIndex = lessons.findIndex(
+          (lesson, index) => String(getLessonId(module, lesson, index)) === String(lastLessonId),
         );
-        if (lessonIndex !== -1) {
-          openLesson(module, module.lessons[lessonIndex], lessonIndex);
+        if (lessonIndex >= 0) {
+          openLesson(module, lessons[lessonIndex], lessonIndex);
           return;
         }
       }

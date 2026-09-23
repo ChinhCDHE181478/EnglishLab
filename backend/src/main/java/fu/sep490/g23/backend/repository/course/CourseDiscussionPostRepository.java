@@ -28,8 +28,9 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
             select t from CourseDiscussionPost t left join t.lesson l
             where t.postType = :threadType
               and t.course.id = :courseId and t.status <> :hidden
-              and ((:moduleId is null and l is null)
-                   or (:moduleId is not null and l.module.id = :moduleId))
+              and ((:lessonOnly = true and l is not null)
+                   or (:lessonOnly = false and :moduleId is null and l is null)
+                   or (:lessonOnly = false and :moduleId is not null and l.module.id = :moduleId))
               and (
                     :filter = 'ALL'
                     or (:filter = 'MINE' and :authorId is not null and t.author.id = :authorId)
@@ -47,6 +48,7 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
     Page<CourseDiscussionPost> findCourseDiscussionPage(
             @Param("courseId") Long courseId,
             @Param("moduleId") Long moduleId,
+            @Param("lessonOnly") boolean lessonOnly,
             @Param("filter") String filter,
             @Param("authorId") Long authorId,
             @Param("hidden") CourseDiscussionStatus hidden,

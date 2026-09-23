@@ -18,11 +18,6 @@ const CourseHomeLessonDiscussion = ({ courseId, modules = [] }) => {
   const lessons = moduleId === 'ALL'
     ? modules.flatMap((module) => module.lessons || [])
     : selectedModule?.lessons || [];
-  const lessonIds = useMemo(
-    () => lessons.map((lesson) => lesson.id).filter(Boolean),
-    [lessons],
-  );
-
   const handleModuleChange = (event) => {
     setModuleId(event.target.value);
     setLessonId('ALL');
@@ -43,7 +38,13 @@ const CourseHomeLessonDiscussion = ({ courseId, modules = [] }) => {
       </div>
       {lessons.length ? (
         <div className="mt-5">
-          <WorkspaceLessonDiscussion canPersist courseId={courseId} lessonId={lessonId === 'ALL' ? null : lessonId} lessonIds={lessonId === 'ALL' ? lessonIds : undefined} />
+          <WorkspaceLessonDiscussion
+            canPersist
+            courseId={courseId}
+            lessonId={lessonId === 'ALL' ? null : lessonId}
+            lessonOnly={moduleId === 'ALL'}
+            moduleId={moduleId === 'ALL' ? null : moduleId}
+          />
         </div>
       ) : <div className="mt-5 rounded-xl border border-dashed border-[#ead9db] bg-white px-4 py-8 text-center text-sm text-[#8c716f]">Chưa có bài học để hiển thị hỏi đáp.</div>}
     </section>

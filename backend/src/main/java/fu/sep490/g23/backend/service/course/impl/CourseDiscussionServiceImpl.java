@@ -72,7 +72,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, Long moduleId, String filter, String email, Pageable pageable) {
+    public Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, Long moduleId, boolean lessonOnly, String filter, String email, Pageable pageable) {
         ensureCourseExists(courseId);
         ensureModuleInCourse(courseId, moduleId);
         User currentUser = email == null ? null : findUser(email);
@@ -80,6 +80,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         return postRepository.findCourseDiscussionPage(
                         courseId,
                         moduleId,
+                        lessonOnly,
                         normalizedFilter,
                         currentUser == null ? null : currentUser.getId(),
                         CourseDiscussionStatus.HIDDEN,
