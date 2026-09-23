@@ -1185,6 +1185,11 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
             return userRepository.save(created);
         });
         userRoleService.ensureRole(user, roleCode);
+        // findByEmail() above runs in its own short-lived repository transaction, so `user` is
+        // detached by the time we reach here for an already-existing account. Without an explicit
+        // save, ensureRole()'s mutation of the roles collection is never flushed to user_roles —
+        // the account silently keeps whatever roles it already had (possibly none).
+        user = userRepository.save(user);
         return RoleCodes.LEARNER.equals(roleCode) ? onboardingSupport.ensureReady(user) : user;
     }
 }

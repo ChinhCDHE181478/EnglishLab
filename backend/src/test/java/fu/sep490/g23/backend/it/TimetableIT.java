@@ -38,7 +38,7 @@ public class TimetableIT {
     }
 
     @Test
-    @DisplayName("IT_TIMETABLE_02")
+    @DisplayName("IT_TIMETABLE_04")
     void itTimetable02() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
         MvcResult r = mockMvc.perform(get("/api/student/classrooms/my-classrooms").header("Authorization", bearer(token)))

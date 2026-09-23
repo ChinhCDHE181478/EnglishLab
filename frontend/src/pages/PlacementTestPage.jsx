@@ -47,6 +47,10 @@ const TOEIC_SKILLS = SKILLS.slice(0, 2);
 const DRAFT_KEY = 'englishlab.placement-test.current.draft';
 
 const emptyDraft = {
+  examType: '',
+  selectedSkillKeys: [],
+  sessionToken: '',
+  skillIndex: 0,
   listeningAnswers: {},
   readingAnswers: {},
   writingAnswers: { task_1: '', task_2: '' },
@@ -676,6 +680,8 @@ export default function PlacementTestPage() {
   const [draft, setDraft] = useState(readDraft);
   const [deviceCheck, setDeviceCheck] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [result, setResult] = useState(null);
   const [recommendation, setRecommendation] = useState(null);
@@ -751,7 +757,10 @@ export default function PlacementTestPage() {
   useEffect(() => {
     const loadCurrentTest = async () => {
       try {
-        const response = await placementTestApi.getCurrent();
+        const response = await placementTestApi.getCurrent({
+          examType: draft.examType,
+          sessionToken: draft.sessionToken,
+        });
         const sections = response?.sections;
         const needsIeltsSections = response?.availableExamTypes?.some((type) => type === 'IELTS' || type === 'SKILL') ?? true;
         const missingSkills = needsIeltsSections ? SKILLS.filter((skill) => !sections?.[skill.key]) : [];
@@ -761,6 +770,13 @@ export default function PlacementTestPage() {
         }
 
         setTest(response);
+
+        if (response.resumableExamType && response.resumableExamType === draft.examType) {
+          setSelectedExamType(draft.examType);
+          setSelectedSkillKeys(draft.selectedSkillKeys || []);
+          setSkillIndex(Number(draft.skillIndex || 0));
+          setStage('intro');
+        }
 
         if (searchParams.get('view') === 'result' && response.latestAttempt) {
           setResult(response.latestAttempt);
@@ -814,7 +830,11 @@ export default function PlacementTestPage() {
       });
       return;
     }
-    setSkillIndex((current) => Math.min(current + 1, activeSkills.length - 1));
+    setSkillIndex((current) => {
+      const nextIndex = Math.min(current + 1, activeSkills.length - 1);
+      setDraft((currentDraft) => ({ ...currentDraft, skillIndex: nextIndex }));
+      return nextIndex;
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -832,6 +852,7 @@ export default function PlacementTestPage() {
       const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
         examType: selectedExamType,
+        sessionToken: submissionDraft.sessionToken,
         selectedSkills: selectedExamType === 'SKILL' ? activeSkills.map((skill) => skill.key.toUpperCase()) : undefined,
         listeningAnswers: submissionDraft.listeningAnswers,
         readingAnswers: submissionDraft.readingAnswers,
@@ -883,6 +904,7 @@ export default function PlacementTestPage() {
       const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
         examType: selectedExamType,
+        sessionToken: draft.sessionToken,
         selectedSkills: selectedExamType === 'SKILL' ? activeSkills.map((skill) => skill.key.toUpperCase()) : undefined,
         listeningAnswers: draft.listeningAnswers,
         readingAnswers: draft.readingAnswers,
@@ -987,21 +1009,39 @@ export default function PlacementTestPage() {
     />
   ) : null;
 
-  const startExamType = (examType, skillKeys = null) => {
+  const startExamType = async (examType, skillKeys = null) => {
     if (!availableExamTypes.includes(examType)) return;
     const nextSkillKeys = examType === 'SKILL'
       ? SKILLS.filter((skill) => (skillKeys || selectedSkillKeys).includes(skill.key)).map((skill) => skill.key)
       : [];
     if (examType === 'SKILL' && nextSkillKeys.length === 0) return;
-    setSelectedExamType(examType);
-    setSelectedSkillKeys(nextSkillKeys);
-    setSkillIndex(0);
-    setSubmitError('');
-    setRecommendation(null);
-    setRecommendationError('');
-    setPendingSkillAdvance(null);
-    setStage('intro');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setStarting(true);
+    setStartError('');
+    try {
+      const session = await placementTestApi.startCurrent(examType);
+      const cleanDraft = {
+        ...emptyDraft,
+        writingAnswers: { ...emptyDraft.writingAnswers },
+        examType,
+        selectedSkillKeys: nextSkillKeys,
+        sessionToken: session.sessionToken,
+        skillIndex: 0,
+      };
+      setDraft(cleanDraft);
+      setSelectedExamType(examType);
+      setSelectedSkillKeys(nextSkillKeys);
+      setSkillIndex(0);
+      setSubmitError('');
+      setRecommendation(null);
+      setRecommendationError('');
+      setPendingSkillAdvance(null);
+      setStage('intro');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      setStartError(error?.response?.data?.message || 'Dạng bài này vừa được tạm dừng. Vui lòng chọn bài khác.');
+    } finally {
+      setStarting(false);
+    }
   };
 
   const startRetake = () => {
@@ -1070,6 +1110,7 @@ export default function PlacementTestPage() {
             <div className={`mt-8 grid gap-5 ${availableExamTypes.length >= 3 ? 'lg:grid-cols-3' : availableExamTypes.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1'}`}>
               {availableExamTypes.includes('IELTS') ? <button
                 className="group rounded-[28px] border border-[#ead7d5] bg-[#fffaf9] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#8a0018]/45 hover:shadow-[0_20px_45px_rgba(86,35,37,0.12)]"
+                disabled={starting}
                 onClick={() => startExamType('IELTS')}
                 type="button"
               >
@@ -1096,6 +1137,7 @@ export default function PlacementTestPage() {
 
               {availableExamTypes.includes('TOEIC') ? <button
                 className="group rounded-[28px] border border-[#ead7d5] bg-[#f7fbff] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#21446d]/45 hover:shadow-[0_20px_45px_rgba(33,68,109,0.12)]"
+                disabled={starting}
                 onClick={() => startExamType('TOEIC')}
                 type="button"
               >
@@ -1149,7 +1191,7 @@ export default function PlacementTestPage() {
                 </div>
                 <button
                   className="mt-6 inline-flex min-h-12 items-center rounded-2xl bg-[#63368f] px-5 py-3 text-sm font-black text-white transition hover:bg-[#532c79] disabled:cursor-not-allowed disabled:opacity-45"
-                  disabled={selectedSkillKeys.length === 0}
+                  disabled={starting || selectedSkillKeys.length === 0}
                   onClick={() => startExamType('SKILL', selectedSkillKeys)}
                   type="button"
                 >
@@ -1157,6 +1199,12 @@ export default function PlacementTestPage() {
                 </button>
               </section> : null}
             </div>
+
+            {startError ? (
+              <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700" role="alert">
+                {startError}
+              </p>
+            ) : null}
 
             {test.latestAttempt ? (
               <button

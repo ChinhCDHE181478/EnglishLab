@@ -75,7 +75,7 @@ public class NotificationIT {
     }
 
     @Test
-    @DisplayName("IT_NOTIF_04")
+    @DisplayName("IT_NOTIF_06")
     void itNotif04() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
         mockMvc.perform(put("/api/user/me/notification-preferences")

@@ -45,6 +45,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class ViewPracticeInOnlineCourseTest {
@@ -198,6 +200,19 @@ class ViewPracticeInOnlineCourseTest {
 
         // Assert
         assertThat(canAdvance).isTrue();
+
+        verify(lessonProgressRepository, times(1))
+                .findByStudentAndLessonIdInAndStatus(
+                        learner,
+                        Set.of(lessonId),
+                        LessonProgressStatus.COMPLETED);
+        verify(courseAssessmentRepository, times(1))
+                .findByModuleAndActiveTrueOrderByDisplayOrderAscIdAsc(moduleForProgression);
+        verify(assessmentSubmissionRepository, times(1))
+                .findTopByAssessmentAndStudentOrderBySubmittedAtDesc(
+                        moduleTestAssessment, learner);
+        verify(passingThresholdResolver, times(1))
+                .isScorePassing(BigDecimal.valueOf(8.0), moduleTestAssessment);
     }
 
     /**
@@ -260,5 +275,13 @@ class ViewPracticeInOnlineCourseTest {
 
         // Assert
         assertThat(canAdvanceModule1).isFalse();
+
+        verify(lessonProgressRepository, times(1))
+                .findByStudentAndLessonIdInAndStatus(
+                        learner,
+                        Set.of(module1LessonId),
+                        LessonProgressStatus.COMPLETED);
+        verify(courseAssessmentRepository, times(1))
+                .findByModuleAndActiveTrueOrderByDisplayOrderAscIdAsc(module1);
     }
 }

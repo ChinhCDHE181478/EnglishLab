@@ -44,10 +44,12 @@ import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
+import fu.sep490.g23.backend.service.curriculum.AssessmentExamPolicy;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -599,21 +601,21 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     public AssessmentBankItemResponse createAssessmentBankItem(AssessmentBankItemRequest request) {
         validateAssessmentBankRequest(request);
         AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId(), request.getSkill());
+        AiEvaluationMode evaluationMode = resolveAiEvaluationMode(request);
         AssessmentBankItem item = AssessmentBankItem.builder()
                 .title(requireText(request.getTitle(), "Tên đề không được để trống."))
                 .description(trimOrNull(request.getDescription()))
                 .type(request.getType())
                 .skill(request.getSkill())
-                .aiEvaluationMode(resolveAiEvaluationMode(request))
+                .aiEvaluationMode(evaluationMode)
                 .rubric(rubric)
                 .instructions(trimOrNull(request.getInstructions()))
                 .objectiveAnswerKey(trimOrNull(request.getObjectiveAnswerKey()))
                 .uiConfigJson(trimOrNull(request.getUiConfigJson()))
-                .passingScore(request.getPassingScore())
-                .maxScore(request.getMaxScore() == null ? BigDecimal.TEN : request.getMaxScore())
                 .timeLimitMinutes(request.getTimeLimitMinutes())
                 .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
                 .build();
+        applyAssessmentScores(item, request, evaluationMode);
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
 
@@ -623,20 +625,48 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         validateAssessmentBankRequest(request);
         AssessmentBankItem item = findAssessment(id);
         AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId(), request.getSkill());
+        AiEvaluationMode evaluationMode = resolveAiEvaluationMode(request);
         item.setTitle(requireText(request.getTitle(), "Tên đề không được để trống."));
         item.setDescription(trimOrNull(request.getDescription()));
         item.setType(request.getType());
         item.setSkill(request.getSkill());
-        item.setAiEvaluationMode(resolveAiEvaluationMode(request));
+        item.setAiEvaluationMode(evaluationMode);
         item.setRubric(rubric);
         item.setInstructions(trimOrNull(request.getInstructions()));
         item.setObjectiveAnswerKey(trimOrNull(request.getObjectiveAnswerKey()));
         item.setUiConfigJson(trimOrNull(request.getUiConfigJson()));
-        item.setPassingScore(request.getPassingScore());
-        item.setMaxScore(request.getMaxScore() == null ? BigDecimal.TEN : request.getMaxScore());
+        applyAssessmentScores(item, request, evaluationMode);
         item.setTimeLimitMinutes(request.getTimeLimitMinutes());
         item.setStatus(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT));
+        item.synchronizeContentData();
         return toAssessmentResponse(assessmentBankRepository.save(item));
+    }
+
+    private void applyAssessmentScores(
+            AssessmentBankItem item,
+            AssessmentBankItemRequest request,
+            AiEvaluationMode evaluationMode
+    ) {
+        if (request.getMaxScore() != null && request.getMaxScore().signum() <= 0) {
+            throw new RuntimeException("Điểm tối đa phải lớn hơn 0.");
+        }
+        if (request.getPassingScore() != null && request.getPassingScore().signum() < 0) {
+            throw new RuntimeException("Điểm đạt không được nhỏ hơn 0.");
+        }
+
+        BigDecimal examMaximum = AssessmentExamPolicy.resolveMockExamMaximum(
+                request.getType(), request.getUiConfigJson());
+        BigDecimal maxScore = examMaximum == null
+                ? IeltsBandScale.normalizeConfiguredMaxScore(
+                        request.getMaxScore(), request.getType(), request.getSkill(), evaluationMode)
+                : examMaximum;
+        BigDecimal passingScore = IeltsBandScale.normalizeConfiguredPassingScore(
+                request.getPassingScore(), request.getType(), request.getSkill(), evaluationMode);
+        if (passingScore != null && passingScore.compareTo(maxScore) > 0) {
+            throw new RuntimeException("Điểm đạt không được lớn hơn điểm tối đa.");
+        }
+        item.setPassingScore(passingScore);
+        item.setMaxScore(maxScore);
     }
 
     /** Archives an assessment item instead of deleting it physically. */
@@ -1415,15 +1445,18 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
 
     /** Derives grading behavior from skill so clients cannot persist incompatible modes. */
     private AiEvaluationMode resolveAiEvaluationMode(AssessmentBankItemRequest request) {
+        AiEvaluationMode requestedMode;
         if (request.getSkill() == AssessmentSkill.LISTENING
                 || request.getSkill() == AssessmentSkill.READING
                 || request.getSkill() == AssessmentSkill.WRITING
                 || request.getSkill() == AssessmentSkill.SPEAKING) {
-            return AiEvaluationMode.ESTIMATED_BAND;
+            requestedMode = AiEvaluationMode.ESTIMATED_BAND;
+        } else {
+            requestedMode = request.getAiEvaluationMode() == null
+                    ? AiEvaluationMode.EXPLAIN_ONLY
+                    : request.getAiEvaluationMode();
         }
-        return request.getAiEvaluationMode() == null
-                ? AiEvaluationMode.EXPLAIN_ONLY
-                : request.getAiEvaluationMode();
+        return AssessmentExamPolicy.resolveEvaluationMode(request.getType(), request.getSkill(), requestedMode);
     }
 
     /** Resolves a published rubric and verifies that it matches the assessment skill. */

@@ -30,8 +30,7 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!-- Pin JUnit 5 to 5.10.x for IntelliJ 2023.2 compatibility -->
-        <junit-jupiter.version>5.10.5</junit-jupiter.version>
+        <!-- JUnit version managed by Spring Boot parent (5.12+) -->
     </properties>
     <dependencies>
         <dependency>

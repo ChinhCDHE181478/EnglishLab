@@ -8,6 +8,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
@@ -69,8 +70,9 @@ public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
         item.setRubric(rubric);
         item.setInstructions(instructions);
         item.setUiConfigJson("{\"prompt\":\"" + prompt + "\",\"responseType\":\"TEXT\"}");
-        item.setMaxScore(BigDecimal.TEN);
+        item.setMaxScore(IeltsBandScale.MAX);
         item.setStatus("PUBLISHED");
+        item.synchronizeContentData();
         assessmentBankItemRepository.save(item);
     }
 

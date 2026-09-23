@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -78,15 +79,21 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
     @Override
     public void reconcilePendingRecordings() {
         if (!virtualMeetingService.isEnabled()) return;
+        LocalDate cutoffDate = LocalDate.now();
+        LocalTime cutoffTime = LocalTime.now();
         LocalDateTime retryBefore = LocalDateTime.now().minusSeconds(
                 Math.max(30, googleMeetProperties.getRecordingSyncDelayMs() / 1000));
         classScheduleRepository.findGoogleMeetRecordingsPendingSync(
-                        EnumSet.of(RecordingSyncStatus.PROCESSING, RecordingSyncStatus.FAILED),
+                        EnumSet.of(
+                                RecordingSyncStatus.NOT_AVAILABLE,
+                                RecordingSyncStatus.PROCESSING,
+                                RecordingSyncStatus.FAILED
+                        ),
                         Math.max(1, googleMeetProperties.getRecordingMaxSyncAttempts()),
-                        retryBefore)
+                        retryBefore,
+                        cutoffDate,
+                        cutoffTime)
                 .stream()
-                .filter(schedule -> schedule.getSessionDate() == null
-                        || !schedule.getSessionDate().isAfter(LocalDate.now()))
                 .limit(50)
                 .forEach(schedule -> {
                     syncGoogleMeetRecording(schedule);

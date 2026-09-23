@@ -197,6 +197,12 @@ export default function MyClassroomDetailPage() {
   const [actionMessage, setActionMessage] = useState('');
 
   useEffect(() => {
+    if (!actionMessage) return undefined;
+    const timer = setTimeout(() => setActionMessage(''), 3000);
+    return () => clearTimeout(timer);
+  }, [actionMessage]);
+
+  useEffect(() => {
     if (requestedTab !== 'curriculum') return;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -204,6 +210,10 @@ export default function MyClassroomDetailPage() {
       return next;
     }, { replace: true, preventScrollReset: true });
   }, [requestedTab, setSearchParams]);
+
+  useEffect(() => {
+    setActionMessage('');
+  }, [activeTab]);
   const [meetMessage, setMeetMessage] = useState('');
   const [disputeForm, setDisputeForm] = useState({ attendanceId: null, reason: '' });
   const [submittingDispute, setSubmittingDispute] = useState(false);
@@ -1081,6 +1091,11 @@ export default function MyClassroomDetailPage() {
                             Xem lại ghi hình
                           </a>
                         )}
+                        {!session.recordingUrl && session.recordingStatus === 'READY' && (
+                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">
+                            <Video className="h-4 w-4" /> Bản ghi chưa được công bố
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1343,23 +1358,29 @@ export default function MyClassroomDetailPage() {
                             Xem đánh giá của giảng viên
                           </button>
                         ) : null}
-                        {usesInteractiveHomeworkWorkspace(item) ? (
-                          <button
-                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] ${item.overdue ? 'opacity-40 cursor-not-allowed' : ''
-                              }`}
-                            disabled={item.overdue}
-                            onClick={() => !item.overdue && openInteractiveHomework(item)}
-                            title={item.overdue ? 'Bài tập đã quá hạn nộp' : undefined}
-                            type="button"
-                          >
-                            {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                            {item.overdue
-                              ? 'Đã quá hạn nộp'
-                              : item.activityType === 'FLASHCARD_REVIEW'
+                        {usesInteractiveHomeworkWorkspace(item) ? (() => {
+                          const isFlashcardReview = item.activityType === 'FLASHCARD_REVIEW';
+                          // Ôn flashcard is a practice activity with no submission, so a deadline
+                          // never blocks it — only "Nộp bài" style workspaces can be overdue.
+                          const isOverdue = item.overdue && !isFlashcardReview;
+                          return (
+                            <button
+                              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] ${isOverdue ? 'opacity-40 cursor-not-allowed' : ''
+                                }`}
+                              disabled={isOverdue}
+                              onClick={() => !isOverdue && openInteractiveHomework(item)}
+                              title={isOverdue ? 'Bài tập đã quá hạn nộp' : undefined}
+                              type="button"
+                            >
+                              {isFlashcardReview ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                              {isFlashcardReview
                                 ? 'Học flashcard theo unit'
-                                : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
-                          </button>
-                        ) : (
+                                : isOverdue
+                                  ? 'Đã quá hạn nộp'
+                                  : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
+                            </button>
+                          );
+                        })() : (
                           <button
                             className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 ${item.overdue
                               ? 'border border-rose-200 bg-rose-50 text-rose-400 opacity-60 cursor-not-allowed'
@@ -1982,21 +2003,24 @@ export default function MyClassroomDetailPage() {
             </div>
 
             {/* Action Notification message */}
-            {actionMessage && (
-              <div
-                className={`rounded-2xl border p-4 text-xs font-semibold flex items-center gap-2 ${actionMessage.includes('thành công')
-                  ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                  : 'bg-rose-50 border-rose-100 text-rose-800'
-                  }`}
-              >
-                {actionMessage.includes('thành công') ? (
-                  <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
-                ) : (
-                  <AlertCircle className="h-4.5 w-4.5 text-rose-600" />
-                )}
-                <p>{actionMessage}</p>
-              </div>
-            )}
+            {actionMessage && (() => {
+              const isSuccess = actionMessage.includes('thành công') || actionMessage.includes('hoàn thành') || actionMessage.includes('Đã nộp') || actionMessage.includes('Đã gửi');
+              return (
+                <div
+                  className={`rounded-2xl border p-4 text-xs font-semibold flex items-center gap-2 ${isSuccess
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                    : 'bg-rose-50 border-rose-100 text-rose-800'
+                    }`}
+                >
+                  {isSuccess ? (
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
+                  ) : (
+                    <AlertCircle className="h-4.5 w-4.5 text-rose-600" />
+                  )}
+                  <p>{actionMessage}</p>
+                </div>
+              );
+            })()}
 
             {/* Tab Content Panel wrapper */}
             <section className={activeTab === 'flashcards'

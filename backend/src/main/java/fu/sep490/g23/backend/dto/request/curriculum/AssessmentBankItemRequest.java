@@ -37,11 +37,11 @@ public class AssessmentBankItemRequest {
     private String uiConfigJson;
 
     @DecimalMin(value = "0.0")
-    @DecimalMax(value = "100.0")
+    @DecimalMax(value = "990.0")
     private BigDecimal passingScore;
 
     @DecimalMin(value = "0.0")
-    @DecimalMax(value = "100.0")
+    @DecimalMax(value = "990.0")
     private BigDecimal maxScore;
 
     @Min(0)

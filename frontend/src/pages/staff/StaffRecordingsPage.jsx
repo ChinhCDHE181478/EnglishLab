@@ -14,15 +14,14 @@ import {
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import { getClassroomSessionTitle } from '../../utils/classroomHelpers';
 import {
   EMPTY_STATE_CLASS,
-  ERROR_NOTICE_CLASS,
   FIELD_CLASS,
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
-  SUCCESS_NOTICE_CLASS,
 } from '../../utils/formStyles';
 
 const RECORDING_STATUS = {
@@ -99,6 +98,7 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
     if (!classroomId) return;
     setLoadingSessions(true);
     setError('');
+    setSuccess('');
     try {
       const sessionList = await classroomApi.getManagerRecordingSessions(classroomId);
       setSessionData(sessionList);
@@ -107,6 +107,12 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
     } finally {
       setLoadingSessions(false);
     }
+  };
+
+  const refreshSessionData = async () => {
+    if (!selectedId) return;
+    const sessionList = await classroomApi.getManagerRecordingSessions(selectedId);
+    setSessionData(sessionList);
   };
 
   useEffect(() => {
@@ -148,6 +154,11 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
     try {
       const session = await classroomApi.syncSessionRecording(sessionId);
       replaceSession(session);
+      try {
+        await refreshSessionData();
+      } catch {
+        // The mutation response already contains the updated session.
+      }
       if (session.recordingStatus === 'READY') {
         setSuccess('Đã nhận bản ghi từ Google Meet. Hãy kiểm tra rồi công bố cho học viên.');
       } else if (session.recordingStatus === 'PROCESSING') {
@@ -169,6 +180,11 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
     try {
       const session = await classroomApi.updateSessionRecording(sessionId, sessionForms[sessionId]);
       replaceSession(session);
+      try {
+        await refreshSessionData();
+      } catch {
+        // Keep the mutation response visible even if the background refresh fails.
+      }
       setSuccess(session.recordingVisible
         ? 'Đã công bố bản ghi cho học viên.'
         : 'Đã lưu bản ghi ở chế độ chưa công bố.');
@@ -189,10 +205,32 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
     }));
   };
 
+  const updateManualRecordingUrl = (sessionId, recordingUrl) => {
+    setSessionForms((current) => {
+      const currentForm = current[sessionId] || {};
+      const isNewRecording = !currentForm.recordingUrl?.trim() && recordingUrl.trim();
+      return {
+        ...current,
+        [sessionId]: {
+          ...currentForm,
+          recordingUrl,
+          recordingVisible: recordingUrl.trim()
+            ? (isNewRecording ? true : currentForm.recordingVisible)
+            : false,
+        },
+      };
+    });
+  };
+
   return (
     <div className="space-y-5">
-      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
-      {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast
+        message={success}
+        onClose={() => setSuccess('')}
+        title="Đã cập nhật bản ghi"
+        tone="success"
+      />
 
       <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {embeddedInClassroom ? (
@@ -320,10 +358,7 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                     <input
                       value={form.recordingUrl || ''}
-                      onChange={(event) => setSessionForms((current) => ({
-                        ...current,
-                        [session.id]: { ...current[session.id], recordingUrl: event.target.value },
-                      }))}
+                      onChange={(event) => updateManualRecordingUrl(session.id, event.target.value)}
                       placeholder="https://..."
                       aria-label="Đường dẫn bản ghi thủ công"
                       className={FIELD_CLASS}

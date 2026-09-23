@@ -19,28 +19,29 @@ export const HOMEWORK_GRADING_MODES = [
 export const HOMEWORK_ACTIVITY_TYPES = [
   {
     value: 'TEXT_RESPONSE',
-    label: 'Làm bài trực tiếp',
+    label: 'Bài thực hành',
     description: 'Học viên viết hoặc ghi âm câu trả lời ngay trên hệ thống, không cần nộp tệp.',
   },
   {
     value: 'FILE_RESPONSE',
-    label: 'Nộp file',
+    label: 'Bài nộp file',
     description: 'Giáo viên giao đề/tài liệu, học viên tải file bài làm lên để giáo viên nhận lại file.',
   },
   {
     value: 'SKILL_PRACTICE',
-    label: 'Bài trắc nghiệm',
+    label: 'Bài luyện tập',
     description: 'Học viên trả lời từng câu; hệ thống đối chiếu đáp án và tính điểm ngay khi nộp.',
   },
   {
     value: 'FLASHCARD_REVIEW',
-    label: 'Ôn flashcard theo unit',
+    label: 'Ôn tập Flashcard',
     description: 'Bài giao yêu cầu học viên ôn bộ flashcard của unit/chương trình học.',
   },
   {
     value: 'MIXED',
     label: 'Bài tổng hợp',
     description: 'Học viên làm bài trực tiếp trên hệ thống và nhận thêm tệp đề hoặc tài liệu giáo viên đính kèm.',
+    hidden: true,
   },
 ];
 
@@ -86,7 +87,7 @@ export const getHomeworkGradingModeLabel = (mode) => (
 );
 
 export const getHomeworkActivityTypeLabel = (type) => (
-  HOMEWORK_ACTIVITY_TYPES.find((item) => item.value === type)?.label || 'Làm bài trực tiếp'
+  HOMEWORK_ACTIVITY_TYPES.find((item) => item.value === type)?.label || 'Bài thực hành'
 );
 
 export const isAiGradedHomework = (homework) => homework?.gradingMode === 'AI';

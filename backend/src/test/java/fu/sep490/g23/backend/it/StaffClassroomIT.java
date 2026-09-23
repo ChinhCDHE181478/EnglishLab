@@ -50,7 +50,8 @@ public class StaffClassroomIT {
         JsonNode arr = mapper().readTree(progs.getResponse().getContentAsString());
         assertFalse(arr.isEmpty(), "A published training program fixture is required");
         long pid = arr.get(0).path("id").asLong();
-        LocalDate start = LocalDate.now().plusDays(21);
+        LocalDate start = LocalDate.now().plusDays(21)
+                .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
         LocalDate end = start.plusDays(28);
         String body = """
                 {
@@ -87,7 +88,9 @@ public class StaffClassroomIT {
                             .header("Authorization", bearer(token)))
                     .andExpect(status().isOk()).andReturn();
             JsonNode candidate = mapper().readTree(d.getResponse().getContentAsString());
-            if (candidate.path("primaryTeacherId").canConvertToLong()) {
+            String cs = candidate.path("classroomStatus").asText("");
+            if (candidate.path("primaryTeacherId").canConvertToLong()
+                    && !cs.equals("COMPLETED") && !cs.equals("CLOSED") && !cs.equals("CANCELLED")) {
                 oid = o.path("id").asLong();
                 detail = candidate;
                 break;
@@ -109,7 +112,10 @@ public class StaffClassroomIT {
         copyIfPresent(detail, body, "roomId", "roomId");
         copyIfPresent(detail, body, "offlineAddress", "offlineAddress");
         copyIfPresent(detail, body, "price", "price");
-        copyIfPresent(detail, body, "salePrice", "salePrice");
+        // only copy salePrice when it does not exceed price (service validates salePrice <= price)
+        double price = detail.path("price").asDouble(Double.MAX_VALUE);
+        double salePrice = detail.path("salePrice").asDouble(-1);
+        if (salePrice >= 0 && salePrice <= price) copyIfPresent(detail, body, "salePrice", "salePrice");
         mockMvc.perform(put("/api/staff/classrooms/" + oid)
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -123,7 +129,7 @@ public class StaffClassroomIT {
     }
 
     @Test
-    @DisplayName("IT_CLASS_04")
+    @DisplayName("IT_CLASS_06")
     void itClass04RejectsIncompletePrelaunchPlan() throws Exception {
         String token = login(mockMvc, STAFF, PASSWORD);
         JsonNode items = mapper().readTree(mockMvc.perform(get("/api/staff/classrooms")

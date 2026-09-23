@@ -250,7 +250,34 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
 
     @Override
     public void delete(Long homeworkId) {
-        homeworkRepository.delete(findHomework(homeworkId));
+        ClassroomHomework homework = findHomework(homeworkId);
+        Long offeringId = homework.getClassSection().getId();
+        List<ClassroomHomeworkSubmission> submissions = submissionRepository.findByHomeworkId(homeworkId);
+        Set<Long> affectedStudentIds = submissions.stream()
+                .map(submission -> submission.getStudent().getId())
+                .collect(Collectors.toSet());
+
+        if (!submissions.isEmpty()) {
+            submissionRepository.deleteAll(submissions);
+        }
+        homeworkRepository.delete(homework);
+
+        List<ClassroomHomework> remainingHomeworks = homeworkRepository
+                .findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
+                .filter(item -> !item.getId().equals(homeworkId))
+                .toList();
+
+        for (Long studentId : affectedStudentIds) {
+            BigDecimal average = homeworkScoreCalculator.calculateAverage(
+                    remainingHomeworks,
+                    submissionRepository.findAllForStudentGradebook(offeringId, studentId)
+            );
+            gradebookEntryRepository.findByClassSectionIdAndStudentId(offeringId, studentId)
+                    .ifPresent(entry -> {
+                        entry.setHomeworkScore(average);
+                        gradebookEntryRepository.save(entry);
+                    });
+        }
     }
 
     /**
@@ -547,20 +574,20 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (!aiEnabled) {
             return;
         }
-        if (assessment == null) {
-            throw new RuntimeException("Chấm điểm AI chỉ dùng được khi chọn đề Writing hoặc Speaking của hệ thống.");
-        }
-        if (assessment.getSkill() != AssessmentSkill.SPEAKING && assessment.getSkill() != AssessmentSkill.WRITING) {
+        // AI grading only depends on the homework's own skill and a matching rubric — it does not
+        // require the content to come from the assessment bank. homework.getSkill() is already
+        // resolved above from either the bank item or the self-authored request.getSkill().
+        if (homework.getSkill() != AssessmentSkill.SPEAKING && homework.getSkill() != AssessmentSkill.WRITING) {
             throw new RuntimeException("Chấm điểm AI chỉ hỗ trợ đề Writing hoặc Speaking.");
         }
         Long rubricId = request.getRubricId() != null
                 ? request.getRubricId()
-                : assessment.getRubric() == null ? null : assessment.getRubric().getId();
+                : assessment != null && assessment.getRubric() != null ? assessment.getRubric().getId() : null;
         if (rubricId == null) {
-            throw new RuntimeException("Đề đã chọn chưa có bộ tiêu chí chấm AI.");
+            throw new RuntimeException("Vui lòng chọn bộ tiêu chí chấm AI.");
         }
         AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(rubricId);
-        if (rubric.getSkill() != assessment.getSkill()) {
+        if (rubric.getSkill() != homework.getSkill()) {
             throw new RuntimeException("Bộ tiêu chí không khớp với kỹ năng của đề.");
         }
         homework.setRubric(rubric);

@@ -33,7 +33,9 @@ const createQuestion = (number = 1) => ({
 });
 
 const createGroup = (number = 1) => ({
-  title: `Câu ${number}`,
+  // "Nhóm câu N" on purpose, not "Câu N" — a group can (and usually does) hold several questions,
+  // so a name that reads like a single question is misleading the moment a teacher adds a second one.
+  title: `Nhóm câu ${number}`,
   instructions: '',
   descriptionHtml: '',
   passageHtml: '',
@@ -770,15 +772,10 @@ export default function AssessmentExamBuilder({ assessment, inline = false, onCh
                 ) : null}
                 <div className="md:col-span-2">
                   <OptionalFieldsSection
-                    defaultExpanded={Boolean(config.transcript || (config.rules || []).length)}
+                    defaultExpanded={Boolean((config.rules || []).length)}
                     label="Thông tin bổ sung của đề"
                   >
                     <div className="grid gap-3 md:grid-cols-2">
-                      {skill === 'LISTENING' ? (
-                        <div className="md:col-span-2">
-                          <TextAreaField label="Transcript" value={config.transcript || ''} onChange={(value) => setConfig((current) => ({ ...current, transcript: value }))} />
-                        </div>
-                      ) : null}
                       <div className="md:col-span-2">
                         <TextAreaField
                           label="Quy định trong lúc làm bài"
@@ -836,24 +833,33 @@ export default function AssessmentExamBuilder({ assessment, inline = false, onCh
                       {(part.questionGroups || []).map((group, groupIndex) => (
                         <div key={`${part.key}-${groupIndex}`} className="rounded-2xl border border-[#eadcdc] bg-[#fffafb] p-4">
                           <div className="grid gap-3 md:grid-cols-[1fr_240px_auto]">
-                            <Field label="Tên nhóm câu hỏi" value={group.title || ''} onChange={(value) => updateGroup(partIndex, groupIndex, { title: value })} />
-                            <SelectField label="Dạng câu hỏi" value={group.type} options={GROUP_TYPES} onChange={(value) => updateGroup(partIndex, groupIndex, {
-                              type: value,
-                              questions: value === 'multi_select_letters' ? [] : (group.questions?.length ? group.questions : [createQuestion(nextQuestionNumber(config.parts))]),
-                              questionNumbers: value === 'multi_select_letters' ? (group.questionNumbers?.length ? group.questionNumbers : [nextQuestionNumber(config.parts)]) : [],
-                            })} />
+                            <Field label="Tên nhóm câu hỏi (có thể gồm nhiều câu)" value={group.title || ''} onChange={(value) => updateGroup(partIndex, groupIndex, { title: value })} />
+                            <SelectField label="Dạng câu hỏi" value={group.type} options={GROUP_TYPES} onChange={(value) => {
+                              // "Chọn nhiều đáp án" stores its number in questionNumbers instead of
+                              // questions, so switching to/from it used to look up a brand-new "next"
+                              // number instead of keeping the one this group already had — bumping
+                              // "Số câu" by 1 for no reason. Reuse the group's own current number instead.
+                              const preservedNumber = group.questions?.[0]?.number
+                                ?? group.questionNumbers?.[0]
+                                ?? nextQuestionNumber(config.parts);
+                              updateGroup(partIndex, groupIndex, {
+                                type: value,
+                                questions: value === 'multi_select_letters' ? [] : (group.questions?.length ? group.questions : [createQuestion(preservedNumber)]),
+                                questionNumbers: value === 'multi_select_letters' ? (group.questionNumbers?.length ? group.questionNumbers : [preservedNumber]) : [],
+                              });
+                            }} />
                             <IconButton label="Xóa nhóm" onClick={() => removeGroup(partIndex, groupIndex)}><Trash2 className="h-4 w-4" /></IconButton>
                           </div>
                           <div className="mt-3">
-                            <Field label="Hướng dẫn" value={group.instructions || ''} onChange={(value) => updateGroup(partIndex, groupIndex, { instructions: value })} />
+                            <TextAreaField label="Hướng dẫn (có thể viết cả form/biểu mẫu mẫu nhiều dòng)" value={group.instructions || ''} onChange={(value) => updateGroup(partIndex, groupIndex, { instructions: value })} />
                           </div>
+                          {skill === 'READING' || config.examType === 'TOEIC' ? (
                           <div className="mt-3">
                             <OptionalFieldsSection
                               defaultExpanded={Boolean(
                                 (config.examType === 'TOEIC' && group.audioUrl)
-                                || group.hideOptionText
+                                || ((skill === 'READING' || (skill === 'LISTENING' && config.examType === 'TOEIC')) && group.hideOptionText)
                                 || (config.examType === 'TOEIC' && group.perQuestionAudio)
-                                || group.descriptionHtml
                                 || group.passageHtml
                               )}
                               label="Thông tin bổ sung của nhóm"
@@ -870,16 +876,19 @@ export default function AssessmentExamBuilder({ assessment, inline = false, onCh
                                     />
                                   </div>
                                 ) : null}
+                                {skill === 'READING' || config.examType === 'TOEIC' ? (
                                 <div className="flex flex-wrap items-end gap-4 pb-1">
-                                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
-                                    <input
-                                      checked={Boolean(group.hideOptionText)}
-                                      className="h-4 w-4 accent-[#4b0009]"
-                                      onChange={(event) => updateGroup(partIndex, groupIndex, { hideOptionText: event.target.checked })}
-                                      type="checkbox"
-                                    />
-                                    Ẩn chữ lựa chọn (A/B/C/D)
-                                  </label>
+                                  {(skill === 'READING' || (skill === 'LISTENING' && config.examType === 'TOEIC')) ? (
+                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
+                                      <input
+                                        checked={Boolean(group.hideOptionText)}
+                                        className="h-4 w-4 accent-[#4b0009]"
+                                        onChange={(event) => updateGroup(partIndex, groupIndex, { hideOptionText: event.target.checked })}
+                                        type="checkbox"
+                                      />
+                                      Ẩn chữ lựa chọn (A/B/C/D)
+                                    </label>
+                                  ) : null}
                                   {skill === 'LISTENING' && config.examType === 'TOEIC' ? (
                                     <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
                                       <input
@@ -892,13 +901,7 @@ export default function AssessmentExamBuilder({ assessment, inline = false, onCh
                                     </label>
                                   ) : null}
                                 </div>
-                                <div className="md:col-span-2">
-                                  <TextAreaField
-                                    label="Nội dung dẫn nhập hoặc biểu mẫu"
-                                    value={group.descriptionHtml || ''}
-                                    onChange={(value) => updateGroup(partIndex, groupIndex, { descriptionHtml: value })}
-                                  />
-                                </div>
+                                ) : null}
                                 {skill === 'READING' && config.examType === 'TOEIC' ? (
                                   <div className="md:col-span-2">
                                     <RichTextEditor
@@ -914,6 +917,7 @@ export default function AssessmentExamBuilder({ assessment, inline = false, onCh
                               </div>
                             </OptionalFieldsSection>
                           </div>
+                          ) : null}
 
                           {group.type === 'multi_select_letters' ? (
                             <MultiSelectEditor
@@ -923,7 +927,6 @@ export default function AssessmentExamBuilder({ assessment, inline = false, onCh
                               onAnswerKeyChange={setAnswerKey}
                               onChange={(patch) => updateGroup(partIndex, groupIndex, patch)}
                               onOptionChange={(optionIndex, value) => updateOption(partIndex, groupIndex, 0, optionIndex, value, true)}
-                              skill={skill}
                             />
                           ) : (
                             <div className="mt-4 space-y-3">
@@ -1034,7 +1037,7 @@ function WritingConfigEditor({ compact = false, config, onChange }) {
           <div className="mt-4">
             <RichTextEditor
               helperText="Có thể dùng tiêu đề, in đậm, danh sách và liên kết. Nội dung sẽ hiển thị đúng định dạng cho học viên."
-              label="Prompt"
+              label="Đề bài"
               value={task.promptHtml || getWritingPromptHtml(task)}
               onChange={(promptHtml) => updateTask(taskIndex, {
                 promptHtml,
@@ -1046,26 +1049,12 @@ function WritingConfigEditor({ compact = false, config, onChange }) {
             />
           </div>
           <div className="mt-4">
-            <OptionalFieldsSection
-              defaultExpanded={Boolean(task.imageUrl || task.rubric || task.sampleAnswer)}
-              label="Thông tin bổ sung của task"
-            >
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <MediaUploadField
-                    accept=".jpg,.jpeg,.png"
-                    hint="Dùng cho biểu đồ hoặc hình minh họa của đề, tối đa 20 MB."
-                    label="Ảnh minh họa hoặc biểu đồ"
-                    onChange={(imageUrl) => updateTask(taskIndex, { imageUrl })}
-                    value={task.imageUrl || ''}
-                  />
-                </div>
-                <div className="md:col-span-2 grid gap-3 md:grid-cols-2">
-                  <TextAreaField label="Tiêu chí chấm riêng" value={task.rubric || ''} onChange={(value) => updateTask(taskIndex, { rubric: value })} />
-                  <TextAreaField label="Bài mẫu" value={task.sampleAnswer || ''} onChange={(value) => updateTask(taskIndex, { sampleAnswer: value })} />
-                </div>
-              </div>
-            </OptionalFieldsSection>
+            <MediaUploadField
+              accept=".jpg,.jpeg,.png"
+              label="Ảnh đề bài / biểu đồ / hình minh họa"
+              onChange={(imageUrl) => updateTask(taskIndex, { imageUrl })}
+              value={task.imageUrl || ''}
+            />
           </div>
         </section>
       ))}
@@ -1200,21 +1189,25 @@ function SpeakingConfigEditor({ compact = false, config, onChange }) {
                           label="Media câu hỏi"
                         >
                           <div className="grid gap-3 md:grid-cols-2">
-                            <Field
-                              label="Liên kết video minh họa"
+                            <MediaUploadField
+                              accept=".mp4,.webm"
+                              hint="MP4 hoặc WEBM, tối đa 20 MB"
+                              label="Video minh họa"
                               value={prompt.videoUrl || ''}
-                              onChange={(value) => updatePart(variantIndex, partIndex, {
+                              onChange={(videoUrl) => updatePart(variantIndex, partIndex, {
                                 prompts: (part.prompts || []).map((item, index) => (
-                                  index === promptIndex ? { ...item, videoUrl: value } : item
+                                  index === promptIndex ? { ...item, videoUrl } : item
                                 )),
                               })}
                             />
-                            <Field
-                              label="Liên kết audio câu hỏi"
+                            <MediaUploadField
+                              accept=".mp3,.m4a,.wav,.webm"
+                              hint="MP3, M4A, WAV hoặc WEBM, tối đa 20 MB"
+                              label="Audio câu hỏi"
                               value={prompt.audioUrl || ''}
-                              onChange={(value) => updatePart(variantIndex, partIndex, {
+                              onChange={(audioUrl) => updatePart(variantIndex, partIndex, {
                                 prompts: (part.prompts || []).map((item, index) => (
-                                  index === promptIndex ? { ...item, audioUrl: value } : item
+                                  index === promptIndex ? { ...item, audioUrl } : item
                                 )),
                               })}
                             />
@@ -1226,8 +1219,8 @@ function SpeakingConfigEditor({ compact = false, config, onChange }) {
                 </div>
                 <div className="mt-3">
                   <OptionalFieldsSection
-                    defaultExpanded={Boolean(part.cueCardTitle || (part.cueCardBullets || []).length || part.rubric)}
-                    label="Thiết lập bổ sung của phần"
+                    defaultExpanded={Boolean(part.cueCardTitle || (part.cueCardBullets || []).length)}
+                    label="Thẻ gợi ý (cue card)"
                   >
                     <div className="grid gap-3 md:grid-cols-2">
                       <Field label="Tiêu đề cue card" value={part.cueCardTitle || ''} onChange={(value) => updatePart(variantIndex, partIndex, { cueCardTitle: value })} />
@@ -1238,9 +1231,6 @@ function SpeakingConfigEditor({ compact = false, config, onChange }) {
                           cueCardBullets: value.split('\n').map((line) => line.trim()).filter(Boolean),
                         })}
                       />
-                      <div className="md:col-span-2">
-                        <TextAreaField label="Tiêu chí chấm riêng" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />
-                      </div>
                     </div>
                   </OptionalFieldsSection>
                 </div>
@@ -1286,13 +1276,11 @@ function buildFooterSummary(config, skill, questionCount) {
 }
 
 function QuestionEditor({ answer, examType, groupType, onAnswerChange, onChange, onNumberChange, onOptionChange, onRemove, question, skill }) {
-  const evidenceLabel = skill === 'READING' ? 'Evidence đoạn/dòng' : 'Mốc audio/transcript';
   const supportsQuestionImage = skill === 'READING' || (skill === 'LISTENING' && examType === 'TOEIC');
   const supportsQuestionAudio = skill === 'LISTENING' && examType === 'TOEIC';
+  const showOptionalSection = groupType === 'text' || supportsQuestionImage || supportsQuestionAudio;
   const hasOptionalContent = Boolean(
     question.promptAfter
-    || question.evidence
-    || question.explanation
     || question.imageUrl
     || question.audioUrl
   );
@@ -1322,45 +1310,42 @@ function QuestionEditor({ answer, examType, groupType, onAnswerChange, onChange,
           <SelectField label="Đáp án đúng" value={Array.isArray(answer) ? answer[0] || '' : answer || ''} options={(question.options || []).map((option) => ({ label: option.value, value: option.value }))} onChange={onAnswerChange} />
         </div>
       )}
-      <div className="mt-3">
-        <OptionalFieldsSection defaultExpanded={hasOptionalContent} label="Thông tin bổ sung của câu hỏi">
-          <div className="grid gap-3 md:grid-cols-2">
-            {groupType === 'text' ? (
-              <Field label="Nội dung sau ô trả lời" value={question.promptAfter || ''} onChange={(value) => onChange({ promptAfter: value })} />
-            ) : null}
-            <Field label={evidenceLabel} value={question.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
-            <div className="md:col-span-2">
-              <TextAreaField label="Giải thích" value={question.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
+      {showOptionalSection ? (
+        <div className="mt-3">
+          <OptionalFieldsSection defaultExpanded={hasOptionalContent} label="Thông tin bổ sung của câu hỏi">
+            <div className="grid gap-3 md:grid-cols-2">
+              {groupType === 'text' ? (
+                <Field label="Nội dung sau ô trả lời" value={question.promptAfter || ''} onChange={(value) => onChange({ promptAfter: value })} />
+              ) : null}
+              {supportsQuestionImage ? (
+                <MediaUploadField
+                  accept=".jpg,.jpeg,.png"
+                  hint="JPG hoặc PNG, tối đa 20 MB"
+                  label="Ảnh minh họa câu hỏi"
+                  onChange={(imageUrl) => onChange({ imageUrl })}
+                  value={question.imageUrl || ''}
+                />
+              ) : null}
+              {supportsQuestionAudio ? (
+                <MediaUploadField
+                  accept=".mp3,.m4a,.wav,.webm"
+                  hint="Chỉ dùng khi câu TOEIC này có audio riêng."
+                  label="Audio của câu hỏi"
+                  onChange={(audioUrl) => onChange({ audioUrl })}
+                  value={question.audioUrl || ''}
+                />
+              ) : null}
             </div>
-            {supportsQuestionImage ? (
-              <MediaUploadField
-                accept=".jpg,.jpeg,.png"
-                hint="JPG hoặc PNG, tối đa 20 MB"
-                label="Ảnh minh họa câu hỏi"
-                onChange={(imageUrl) => onChange({ imageUrl })}
-                value={question.imageUrl || ''}
-              />
-            ) : null}
-            {supportsQuestionAudio ? (
-              <MediaUploadField
-                accept=".mp3,.m4a,.wav,.webm"
-                hint="Chỉ dùng khi câu TOEIC này có audio riêng."
-                label="Audio của câu hỏi"
-                onChange={(audioUrl) => onChange({ audioUrl })}
-                value={question.audioUrl || ''}
-              />
-            ) : null}
-          </div>
-        </OptionalFieldsSection>
-      </div>
+          </OptionalFieldsSection>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function MultiSelectEditor({ answerKey, group, onAnswerKeyChange, onAnswerNumberChange, onChange, onOptionChange, skill }) {
+function MultiSelectEditor({ answerKey, group, onAnswerKeyChange, onAnswerNumberChange, onChange, onOptionChange }) {
   const number = Number(group.questionNumbers?.[0] || 1);
   const answer = Array.isArray(answerKey[String(number)]) ? answerKey[String(number)] : [];
-  const evidenceLabel = skill === 'READING' ? 'Evidence đoạn/dòng' : 'Mốc audio/transcript';
   return (
     <div className="mt-4 rounded-xl border border-[#eadcdc] bg-white p-4">
       <div className="grid gap-3 md:grid-cols-2">
@@ -1387,17 +1372,6 @@ function MultiSelectEditor({ answerKey, group, onAnswerKeyChange, onAnswerNumber
             [String(number)]: value.split(',').map((item) => item.trim().toUpperCase()).filter(Boolean),
           }))}
         />
-      </div>
-      <div className="mt-3">
-        <OptionalFieldsSection
-          defaultExpanded={Boolean(group.evidence || group.explanation)}
-          label="Thông tin bổ sung của nhóm đáp án"
-        >
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label={evidenceLabel} value={group.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
-            <TextAreaField label="Giải thích" value={group.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
-          </div>
-        </OptionalFieldsSection>
       </div>
     </div>
   );
