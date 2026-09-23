@@ -73,7 +73,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
             String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
             specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("prompt")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.function("jsonb_extract_path_text", String.class, root.get("contentData"), criteriaBuilder.literal("prompt"))), pattern),
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("tags")), pattern)
             ));
         }
