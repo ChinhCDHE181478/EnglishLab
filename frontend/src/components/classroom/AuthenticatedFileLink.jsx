@@ -2,11 +2,23 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { downloadProtectedFile, isProtectedAttachmentUrl } from '../../utils/protectedFile';
 
+/**
+ * A flexible file link component.
+ *
+ * - `forceDownload={false}` (default): renders a plain <a> link that opens in a new tab.
+ *   Use this for navigation links, YouTube, Google Drive, etc.
+ *
+ * - `forceDownload={true}`: renders a <button> that always tries to download the file.
+ *   - Protected URLs (internal backend / R2 via proxy) → fetched through authenticated backend.
+ *   - External URLs → fetched directly as blob (CORS permitting), fallback to window.open.
+ *   Use this for homework attachments, classroom materials, any file you want saved to disk.
+ */
 export default function AuthenticatedFileLink({
   children,
   className = '',
   containerClassName = 'inline-flex',
   fileName = '',
+  forceDownload = false,
   title,
   url,
   ...rest
@@ -16,19 +28,28 @@ export default function AuthenticatedFileLink({
 
   if (!url) return null;
 
-  // Always render a button to intercept clicks and force downloads where possible.
+  // ── Link mode (default) ─────────────────────────────────────────────────────
+  if (!forceDownload) {
+    return (
+      <a className={className} href={url} rel="noreferrer" target="_blank" title={title} {...rest}>
+        {children}
+      </a>
+    );
+  }
 
+  // ── Download mode ───────────────────────────────────────────────────────────
   const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
     setError('');
     try {
       if (isProtectedAttachmentUrl(url)) {
+        // Internal / R2 via backend proxy — uses authenticated axiosClient
         await downloadProtectedFile(url, fileName);
       } else {
-        // Attempt to fetch public URL to force download
+        // External public URL — try direct fetch to force blob download
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.ok) throw new Error('fetch failed');
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
@@ -40,12 +61,8 @@ export default function AuthenticatedFileLink({
         window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
       }
     } catch {
-      if (!isProtectedAttachmentUrl(url)) {
-        // Fallback for public URLs if fetch fails (e.g., due to CORS)
-        window.open(url, '_blank');
-      } else {
-        setError('Không thể tải tệp hoặc bạn không có quyền truy cập.');
-      }
+      // Fallback: open in new tab so the user can still access the file
+      window.open(url, '_blank');
     } finally {
       setDownloading(false);
     }

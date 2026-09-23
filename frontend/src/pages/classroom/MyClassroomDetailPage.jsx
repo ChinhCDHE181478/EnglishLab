@@ -2674,6 +2674,7 @@ function LearnerRefList({
                     key={`${ref.type || 'material'}-${ref.id}`}
                     className="group block rounded-xl bg-white border border-gray-100 px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] hover:border-[#730014]/30 hover:bg-[#fff5f5]/5 transition duration-200 cursor-pointer"
                     containerClassName="block"
+                    forceDownload
                     url={ref.fileUrl}
                   >
                     <div className="flex items-start justify-between gap-1">
@@ -2830,6 +2831,7 @@ function HomeworkSubmissionForm({
             {homework.attachmentUrl && (
               <AuthenticatedFileLink
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
+                forceDownload
                 url={homework.attachmentUrl}
               >
                 <Paperclip className="h-4 w-4" />

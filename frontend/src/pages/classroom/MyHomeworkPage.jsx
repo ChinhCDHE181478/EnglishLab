@@ -591,6 +591,7 @@ export default function MyHomeworkPage() {
                             {item.attachmentUrl && (
                               <AuthenticatedFileLink
                                 className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
+                                forceDownload
                                 url={item.attachmentUrl}
                               >
                                 <Paperclip className="h-3.5 w-3.5 text-[#730014]" />
@@ -785,6 +786,7 @@ export default function MyHomeworkPage() {
               {selectedHomework.attachmentUrl && (
                 <AuthenticatedFileLink
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
+                  forceDownload
                   url={selectedHomework.attachmentUrl}
                 >
                   <Paperclip className="h-4 w-4" />
