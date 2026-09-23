@@ -210,6 +210,10 @@ export default function MyClassroomDetailPage() {
       return next;
     }, { replace: true, preventScrollReset: true });
   }, [requestedTab, setSearchParams]);
+
+  useEffect(() => {
+    setActionMessage('');
+  }, [activeTab]);
   const [meetMessage, setMeetMessage] = useState('');
   const [disputeForm, setDisputeForm] = useState({ attendanceId: null, reason: '' });
   const [submittingDispute, setSubmittingDispute] = useState(false);
@@ -1994,21 +1998,24 @@ export default function MyClassroomDetailPage() {
             </div>
 
             {/* Action Notification message */}
-            {actionMessage && (
-              <div
-                className={`rounded-2xl border p-4 text-xs font-semibold flex items-center gap-2 ${actionMessage.includes('thành công')
-                  ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                  : 'bg-rose-50 border-rose-100 text-rose-800'
-                  }`}
-              >
-                {actionMessage.includes('thành công') ? (
-                  <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
-                ) : (
-                  <AlertCircle className="h-4.5 w-4.5 text-rose-600" />
-                )}
-                <p>{actionMessage}</p>
-              </div>
-            )}
+            {actionMessage && (() => {
+              const isSuccess = actionMessage.includes('thành công') || actionMessage.includes('hoàn thành') || actionMessage.includes('Đã nộp') || actionMessage.includes('Đã gửi');
+              return (
+                <div
+                  className={`rounded-2xl border p-4 text-xs font-semibold flex items-center gap-2 ${isSuccess
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                    : 'bg-rose-50 border-rose-100 text-rose-800'
+                    }`}
+                >
+                  {isSuccess ? (
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
+                  ) : (
+                    <AlertCircle className="h-4.5 w-4.5 text-rose-600" />
+                  )}
+                  <p>{actionMessage}</p>
+                </div>
+              );
+            })()}
 
             {/* Tab Content Panel wrapper */}
             <section className={activeTab === 'flashcards'

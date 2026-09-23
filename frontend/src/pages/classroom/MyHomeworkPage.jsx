@@ -164,6 +164,10 @@ export default function MyHomeworkPage() {
 
   const isAuthenticated = Boolean(hasAccessToken() && getStoredUser());
 
+  useEffect(() => {
+    setActionMessage('');
+  }, [activeTab]);
+
   const loadHomework = async () => {
     setLoading(true);
     setError('');
@@ -403,7 +407,7 @@ export default function MyHomeworkPage() {
   return (
     <>
     <LearnerPageShell
-      description="Một nơi duy nhất cho bài soạn trên hệ thống, bài giao bằng file và hoạt động ôn tập theo unit."
+      description="Nơi tổng hợp và quản lý tất cả các bài tập, bài thực hành và hoạt động ôn luyện từ các lớp học của bạn."
       title="Bài tập của tôi"
     >
       {!isAuthenticated ? (
@@ -481,24 +485,27 @@ export default function MyHomeworkPage() {
             </section>
 
             {/* Notification alert */}
-            {actionMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`rounded-xl border p-4 text-xs font-semibold flex items-center gap-2 ${
-                  actionMessage.includes('thành công')
-                    ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                    : 'bg-rose-50 border-rose-100 text-rose-800'
-                }`}
-              >
-                {actionMessage.includes('thành công') ? (
-                  <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
-                ) : (
-                  <AlertCircle className="h-4.5 w-4.5 text-rose-600" />
-                )}
-                <p>{actionMessage}</p>
-              </motion.div>
-            )}
+            {actionMessage && (() => {
+              const isSuccess = actionMessage.includes('thành công') || actionMessage.includes('hoàn thành') || actionMessage.includes('Đã nộp') || actionMessage.includes('Đã gửi');
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`rounded-xl border p-4 text-xs font-semibold flex items-center gap-2 ${
+                    isSuccess
+                      ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                      : 'bg-rose-50 border-rose-100 text-rose-800'
+                  }`}
+                >
+                  {isSuccess ? (
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
+                  ) : (
+                    <AlertCircle className="h-4.5 w-4.5 text-rose-600" />
+                  )}
+                  <p>{actionMessage}</p>
+                </motion.div>
+              );
+            })()}
 
             {/* Premium Homework Card Grid */}
             {/* Premium Homework Card Grid */}
