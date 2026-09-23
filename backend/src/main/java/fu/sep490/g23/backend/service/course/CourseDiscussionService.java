@@ -25,6 +25,10 @@ public interface CourseDiscussionService {
 
     CourseDiscussionReplyResponse createReply(Long threadId, CourseDiscussionReplyRequest request, String email);
 
+    void deleteThread(Long threadId, String email);
+
+    void deleteReply(Long replyId, String email);
+
     CourseDiscussionReplyResponse toggleHelpful(Long replyId, String email);
 
     CourseDiscussionThreadResponse toggleThreadReaction(Long threadId, CourseDiscussionReactionRequest request, String email);

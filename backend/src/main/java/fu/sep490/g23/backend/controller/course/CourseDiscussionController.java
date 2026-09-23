@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -92,6 +93,24 @@ public class CourseDiscussionController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(discussionService.createReply(threadId, request, authentication.getName()));
+    }
+
+    @DeleteMapping("/api/student/online-courses/discussions/{threadId}")
+    public ResponseEntity<Void> deleteThread(
+            @PathVariable Long threadId,
+            Authentication authentication
+    ) {
+        discussionService.deleteThread(threadId, authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/api/student/online-courses/discussions/replies/{replyId}")
+    public ResponseEntity<Void> deleteReply(
+            @PathVariable Long replyId,
+            Authentication authentication
+    ) {
+        discussionService.deleteReply(replyId, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/api/student/online-courses/discussions/replies/{replyId}/helpful")

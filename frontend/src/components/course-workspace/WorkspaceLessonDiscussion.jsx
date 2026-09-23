@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, MessageCircle, Send } from 'lucide-react';
+import { Loader2, MessageCircle, Send, Trash2 } from 'lucide-react';
 import courseApi from '../../api/courseApi';
+import { getStoredUser } from '../../utils/auth';
 import Pagination from '../ui/Pagination';
+import { useAppDialog } from '../ui/AppDialog';
 import {
   ReactionButton,
   ReactionSummary,
@@ -25,7 +27,11 @@ const formatDate = (value) =>
     ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
     : '';
 
+const isSameId = (left, right) => String(left || '') === String(right || '');
+
 const WorkspaceLessonDiscussion = ({ courseId, lessonId, moduleId = null, lessonOnly = false, canPersist = false, onDiscussionCreated, addNotification }) => {
+  const currentUser = getStoredUser();
+  const { confirm: confirmDialog } = useAppDialog();
   const [filter, setFilter] = useState('ALL');
   const [page, setPage] = useState(0);
   const [threads, setThreads] = useState([]);
@@ -263,6 +269,41 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, moduleId = null, lesson
     }
   };
 
+  const handleDelete = async (type, id) => {
+    const isThread = type === 'thread';
+    const accepted = await confirmDialog(
+      isThread
+        ? 'Câu hỏi và toàn bộ câu trả lời bên trong sẽ không còn hiển thị.'
+        : 'Câu trả lời này sẽ không còn hiển thị trong phần hỏi đáp.',
+      {
+        title: isThread ? 'Xóa câu hỏi?' : 'Xóa câu trả lời?',
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      },
+    );
+    if (!accepted) return;
+
+    setActionKey(`delete:${type}:${id}`);
+    setMessage('');
+    try {
+      if (isThread) {
+        await courseApi.deleteDiscussionThread(id);
+      } else {
+        await courseApi.deleteDiscussionReply(id);
+      }
+      if (isThread && threads.length === 1 && page > 0) {
+        setPage((current) => current - 1);
+      } else {
+        await loadDiscussions();
+      }
+      setMessage(isThread ? 'Đã xóa câu hỏi.' : 'Đã xóa câu trả lời.');
+    } catch (error) {
+      setMessage(getErrorMessage(error, 'Không thể xóa nội dung.'));
+    } finally {
+      setActionKey('');
+    }
+  };
+
   return (
     <div className="space-y-4 pb-5">
       <p className="text-xs leading-5 text-[#6a5352]">
@@ -381,13 +422,26 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, moduleId = null, lesson
                 counts={thread.reactionCounts}
                 onOpen={() => handleOpenReactionModal('thread', thread.id, thread.reactionCounts)}
               />
-              <button
-                className="shrink-0 whitespace-nowrap px-1 text-[10px] font-bold text-rose-700 hover:underline"
-                onClick={() => openReport('thread', thread.id)}
-                type="button"
-              >
-                Báo cáo
-              </button>
+              {isSameId(thread.authorId, currentUser?.id) && (
+                <button
+                  className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap px-1 text-[10px] font-bold text-rose-700 hover:underline"
+                  disabled={Boolean(actionKey)}
+                  onClick={() => handleDelete('thread', thread.id)}
+                  type="button"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Xóa
+                </button>
+              )}
+              {!isSameId(thread.authorId, currentUser?.id) && (
+                <button
+                  className="shrink-0 whitespace-nowrap px-1 text-[10px] font-bold text-rose-700 hover:underline"
+                  onClick={() => openReport('thread', thread.id)}
+                  type="button"
+                >
+                  Báo cáo
+                </button>
+              )}
             </div>
 
             {/* Replies section */}
@@ -440,13 +494,26 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, moduleId = null, lesson
                           Đánh dấu lời giải
                         </button>
                       )}
-                      <button
-                        className="ml-auto shrink-0 whitespace-nowrap text-rose-700 hover:underline"
-                        onClick={() => openReport('reply', reply.id)}
-                        type="button"
-                      >
-                        Báo cáo
-                      </button>
+                      {isSameId(reply.authorId, currentUser?.id) && (
+                        <button
+                          className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-rose-700 hover:underline"
+                          disabled={Boolean(actionKey)}
+                          onClick={() => handleDelete('reply', reply.id)}
+                          type="button"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Xóa
+                        </button>
+                      )}
+                      {!isSameId(reply.authorId, currentUser?.id) && (
+                        <button
+                          className="ml-auto shrink-0 whitespace-nowrap text-rose-700 hover:underline"
+                          onClick={() => openReport('reply', reply.id)}
+                          type="button"
+                        >
+                          Báo cáo
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -62,9 +62,10 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
     @Override
     public DiscussionModerationReportResponse hide(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail) {
         CourseDiscussionReport report = findActionableReport(reportId, CourseDiscussionReportStatus.PENDING, CourseDiscussionReportStatus.DISMISSED);
-        requirePost(report).setStatus(CourseDiscussionStatus.HIDDEN);
-        review(report, CourseDiscussionReportStatus.ACTION_TAKEN, request, reviewerEmail);
         CourseDiscussionPost post = requirePost(report);
+        ensureNotDeleted(post);
+        post.setStatus(CourseDiscussionStatus.HIDDEN);
+        review(report, CourseDiscussionReportStatus.ACTION_TAKEN, request, reviewerEmail);
         auditLogService.record(reviewerEmail, "DISCUSSION_CONTENT_HIDDEN", post.getPostType().name(),
                 String.valueOf(post.getId()),
                 "Ẩn nội dung từ báo cáo #" + reportId);
@@ -74,11 +75,12 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
     @Override
     public DiscussionModerationReportResponse dismiss(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail) {
         CourseDiscussionReport report = findActionableReport(reportId, CourseDiscussionReportStatus.PENDING, CourseDiscussionReportStatus.ACTION_TAKEN);
+        CourseDiscussionPost post = requirePost(report);
+        ensureNotDeleted(post);
         if (report.getStatus() == CourseDiscussionReportStatus.ACTION_TAKEN) {
-            requirePost(report).setStatus(CourseDiscussionStatus.OPEN);
+            post.setStatus(CourseDiscussionStatus.OPEN);
         }
         review(report, CourseDiscussionReportStatus.DISMISSED, request, reviewerEmail);
-        CourseDiscussionPost post = requirePost(report);
         auditLogService.record(reviewerEmail, "DISCUSSION_REPORT_DISMISSED", post.getPostType().name(),
                 String.valueOf(post.getId()),
                 "Bỏ qua báo cáo #" + reportId);
@@ -109,6 +111,12 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
             throw new RuntimeException("Nội dung thảo luận không còn tồn tại.");
         }
         return post;
+    }
+
+    private void ensureNotDeleted(CourseDiscussionPost post) {
+        if (post.getStatus() == CourseDiscussionStatus.DELETED) {
+            throw new RuntimeException("Nội dung đã được tác giả xóa.");
+        }
     }
 
     private DiscussionModerationReportResponse toResponse(CourseDiscussionReport report) {

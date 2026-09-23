@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Flag, MessageCircle, Send, ThumbsUp, Loader2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Flag, MessageCircle, Send, ThumbsUp, Loader2, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
 import { ReportModal } from '../course-discussion/DiscussionReactions';
+import { useAppDialog } from '../ui/AppDialog';
 
 const FILTERS = [
   { id: 'ALL', label: 'Tất cả' },
@@ -278,6 +279,7 @@ const ReactionModal = ({ counts = {}, loading, onClose, reactions = [], selected
 const CourseDiscussionSection = ({ courseId }) => {
   const loggedIn = hasAccessToken();
   const currentUser = getStoredUser();
+  const { confirm: confirmDialog } = useAppDialog();
   const [filter, setFilter] = useState('ALL');
   const [page, setPage] = useState(0);
   const [threads, setThreads] = useState([]);
@@ -606,6 +608,41 @@ const CourseDiscussionSection = ({ courseId }) => {
     }
   };
 
+  const handleDelete = async (type, id) => {
+    const isThread = type === 'thread';
+    const accepted = await confirmDialog(
+      isThread
+        ? 'Thảo luận và toàn bộ câu trả lời bên trong sẽ không còn hiển thị.'
+        : 'Câu trả lời này sẽ không còn hiển thị trong thảo luận.',
+      {
+        title: isThread ? 'Xóa thảo luận?' : 'Xóa câu trả lời?',
+        confirmLabel: 'Xóa',
+        tone: 'danger',
+      },
+    );
+    if (!accepted) return;
+
+    setActionKey(`delete:${type}:${id}`);
+    setMessage('');
+    try {
+      if (isThread) {
+        await courseApi.deleteDiscussionThread(id);
+      } else {
+        await courseApi.deleteDiscussionReply(id);
+      }
+      setMessage(isThread ? 'Đã xóa thảo luận.' : 'Đã xóa câu trả lời.');
+      if (isThread && threads.length === 1 && page > 0) {
+        setPage((current) => current - 1);
+      } else {
+        await loadDiscussions(filter, page);
+      }
+    } catch (err) {
+      setMessage(normalizeUiMessage(resolveErrorMessage(err), 'Không thể xóa nội dung. Vui lòng thử lại.'));
+    } finally {
+      setActionKey('');
+    }
+  };
+
   return (
     <section className="rounded-3xl border border-slate-100 bg-white p-6 md:p-8 shadow-sm">
       {/* Header & Stats */}
@@ -754,15 +791,30 @@ const CourseDiscussionSection = ({ courseId }) => {
                 </p>
               </div>
               
-              <button
-                className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100"
-                disabled={Boolean(actionKey)}
-                onClick={() => openReportModal('thread', thread.id)}
-                type="button"
-              >
-                <Flag className="h-3 w-3" />
-                Báo cáo
-              </button>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {isSameId(thread.authorId, currentUser?.id) && (
+                  <button
+                    className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-500 transition hover:border-rose-100 hover:bg-rose-50 hover:text-rose-700"
+                    disabled={Boolean(actionKey)}
+                    onClick={() => handleDelete('thread', thread.id)}
+                    type="button"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Xóa
+                  </button>
+                )}
+                {!isSameId(thread.authorId, currentUser?.id) && (
+                  <button
+                    className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-400 transition hover:border-rose-100 hover:bg-rose-50 hover:text-rose-600"
+                    disabled={Boolean(actionKey)}
+                    onClick={() => openReportModal('thread', thread.id)}
+                    type="button"
+                  >
+                    <Flag className="h-3 w-3" />
+                    Báo cáo
+                  </button>
+                )}
+              </div>
             </div>
             
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600 pl-0.5">{thread.content}</p>
@@ -835,15 +887,29 @@ const CourseDiscussionSection = ({ courseId }) => {
                           Giải quyết câu hỏi
                         </button>
                       )}
+
+                      {isSameId(reply.authorId, currentUser?.id) && (
+                        <button
+                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200/60 bg-white px-2.5 text-[11px] font-medium text-slate-500 transition hover:border-rose-100 hover:bg-rose-50 hover:text-rose-700 active:scale-[0.96]"
+                          disabled={Boolean(actionKey)}
+                          onClick={() => handleDelete('reply', reply.id)}
+                          type="button"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Xóa
+                        </button>
+                      )}
                       
-                      <button
-                        className="h-7 rounded-lg bg-white border border-slate-200/60 px-2.5 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96]"
-                        disabled={Boolean(actionKey)}
-                        onClick={() => openReportModal('reply', reply.id)}
-                        type="button"
-                      >
-                        Báo cáo
-                      </button>
+                      {!isSameId(reply.authorId, currentUser?.id) && (
+                        <button
+                          className="h-7 rounded-lg bg-white border border-slate-200/60 px-2.5 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96]"
+                          disabled={Boolean(actionKey)}
+                          onClick={() => openReportModal('reply', reply.id)}
+                          type="button"
+                        >
+                          Báo cáo
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
