@@ -680,8 +680,13 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                         .sessionDate(LocalDate.parse(String.valueOf(newValues.get("sessionDate"))))
                         .startTime(LocalTime.parse(String.valueOf(newValues.get("startTime"))))
                         .endTime(LocalTime.parse(String.valueOf(newValues.get("endTime"))))
-                        .teacherId(newValues.get("teacherId") == null ? null : Long.valueOf(String.valueOf(newValues.get("teacherId"))))
-                        .roomId(newValues.get("roomId") == null ? null : Long.valueOf(String.valueOf(newValues.get("roomId"))))
+                        .teacherId(session.getTeacher() == null ? null : session.getTeacher().getId())
+                        .status(session.getStatus())
+                        .deliveryModeOverride(session.getDeliveryModeOverride())
+                        .roomId(session.getRoom() == null ? null : session.getRoom().getId())
+                        .courseLessonId(session.getCourseLesson() == null ? null : session.getCourseLesson().getId())
+                        .sessionContent(session.getSessionContent())
+                        .note(session.getNote())
                         .build();
                 offeringService.applyApprovedSessionScheduleChange(session.getId(), sessionRequest);
             }
