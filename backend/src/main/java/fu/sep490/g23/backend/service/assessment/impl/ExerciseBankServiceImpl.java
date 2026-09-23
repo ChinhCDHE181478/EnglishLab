@@ -59,7 +59,10 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
         }
         if (StringUtils.hasText(exerciseType)) {
             specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(root.get("exerciseType"), exerciseType.trim().toUpperCase(Locale.ROOT)));
+                    criteriaBuilder.equal(
+                            criteriaBuilder.function("jsonb_extract_path_text", String.class, root.get("contentData"), criteriaBuilder.literal("exerciseType")),
+                            exerciseType.trim().toUpperCase(Locale.ROOT)
+                    ));
         }
         String normalizedStatus = normalizeOptionalStatus(status);
         if (normalizedStatus != null) {
