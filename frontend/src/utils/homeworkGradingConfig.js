@@ -18,9 +18,14 @@ export const HOMEWORK_GRADING_MODES = [
 
 export const HOMEWORK_ACTIVITY_TYPES = [
   {
+    // "Bài thực hành" (TEXT_RESPONSE) was merged into "Bài luyện tập" so teachers only see one
+    // option covering all 5 skills. TEXT_RESPONSE still exists as the backend value used under
+    // the hood for Speaking/Writing (see TeacherHomeworkSection's activityType translation) —
+    // kept here, hidden, so existing homework of this type still resolves a label/description.
     value: 'TEXT_RESPONSE',
-    label: 'Bài thực hành',
+    label: 'Bài luyện tập',
     description: 'Học viên viết hoặc ghi âm câu trả lời ngay trên hệ thống, không cần nộp tệp.',
+    hidden: true,
   },
   {
     value: 'FILE_RESPONSE',
@@ -30,7 +35,7 @@ export const HOMEWORK_ACTIVITY_TYPES = [
   {
     value: 'SKILL_PRACTICE',
     label: 'Bài luyện tập',
-    description: 'Học viên trả lời từng câu; hệ thống đối chiếu đáp án và tính điểm ngay khi nộp.',
+    description: 'Học viên làm bài hoặc trả lời từng câu; hệ thống chấm điểm tự động khi có đáp án đúng, hoặc giáo viên/AI chấm khi là bài viết, ghi âm.',
   },
   {
     value: 'FLASHCARD_REVIEW',
@@ -87,7 +92,7 @@ export const getHomeworkGradingModeLabel = (mode) => (
 );
 
 export const getHomeworkActivityTypeLabel = (type) => (
-  HOMEWORK_ACTIVITY_TYPES.find((item) => item.value === type)?.label || 'Bài thực hành'
+  HOMEWORK_ACTIVITY_TYPES.find((item) => item.value === type)?.label || 'Bài luyện tập'
 );
 
 export const isAiGradedHomework = (homework) => homework?.gradingMode === 'AI';

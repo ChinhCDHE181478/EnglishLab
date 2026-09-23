@@ -7,6 +7,7 @@ import fu.sep490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
+import fu.sep490.g23.backend.dto.response.classroom.CenterEnrollmentLearnerResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 
@@ -16,6 +17,8 @@ public interface EnrollmentRequestService {
     CourseEnrollmentRequestResponse submit(CreateCourseEnrollmentRequest request, String learnerEmail);
 
     CourseEnrollmentRequestResponse createAtCenter(CreateCenterEnrollmentRequest request, String staffEmail);
+
+    CenterEnrollmentLearnerResponse findCenterEnrollmentLearner(String email, String staffEmail);
 
     List<CourseEnrollmentRequestResponse> listMine(String learnerEmail);
 

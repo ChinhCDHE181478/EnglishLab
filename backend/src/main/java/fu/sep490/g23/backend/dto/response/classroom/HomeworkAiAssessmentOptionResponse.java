@@ -15,6 +15,7 @@ public class HomeworkAiAssessmentOptionResponse {
     private AssessmentSkill skill;
     private String instructions;
     private String uiConfigJson;
+    private String objectiveAnswerKey;
     private BigDecimal maxScore;
     private Integer timeLimitMinutes;
     private Long rubricId;

@@ -8,11 +8,11 @@ const toLocalDateKey = (value) => {
 };
 
 export const isAssignableClassroom = (classroom, today = new Date()) => {
-  if (!classroom || classroom.classroomStatus !== 'UPCOMING') return false;
-  if (classroom.packageStatus !== 'PUBLISHED') return false;
-  if (!classroom.startDate || classroom.startDate <= toLocalDateKey(today)) return false;
+  if (!classroom || !['UPCOMING', 'ACTIVE'].includes(classroom.classroomStatus)) return false;
+  if (classroom.instructorLedCourseStatus !== 'PUBLISHED') return false;
+  if (classroom.endDate && classroom.endDate < toLocalDateKey(today)) return false;
 
-  const capacity = Number(classroom.maxCapacity || 0);
+  const capacity = Number(classroom.capacity || 0);
   const enrolled = Number(classroom.enrolledCount || 0);
   return capacity <= 0 || enrolled < capacity;
 };

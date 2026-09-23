@@ -97,9 +97,9 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
-  async getCourseDiscussions(courseId, { filter = 'ALL', moduleId, page = 0, size = 10 } = {}) {
+  async getCourseDiscussions(courseId, { filter = 'ALL', moduleId, lessonOnly = false, page = 0, size = 10 } = {}) {
     const response = await axiosClient.get(`/api/online-courses/${courseId}/discussions`, {
-      params: { filter, moduleId: moduleId || undefined, page, size },
+      params: { filter, moduleId: moduleId || undefined, lessonOnly, page, size },
       skipAuthRedirect: true,
     });
     return normalizePage(unwrapData(response));

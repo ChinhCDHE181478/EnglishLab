@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Download, FileUp, Plus, Trash2, X } from 'lucide-react';
-import BrandedSelect from '../ui/BrandedSelect';
 import FlashcardDictionaryAssistant from '../flashcard/FlashcardDictionaryAssistant';
 
 const draftKey = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -9,7 +8,7 @@ export const createEmptyQuestion = () => ({
   _key: draftKey(),
   prompt: '',
   options: ['', '', '', ''],
-  correctAnswer: 'A',
+  correctAnswers: ['A'],
 });
 
 export const createEmptyWritingTask = () => ({
@@ -68,7 +67,7 @@ const homeworkSpreadsheetDefinitions = {
     fileName: 'mau-import-cau-hoi-trac-nghiem-englishlab.xlsx',
     headers: ['Câu hỏi', 'Đáp án A', 'Đáp án B', 'Đáp án C', 'Đáp án D', 'Đáp án đúng'],
     example: ['What is the synonym of rapid?', 'Slow', 'Quick', 'Weak', 'Late', 'B'],
-    instructions: 'Mỗi dòng gồm câu hỏi, bốn lựa chọn và đáp án đúng A, B, C hoặc D.',
+    instructions: 'Mỗi dòng gồm câu hỏi, bốn lựa chọn và đáp án đúng A, B, C hoặc D. Nếu câu hỏi có nhiều đáp án đúng, ghi các chữ cái cách nhau bằng dấu phẩy (ví dụ: A,C).',
     itemLabel: 'câu hỏi',
     sheetName: 'Câu hỏi trắc nghiệm',
   },
@@ -120,12 +119,22 @@ export const parseHomeworkSpreadsheetRows = (rows, kind) => {
       if (!Array.isArray(row) || row.every((cell) => !String(cell ?? '').trim())) return;
       const values = row.map((cell) => String(cell ?? '').trim());
       const [prompt, optionA, optionB, optionC, optionD, answerValue] = values;
-      const correctAnswer = String(answerValue || '').toUpperCase().replace(/^ĐÁP ÁN\s*/i, '').trim();
-      if (!prompt || [optionA, optionB, optionC, optionD].some((option) => !option) || !['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+      const correctAnswers = String(answerValue || '')
+        .toUpperCase()
+        .replace(/^ĐÁP ÁN\s*/i, '')
+        .split(/[,\s]+/)
+        .map((letter) => letter.trim())
+        .filter(Boolean);
+      if (
+        !prompt
+        || [optionA, optionB, optionC, optionD].some((option) => !option)
+        || !correctAnswers.length
+        || correctAnswers.some((letter) => !['A', 'B', 'C', 'D'].includes(letter))
+      ) {
         invalidRows.push(index + (hasHeader ? 2 : 1));
         return;
       }
-      items.push({ _key: draftKey(), prompt, options: [optionA, optionB, optionC, optionD], correctAnswer });
+      items.push({ _key: draftKey(), prompt, options: [optionA, optionB, optionC, optionD], correctAnswers });
     });
     return { items, invalidRows };
   }
@@ -197,14 +206,17 @@ const parseConfig = (value) => {
 
 export const parseHomeworkBuilderDrafts = (value) => {
   const config = parseConfig(value);
-  const questions = (config.questions || []).map((question, index) => ({
-    _key: draftKey(),
-    prompt: question.prompt || question.question || '',
-    options: (question.options || []).map((option) => (
-      typeof option === 'object' ? String(option.label || option.value || '') : String(option)
-    )).concat(['', '', '', '']).slice(0, 4),
-    correctAnswer: config.answerKey?.[String(question.number || index + 1)] || question.correctAnswer || 'A',
-  }));
+  const questions = (config.questions || []).map((question, index) => {
+    const rawAnswer = config.answerKey?.[String(question.number || index + 1)] ?? question.correctAnswers ?? question.correctAnswer ?? 'A';
+    return {
+      _key: draftKey(),
+      prompt: question.prompt || question.question || '',
+      options: (question.options || []).map((option) => (
+        typeof option === 'object' ? String(option.label || option.value || '') : String(option)
+      )).concat(['', '', '', '']).slice(0, 4),
+      correctAnswers: (Array.isArray(rawAnswer) ? rawAnswer : [rawAnswer]).map(String).filter(Boolean),
+    };
+  });
   const writingTasks = (config.tasks || []).map((task) => ({
     _key: draftKey(),
     title: task.title || '',
@@ -253,8 +265,9 @@ export const buildHomeworkActivityConfig = ({
           value: String.fromCharCode(65 + optionIndex),
           label: option.trim(),
         })),
+        multiSelect: (question.correctAnswers || []).length > 1,
       })),
-      answerKey: Object.fromEntries(questions.map((question, index) => [String(index + 1), question.correctAnswer])),
+      answerKey: Object.fromEntries(questions.map((question, index) => [String(index + 1), question.correctAnswers || []])),
     });
   }
 
@@ -454,7 +467,7 @@ function HomeworkExcelImportDialog({
             {previewItems.slice(0, 20).map((item, index) => (
               <div className="rounded-lg bg-white px-3 py-2 text-sm" key={item._key}>
                 <span className="font-bold text-[#0b1c30]">{item.prompt || item.question || item.title || `${definition.itemLabel} ${index + 1}`}</span>
-                {item.options ? <p className="mt-1 text-xs text-[#564241]">Đáp án đúng: {item.correctAnswer}</p> : null}
+                {item.options ? <p className="mt-1 text-xs text-[#564241]">Đáp án đúng: {(item.correctAnswers || []).join(', ')}</p> : null}
                 {item.prompts ? <p className="mt-1 text-xs text-[#564241]">{item.prompts.length} câu hỏi</p> : null}
               </div>
             ))}
@@ -528,14 +541,29 @@ export default function TeacherHomeworkContentBuilder({
                 </label>
               ))}
             </div>
-            <label className="block max-w-xs space-y-2">
-              <span className="text-xs font-bold text-[#8b706e]">Đáp án đúng</span>
-              <BrandedSelect
-                onChange={(event) => setQuestions((current) => current.map((item) => item._key === question._key ? { ...item, correctAnswer: event.target.value } : item))}
-                options={['A', 'B', 'C', 'D'].map((value) => ({ label: `Đáp án ${value}`, value }))}
-                value={question.correctAnswer}
-              />
-            </label>
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-[#8b706e]">Đáp án đúng (có thể chọn nhiều)</span>
+              <div className="flex flex-wrap gap-3">
+                {['A', 'B', 'C', 'D'].map((value) => (
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-[#584140]" key={`${question._key}-answer-${value}`}>
+                    <input
+                      checked={(question.correctAnswers || []).includes(value)}
+                      className="h-4 w-4 accent-[#730014]"
+                      onChange={(event) => setQuestions((current) => current.map((item) => {
+                        if (item._key !== question._key) return item;
+                        const existing = item.correctAnswers || [];
+                        const correctAnswers = event.target.checked
+                          ? [...existing, value]
+                          : existing.filter((letter) => letter !== value);
+                        return { ...item, correctAnswers };
+                      }))}
+                      type="checkbox"
+                    />
+                    Đáp án {value}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
       </div>

@@ -40,6 +40,16 @@ export default function StaffRequestsPage() {
   const [returnOptions, setReturnOptions] = useState([]);
   const [targetClassSectionId, setTargetClassSectionId] = useState('');
   const [loadingReturnOptions, setLoadingReturnOptions] = useState(false);
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    classroomApi.listRooms().then(setRooms).catch(() => setRooms([]));
+  }, []);
+
+  const roomsById = useMemo(
+    () => Object.fromEntries(rooms.map((room) => [String(room.id), room.name])),
+    [rooms],
+  );
 
   const loadRequests = async () => {
     setLoading(true);
@@ -74,8 +84,8 @@ export default function StaffRequestsPage() {
   );
 
   const diffRows = useMemo(
-    () => (selected ? buildChangeRequestDiff(selected.oldValuesJson, selected.newValuesJson) : []),
-    [selected],
+    () => (selected ? buildChangeRequestDiff(selected.oldValuesJson, selected.newValuesJson, { rooms: roomsById }) : []),
+    [selected, roomsById],
   );
 
   const selectedConflict = selected ? conflictResults[selected.id] : null;
@@ -253,7 +263,14 @@ export default function StaffRequestsPage() {
                 <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-50 pb-5">
                     <div>
-                      <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{selected.requestTypeLabel || selected.requestType}</h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{selected.requestTypeLabel || selected.requestType}</h2>
+                        {selected.requestType === 'CHANGE_ROOM' ? (
+                          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-bold text-[#584140]">
+                            Phòng cũ: {roomsById[String(selectedOldValues.roomId)] || (selectedOldValues.roomId ? `Phòng #${selectedOldValues.roomId}` : 'Chưa có phòng')}
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-xs text-[#8b706e] mt-0.5">Người gửi: {selected.requesterName || '—'}</p>
                     </div>
                     <StatusBadge status="PENDING" />

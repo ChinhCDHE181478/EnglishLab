@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock,
   Edit3,
+  Eye,
   FileText,
   Plus,
   Send,
@@ -20,6 +21,7 @@ import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput
 import AssessmentExamBuilder from '../content-manager/AssessmentExamBuilder';
 import { useAppDialog } from '../ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 import {
   formatClassroomDateTime,
   formatHomeworkStatus,
@@ -48,6 +50,14 @@ import TeacherHomeworkContentBuilder, {
   parseHomeworkBuilderDrafts,
 } from './TeacherHomeworkContentBuilder';
 
+// sessionStorage drafts saved before multi-select answers shipped only have a single
+// `correctAnswer` letter — normalize those back into the `correctAnswers` array shape.
+const normalizeQuestionDraft = (question) => (
+  Array.isArray(question?.correctAnswers)
+    ? question
+    : { ...question, correctAnswers: question?.correctAnswer ? [question.correctAnswer] : [] }
+);
+
 const emptyForm = {
   title: '',
   instruction: '',
@@ -66,14 +76,20 @@ const emptyForm = {
   assessmentBankItemId: '',
 };
 
+// "Bài thực hành" (TEXT_RESPONSE) was merged into "Bài luyện tập" (SKILL_PRACTICE) as one
+// visible option covering all 5 skills. TEXT_RESPONSE still exists as a backend value — the
+// form keeps activityType='SKILL_PRACTICE' for display, and buildPayload()/openEditForm()
+// translate to/from TEXT_RESPONSE for Speaking/Writing, since the backend still rejects
+// SKILL_PRACTICE for those two skills (Speaking/Writing need a real submission to grade, not
+// an auto-graded quiz).
+const SKILL_PRACTICE_TEXT_RESPONSE_SKILLS = ['SPEAKING', 'WRITING'];
+
 const SKILLS_BY_ACTIVITY_TYPE = {
-  // Vocabulary has no dedicated content builder for these three — it falls back to the generic
-  // essay-style prompt editor (TeacherHomeworkContentBuilder), which doesn't fit a vocabulary task.
-  // It stays real content only in SKILL_PRACTICE (an MCQ quiz format vocab questions genuinely use)
-  // and FLASHCARD_REVIEW (vocabulary-only by definition).
-  TEXT_RESPONSE: ['SPEAKING', 'WRITING'],
   FILE_RESPONSE: ['SPEAKING', 'WRITING', 'LISTENING', 'READING'],
-  SKILL_PRACTICE: ['LISTENING', 'READING', 'VOCABULARY'],
+  // Vocabulary has no dedicated content builder outside SKILL_PRACTICE/FLASHCARD_REVIEW — it
+  // falls back to the generic essay-style prompt editor for other activity types, which doesn't
+  // fit a vocabulary task.
+  SKILL_PRACTICE: ['SPEAKING', 'WRITING', 'LISTENING', 'READING', 'VOCABULARY'],
   FLASHCARD_REVIEW: ['VOCABULARY'],
   MIXED: ['SPEAKING', 'WRITING', 'LISTENING', 'READING'],
 };
@@ -138,6 +154,232 @@ const validateAssessmentBuilderConfig = (skill, rawConfig) => {
     if (invalidPart) return 'Vui lòng biên soạn đầy đủ câu hỏi hoặc thẻ gợi ý cho từng phần Speaking.';
   }
   return '';
+};
+
+const normalizePreviewAnswerKey = (objectiveAnswerKey, config) => {
+  const explicit = safeParseActivityConfig(objectiveAnswerKey);
+  if (explicit && Object.keys(explicit).length) return explicit;
+  return config?.answerKey || {};
+};
+
+const isLetterCorrect = (answer, letter) => (
+  Array.isArray(answer) ? answer.includes(letter) : String(answer ?? '').trim().toUpperCase() === letter
+);
+
+const formatAcceptedAnswers = (answer) => (
+  Array.isArray(answer) ? answer.join(' hoặc ') : String(answer ?? '').trim()
+);
+
+const PreviewAudio = ({ label, src }) => {
+  if (!src) return null;
+  return (
+    <div className="mt-2">
+      {label ? <p className="mb-1 text-xs font-bold text-[#8b706e]">{label}</p> : null}
+      <audio className="w-full" controls src={src} />
+    </div>
+  );
+};
+
+const PreviewOptionsList = ({ answer, options }) => (
+  <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+    {(options || []).map((option) => {
+      const correct = isLetterCorrect(answer, option.value);
+      return (
+        <li
+          className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm ${
+            correct ? 'border-emerald-300 bg-emerald-50 font-bold text-emerald-700' : 'border-[#eadcdc] text-[#584140]'
+          }`}
+          key={option.value}
+        >
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-current text-xs">
+            {option.value}
+          </span>
+          <span>{option.label || <span className="italic text-[#8b706e]">(chưa nhập nội dung)</span>}</span>
+          {correct ? <CheckCircle2 className="ml-auto h-4 w-4 shrink-0" /> : null}
+        </li>
+      );
+    })}
+  </ul>
+);
+
+const AssessmentContentPreview = ({ answerKey, config, skill }) => {
+  if (skill === 'WRITING') {
+    // Some older bank items were authored as a bare { prompt, responseType } payload instead of
+    // the builder's { tasks: [...] } shape. Fall back to showing that prompt as a single task so
+    // the preview still shows something instead of a blank panel.
+    const tasks = Array.isArray(config.tasks) && config.tasks.length
+      ? config.tasks
+      : (config.prompt || config.question
+        ? [{ key: 'legacy_prompt', heading: 'Đề bài', question: config.prompt || config.question }]
+        : []);
+    return (
+      <div className="space-y-4">
+        {tasks.map((task, index) => (
+          <div className="rounded-2xl border border-[#dfbfbd] bg-white p-4" key={task.key || index}>
+            <p className="text-sm font-extrabold text-[#730014]">{task.heading || task.title || `Task ${index + 1}`}</p>
+            {task.summary ? <p className="mt-1 text-xs text-[#8b706e]">{task.summary}</p> : null}
+            {task.promptHtml ? (
+              <div
+                className="mt-3 text-sm leading-6 text-[#3a2a29]"
+                dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(task.promptHtml) }}
+              />
+            ) : (
+              <div className="mt-3 space-y-2 text-sm leading-6 text-[#3a2a29]">
+                {(task.promptParagraphs?.length ? task.promptParagraphs : [task.question]).filter(Boolean).map((paragraph, paragraphIndex) => (
+                  <p key={paragraphIndex}>{paragraph}</p>
+                ))}
+              </div>
+            )}
+            {task.imageUrl ? <img alt="" className="mt-3 max-h-64 rounded-lg border border-[#eadcdc] object-contain" src={task.imageUrl} /> : null}
+            <p className="mt-3 text-xs font-semibold text-[#8b706e]">
+              Tối thiểu {task.minimumWords || 150} từ · Gợi ý {task.recommendedMinutes || 20} phút
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (skill === 'SPEAKING') {
+    // Same legacy-payload fallback as Writing above: an older bank item with just
+    // { prompt, responseType } and no parts/variants structure.
+    const legacyParts = !config.variants?.length && !config.parts?.length && (config.prompt || config.question)
+      ? [{ key: 'legacy_prompt', label: 'Đề bài', prompts: [{ text: config.prompt || config.question }] }]
+      : (config.parts || []);
+    const variants = Array.isArray(config.variants) && config.variants.length
+      ? config.variants
+      : [{ key: 'default', label: 'Đề', parts: legacyParts }];
+    return (
+      <div className="space-y-5">
+        {variants.map((variant, variantIndex) => (
+          <div key={variant.key || variantIndex}>
+            {variants.length > 1 ? <p className="mb-2 text-sm font-extrabold text-[#730014]">{variant.label || `Đề ${variantIndex + 1}`}</p> : null}
+            <div className="space-y-3">
+              {(variant.parts || []).map((part, partIndex) => (
+                <div className="rounded-2xl border border-[#dfbfbd] bg-white p-4" key={part.key || partIndex}>
+                  <p className="text-sm font-extrabold text-[#730014]">
+                    {part.label || `Part ${partIndex + 1}`}{part.caption ? ` — ${part.caption}` : ''}
+                  </p>
+                  {part.prepSeconds || part.answerSeconds ? (
+                    <p className="mt-1 text-xs text-[#8b706e]">
+                      Chuẩn bị {part.prepSeconds || 0}s · Trả lời {part.answerSeconds || 0}s
+                    </p>
+                  ) : null}
+                  {part.cueCardTitle ? (
+                    <div className="mt-3 rounded-xl border border-[#eadcdc] bg-[#fffafb] p-3">
+                      <p className="text-sm font-bold text-[#3a2a29]">{part.cueCardTitle}</p>
+                      {(part.cueCardBullets || []).length ? (
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#584140]">
+                          {part.cueCardBullets.map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className="mt-3 space-y-2">
+                    {(part.prompts || []).map((prompt, promptIndex) => {
+                      const text = typeof prompt === 'string' ? prompt : prompt?.text;
+                      const audioUrl = typeof prompt === 'object' ? prompt?.audioUrl : '';
+                      const videoUrl = typeof prompt === 'object' ? prompt?.videoUrl : '';
+                      return (
+                        <div className="rounded-lg bg-[#fffafb] px-3 py-2 text-sm text-[#3a2a29]" key={promptIndex}>
+                          {text}
+                          <PreviewAudio src={audioUrl} />
+                          {videoUrl ? <video className="mt-2 w-full max-w-md rounded-lg" controls src={videoUrl} /> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // LISTENING / READING: rendered as a flat answer-key style list rather than the student's
+  // page-by-page exam flow, so a teacher can scan every question and its correct answer at once.
+  const parts = Array.isArray(config.parts) ? config.parts : [];
+  return (
+    <div className="space-y-5">
+      <PreviewAudio label="Audio toàn bài" src={config.audioUrl} />
+      {parts.map((part, partIndex) => (
+        <div className="rounded-2xl border border-[#dfbfbd] bg-white p-4" key={part.key || partIndex}>
+          <p className="text-sm font-extrabold text-[#730014]">{part.title || `Phần ${partIndex + 1}`}</p>
+          {part.summary ? <p className="mt-1 text-xs text-[#8b706e]">{part.summary}</p> : null}
+          {(part.passage?.paragraphs || []).length ? (
+            <div className="mt-3 rounded-xl border border-[#eadcdc] bg-[#fffafb] p-3">
+              {part.passage.title ? <p className="mb-2 text-sm font-bold text-[#3a2a29]">{part.passage.title}</p> : null}
+              {part.passage.paragraphs.map((paragraph, paragraphIndex) => (
+                <div
+                  className="text-sm leading-6 text-[#3a2a29]"
+                  dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(paragraph.html || paragraph) }}
+                  key={paragraphIndex}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-3 space-y-3">
+            {(part.questionGroups || []).map((group, groupIndex) => (
+              <div className="rounded-xl border border-[#eadcdc] bg-[#fffafb] p-3" key={`${part.key || partIndex}-${groupIndex}`}>
+                {group.title ? <p className="text-sm font-bold text-[#3a2a29]">{group.title}</p> : null}
+                {group.instructions ? <p className="mt-1 whitespace-pre-wrap text-xs text-[#8b706e]">{group.instructions}</p> : null}
+                {group.passageHtml ? (
+                  <div
+                    className="mt-2 text-sm leading-6 text-[#3a2a29]"
+                    dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(group.passageHtml) }}
+                  />
+                ) : null}
+                <PreviewAudio label="Audio nhóm câu hỏi" src={group.audioUrl} />
+
+                {group.type === 'multi_select_letters' ? (
+                  (() => {
+                    const number = Number(group.questionNumbers?.[0] || 0);
+                    const answer = answerKey[String(number)];
+                    return (
+                      <div className="mt-3">
+                        <p className="text-sm font-bold text-[#3a2a29]">
+                          Câu {number} · Chọn {group.maxSelections || 2} đáp án đúng
+                        </p>
+                        <PreviewOptionsList answer={answer} options={group.options} />
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {(group.questions || []).map((question, questionIndex) => {
+                      const answer = answerKey[String(question.number)];
+                      return (
+                        <div key={question.number ?? questionIndex}>
+                          <p className="text-sm font-bold text-[#3a2a29]">
+                            Câu {question.number}
+                            {group.type === 'single_choice'
+                              ? `. ${question.prompt || ''}`
+                              : ` . ${question.promptBefore || ''} ___ ${question.promptAfter || ''}`}
+                          </p>
+                          {question.imageUrl ? <img alt="" className="mt-2 max-h-56 rounded-lg border border-[#eadcdc] object-contain" src={question.imageUrl} /> : null}
+                          <PreviewAudio src={question.audioUrl} />
+                          {group.type === 'single_choice' ? (
+                            <PreviewOptionsList answer={answer} options={question.options} />
+                          ) : (
+                            <p className="mt-1 text-sm text-emerald-700">
+                              Đáp án đúng: <span className="font-bold">{formatAcceptedAnswers(answer) || '(chưa nhập)'}</span>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const homeworkStatusOptions = [
@@ -214,6 +456,7 @@ export default function TeacherHomeworkSection({
   const [gradingForms, setGradingForms] = useState({});
   const [gradingId, setGradingId] = useState(null);
   const [gradingNotice, setGradingNotice] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const closingHomeworkIdRef = useRef(null);
   const {
     page: homeworkPage,
@@ -291,6 +534,19 @@ export default function TeacherHomeworkSection({
       timeLimitMinutes: Number(config.durationMinutes || config.timeLimitMinutes || 0),
     };
   }, [form.activityConfigJson, form.maxScore, form.skill, form.title]);
+
+  // The teacher can only see title + skill + max score in the "Nguồn nội dung" dropdown before
+  // picking a bank assessment — this renders the actual selected content read-only, reusing the
+  // exact same components students see, so there's no risk of the preview drifting from reality.
+  const previewConfig = useMemo(() => {
+    if (!selectedAiAssessment) return null;
+    return safeParseActivityConfig(selectedAiAssessment.uiConfigJson);
+  }, [selectedAiAssessment]);
+
+  const previewAnswerKey = useMemo(() => {
+    if (!selectedAiAssessment) return {};
+    return normalizePreviewAnswerKey(selectedAiAssessment.objectiveAnswerKey, previewConfig);
+  }, [previewConfig, selectedAiAssessment]);
 
   const canEnableAi = Boolean(
     skillSupportsAi
@@ -426,6 +682,7 @@ export default function TeacherHomeworkSection({
     setWritingTaskDrafts([createEmptyWritingTask()]);
     setSpeakingPartDrafts([createEmptySpeakingPart()]);
     setFlashcardDrafts([createEmptyFlashcard()]);
+    setPreviewOpen(false);
   }, [editingHomework, homeworkDraftStorageKey]);
 
   const dismissForm = useCallback(() => {
@@ -443,12 +700,19 @@ export default function TeacherHomeworkSection({
     setEditingHomework(null);
     setFormError('');
     setFormOpen(false);
+    setPreviewOpen(false);
   }, [editingHomework, flashcardDrafts, form, homeworkDraftStorageKey, questionDrafts, speakingPartDrafts, writingTaskDrafts]);
 
   useEffect(() => {
     if (!formOpen) return undefined;
     const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event) => {
+      // While the preview overlay is on top, Escape should only close that, not cascade into
+      // closing the whole "Tạo bài tập mới" form underneath it.
+      if (event.key === 'Escape' && previewOpen) {
+        setPreviewOpen(false);
+        return;
+      }
       if (event.key === 'Escape' && !saving) dismissForm();
     };
     document.body.style.overflow = 'hidden';
@@ -457,14 +721,16 @@ export default function TeacherHomeworkSection({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [dismissForm, formOpen, saving]);
+  }, [dismissForm, formOpen, previewOpen, saving]);
 
   const openCreateForm = () => {
     const draft = readHomeworkDraft(homeworkDraftStorageKey);
     setEditingHomework(null);
     setForm(draft?.form && typeof draft.form === 'object' ? { ...emptyForm, ...draft.form } : emptyForm);
     if (!draft) setAttachmentFile(null);
-    setQuestionDrafts(Array.isArray(draft?.questionDrafts) && draft.questionDrafts.length ? draft.questionDrafts : [createEmptyQuestion()]);
+    setQuestionDrafts(Array.isArray(draft?.questionDrafts) && draft.questionDrafts.length
+      ? draft.questionDrafts.map(normalizeQuestionDraft)
+      : [createEmptyQuestion()]);
     setWritingTaskDrafts(Array.isArray(draft?.writingTaskDrafts) && draft.writingTaskDrafts.length ? draft.writingTaskDrafts : [createEmptyWritingTask()]);
     setSpeakingPartDrafts(Array.isArray(draft?.speakingPartDrafts) && draft.speakingPartDrafts.length ? draft.speakingPartDrafts : [createEmptySpeakingPart()]);
     setFlashcardDrafts(Array.isArray(draft?.flashcardDrafts) && draft.flashcardDrafts.length ? draft.flashcardDrafts : [createEmptyFlashcard()]);
@@ -481,7 +747,10 @@ export default function TeacherHomeworkSection({
   }, [initialOpenCreate]);
 
   const openEditForm = (item) => {
-    const activityType = item.activityType || 'TEXT_RESPONSE';
+    // TEXT_RESPONSE is no longer a selectable "Hình thức bài tập" — existing homework saved with
+    // it (always Speaking/Writing, see SKILL_PRACTICE_TEXT_RESPONSE_SKILLS) now displays and
+    // re-saves as SKILL_PRACTICE, matching the merged "Bài luyện tập" option.
+    const activityType = item.activityType === 'TEXT_RESPONSE' ? 'SKILL_PRACTICE' : (item.activityType || 'SKILL_PRACTICE');
     const allowedSkills = SKILLS_BY_ACTIVITY_TYPE[activityType] || [];
     const skill = allowedSkills.includes(item.skill) ? item.skill : allowedSkills[0] || 'READING';
     setEditingHomework(item);
@@ -542,24 +811,33 @@ export default function TeacherHomeworkSection({
     });
   };
 
-  const buildPayload = (attachmentUrl, activityConfigJson = form.activityConfigJson, statusOverride) => ({
-    title: form.title.trim(),
-    instruction: form.instruction.trim(),
-    deadline: fromDateTimeLocalValue(form.deadline),
-    maxScore: Number(form.maxScore) || 10,
-    allowResubmission: Boolean(form.allowResubmission),
-    status: statusOverride || form.status,
-    sessionId: form.sessionId ? Number(form.sessionId) : null,
-    curriculumUnitId: form.curriculumUnitId ? Number(form.curriculumUnitId) : null,
-    activityType: form.activityType,
-    activityConfigJson: activityConfigJson?.trim() || '',
-    aiReviewEnabled: Boolean(form.aiReviewEnabled),
-    attachmentUrl,
-    gradingMode: form.aiReviewEnabled ? 'AI' : 'TEACHER',
-    skill: selectedAiAssessment?.skill || form.skill || null,
-    rubricId: selectedRubric?.id || null,
-    assessmentBankItemId: form.assessmentBankItemId ? Number(form.assessmentBankItemId) : null,
-  });
+  const buildPayload = (attachmentUrl, activityConfigJson = form.activityConfigJson, statusOverride) => {
+    const effectiveSkill = selectedAiAssessment?.skill || form.skill || null;
+    // The merged "Bài luyện tập" option is SKILL_PRACTICE in the UI, but the backend still
+    // rejects SKILL_PRACTICE for Speaking/Writing — send TEXT_RESPONSE for those, exactly as
+    // "Bài thực hành" used to before the two were merged into one visible option.
+    const activityType = form.activityType === 'SKILL_PRACTICE' && SKILL_PRACTICE_TEXT_RESPONSE_SKILLS.includes(effectiveSkill)
+      ? 'TEXT_RESPONSE'
+      : form.activityType;
+    return {
+      title: form.title.trim(),
+      instruction: form.instruction.trim(),
+      deadline: fromDateTimeLocalValue(form.deadline),
+      maxScore: Number(form.maxScore) || 10,
+      allowResubmission: Boolean(form.allowResubmission),
+      status: statusOverride || form.status,
+      sessionId: form.sessionId ? Number(form.sessionId) : null,
+      curriculumUnitId: form.curriculumUnitId ? Number(form.curriculumUnitId) : null,
+      activityType,
+      activityConfigJson: activityConfigJson?.trim() || '',
+      aiReviewEnabled: Boolean(form.aiReviewEnabled),
+      attachmentUrl,
+      gradingMode: form.aiReviewEnabled ? 'AI' : 'TEACHER',
+      skill: effectiveSkill,
+      rubricId: selectedRubric?.id || null,
+      assessmentBankItemId: form.assessmentBankItemId ? Number(form.assessmentBankItemId) : null,
+    };
+  };
 
   const handleSaveHomework = async (statusOverride) => {
     if (!form.title.trim()) {
@@ -588,7 +866,7 @@ export default function TeacherHomeworkSection({
       const invalidQuestion = questionDrafts.find((question) => (
         !question.prompt.trim()
         || question.options.some((option) => !option.trim())
-        || !question.correctAnswer
+        || !(question.correctAnswers || []).length
       ));
       if (invalidQuestion) {
         setFormError('Vui lòng nhập đủ câu hỏi, 4 lựa chọn và đáp án đúng cho bài soạn trên hệ thống.');
@@ -832,6 +1110,35 @@ export default function TeacherHomeworkSection({
     }
   };
 
+  const renderAssessmentPreview = () => {
+    if (!previewOpen || !selectedAiAssessment || !previewConfig) return null;
+    const closePreview = () => setPreviewOpen(false);
+    return createPortal(
+      <div className="fixed inset-0 z-[150] flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-8">
+        <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl">
+          <div className="flex items-start justify-between gap-3 rounded-t-3xl border-b border-[#eadcdc] bg-[#fffafb] px-6 py-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#8b706e]">Xem trước nội dung</p>
+              <p className="text-lg font-extrabold text-[#730014]">{selectedAiAssessment.title}</p>
+              <p className="mt-1 text-xs text-[#8b706e]">{getHomeworkSkillLabel(selectedAiAssessment.skill)}</p>
+            </div>
+            <button
+              className="rounded-lg border border-[#dfbfbd] p-1.5 text-[#730014] transition hover:bg-[#f7e9e9]"
+              onClick={closePreview}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="max-h-[75vh] overflow-y-auto px-6 py-5">
+            <AssessmentContentPreview answerKey={previewAnswerKey} config={previewConfig} skill={selectedAiAssessment.skill} />
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  };
+
   if (gradingHomework) {
     return (
       <TeacherHomeworkGradingWorkspace
@@ -997,11 +1304,21 @@ export default function TeacherHomeworkSection({
                   />
                 )}
                 {selectedAiAssessment ? (
-                  <div className="rounded-xl border border-[#dfbfbd]/30 bg-white px-4 py-3">
-                    <p className="text-xs font-extrabold text-[#730014]">{selectedAiAssessment.title}</p>
-                    <p className="mt-1 text-xs text-[#8b706e]">
-                      {getHomeworkSkillLabel(selectedAiAssessment.skill)} · {form.maxScore} điểm
-                    </p>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[#dfbfbd]/30 bg-white px-4 py-3">
+                    <div>
+                      <p className="text-xs font-extrabold text-[#730014]">{selectedAiAssessment.title}</p>
+                      <p className="mt-1 text-xs text-[#8b706e]">
+                        {getHomeworkSkillLabel(selectedAiAssessment.skill)} · {form.maxScore} điểm
+                      </p>
+                    </div>
+                    <button
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff4f5]"
+                      onClick={() => setPreviewOpen(true)}
+                      type="button"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Xem trước
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -1364,6 +1681,7 @@ export default function TeacherHomeworkSection({
           />
         </div>
       ) : null}
+      {renderAssessmentPreview()}
     </div>
   );
 }

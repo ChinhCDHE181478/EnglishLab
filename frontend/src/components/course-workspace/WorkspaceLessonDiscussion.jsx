@@ -16,7 +16,6 @@ const FILTERS = [
 ];
 
 const PAGE_SIZE = 10;
-const EMPTY_LESSON_IDS = Object.freeze([]);
 
 const getErrorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.response?.data?.description || fallback;
@@ -26,7 +25,7 @@ const formatDate = (value) =>
     ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
     : '';
 
-const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSON_IDS, canPersist = false, onDiscussionCreated, addNotification }) => {
+const WorkspaceLessonDiscussion = ({ courseId, lessonId, moduleId = null, lessonOnly = false, canPersist = false, onDiscussionCreated, addNotification }) => {
   const [filter, setFilter] = useState('ALL');
   const [page, setPage] = useState(0);
   const [threads, setThreads] = useState([]);
@@ -48,7 +47,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
   const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const loadDiscussions = useCallback(async () => {
-    if (!courseId || (!lessonId && !lessonIds.length)) return;
+    if (!courseId || (!lessonId && !moduleId && !lessonOnly)) return;
     setLoading(true);
     setMessage('');
     try {
@@ -58,7 +57,13 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
         setTotalElements(result.totalElements || 0);
         setTotalPages(result.totalPages || 0);
       } else {
-        const result = await courseApi.getCourseDiscussions(courseId, { filter, page, size: PAGE_SIZE });
+        const result = await courseApi.getCourseDiscussions(courseId, {
+          filter,
+          moduleId,
+          lessonOnly,
+          page,
+          size: PAGE_SIZE,
+        });
         setThreads(result.content || []);
         setTotalElements(result.totalElements || 0);
         setTotalPages(result.totalPages || 0);
@@ -68,7 +73,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
     } finally {
       setLoading(false);
     }
-  }, [courseId, lessonId, lessonIds, filter, page]);
+  }, [courseId, lessonId, moduleId, lessonOnly, filter, page]);
 
   // Reset khi đổi bài học
   useEffect(() => {
@@ -78,7 +83,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
     setContent('');
     setFilter('ALL');
     setPage(0);
-  }, [courseId, lessonId, lessonIds]);
+  }, [courseId, lessonId, moduleId, lessonOnly]);
 
   // Load khi courseId/lessonId/filter/page thay đổi
   useEffect(() => {
@@ -377,7 +382,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
                 onOpen={() => handleOpenReactionModal('thread', thread.id, thread.reactionCounts)}
               />
               <button
-                className="ml-auto shrink-0 whitespace-nowrap px-1 text-[10px] font-bold text-rose-700 hover:underline"
+                className="shrink-0 whitespace-nowrap px-1 text-[10px] font-bold text-rose-700 hover:underline"
                 onClick={() => openReport('thread', thread.id)}
                 type="button"
               >
