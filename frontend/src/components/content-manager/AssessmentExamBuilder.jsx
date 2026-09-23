@@ -461,6 +461,19 @@ export default function AssessmentExamBuilder({ assessment, inline = false, onCh
     return questionCount;
   }, [config, isSpeakingSkill, isWritingSkill, questionCount]);
 
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (!inline) return;
+    onChangeRef.current('uiConfigJson', JSON.stringify(config, null, 2));
+    if (isObjectiveSkill) {
+      onChangeRef.current('objectiveAnswerKey', JSON.stringify(answerKey, null, 2));
+      onChangeRef.current('maxScore', String(questionCount));
+    }
+    onChangeRef.current('timeLimitMinutes', String(config.durationMinutes || assessment.timeLimitMinutes || (isSpeakingSkill ? 15 : (isWritingSkill ? 60 : 40))));
+  }, [config, answerKey, inline, isObjectiveSkill, isSpeakingSkill, isWritingSkill, questionCount, assessment.timeLimitMinutes]);
+
   if (!isSupported) return null;
 
   const openBuilder = () => {
