@@ -1343,7 +1343,7 @@ function CourseStructureOverview({ course }) {
                 <div className="min-w-0">
                   <p className="font-extrabold text-[#2b2828]">{unit.displayOrder ?? 0}. {unit.title}</p>
                   <p className="mt-1 text-xs font-semibold text-[#8b706e]">
-                    Học liệu {(unit.materials || []).length} · Bài tập {(unit.exercises || []).length} · Đề {(unit.assessments || []).length} · Flashcard {(unit.flashcards || []).length}
+                    Học liệu {(unit.materials || []).length} · Bài tập {(unit.exercises || []).length} · Flashcard {(unit.flashcards || []).length}
                   </p>
                 </div>
                 {expandedUnitIds.has(unit.id) ? <ChevronUp className="h-5 w-5 shrink-0 text-[#730014]" /> : <ChevronDown className="h-5 w-5 shrink-0 text-[#8b706e]" />}
@@ -1361,10 +1361,9 @@ function CourseStructureOverview({ course }) {
                       ))}
                     </div>
                   ) : null}
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <CourseUnitResources label="Học liệu" items={unit.materials} />
                     <CourseUnitResources label="Bài tập" items={unit.exercises} />
-                    <CourseUnitResources label="Đề đánh giá" items={unit.assessments} />
                     <CourseUnitResources label="Flashcard" items={unit.flashcards} />
                   </div>
                 </div>

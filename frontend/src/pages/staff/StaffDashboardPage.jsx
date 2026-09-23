@@ -7,9 +7,7 @@ import {
   CalendarDays,
   CheckSquare,
   ClipboardList,
-  GraduationCap,
   MessageSquare,
-  Star,
   Users,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
@@ -117,18 +115,6 @@ export default function StaffDashboardPage() {
           label="Đã tư vấn"
           value={dashboard?.consultedLearnerCount ?? 0}
         />
-        <SummaryCard
-          href="/staff/teachers"
-          icon={Star}
-          label="Điểm TB giáo viên"
-          value={formatScore(dashboard?.teacherAverageScore)}
-        />
-        <SummaryCard
-          href="/staff/classrooms"
-          icon={GraduationCap}
-          label="Điểm TB học viên"
-          value={formatScore(dashboard?.studentAverageScore)}
-        />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
@@ -222,20 +208,6 @@ export default function StaffDashboardPage() {
         </section>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <ScoreList
-          emptyText="Chưa có đánh giá giáo viên đã xuất bản."
-          href="/staff/teachers"
-          items={dashboard?.teacherScores || []}
-          title="Điểm trung bình giáo viên"
-        />
-        <ScoreList
-          emptyText="Chưa có bảng điểm học viên được công bố."
-          href="/staff/classrooms"
-          items={dashboard?.studentScores || []}
-          title="Điểm học viên"
-        />
-      </div>
     </motion.div>
   );
 }
@@ -257,41 +229,3 @@ function SummaryCard({ icon: Icon, label, value, href }) {
   );
 }
 
-function formatScore(value) {
-  if (value == null || value === '') return '—';
-  const number = Number(value);
-  return Number.isFinite(number) ? number.toFixed(1) : '—';
-}
-
-function ScoreList({ title, href, items, emptyText }) {
-  const pagination = usePagination(items, 5, items.length);
-
-  return (
-    <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">{title}</h2>
-        <Link className="text-xs font-bold text-[#730014] hover:underline" to={href}>Xem tất cả</Link>
-      </div>
-      {items.length ? (
-        <div className="space-y-2">
-          {pagination.pageItems.map((item) => (
-            <Link
-              className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-[#fffafb]/60 px-4 py-3 transition hover:border-[#dfbfbd]/50 hover:bg-[#fff3f4]"
-              key={`${item.name}-${item.subtitle}-${item.score}`}
-              to={item.href || href}
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold text-[#2b2828]">{item.name}</p>
-                <p className="mt-0.5 truncate text-xs text-[#8b706e]">{item.subtitle}</p>
-              </div>
-              <span className="shrink-0 font-['Manrope'] text-lg font-black text-[#4b0009]">{formatScore(item.score)}</span>
-            </Link>
-          ))}
-          <Pagination compact onChange={pagination.setPage} page={pagination.page} pageSize={5} totalItems={pagination.totalItems} totalPages={pagination.totalPages} />
-        </div>
-      ) : (
-        <p className="text-sm text-[#8b706e]">{emptyText}</p>
-      )}
-    </section>
-  );
-}
