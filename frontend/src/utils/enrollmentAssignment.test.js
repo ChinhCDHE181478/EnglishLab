@@ -9,9 +9,10 @@ import {
 const today = new Date(2026, 6, 23);
 const upcoming = {
   classroomStatus: 'UPCOMING',
-  packageStatus: 'PUBLISHED',
+  instructorLedCourseStatus: 'PUBLISHED',
   startDate: '2026-08-01',
-  maxCapacity: 20,
+  endDate: '2026-12-01',
+  capacity: 20,
   enrolledCount: 12,
 };
 
@@ -26,14 +27,14 @@ describe('staff enrollment assignment', () => {
     expect([farFutureClassroom].filter(isAssignableClassroom)).toEqual([farFutureClassroom]);
   });
 
-  it('excludes active and already-started classes', () => {
-    expect(isAssignableClassroom({ ...upcoming, classroomStatus: 'ACTIVE' }, today)).toBe(false);
-    expect(isAssignableClassroom({ ...upcoming, startDate: '2026-07-22' }, today)).toBe(false);
-    expect(isAssignableClassroom({ ...upcoming, startDate: '2026-07-23' }, today)).toBe(false);
+  it('allows active classes and excludes ended classes', () => {
+    expect(isAssignableClassroom({ ...upcoming, classroomStatus: 'ACTIVE' }, today)).toBe(true);
+    expect(isAssignableClassroom({ ...upcoming, endDate: '2026-07-22' }, today)).toBe(false);
+    expect(isAssignableClassroom({ ...upcoming, endDate: '2026-07-23' }, today)).toBe(true);
   });
 
   it('excludes unpublished and full classes', () => {
-    expect(isAssignableClassroom({ ...upcoming, packageStatus: 'DRAFT' }, today)).toBe(false);
+    expect(isAssignableClassroom({ ...upcoming, instructorLedCourseStatus: 'DRAFT' }, today)).toBe(false);
     expect(isAssignableClassroom({ ...upcoming, enrolledCount: 20 }, today)).toBe(false);
   });
 

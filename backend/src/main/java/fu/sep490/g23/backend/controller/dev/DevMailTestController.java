@@ -104,7 +104,11 @@ public class DevMailTestController {
                     .contactEmail(email)
                     .learner(testUser)
                     .build();
-            enrollmentRequestMailService.sendTestAppointment(testRequest);
+            enrollmentRequestMailService.sendTestAppointment(
+                    testRequest,
+                    LocalDateTime.now().plusDays(2).withHour(9).withMinute(0),
+                    "EnglishLab Campus, Hà Nội"
+            );
             sentCount++;
         } catch (Exception e) {
             log.error("Failed sending email 5 (test appointment)", e);
