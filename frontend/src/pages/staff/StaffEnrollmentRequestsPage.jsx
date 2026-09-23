@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   BookOpenCheck,
   CalendarClock,
@@ -19,6 +19,7 @@ import { EnrollmentStatusBadge } from '../../components/classroom/EnrollmentRequ
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
+import StaffTuitionReviewPanel from '../../components/classroom/StaffTuitionReviewPanel';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { formatClassroomDate, formatClassroomDateTime } from '../../utils/classroomHelpers';
 import {
@@ -120,6 +121,9 @@ export default function StaffEnrollmentRequestsPage() {
       setError(getStaffEnrollmentLoadError(result.requestError, 'requests'));
     } else {
       setRequests(result.requests);
+      setDetailRequest((current) => (
+        current ? result.requests.find((item) => item.id === current.id) || current : current
+      ));
     }
     if (result.classroomError) {
       setClassrooms([]);
@@ -178,6 +182,7 @@ export default function StaffEnrollmentRequestsPage() {
         item.contactEmail,
         item.contactPhone,
         item.courseOfferingTitle,
+        item.assignedClassroomTitle,
         item.consultationTrack,
         item.studyWorkGoal,
         item.preferredSchedule,
@@ -442,7 +447,7 @@ export default function StaffEnrollmentRequestsPage() {
               </thead>
               <tbody className="divide-y divide-[#dfbfbd]/20">
                 {pageItems.map((item) => {
-                  const actions = getEnrollmentRequestActions(item.status);
+                  const actions = getEnrollmentRequestActions(item.status, item.assignedEnrollment?.registrationStatus);
                   return (
                     <tr className="transition hover:bg-[#fffafb]" key={item.id}>
                       <td className="px-5 py-4 font-bold text-slate-400">
@@ -461,6 +466,14 @@ export default function StaffEnrollmentRequestsPage() {
                       <td className="px-5 py-4">
                         <p className="font-bold text-[#4b0009]">{item.courseOfferingTitle || 'Dữ liệu cũ chưa chọn khóa học'}</p>
                         <p className="mt-1 text-xs text-slate-500">{formatConsultationTrack(item.consultationTrack)}</p>
+                        {item.assignedClassroomId ? (
+                          <Link
+                            className="mt-1 block text-xs font-bold text-[#730014] hover:underline"
+                            to={`/staff/classrooms/${item.assignedClassroomId}?tab=students`}
+                          >
+                            Lớp đã chọn: {item.assignedClassroomTitle || `#${item.assignedClassroomId}`}
+                          </Link>
+                        ) : null}
                       </td>
                       <td className="px-5 py-4 text-xs leading-5 text-slate-600">
                         {item.requestSource === 'CENTER' ? (
@@ -512,6 +525,7 @@ export default function StaffEnrollmentRequestsPage() {
           item={detailRequest}
           onAction={openActionFromDetail}
           onClose={() => setDetailRequest(null)}
+          onUpdated={load}
         />
       ) : null}
 
@@ -565,9 +579,9 @@ function ActionButton({ danger = false, icon: Icon, label, modal = false, neutra
   );
 }
 
-function EnrollmentRequestDetailModal({ item, onAction, onClose }) {
+function EnrollmentRequestDetailModal({ item, onAction, onClose, onUpdated }) {
   const history = item.history || [];
-  const actions = getEnrollmentRequestActions(item.status);
+  const actions = getEnrollmentRequestActions(item.status, item.assignedEnrollment?.registrationStatus);
   const hasActions = actions.canSchedule || actions.canCompleteTest || actions.canAssign || actions.canReject;
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -618,6 +632,24 @@ function EnrollmentRequestDetailModal({ item, onAction, onClose }) {
               <DetailRow label="Lịch mong muốn" value={item.preferredSchedule} />
             </DetailSection>
           </div>
+
+          {item.assignedClassroomId ? (
+            <DetailSection title="Lớp đã chọn">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="font-bold text-[#0b1c30]">{item.assignedClassroomTitle || `#${item.assignedClassroomId}`}</span>
+                <Link
+                  className="text-sm font-extrabold text-[#730014] hover:underline"
+                  to={`/staff/classrooms/${item.assignedClassroomId}?tab=students`}
+                >
+                  Mở lớp
+                </Link>
+              </div>
+            </DetailSection>
+          ) : null}
+
+          {item.assignedEnrollment ? (
+            <StaffTuitionReviewPanel enrollment={item.assignedEnrollment} onUpdated={onUpdated} />
+          ) : null}
 
           {item.requestSource === 'CENTER' ? (
             <DetailSection title="Ghi danh tại trung tâm">
@@ -749,7 +781,7 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
   const titles = {
     SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
     COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá trực tiếp tại trung tâm.'],
-    ASSIGN: ['Chọn lớp và mời thanh toán', 'Chọn lớp thuộc khóa học đã xác nhận. Học viên sẽ nhận hướng dẫn hoàn tất học phí.'],
+    ASSIGN: ['Chọn lớp và mời thanh toán', 'Chỉ các lớp sắp khai giảng thuộc khóa học đã xác nhận được hiển thị.'],
     REJECT: ['Kết thúc hồ sơ', 'Dùng khi học viên từ chối tiếp tục hoặc hồ sơ không thể xử lý.'],
   };
   const [title, description] = titles[action.type];

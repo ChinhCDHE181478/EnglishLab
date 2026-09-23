@@ -3,6 +3,7 @@ import { BookOpenCheck, CalendarClock, CheckCircle2, RefreshCw, XCircle } from '
 import { Link } from 'react-router-dom';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import { EnrollmentRequestTimeline, EnrollmentStatusBadge } from '../../components/classroom/EnrollmentRequestUi';
+import TuitionPaymentSection from '../../components/classroom/TuitionPaymentSection';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import ManagementToast from '../../components/ui/ManagementToast';
@@ -116,6 +117,24 @@ export default function MyEnrollmentRequestsPage() {
                           <div className="mt-4 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
                             <CalendarClock className="mt-0.5 h-4 w-4 shrink-0" />
                             <span><strong>Lịch đến trung tâm:</strong> {formatClassroomDateTime(request.testAppointmentAt)}{request.testLocation ? ` · ${request.testLocation}` : ''}</span>
+                          </div>
+                        ) : null}
+                        {request.assignedEnrollment ? (
+                          <div className="mt-4 space-y-3">
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                              <p className="font-bold">Lớp đã chọn: {request.assignedClassroomTitle || `#${request.assignedClassroomId}`}</p>
+                            </div>
+                            <TuitionPaymentSection
+                              canSubmitProof={['PENDING_TUITION_PAYMENT', 'DEPOSIT_PAID', 'PARTIALLY_PAID'].includes(request.assignedEnrollment.registrationStatus)}
+                              classroomId={request.assignedClassroomId}
+                              compact
+                              onUpdated={load}
+                              tuitionDepositRemaining={request.assignedEnrollment.tuitionDepositRemaining}
+                              tuitionFullPaymentRequired={Boolean(request.assignedEnrollment.tuitionFullPaymentRequired)}
+                              tuitionPaymentDeadline={request.assignedEnrollment.tuitionPaymentDeadline}
+                              tuitionPaymentOverdue={Boolean(request.assignedEnrollment.tuitionPaymentOverdue)}
+                              tuitionRemaining={Math.max(0, Number(request.assignedEnrollment.tuitionAmountDue || 0) - Number(request.assignedEnrollment.tuitionAmountPaid || 0))}
+                            />
                           </div>
                         ) : null}
                         {request.status === 'CLASS_PROPOSED' ? (

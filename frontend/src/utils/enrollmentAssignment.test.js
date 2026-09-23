@@ -7,8 +7,8 @@ import {
 } from './enrollmentAssignment';
 
 const today = new Date(2026, 6, 23);
-const active = {
-  classroomStatus: 'ACTIVE',
+const upcoming = {
+  classroomStatus: 'UPCOMING',
   instructorLedCourseStatus: 'PUBLISHED',
   startDate: '2026-08-01',
   endDate: '2026-12-01',
@@ -17,26 +17,27 @@ const active = {
 };
 
 describe('staff enrollment assignment', () => {
-  it('allows published upcoming and active classes that still have capacity', () => {
-    expect(isAssignableClassroom({ ...active, classroomStatus: 'UPCOMING' }, today)).toBe(true);
-    expect(isAssignableClassroom(active, today)).toBe(true);
+  it('allows only published upcoming classes that have not started and still have capacity', () => {
+    expect(isAssignableClassroom(upcoming, today)).toBe(true);
+    expect(isAssignableClassroom({ ...upcoming, classroomStatus: 'ACTIVE' }, today)).toBe(false);
+    expect(isAssignableClassroom({ ...upcoming, startDate: '2026-07-22' }, today)).toBe(false);
   });
 
   it('is safe when used directly as an Array.filter callback', () => {
-    const farFutureClassroom = { ...active, startDate: '2999-08-01' };
+    const farFutureClassroom = { ...upcoming, startDate: '2999-08-01' };
 
     expect([farFutureClassroom].filter(isAssignableClassroom)).toEqual([farFutureClassroom]);
   });
 
   it('excludes unavailable statuses and ended classes', () => {
-    expect(isAssignableClassroom({ ...active, classroomStatus: 'COMPLETED' }, today)).toBe(false);
-    expect(isAssignableClassroom({ ...active, endDate: '2026-07-22' }, today)).toBe(false);
-    expect(isAssignableClassroom({ ...active, endDate: '2026-07-23' }, today)).toBe(true);
+    expect(isAssignableClassroom({ ...upcoming, classroomStatus: 'COMPLETED' }, today)).toBe(false);
+    expect(isAssignableClassroom({ ...upcoming, endDate: '2026-07-22' }, today)).toBe(false);
+    expect(isAssignableClassroom({ ...upcoming, endDate: '2026-07-23' }, today)).toBe(true);
   });
 
   it('excludes unpublished and full classes', () => {
-    expect(isAssignableClassroom({ ...active, instructorLedCourseStatus: 'DRAFT' }, today)).toBe(false);
-    expect(isAssignableClassroom({ ...active, enrolledCount: 20 }, today)).toBe(false);
+    expect(isAssignableClassroom({ ...upcoming, instructorLedCourseStatus: 'DRAFT' }, today)).toBe(false);
+    expect(isAssignableClassroom({ ...upcoming, enrolledCount: 20 }, today)).toBe(false);
   });
 
   it('requires an appointment before test result and assignment', () => {
@@ -63,6 +64,12 @@ describe('staff enrollment assignment', () => {
       canCompleteTest: false,
       canAssign: true,
       canReject: true,
+    });
+    expect(getEnrollmentRequestActions('CLASS_ASSIGNED', 'REJECTED')).toEqual({
+      canSchedule: false,
+      canCompleteTest: false,
+      canAssign: true,
+      canReject: false,
     });
   });
 

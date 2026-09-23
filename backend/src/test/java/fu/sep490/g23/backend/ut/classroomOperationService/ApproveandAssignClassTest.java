@@ -2,13 +2,20 @@ package fu.sep490.g23.backend.ut.classroomOperationService;
 
 import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,6 +36,31 @@ public class ApproveandAssignClassTest {
 
     @Mock
     private EnrollmentRequestService enrollmentRequestService;
+
+    @Test
+    void lateClassSelectionGetsFullPaymentWindowFromInvitationTime() {
+        LocalDateTime invitedAt = LocalDateTime.of(2026, 9, 24, 10, 30);
+        ClassEnrollment enrollment = ClassEnrollment.builder()
+                .classSection(ClassSection.builder().startDate(LocalDate.of(2026, 8, 1)).build())
+                .enrolledAt(invitedAt)
+                .build();
+
+        assertThat(ClassroomRegistrationSupport.tuitionPaymentDeadline(enrollment))
+                .isEqualTo(invitedAt.plusHours(ClassroomRegistrationSupport.LATE_APPROVAL_PAYMENT_HOURS));
+    }
+
+    @Test
+    void earlyClassSelectionKeepsRegularDeadlineBeforeClassStarts() {
+        LocalDate startDate = LocalDate.of(2026, 10, 15);
+        ClassEnrollment enrollment = ClassEnrollment.builder()
+                .classSection(ClassSection.builder().startDate(startDate).build())
+                .enrolledAt(LocalDateTime.of(2026, 9, 24, 10, 30))
+                .build();
+
+        assertThat(ClassroomRegistrationSupport.tuitionPaymentDeadline(enrollment))
+                .isEqualTo(startDate.minusDays(ClassroomRegistrationSupport.TUITION_BALANCE_DUE_DAYS_BEFORE_START)
+                        .atTime(LocalTime.MAX));
+    }
 
     // TC01: Duyệt + gán lớp thành công
     @Test

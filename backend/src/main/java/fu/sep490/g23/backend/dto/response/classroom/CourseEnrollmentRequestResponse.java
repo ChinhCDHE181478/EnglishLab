@@ -51,6 +51,8 @@ public class CourseEnrollmentRequestResponse {
     private PlacementEligibilityResult placementEligibility;
     private PlacementTestSummaryResponse latestPlacementResult;
     private Long assignedClassroomId;
+    private String assignedClassroomTitle;
+    private ClassroomEnrollmentResponse assignedEnrollment;
     private List<EnrollmentRequestHistoryResponse> history;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

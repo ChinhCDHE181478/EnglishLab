@@ -10,6 +10,7 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -140,7 +142,17 @@ public class DevMailTestController {
                     .learner(testUser)
                     .build();
 
-            enrollmentRequestMailService.sendClassAssignment(classRequest, offering);
+            enrollmentRequestMailService.sendClassAssignment(
+                    classRequest,
+                    offering,
+                    ClassroomEnrollmentResponse.builder()
+                            .tuitionAmountDue(BigDecimal.valueOf(12_000_000))
+                            .tuitionAmountPaid(BigDecimal.ZERO)
+                            .tuitionDepositRemaining(BigDecimal.valueOf(3_600_000))
+                            .tuitionPaymentDeadline(LocalDateTime.now().plusDays(2))
+                            .tuitionFullPaymentRequired(false)
+                            .build()
+            );
             sentCount++;
         } catch (Exception e) {
             log.error("Failed sending email 6 (class assignment)", e);

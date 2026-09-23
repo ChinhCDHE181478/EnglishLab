@@ -43,6 +43,7 @@ import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -92,6 +93,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     private final PlacementTestAttemptRepository placementTestAttemptRepository;
     private final PlacementEligibilityService placementEligibilityService;
     private final ClassroomOfferingService classSectionService;
+    private final ClassroomMapper classroomMapper;
     private final ClassroomConflictService classroomConflictService;
     private final EnrollmentRequestMailService enrollmentRequestMailService;
     private final AuthTokenService authTokenService;
@@ -281,7 +283,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             AuthToken setupToken = authTokenService.issuePasswordResetToken(learner);
             authMailService.sendStaffCreatedAccountEmail(learner, setupToken.getToken());
         }
-        enrollmentRequestMailService.sendClassAssignment(request, target);
+        enrollmentRequestMailService.sendClassAssignment(request, target, enrollment);
 
         CourseEnrollmentRequestResponse response = toResponse(request);
         response.setLearnerAccountCreated(accountCreated);
@@ -480,7 +482,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
         CourseRegistrationRequest request = requireOwnedRequestForUpdate(requestId, staff);
-        if (request.getStatus() != EnrollmentRequestStatus.WAITING_FOR_CLASS) {
+        if (!isReadyForClassAssignment(request)) {
             throw new IllegalArgumentException(
                     "Chỉ có thể xếp lớp sau khi học viên đã test, đủ điều kiện và hồ sơ đang chờ xếp lớp."
             );
@@ -510,7 +512,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         request.setStaffNote(trimOrNull(payload.getNote()));
         transition(request, EnrollmentRequestStatus.CLASS_ASSIGNED, staff,
                 "Đã chọn lớp " + target.getTitle() + " và chuyển học viên sang bước thanh toán học phí.");
-        enrollmentRequestMailService.sendClassAssignment(request, target);
+        enrollmentRequestMailService.sendClassAssignment(request, target, enrollment);
         return toResponse(request);
     }
 
@@ -520,7 +522,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
         CourseRegistrationRequest request = requireOwnedRequest(requestId, staff);
-        if (request.getStatus() != EnrollmentRequestStatus.WAITING_FOR_CLASS || request.getLearner() == null) {
+        if (!isReadyForClassAssignment(request)) {
             return List.of();
         }
         Long learnerId = request.getLearner().getId();
@@ -588,6 +590,13 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 );
         InstructorLedCourse offering = request.getCourseOffering();
         ClassSection preferredClassSection = request.getPreferredClassSection();
+        ClassSection assignedClassSection = request.getAssignedClassSection();
+        ClassroomEnrollmentResponse assignedEnrollment = assignedClassSection == null
+                ? null
+                : classEnrollmentRepository.findByStudentIdAndClassSectionId(
+                        request.getLearner().getId(), assignedClassSection.getId())
+                .map(classroomMapper::toEnrollmentResponse)
+                .orElse(null);
         return CourseEnrollmentRequestResponse.builder()
                 .id(request.getId())
                 .learnerId(request.getLearner().getId())
@@ -631,7 +640,9 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .placementAttemptId(request.getPlacementAttempt() == null ? null : request.getPlacementAttempt().getId())
                 .placementEligibility(eligibility)
                 .latestPlacementResult(latestPlacementResult(request.getLearner()))
-                .assignedClassroomId(request.getAssignedClassSection() == null ? null : request.getAssignedClassSection().getId())
+                .assignedClassroomId(assignedClassSection == null ? null : assignedClassSection.getId())
+                .assignedClassroomTitle(assignedClassSection == null ? null : assignedClassSection.getTitle())
+                .assignedEnrollment(assignedEnrollment)
                 .history(historyRepository.findByCourseRegistrationRequestIdOrderByCreatedAtAscIdAsc(request.getId()).stream()
                         .map(this::toHistoryResponse)
                         .toList())
@@ -832,7 +843,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
-                    "Chỉ có thể xếp vào lớp đã công bố, sắp hoặc đang khai giảng, chưa kết thúc và còn chỗ."
+                    "Chỉ có thể xếp vào lớp đã công bố, chưa bắt đầu và còn chỗ."
             );
         }
         return target;
@@ -843,7 +854,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
-                    "Chỉ có thể xếp vào lớp đã công bố, sắp hoặc đang khai giảng, chưa kết thúc và còn chỗ."
+                    "Chỉ có thể xếp vào lớp đã công bố, chưa bắt đầu và còn chỗ."
             );
         }
         return target;
@@ -860,9 +871,27 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         return hasCapacity
                 && target.getInstructorLedCourse() != null
                 && target.getInstructorLedCourse().getPublicationStatus() == PackageStatus.PUBLISHED
-                && (target.getStatus() == ClassroomOfferingStatus.UPCOMING
-                    || target.getStatus() == ClassroomOfferingStatus.ACTIVE)
+                && target.getStatus() == ClassroomOfferingStatus.UPCOMING
+                && target.getStartDate() != null
+                && !target.getStartDate().isBefore(LocalDate.now())
                 && (target.getPlannedEndDate() == null || !target.getPlannedEndDate().isBefore(LocalDate.now()));
+    }
+
+    private boolean isReadyForClassAssignment(CourseRegistrationRequest request) {
+        if (request.getLearner() == null) {
+            return false;
+        }
+        if (request.getStatus() == EnrollmentRequestStatus.WAITING_FOR_CLASS) {
+            return true;
+        }
+        if (request.getStatus() != EnrollmentRequestStatus.CLASS_ASSIGNED
+                || request.getAssignedClassSection() == null) {
+            return false;
+        }
+        return classEnrollmentRepository.findByStudentIdAndClassSectionId(
+                        request.getLearner().getId(), request.getAssignedClassSection().getId())
+                .map(enrollment -> enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.REJECTED)
+                .orElse(false);
     }
 
     private List<Long> findUnavailableCourseIds(User learner) {

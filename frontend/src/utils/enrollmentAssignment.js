@@ -8,8 +8,9 @@ const toLocalDateKey = (value) => {
 };
 
 export const isAssignableClassroom = (classroom, today = new Date()) => {
-  if (!classroom || !['UPCOMING', 'ACTIVE'].includes(classroom.classroomStatus)) return false;
+  if (!classroom || classroom.classroomStatus !== 'UPCOMING') return false;
   if (classroom.instructorLedCourseStatus !== 'PUBLISHED') return false;
+  if (!classroom.startDate || classroom.startDate < toLocalDateKey(today)) return false;
   if (classroom.endDate && classroom.endDate < toLocalDateKey(today)) return false;
 
   const capacity = Number(classroom.capacity || 0);
@@ -17,11 +18,12 @@ export const isAssignableClassroom = (classroom, today = new Date()) => {
   return capacity <= 0 || enrolled < capacity;
 };
 
-export const getEnrollmentRequestActions = (status) => {
+export const getEnrollmentRequestActions = (status, assignedEnrollmentStatus = null) => {
   return {
     canSchedule: ['SUBMITTED', 'INVITATION_SENT'].includes(status),
     canCompleteTest: status === 'TEST_SCHEDULED',
-    canAssign: status === 'WAITING_FOR_CLASS',
+    canAssign: status === 'WAITING_FOR_CLASS'
+      || (status === 'CLASS_ASSIGNED' && assignedEnrollmentStatus === 'REJECTED'),
     canReject: ['SUBMITTED', 'INVITATION_SENT', 'TEST_SCHEDULED', 'WAITING_FOR_CLASS'].includes(status),
   };
 };

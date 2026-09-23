@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.service.mail.impl;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
@@ -17,8 +18,11 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 @Slf4j
 @Service
@@ -132,7 +136,11 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
     }
 
     @Override
-    public void sendClassAssignment(CourseRegistrationRequest request, ClassSection classroom) {
+    public void sendClassAssignment(
+            CourseRegistrationRequest request,
+            ClassSection classroom,
+            ClassroomEnrollmentResponse enrollment
+    ) {
         String startDate = classroom.getStartDate() == null
                 ? "Đang cập nhật"
                 : classroom.getStartDate().format(DATE_FORMAT);
@@ -148,6 +156,15 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
         String classTitle = classroom.getInstructorLedCourse() != null
                 ? classroom.getInstructorLedCourse().getTitle()
                 : (classroom.getInstructorLedCourse() != null ? classroom.getInstructorLedCourse().getTitle() : "Lớp EnglishLab");
+        boolean fullPaymentRequired = enrollment != null && enrollment.isTuitionFullPaymentRequired();
+        BigDecimal tuitionDue = enrollment == null ? BigDecimal.ZERO : valueOrZero(enrollment.getTuitionAmountDue());
+        BigDecimal paymentAmount = fullPaymentRequired
+                ? tuitionDue.subtract(valueOrZero(enrollment.getTuitionAmountPaid())).max(BigDecimal.ZERO)
+                : enrollment == null ? BigDecimal.ZERO : valueOrZero(enrollment.getTuitionDepositRemaining());
+        String paymentTitle = fullPaymentRequired ? "THANH TOÁN TOÀN BỘ" : "ĐẶT CỌC 30%";
+        String paymentDeadline = enrollment == null || enrollment.getTuitionPaymentDeadline() == null
+                ? "Đang cập nhật"
+                : enrollment.getTuitionPaymentDeadline().format(DATE_TIME_FORMAT);
 
         String highlightContent = """
                 <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">LỚP HỌC</p>
@@ -166,11 +183,27 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
                     <td style="padding:4px 0;font-size:13px;color:#2b1f1f;font-weight:700;text-align:right;">%s</td>
                   </tr>
                 </table>
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid #dfbfbd;">
+                  <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">%s</p>
+                  <p style="margin:0;font-size:20px;font-weight:700;color:#730014;">%s</p>
+                  <p style="margin:6px 0 0;font-size:13px;color:#5f4745;">Tổng học phí: %s · Hạn thanh toán: %s</p>
+                </div>
+                <div style="margin-top:16px;">
+                  <p style="margin:0 0 8px;font-size:12px;color:#7a5c59;font-weight:700;">HƯỚNG DẪN THANH TOÁN</p>
+                  <p style="margin:0 0 6px;font-size:13px;line-height:20px;color:#2b1f1f;">1. Bấm nút <strong>Thanh toán học phí</strong> bên dưới và đăng nhập EnglishLab.</p>
+                  <p style="margin:0 0 6px;font-size:13px;line-height:20px;color:#2b1f1f;">2. Mở hồ sơ lớp đã chọn, chọn <strong>%s</strong> rồi thanh toán qua PayOS.</p>
+                  <p style="margin:0;font-size:13px;line-height:20px;color:#2b1f1f;">3. Nếu trung tâm đã cung cấp thông tin chuyển khoản riêng, bạn có thể tải minh chứng ngay tại cùng hồ sơ.</p>
+                </div>
                 """.formatted(
                 EmailTemplateUtil.escapeHtml(classTitle),
                 EmailTemplateUtil.escapeHtml(startDate),
                 EmailTemplateUtil.escapeHtml(teacher),
-                EmailTemplateUtil.escapeHtml(location)
+                EmailTemplateUtil.escapeHtml(location),
+                EmailTemplateUtil.escapeHtml(paymentTitle),
+                EmailTemplateUtil.escapeHtml(formatMoney(paymentAmount)),
+                EmailTemplateUtil.escapeHtml(formatMoney(tuitionDue)),
+                EmailTemplateUtil.escapeHtml(paymentDeadline),
+                EmailTemplateUtil.escapeHtml(fullPaymentRequired ? "Thanh toán toàn bộ" : "Đặt cọc 30%")
         );
 
         String html = EmailTemplateUtil.buildBrandedEmailHtml(
@@ -178,10 +211,12 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
                 "Lớp học của bạn đã được xác nhận",
                 "EnglishLab đã giữ chỗ cho bạn trong lớp dưới đây. Vui lòng hoàn tất học phí để được cấp quyền vào học.",
                 highlightContent,
-                normalizedBaseUrl() + "/my-classrooms/" + classroom.getId() + "?tab=payment",
+                normalizedBaseUrl() + "/my-enrollment-requests",
                 "Thanh toán học phí",
                 supportEmail,
-                "Bạn có thể thanh toán trực tuyến qua PayOS hoặc gửi minh chứng chuyển khoản trong mục Học phí."
+                fullPaymentRequired
+                        ? "Vui lòng hoàn tất toàn bộ học phí trong thời hạn trên để giữ chỗ."
+                        : "Khoản đặt cọc bằng 30% học phí. Phần còn lại cần hoàn tất trước hạn thanh toán."
         );
 
         send(request, "Hoàn tất học phí lớp học - EnglishLab", html);
@@ -214,6 +249,16 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
     private String normalizedBaseUrl() {
         String value = valueOrDefault(baseUrl, "http://localhost:5173");
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+    }
+
+    private BigDecimal valueOrZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private String formatMoney(BigDecimal value) {
+        NumberFormat formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
+        formatter.setMaximumFractionDigits(0);
+        return formatter.format(valueOrZero(value)) + " đ";
     }
 
     private String valueOrDefault(String value, String fallback) {

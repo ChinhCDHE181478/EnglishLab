@@ -128,9 +128,7 @@ public final class ClassroomRegistrationSupport {
         if (invitedAt == null || !invitedAt.isAfter(regularDeadline)) {
             return regularDeadline;
         }
-        LocalDateTime lateDeadline = invitedAt.plusHours(LATE_APPROVAL_PAYMENT_HOURS);
-        LocalDateTime classStartDayEnd = enrollment.getClassSection().getStartDate().atTime(LocalTime.MAX);
-        return lateDeadline.isBefore(classStartDayEnd) ? lateDeadline : classStartDayEnd;
+        return invitedAt.plusHours(LATE_APPROVAL_PAYMENT_HOURS);
     }
 
     public static boolean requiresFullTuitionPayment(ClassEnrollment enrollment) {
