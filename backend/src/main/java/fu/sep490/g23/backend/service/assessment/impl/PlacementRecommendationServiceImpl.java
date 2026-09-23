@@ -67,16 +67,15 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
         PlacementTestAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả placement test."));
-        // 1) Completeness / expiry / staff-review status for this attempt.
         PlacementEligibilityResult eligibility = eligibilityService.evaluateEligibility(learner.getId(), attemptId);
-        // 2) Ranking input: scores, exam type, weak skills, learner target.
+        // input: scores, exam type, weak skills, learner target.
         PlacementRecommendationContext context = contextFactory.fromAttempt(
                 learner,
                 attempt,
                 eligibility.getRecommendedLevel()
         );
 
-        // 3) Always include scores + status, even when suggestion lists stay empty.
+        // Always include scores + status, even when suggestion lists stay empty.
         PlacementRecommendationResponse.PlacementRecommendationResponseBuilder response = baseResponse(
                 attempt,
                 eligibility,

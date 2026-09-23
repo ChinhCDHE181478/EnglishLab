@@ -2819,10 +2819,23 @@ function HomeworkSubmissionForm({
       </div>
 
       <div className="space-y-3">
-        {homework.instruction && (
-          <div className="rounded-xl bg-gray-50/50 p-4 border border-gray-100 text-xs text-[#584140] leading-relaxed">
-            <span className="font-bold text-slate-700 block mb-1">Hướng dẫn làm bài:</span>
-            {homework.instruction}
+        {(homework.instruction || homework.attachmentUrl) && (
+          <div className="rounded-xl bg-gray-50/50 p-4 border border-gray-100 text-xs text-[#584140] leading-relaxed space-y-3">
+            {homework.instruction && (
+              <div>
+                <span className="font-bold text-slate-700 block mb-1">Hướng dẫn làm bài:</span>
+                <p className="whitespace-pre-wrap">{homework.instruction}</p>
+              </div>
+            )}
+            {homework.attachmentUrl && (
+              <AuthenticatedFileLink
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
+                url={homework.attachmentUrl}
+              >
+                <Paperclip className="h-4 w-4" />
+                Tải file đề bài đính kèm
+              </AuthenticatedFileLink>
+            )}
           </div>
         )}
 
