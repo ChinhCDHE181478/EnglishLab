@@ -424,14 +424,14 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Transactional(readOnly = true)
     public List<ClassroomSessionResponse> getSessions(Long offeringId) {
         return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offeringId).stream()
-                .map(mapper::toSessionResponse)
+                .map(mapper::toManagerSessionResponse)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public ClassroomSessionResponse getSession(Long sessionId) {
-        return mapper.toSessionResponse(findSession(sessionId));
+        return mapper.toManagerSessionResponse(findSession(sessionId));
     }
 
     @Override

@@ -20,7 +20,7 @@ public class GoogleMeetProperties {
     private String redirectUri = "http://localhost:8080/api/teacher/google-meet/callback";
     private String frontendReturnUrl = "http://localhost:5173/teacher/professional-profile";
     private boolean autoRecording = true;
-    private boolean recordingAutoPublish;
-    private int recordingMaxSyncAttempts = 20;
+    private boolean recordingAutoPublish = true;
+    private int recordingMaxSyncAttempts = 120;
     private long recordingSyncDelayMs = 60000;
 }

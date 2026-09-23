@@ -19,6 +19,8 @@ import {
   ChevronUp,
   ChevronRight,
   User,
+  Play,
+  Loader2,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
@@ -299,7 +301,9 @@ export default function TeacherClassroomPage() {
       const SessionRow = ({ session }) => {
         const isPast = session.status === 'COMPLETED' || session.status === 'CANCELLED';
         const isLive = session.status === 'OPEN';
-        const isVirtual = classroom?.deliveryMode === 'VIRTUAL';
+        const isVirtual = session.effectiveDeliveryMode === 'VIRTUAL';
+        const canTrackRecording = isVirtual && isPast && session.status !== 'CANCELLED';
+        const recordingProcessing = ['NOT_AVAILABLE', 'PROCESSING'].includes(session.recordingStatus);
         return (
           <article
             className={`flex flex-col gap-4 rounded-2xl border p-5 transition md:flex-row md:items-center md:justify-between ${
@@ -359,17 +363,39 @@ export default function TeacherClassroomPage() {
                 </div>
               </div>
             </div>
-            <Link
-              className={`inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 flex-shrink-0 ${
-                isPast
-                  ? 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                  : 'bg-[#4b0009] text-white shadow-sm hover:bg-[#730014] hover:shadow'
-              }`}
-              to={`/teacher/sessions/${session.id}`}
-            >
-              {isPast ? 'Xem điểm danh' : 'Vào điểm danh'}
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              {canTrackRecording && session.recordingUrl ? (
+                <a
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-extrabold text-emerald-800 transition hover:bg-emerald-100"
+                  href={session.recordingUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <Play className="h-3.5 w-3.5" /> Xem bản ghi
+                </a>
+              ) : null}
+              {canTrackRecording && recordingProcessing ? (
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-bold text-sky-700">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang xử lý bản ghi
+                </span>
+              ) : null}
+              {canTrackRecording && session.recordingStatus === 'FAILED' ? (
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-700">
+                  <AlertCircle className="h-3.5 w-3.5" /> Chưa đồng bộ được bản ghi
+                </span>
+              ) : null}
+              <Link
+                className={`inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 flex-shrink-0 ${
+                  isPast
+                    ? 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    : 'bg-[#4b0009] text-white shadow-sm hover:bg-[#730014] hover:shadow'
+                }`}
+                to={`/teacher/sessions/${session.id}`}
+              >
+                {isPast ? 'Xem điểm danh' : 'Vào điểm danh'}
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </article>
         );
       };
