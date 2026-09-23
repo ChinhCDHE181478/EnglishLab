@@ -139,6 +139,84 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     }
 
     @Override
+    public TuitionProofResponse submitAndConfirmStaffProof(
+            Long enrollmentId,
+            MultipartFile file,
+            String paymentKind,
+            String note,
+            String actorEmail,
+            String publicUrlBase
+    ) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertStaffOperator(actor);
+        ClassEnrollment enrollment = enrollmentRepository.findByIdForUpdate(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ ghi danh."));
+        if (!ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus())
+                || enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST
+                || enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED) {
+            throw new RuntimeException("Hồ sơ hiện không thể ghi nhận minh chứng học phí.");
+        }
+        if (ClassroomRegistrationSupport.isTuitionPaymentOverdue(
+                enrollment, ClassroomRegistrationSupport.currentBusinessTime())) {
+            throw new RuntimeException("Đăng ký đã quá hạn thanh toán học phí.");
+        }
+
+        TuitionPaymentKind kind = resolvePaymentKind(paymentKind);
+        if (kind != TuitionPaymentKind.DEPOSIT && kind != TuitionPaymentKind.FULL) {
+            throw new RuntimeException("Chỉ hỗ trợ xác nhận đặt cọc hoặc thanh toán toàn bộ.");
+        }
+        BigDecimal amount;
+        if (kind == TuitionPaymentKind.DEPOSIT) {
+            if (ClassroomRegistrationSupport.requiresFullTuitionPayment(enrollment)) {
+                throw new RuntimeException("Lớp gần ngày khai giảng cần thanh toán toàn bộ học phí.");
+            }
+            amount = ClassroomRegistrationSupport.remainingDeposit(
+                    enrollment.getTuitionAmountDue(), enrollment.getTuitionAmountPaid());
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Khoản đặt cọc đã được thanh toán đủ.");
+            }
+        } else {
+            amount = enrollment.tuitionBalance().max(BigDecimal.ZERO);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Học phí đã được thanh toán đủ.");
+            }
+        }
+
+        HomeworkAttachmentUploadResponse uploaded = attachmentStorageService.store(
+                file, publicUrlBase, actorEmail);
+        ClassroomTuitionPaymentProof proof = proofRepository.save(ClassroomTuitionPaymentProof.builder()
+                .enrollment(enrollment)
+                .amount(amount)
+                .paymentKind(kind)
+                .fileUrl(uploaded.getUrl())
+                .note(StringUtils.hasText(note) ? note.trim() : null)
+                .status(TuitionProofStatus.PENDING)
+                .build());
+
+        RecordTuitionPaymentRequest paymentRequest = new RecordTuitionPaymentRequest();
+        paymentRequest.setAmount(amount);
+        paymentRequest.setPaymentKind(kind);
+        paymentRequest.setNote("Staff xác nhận từ minh chứng #" + proof.getId());
+        paymentRequest.setAssignIfFullyPaid(true);
+        classSectionService.recordTuitionPayment(enrollment.getId(), paymentRequest, actorEmail);
+
+        proof.setStatus(TuitionProofStatus.CONFIRMED);
+        proof.setReviewedBy(actor);
+        proof.setReviewedAt(LocalDateTime.now());
+        proof = proofRepository.save(proof);
+
+        notificationService.notifyUser(
+                enrollment.getStudent(),
+                "CLASSROOM_TUITION_PROOF_CONFIRMED",
+                "Đã ghi nhận thanh toán học phí",
+                "EnglishLab đã ghi nhận " + amount.toPlainString() + " VND cho lớp "
+                        + enrollment.getClassSection().getTitle() + ".",
+                Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassSection().getId())
+        );
+        return toResponse(proof);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<TuitionProofResponse> getMyProofs(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);

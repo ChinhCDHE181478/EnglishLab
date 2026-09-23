@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Upload,
   UserPlus,
   UserRoundCheck,
   X,
@@ -21,7 +22,7 @@ import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
 import StaffTuitionReviewPanel from '../../components/classroom/StaffTuitionReviewPanel';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
-import { formatClassroomDate, formatClassroomDateTime } from '../../utils/classroomHelpers';
+import { formatClassroomDate, formatClassroomDateTime, formatClassroomPrice } from '../../utils/classroomHelpers';
 import {
   getEnrollmentRequestActions,
   getStaffEnrollmentLoadError,
@@ -66,6 +67,8 @@ const initialAction = {
   appointmentTime: '',
   location: 'EnglishLab Campus, Hà Nội',
   eligible: 'true',
+  paymentKind: 'INVITE_ONLY',
+  proofFile: null,
 };
 
 export default function StaffEnrollmentRequestsPage() {
@@ -294,19 +297,51 @@ export default function StaffEnrollmentRequestsPage() {
     );
   };
 
-  const assignClass = () => {
+  const assignClass = async () => {
     if (!action.classroomId) {
       setError('Vui lòng chọn lớp phù hợp cho học viên.');
       return;
     }
-    runAction(
-      () => enrollmentRequestApi.assignClass(action.item.id, {
+    if (action.paymentKind !== 'INVITE_ONLY' && !action.proofFile) {
+      setError('Vui lòng chọn ảnh hoặc PDF minh chứng thanh toán.');
+      return;
+    }
+
+    setWorking(true);
+    setError('');
+    let assignedRequest = null;
+    try {
+      assignedRequest = await enrollmentRequestApi.assignClass(action.item.id, {
         classroomId: Number(action.classroomId),
         note: action.note.trim() || null,
-      }),
-      (updated) => `Đã chọn lớp và gửi hướng dẫn thanh toán tới ${updated.contactName || updated.learnerName}.`,
-      'Không thể xếp lớp cho học viên.',
-    );
+      });
+      if (action.paymentKind !== 'INVITE_ONLY') {
+        const enrollmentId = assignedRequest.assignedEnrollment?.id;
+        if (!enrollmentId) throw new Error('Không tìm thấy hồ sơ học phí vừa tạo.');
+        await classroomApi.submitAndConfirmTuitionProof(enrollmentId, {
+          file: action.proofFile,
+          paymentKind: action.paymentKind,
+          note: action.note.trim() || null,
+        });
+      }
+      setAction(initialAction);
+      await load();
+      setSuccess(
+        action.paymentKind === 'INVITE_ONLY'
+          ? `Đã chọn lớp và gửi hướng dẫn thanh toán tới ${assignedRequest.contactName || assignedRequest.learnerName}.`
+          : `Đã chọn lớp, lưu minh chứng và ghi nhận học phí cho ${assignedRequest.contactName || assignedRequest.learnerName}.`,
+      );
+    } catch (requestError) {
+      if (assignedRequest) {
+        setAction(initialAction);
+        await load();
+        setError(`Đã chọn lớp nhưng chưa lưu được minh chứng: ${requestError?.response?.data?.message || requestError.message || 'Vui lòng mở lại hồ sơ để xử lý học phí.'}`);
+      } else {
+        setError(requestError?.response?.data?.message || 'Không thể xếp lớp cho học viên.');
+      }
+    } finally {
+      setWorking(false);
+    }
   };
 
   const reject = () => {
@@ -785,6 +820,14 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
     REJECT: ['Kết thúc hồ sơ', 'Dùng khi học viên từ chối tiếp tục hoặc hồ sơ không thể xử lý.'],
   };
   const [title, description] = titles[action.type];
+  const selectedClassroom = classrooms.find((item) => String(item.id) === String(action.classroomId));
+  const tuitionFee = Number(selectedClassroom?.tuitionFeeVnd || selectedClassroom?.price || 0);
+  const depositAmount = Math.round(tuitionFee * 0.3);
+  const depositDeadline = selectedClassroom?.startDate ? new Date(`${selectedClassroom.startDate}T23:59:59`) : null;
+  if (depositDeadline) depositDeadline.setDate(depositDeadline.getDate() - 7);
+  const canChooseDeposit = tuitionFee > 0 && depositDeadline && new Date() <= depositDeadline;
+  const hasReceivedPayment = ['DEPOSIT', 'FULL'].includes(action.paymentKind);
+  const paymentAmount = action.paymentKind === 'DEPOSIT' ? depositAmount : tuitionFee;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
       <section aria-modal="true" className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" role="dialog">
@@ -871,7 +914,12 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
               <FieldLabel>Lớp phù hợp *</FieldLabel>
               <BrandedSelect
                 disabled={assignmentAvailability.loading}
-                onChange={(event) => onChange({ ...action, classroomId: event.target.value })}
+                onChange={(event) => onChange({
+                  ...action,
+                  classroomId: event.target.value,
+                  paymentKind: 'INVITE_ONLY',
+                  proofFile: null,
+                })}
                 options={classrooms.filter((item) => assignmentAvailability.ids?.has(String(item.id))).map((item) => ({
                   value: String(item.id),
                   label: item.title,
@@ -882,6 +930,44 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
                 value={action.classroomId}
               />
               {!assignmentAvailability.loading && assignmentAvailability.ids && !assignmentAvailability.ids.size ? <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">{classroomLoadError || 'Không có lớp nào vừa còn chỗ, chưa ghi danh và không trùng lịch hiện tại của học viên.'}</p> : null}
+              {selectedClassroom && tuitionFee > 0 ? (
+                <div className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div>
+                    <FieldLabel>Tình trạng thanh toán *</FieldLabel>
+                    <BrandedSelect
+                      onChange={(event) => onChange({
+                        ...action,
+                        paymentKind: event.target.value,
+                        proofFile: null,
+                      })}
+                      options={[
+                        { label: 'Chưa nộp - gửi hướng dẫn thanh toán', value: 'INVITE_ONLY' },
+                        ...(canChooseDeposit ? [{ label: `Đã nộp cọc 30% · ${formatClassroomPrice(depositAmount)}`, value: 'DEPOSIT' }] : []),
+                        { label: `Đã nộp toàn bộ · ${formatClassroomPrice(tuitionFee)}`, value: 'FULL' },
+                      ]}
+                      value={action.paymentKind}
+                    />
+                  </div>
+                  {hasReceivedPayment ? (
+                    <div>
+                      <FieldLabel>Ảnh / PDF minh chứng *</FieldLabel>
+                      <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-[#dfbfbd] bg-white px-4 py-4 text-sm transition hover:border-[#730014] hover:bg-[#fff7f7]">
+                        <Upload className="h-5 w-5 shrink-0 text-[#730014]" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold text-[#0b1c30]">{action.proofFile?.name || 'Chọn ảnh hoặc PDF minh chứng'}</span>
+                          <span className="mt-0.5 block text-xs text-slate-500">Khoản thu: {formatClassroomPrice(paymentAmount)} · Tối đa 20MB</span>
+                        </span>
+                        <input
+                          accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                          className="sr-only"
+                          onChange={(event) => onChange({ ...action, proofFile: event.target.files?.[0] || null })}
+                          type="file"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
 

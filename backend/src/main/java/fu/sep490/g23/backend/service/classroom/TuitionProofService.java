@@ -19,6 +19,15 @@ public interface TuitionProofService {
             String publicUrlBase
     );
 
+    TuitionProofResponse submitAndConfirmStaffProof(
+            Long enrollmentId,
+            MultipartFile file,
+            String paymentKind,
+            String note,
+            String actorEmail,
+            String publicUrlBase
+    );
+
     List<TuitionProofResponse> getMyProofs(Long offeringId, String learnerEmail);
 
     List<ClassroomTuitionPaymentResponse> getMyTuitionHistory(Long offeringId, String learnerEmail);

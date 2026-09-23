@@ -549,6 +549,18 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async submitAndConfirmTuitionProof(enrollmentId, { file, paymentKind, note }) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('paymentKind', paymentKind);
+    if (note) formData.append('note', note);
+    const response = await axiosClient.post(
+      `/api/staff/classrooms/enrollments/${enrollmentId}/tuition-proofs`,
+      formData,
+    );
+    return unwrapData(response);
+  },
+
   async confirmTuitionProof(proofId) {
     const response = await axiosClient.post(`/api/staff/classrooms/tuition-proofs/${proofId}/confirm`);
     return unwrapData(response);

@@ -39,6 +39,7 @@ import fu.sep490.g23.backend.service.classroom.InstructorLedCourseCatalogService
 import fu.sep490.g23.backend.service.curriculum.InstructorLedCourseManagementService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,7 +49,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.Comparator;
 import java.util.List;
@@ -344,6 +348,30 @@ public class StaffClassroomController {
     @GetMapping("/enrollments/{enrollmentId}/tuition-proofs")
     public ResponseEntity<List<TuitionProofResponse>> listTuitionProofsForEnrollment(@PathVariable Long enrollmentId) {
         return ResponseEntity.ok(tuitionProofService.listProofsForEnrollment(enrollmentId));
+    }
+
+    @PostMapping(
+            value = "/enrollments/{enrollmentId}/tuition-proofs",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<TuitionProofResponse> submitAndConfirmTuitionProof(
+            @PathVariable Long enrollmentId,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam String paymentKind,
+            @RequestParam(required = false) String note,
+            Authentication authentication
+    ) {
+        String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/classroom-homework/attachments")
+                .toUriString();
+        return ResponseEntity.ok(tuitionProofService.submitAndConfirmStaffProof(
+                enrollmentId,
+                file,
+                paymentKind,
+                note,
+                authentication.getName(),
+                publicUrlBase
+        ));
     }
 
     @PostMapping("/tuition-proofs/{proofId}/confirm")
