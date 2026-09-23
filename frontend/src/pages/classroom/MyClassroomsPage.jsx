@@ -32,7 +32,7 @@ import {
   formatTuitionSettlement,
 } from '../../utils/classroomHelpers';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
-import { onlyAssignedClassrooms } from '../../utils/learnerClassroomAccess';
+import { onlyVisibleClassrooms } from '../../utils/learnerClassroomAccess';
 
 // ─── Tab definitions ────────────────────────────────────────────────────────
 const learnerTabs = [
@@ -101,7 +101,7 @@ export default function MyClassroomsPage() {
     setError('');
     try {
       const data = await classroomApi.getMyClassrooms();
-      setClassrooms(onlyAssignedClassrooms(data));
+      setClassrooms(onlyVisibleClassrooms(data));
     } catch (err) {
       setClassrooms([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải danh sách lớp của bạn.'));
@@ -115,10 +115,10 @@ export default function MyClassroomsPage() {
     loadClassrooms();
   }, [isAuthenticated]);
 
-  const assignedClassrooms = onlyAssignedClassrooms(classrooms);
+  const visibleClassrooms = onlyVisibleClassrooms(classrooms);
   const filteredClassrooms = (() => {
     const query = searchQuery.trim().toLowerCase();
-    return assignedClassrooms.filter((item) => {
+    return visibleClassrooms.filter((item) => {
       if (activeTab === 'active' && !isActiveClass(item)) return false;
       if (activeTab === 'upcoming' && !isUpcomingClass(item)) return false;
       if (activeTab === 'completed' && !isCompletedClass(item)) return false;
@@ -136,10 +136,10 @@ export default function MyClassroomsPage() {
   );
 
   const counts = {
-    all: assignedClassrooms.length,
-    active: assignedClassrooms.filter(isActiveClass).length,
-    upcoming: assignedClassrooms.filter(isUpcomingClass).length,
-    completed: assignedClassrooms.filter(isCompletedClass).length,
+    all: visibleClassrooms.length,
+    active: visibleClassrooms.filter(isActiveClass).length,
+    upcoming: visibleClassrooms.filter(isUpcomingClass).length,
+    completed: visibleClassrooms.filter(isCompletedClass).length,
   };
 
   const learnerTabOptions = learnerTabs.map((tab) => ({

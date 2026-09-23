@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { hasAssignedClassroomAccess, onlyAssignedClassrooms } from './learnerClassroomAccess';
+import {
+  hasAssignedClassroomAccess,
+  hasVisibleClassroomRegistration,
+  onlyVisibleClassrooms,
+} from './learnerClassroomAccess';
 
 describe('learnerClassroomAccess', () => {
   it('chỉ nhận lớp đã được Staff xếp và đã có quyền học', () => {
@@ -24,21 +28,24 @@ describe('learnerClassroomAccess', () => {
     });
   });
 
-  it('lọc dữ liệu cũ khỏi danh sách Lớp học của tôi', () => {
+  it('hiển thị lớp cần thanh toán nhưng vẫn ẩn hồ sơ chưa được chọn lớp', () => {
     const assigned = {
       id: 1,
       registrationStatus: 'ASSIGNED',
       hasClassAccess: true,
     };
+    const awaitingPayment = {
+      id: 2,
+      registrationStatus: 'PENDING_TUITION_PAYMENT',
+      hasClassAccess: false,
+    };
 
-    expect(onlyAssignedClassrooms([
+    expect(hasVisibleClassroomRegistration(awaitingPayment)).toBe(true);
+    expect(onlyVisibleClassrooms([
       assigned,
-      {
-        id: 2,
-        registrationStatus: 'PENDING_TUITION_PAYMENT',
-        hasClassAccess: false,
-      },
-    ])).toEqual([assigned]);
-    expect(onlyAssignedClassrooms(null)).toEqual([]);
+      awaitingPayment,
+      { id: 3, registrationStatus: 'WAITLIST', hasClassAccess: false },
+    ])).toEqual([assigned, awaitingPayment]);
+    expect(onlyVisibleClassrooms(null)).toEqual([]);
   });
 });

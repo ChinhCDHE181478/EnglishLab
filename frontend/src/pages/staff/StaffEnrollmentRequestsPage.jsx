@@ -36,7 +36,7 @@ const views = [
   { label: 'Đã hẹn test', value: 'TEST_SCHEDULED' },
   { label: 'Chờ học viên xác nhận', value: 'CLASS_PROPOSED' },
   { label: 'Đủ điều kiện', value: 'WAITING_FOR_CLASS' },
-  { label: 'Hoàn tất', value: 'CLASS_ASSIGNED' },
+  { label: 'Đã chọn lớp', value: 'CLASS_ASSIGNED' },
   { label: 'Không phù hợp', value: 'REJECTED' },
 ];
 
@@ -299,7 +299,7 @@ export default function StaffEnrollmentRequestsPage() {
         classroomId: Number(action.classroomId),
         note: action.note.trim() || null,
       }),
-      (updated) => `Đã xếp lớp và gửi email thông báo tới ${updated.contactName || updated.learnerName}.`,
+      (updated) => `Đã chọn lớp và gửi hướng dẫn thanh toán tới ${updated.contactName || updated.learnerName}.`,
       'Không thể xếp lớp cho học viên.',
     );
   };
@@ -325,8 +325,8 @@ export default function StaffEnrollmentRequestsPage() {
       await load();
       setSuccess(
         created.learnerAccountCreated
-          ? `Đã tạo tài khoản, gửi email thiết lập mật khẩu và xếp ${created.learnerName} vào lớp.`
-          : `Đã dùng tài khoản hiện có và xếp ${created.learnerName} vào lớp.`,
+          ? `Đã tạo tài khoản, giữ chỗ và gửi hướng dẫn thanh toán cho ${created.learnerName}.`
+          : `Đã giữ chỗ và gửi hướng dẫn thanh toán cho ${created.learnerName}.`,
       );
     } catch (requestError) {
       setError(requestError?.response?.data?.message || 'Không thể ghi danh học viên tại trung tâm.');
@@ -622,7 +622,7 @@ function EnrollmentRequestDetailModal({ item, onAction, onClose }) {
           {item.requestSource === 'CENTER' ? (
             <DetailSection title="Ghi danh tại trung tâm">
               <div className="grid gap-3 sm:grid-cols-2">
-                <DetailRow label="Xử lý" value="Đã xếp lớp trực tiếp" />
+                <DetailRow label="Xử lý" value="Đã chọn lớp và chuyển sang thanh toán" />
                 <DetailRow label="Ngày ghi danh" value={formatClassroomDateTime(item.createdAt)} />
               </div>
             </DetailSection>
@@ -749,7 +749,7 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
   const titles = {
     SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
     COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá trực tiếp tại trung tâm.'],
-    ASSIGN: ['Xếp lớp chính thức', 'Chọn lớp thuộc khóa học đã được xác nhận và không trùng lịch của học viên.'],
+    ASSIGN: ['Chọn lớp và mời thanh toán', 'Chọn lớp thuộc khóa học đã xác nhận. Học viên sẽ nhận hướng dẫn hoàn tất học phí.'],
     REJECT: ['Kết thúc hồ sơ', 'Dùng khi học viên từ chối tiếp tục hoặc hồ sơ không thể xử lý.'],
   };
   const [title, description] = titles[action.type];
@@ -1040,7 +1040,7 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Hủy</button>
             <button className={PRIMARY_BUTTON_CLASS} disabled={working || !availableClassrooms.length || !accountResolved} onClick={submit} type="button">
-              <UserRoundCheck className="h-4 w-4" />{working ? 'Đang ghi danh...' : 'Ghi danh & xếp lớp'}
+              <UserRoundCheck className="h-4 w-4" />{working ? 'Đang ghi danh...' : 'Ghi danh & gửi thanh toán'}
             </button>
           </div>
         </div>
