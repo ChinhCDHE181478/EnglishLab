@@ -1819,7 +1819,7 @@ export default function MyClassroomDetailPage() {
                       type="button"
                     >
                       <Download className="h-4 w-4" />
-                      Mở tài liệu
+                      Tải tài liệu
                     </button>
                   </div>
                 )}
