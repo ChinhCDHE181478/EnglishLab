@@ -67,8 +67,20 @@ export default function TeacherChangeRequestForm({
 
   const isVirtual = classroom?.deliveryMode === 'VIRTUAL';
   const requiresRoom = !isVirtual;
+  // A virtual classroom has no physical room, so "Đổi phòng học" would always show an empty
+  // "current room" and a list of unrelated rooms — hide it instead of offering a request type
+  // that can never make sense for this classroom.
+  const requestTypeOptions = requiresRoom
+    ? REQUEST_TYPE_OPTIONS
+    : REQUEST_TYPE_OPTIONS.filter((option) => option.value !== 'CHANGE_ROOM');
   const isMakeup = form.type === 'CREATE_MAKEUP_SESSION';
   const isScheduleRequest = form.type === 'RESCHEDULE_SESSION' || isMakeup;
+
+  useEffect(() => {
+    if (!requiresRoom && form.type === 'CHANGE_ROOM') {
+      setForm((current) => ({ ...current, type: 'RESCHEDULE_SESSION', roomId: '' }));
+    }
+  }, [requiresRoom, form.type]);
 
   const eligibleSessions = useMemo(
     () => (sessions || []).filter((session) => session.status !== 'COMPLETED' && session.status !== 'CANCELLED'),
@@ -110,7 +122,7 @@ export default function TeacherChangeRequestForm({
             try {
               const result = await classroomApi.checkTeacherChangeConflict({
                 requestType: form.type,
-                classroomOfferingId: Number(classroomId),
+                classSectionId: Number(classroomId),
                 targetSessionId: Number(form.sessionId),
                 newValuesJson: buildScheduleValues(selectedSession, slot, form.newDate, ''),
                 reason: 'Kiểm tra trùng lịch',
@@ -221,12 +233,17 @@ export default function TeacherChangeRequestForm({
     .filter(({ index }) => slotStatus[index]?.available)
     .map(({ slot, index }) => ({ label: slot.label, value: String(index) }));
 
-  const roomOptions = availableRooms.map((room) => ({
-    label: room.capacity
-      ? `${room.name} · Sức chứa ${room.capacity}`
-      : room.name,
-    value: String(room.id),
-  }));
+  const roomOptions = availableRooms
+    // The backend only excludes the current session's own booking from "conflicts", so its
+    // current room still comes back as "available" — filter it out here since offering a
+    // teacher their own room as the new room to move into makes no sense for this request.
+    .filter((room) => form.type !== 'CHANGE_ROOM' || String(room.id) !== String(selectedSession?.roomId))
+    .map((room) => ({
+      label: room.capacity
+        ? `${room.name} · Sức chứa ${room.capacity}`
+        : room.name,
+      value: String(room.id),
+    }));
 
   const teacherOptions = availableTeachers.map((teacher) => ({
     label: teacher.fullName || teacher.email || `Giáo viên #${teacher.id}`,
@@ -272,7 +289,7 @@ export default function TeacherChangeRequestForm({
     try {
       await classroomApi.createChangeRequest({
         requestType: form.type,
-        classroomOfferingId: Number(classroomId),
+        classSectionId: Number(classroomId),
         targetSessionId: Number(form.sessionId),
         newValuesJson: buildNewValuesJson(),
         reason: form.reason.trim(),
@@ -315,7 +332,7 @@ export default function TeacherChangeRequestForm({
               roomId: '',
               teacherId: '',
             }))}
-            options={REQUEST_TYPE_OPTIONS}
+            options={requestTypeOptions}
             value={form.type}
           />
         </div>
@@ -411,11 +428,16 @@ export default function TeacherChangeRequestForm({
         </div>
       ) : null}
 
-      {form.type === 'CHANGE_ROOM' && form.sessionId ? (
+      {form.type === 'CHANGE_ROOM' && requiresRoom && form.sessionId ? (
         <div className="space-y-2">
-          <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Phòng học trống *</label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Phòng học trống *</label>
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-bold text-[#584140]">
+              Phòng hiện tại: {selectedSession?.roomName || 'Chưa gán phòng'}
+            </span>
+          </div>
           <p className="text-xs text-[#8b706e]">
-            Lọc theo lịch buổi {formatClassroomDate(selectedSession?.sessionDate)} · {formatClassroomTime(selectedSession?.startTime)}–{formatClassroomTime(selectedSession?.endTime)}.
+            Lọc theo lịch buổi {formatClassroomDate(selectedSession?.sessionDate)} · {formatClassroomTime(selectedSession?.startTime)}–{formatClassroomTime(selectedSession?.endTime)}. Danh sách chỉ hiện phòng khác đang trống — không hiện lại phòng hiện tại.
           </p>
           {loadingOptions ? (
             <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-xs font-semibold text-[#8b706e]">

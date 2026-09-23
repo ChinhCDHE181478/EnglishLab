@@ -93,10 +93,16 @@ const readStructuredSubmission = (homework, textAnswer) => {
 
   return questions.map((question, index) => {
     const number = String(question.number ?? question.id ?? index + 1);
-    const selectedValue = String(responses[number] ?? responses[question.submissionKey] ?? '');
+    const rawSelected = responses[number] ?? responses[question.submissionKey];
+    const selectedValues = (Array.isArray(rawSelected) ? rawSelected : rawSelected === undefined || rawSelected === null || rawSelected === '' ? [] : [rawSelected])
+      .map((value) => String(value).trim())
+      .filter(Boolean);
     const options = normalizeOptions(question.options);
-    const selectedOption = options.find((option) => option.value === selectedValue);
-    const configuredAnswers = answerKey[number] ?? question.correctAnswer ?? '';
+    const selectedLabels = selectedValues.map((value) => {
+      const option = options.find((item) => item.value.toLocaleLowerCase() === value.toLocaleLowerCase());
+      return option ? `${option.value}. ${option.label}` : value;
+    });
+    const configuredAnswers = answerKey[number] ?? question.correctAnswers ?? question.correctAnswer ?? '';
     const correctValues = (Array.isArray(configuredAnswers) ? configuredAnswers : [configuredAnswers])
       .map((value) => String(value).trim())
       .filter(Boolean);
@@ -104,6 +110,13 @@ const readStructuredSubmission = (homework, textAnswer) => {
       const option = options.find((item) => item.value.toLocaleLowerCase() === value.toLocaleLowerCase());
       return option ? `${option.value}. ${option.label}` : value;
     });
+    const isCorrect = Boolean(question.multiSelect || correctValues.length > 1)
+      ? selectedValues.length === correctValues.length
+        && correctValues.every((value) => selectedValues.some((selected) => selected.toLocaleLowerCase() === value.toLocaleLowerCase()))
+      : Boolean(
+          selectedValues.length
+            && correctValues.some((value) => value.toLocaleLowerCase() === selectedValues[0].toLocaleLowerCase())
+        );
     return {
       number,
       prompt:
@@ -111,12 +124,9 @@ const readStructuredSubmission = (homework, textAnswer) => {
         question.question ||
         question.questionText ||
         [question.promptBefore, question.promptAfter].filter(Boolean).join(' _____ '),
-      answer: selectedOption ? `${selectedOption.value}. ${selectedOption.label}` : selectedValue || 'Không trả lời',
+      answer: selectedLabels.join(', ') || 'Không trả lời',
       correctAnswer: correctLabels.join(' hoặc '),
-      correct: Boolean(
-        selectedValue &&
-          correctValues.some((value) => value.toLocaleLowerCase() === selectedValue.toLocaleLowerCase())
-      ),
+      correct: isCorrect,
     };
   });
 };

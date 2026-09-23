@@ -166,6 +166,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                         .skill(item.getSkill())
                         .instructions(item.getInstructions())
                         .uiConfigJson(item.getUiConfigJson())
+                        .objectiveAnswerKey(item.getObjectiveAnswerKey())
                         .maxScore(item.getMaxScore())
                         .timeLimitMinutes(item.getTimeLimitMinutes())
                         .rubricId(item.getRubric() == null ? null : item.getRubric().getId())

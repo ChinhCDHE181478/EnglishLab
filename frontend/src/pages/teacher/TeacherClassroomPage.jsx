@@ -494,18 +494,6 @@ export default function TeacherClassroomPage() {
                     </div>
                   </div>
 
-                  {/* Final result */}
-                  <div className="flex flex-shrink-0 items-center text-sm">
-                    <div className="text-center">
-                      <p className="text-[10px] font-bold text-[#8b706e]">Kết quả</p>
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
-                        ['PASSED', 'ĐẠT'].includes(student.result) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {student.result === 'CHƯA CÓ' ? '—' : student.result}
-                      </span>
-                    </div>
-                  </div>
-
                   {student.isAtRisk && (
                     <div className="flex flex-shrink-0 items-center gap-1 rounded-xl border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10px] font-extrabold text-rose-700">
                       <AlertCircle className="h-3 w-3" /> Cần chú ý

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -109,6 +110,13 @@ public class ClassroomHomeworkObjectiveGrader {
 
     private boolean matches(JsonNode acceptedNode, JsonNode submittedNode) {
         if (submittedNode == null || submittedNode.isNull()) return false;
+        if (submittedNode.isArray()) {
+            // Multi-select answer: the submitted set of letters must match the accepted set exactly.
+            if (acceptedNode == null || !acceptedNode.isArray()) return false;
+            Set<String> accepted = toUpperTrimmedSet(acceptedNode);
+            Set<String> submitted = toUpperTrimmedSet(submittedNode);
+            return !accepted.isEmpty() && accepted.equals(submitted);
+        }
         String submitted = submittedNode.asText("").trim();
         if (acceptedNode != null && acceptedNode.isArray()) {
             for (JsonNode accepted : acceptedNode) {
@@ -117,6 +125,15 @@ public class ClassroomHomeworkObjectiveGrader {
             return false;
         }
         return acceptedNode != null && acceptedNode.asText("").trim().equalsIgnoreCase(submitted);
+    }
+
+    private Set<String> toUpperTrimmedSet(JsonNode arrayNode) {
+        Set<String> values = new HashSet<>();
+        for (JsonNode item : arrayNode) {
+            String text = item.asText("").trim();
+            if (!text.isEmpty()) values.add(text.toUpperCase());
+        }
+        return values;
     }
 
     private JsonNode readJson(String value) {

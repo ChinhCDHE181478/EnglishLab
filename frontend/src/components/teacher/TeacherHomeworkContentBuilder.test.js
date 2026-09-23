@@ -21,12 +21,26 @@ describe('TeacherHomeworkContentBuilder data mapping', () => {
       questions: [{
         prompt: 'Choose the correct answer.',
         options: ['First', 'Second', 'Third', 'Fourth'],
-        correctAnswer: 'B',
+        correctAnswers: ['B'],
       }],
     }));
 
     expect(config.questions[0].options[1]).toEqual({ value: 'B', label: 'Second' });
-    expect(config.answerKey).toEqual({ 1: 'B' });
+    expect(config.questions[0].multiSelect).toBe(false);
+    expect(config.answerKey).toEqual({ 1: ['B'] });
+  });
+
+  it('marks a question multiSelect when it has more than one correct answer', () => {
+    const config = JSON.parse(buildConfig({
+      questions: [{
+        prompt: 'Choose all synonyms of rapid.',
+        options: ['Quick', 'Fast', 'Slow', 'Weak'],
+        correctAnswers: ['A', 'B'],
+      }],
+    }));
+
+    expect(config.questions[0].multiSelect).toBe(true);
+    expect(config.answerKey).toEqual({ 1: ['A', 'B'] });
   });
 
   it('stores a direct Writing task without exposing JSON to the teacher', () => {
@@ -95,7 +109,7 @@ describe('TeacherHomeworkContentBuilder data mapping', () => {
     expect(result.items[0]).toMatchObject({
       prompt: 'Choose one.',
       options: ['First', 'Second', 'Third', 'Fourth'],
-      correctAnswer: 'B',
+      correctAnswers: ['B'],
     });
     expect(result.invalidRows).toEqual([3]);
   });

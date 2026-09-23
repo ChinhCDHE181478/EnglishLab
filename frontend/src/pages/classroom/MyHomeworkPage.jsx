@@ -1071,17 +1071,24 @@ function HomeworkAnswerWorkspace({ homework, value, onChange }) {
         {questions.map((question, index) => {
           const key = String(question.number ?? question.id ?? index + 1);
           const options = Array.isArray(question.options) ? question.options : [];
+          const isMultiSelect = Boolean(question.multiSelect);
+          const selectedValues = isMultiSelect
+            ? (Array.isArray(structured.responses?.[key]) ? structured.responses[key] : [])
+            : null;
           return (
             <div className={`space-y-2 ${options.length ? 'sm:col-span-2 rounded-xl border border-gray-100 p-4' : ''}`} key={key}>
               <span className="text-xs font-bold text-gray-600">
                 Câu {question.displayNumber ?? key}{question.prompt ? ` · ${question.prompt}` : ''}
+                {isMultiSelect ? ' (có thể chọn nhiều đáp án)' : ''}
               </span>
               {options.length ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {options.map((option, optionIndex) => {
                     const optionValue = String(option?.value ?? option?.label ?? option);
                     const optionLabel = String(option?.label ?? option?.value ?? option);
-                    const checked = structured.responses?.[key] === optionValue;
+                    const checked = isMultiSelect
+                      ? selectedValues.includes(optionValue)
+                      : structured.responses?.[key] === optionValue;
                     return (
                       <label
                         className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition ${checked ? 'border-[#730014] bg-[#fff0f1] text-[#4b0009]' : 'border-gray-200 bg-white text-[#584140]'}`}
@@ -1091,8 +1098,14 @@ function HomeworkAnswerWorkspace({ homework, value, onChange }) {
                           checked={checked}
                           className="accent-[#730014]"
                           name={`homework-question-${homework.id}-${key}`}
-                          onChange={() => updateAnswer(key, optionValue)}
-                          type="radio"
+                          onChange={() => (
+                            isMultiSelect
+                              ? updateAnswer(key, checked
+                                ? selectedValues.filter((value) => value !== optionValue)
+                                : [...selectedValues, optionValue])
+                              : updateAnswer(key, optionValue)
+                          )}
+                          type={isMultiSelect ? 'checkbox' : 'radio'}
                         />
                         {optionLabel}
                       </label>
