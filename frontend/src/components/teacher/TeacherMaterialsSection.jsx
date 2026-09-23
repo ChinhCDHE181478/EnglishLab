@@ -316,7 +316,7 @@ function EditorModal({ children, onClose }) {
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[640px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto" style={{ maxHeight: 'calc(100vh - 32px)' }}>
+      <div className="relative z-10 w-full max-w-[640px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-x-hidden overflow-y-auto" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         {children}
       </div>
     </div>

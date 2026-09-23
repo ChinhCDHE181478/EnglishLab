@@ -181,6 +181,13 @@ export default function StaffRequestsPage() {
     try {
       const result = await classroomApi.checkChangeRequestConflict(requestId);
       setConflictResults((curr) => ({ ...curr, [requestId]: result }));
+      // The check often returns the same "no conflict" result as before, which leaves the panel
+      // looking unchanged — without this the button appears to do nothing when clicked manually.
+      if (!options.silent) {
+        setActionMessage(hasBlockingConflict(result)
+          ? 'Đã kiểm tra lại: phát hiện xung đột lịch học.'
+          : 'Đã kiểm tra lại trùng lịch thành công — không phát hiện xung đột.');
+      }
     } catch (err) {
       if (!options.silent) {
         setActionMessage(getClassroomErrorMessage(err, 'Không thể kiểm tra trùng lịch.'));

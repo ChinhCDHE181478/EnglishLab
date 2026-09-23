@@ -98,7 +98,10 @@ export default function FileDropzone({
   const { label: extLabel, bg: badgeStyle, Icon: FileTypeIcon } = getFileMeta(displayTitle, fileType);
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    // min-w-0: this sits inside a CSS grid/flex parent (the material form's `grid gap-4`), and
+    // grid/flex items default to min-width:auto — without this, the long-filename row below
+    // refuses to shrink and bleeds out past the modal's rounded edge instead of truncating.
+    <div className={`min-w-0 space-y-2 ${className}`}>
       {label ? (
         <label className="block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
           {label}
@@ -128,17 +131,17 @@ export default function FileDropzone({
         </div>
       ) : hasFile ? (
         /* Selected File Card */
-        <div className="group relative flex items-center justify-between gap-4 rounded-2xl border border-[#dcc0bf]/60 bg-white p-4 shadow-sm transition hover:border-[#730014]">
+        <div className="group relative flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-[#dcc0bf]/60 bg-white p-4 shadow-sm transition hover:border-[#730014]">
           <div className="flex min-w-0 items-center gap-3.5">
             <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${badgeStyle}`}>
               <FileTypeIcon className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold uppercase ${badgeStyle}`}>
+              <div className="flex min-w-0 items-center gap-2">
+                <span className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold uppercase ${badgeStyle}`}>
                   {extLabel}
                 </span>
-                <p className="truncate text-sm font-bold text-[#0b1c30]" title={displayTitle}>
+                <p className="min-w-0 flex-1 truncate text-sm font-bold text-[#0b1c30]" title={displayTitle}>
                   {displayTitle}
                 </p>
               </div>
