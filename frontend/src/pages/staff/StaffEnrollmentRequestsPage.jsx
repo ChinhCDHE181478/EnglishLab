@@ -40,12 +40,6 @@ const views = [
   { label: 'Không phù hợp', value: 'REJECTED' },
 ];
 
-const placementOptions = [
-  { label: 'Cơ bản', value: 'BEGINNER' },
-  { label: 'Trung cấp', value: 'INTERMEDIATE' },
-  { label: 'Nâng cao', value: 'ADVANCED' },
-];
-
 const trackFilterOptions = [
   { label: 'Tất cả chương trình', value: 'ALL' },
   { label: 'IELTS 4 kỹ năng', value: 'IELTS_4_SKILLS' },
@@ -469,7 +463,9 @@ export default function StaffEnrollmentRequestsPage() {
                         <p className="mt-1 text-xs text-slate-500">{formatConsultationTrack(item.consultationTrack)}</p>
                       </td>
                       <td className="px-5 py-4 text-xs leading-5 text-slate-600">
-                        {item.testAppointmentAt ? (
+                        {item.requestSource === 'CENTER' ? (
+                          <p className="font-semibold text-slate-500">Không áp dụng</p>
+                        ) : item.testAppointmentAt ? (
                           <p className="font-bold text-slate-800">{formatClassroomDateTime(item.testAppointmentAt)}</p>
                         ) : (
                           <p className="font-semibold text-slate-400">Chưa chốt lịch test</p>
@@ -623,14 +619,23 @@ function EnrollmentRequestDetailModal({ item, onAction, onClose }) {
             </DetailSection>
           </div>
 
-          <DetailSection title="Lịch đánh giá tại trung tâm">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <DetailRow label="Thời gian" value={item.testAppointmentAt ? formatClassroomDateTime(item.testAppointmentAt) : 'Chưa chốt lịch'} />
-              <DetailRow label="Địa điểm" value={item.testLocation} />
-              <DetailRow label="Trình độ xác nhận" value={formatPlacementLevel(item.confirmedLevel)} />
-              <DetailRow label="Ngày đăng ký" value={formatClassroomDateTime(item.createdAt)} />
-            </div>
-          </DetailSection>
+          {item.requestSource === 'CENTER' ? (
+            <DetailSection title="Ghi danh tại trung tâm">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailRow label="Xử lý" value="Đã xếp lớp trực tiếp" />
+                <DetailRow label="Ngày ghi danh" value={formatClassroomDateTime(item.createdAt)} />
+              </div>
+            </DetailSection>
+          ) : (
+            <DetailSection title="Lịch đánh giá tại trung tâm">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailRow label="Thời gian" value={item.testAppointmentAt ? formatClassroomDateTime(item.testAppointmentAt) : 'Chưa chốt lịch'} />
+                <DetailRow label="Địa điểm" value={item.testLocation} />
+                <DetailRow label="Trình độ xác nhận" value={formatPlacementLevel(item.confirmedLevel)} />
+                <DetailRow label="Ngày đăng ký" value={formatClassroomDateTime(item.createdAt)} />
+              </div>
+            </DetailSection>
+          )}
 
           {item.latestPlacementResult ? <PlacementScoreSummary detailed result={item.latestPlacementResult} /> : null}
 
@@ -869,7 +874,6 @@ const initialCenterEnrollment = {
   fullName: '',
   email: '',
   phoneNumber: '',
-  confirmedLevel: '',
   classroomId: '',
   note: '',
 };
@@ -877,26 +881,81 @@ const initialCenterEnrollment = {
 function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose, onSubmit, working }) {
   const [form, setForm] = useState(initialCenterEnrollment);
   const [validationError, setValidationError] = useState('');
+  const [accountLookup, setAccountLookup] = useState({ status: 'idle', message: '' });
+  const accountResolved = ['existing', 'new'].includes(accountLookup.status);
+
+  useEffect(() => {
+    const email = form.email.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setAccountLookup({ status: 'idle', message: '' });
+      return undefined;
+    }
+
+    let active = true;
+    setAccountLookup({ status: 'loading', message: '' });
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await enrollmentRequestApi.findCenterEnrollmentLearner(email);
+        if (!active) return;
+        if (result?.existingAccount) {
+          setForm((current) => current.email.trim().toLowerCase() === email
+            ? {
+              ...current,
+              fullName: result.fullName || '',
+              phoneNumber: result.phoneNumber || '',
+            }
+            : current);
+          setAccountLookup({
+            status: 'existing',
+            message: result.phoneNumber
+              ? 'Đã tìm thấy tài khoản học viên.'
+              : 'Đã tìm thấy tài khoản. Vui lòng bổ sung số điện thoại.',
+          });
+          return;
+        }
+        setForm((current) => current.email.trim().toLowerCase() === email
+          ? { ...current, fullName: '', phoneNumber: '' }
+          : current);
+        setAccountLookup({ status: 'new', message: 'Email chưa có tài khoản. Nhập thông tin để tạo mới.' });
+      } catch (lookupError) {
+        if (!active) return;
+        setAccountLookup({
+          status: 'error',
+          message: lookupError?.response?.data?.message || 'Không thể kiểm tra email học viên.',
+        });
+      }
+    }, 450);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [form.email]);
 
   const update = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => field === 'email'
+      ? { ...current, email: value, fullName: '', phoneNumber: '' }
+      : { ...current, [field]: value });
     setValidationError('');
   };
 
   const submit = () => {
-    if (!form.fullName.trim() || !form.email.trim() || !form.phoneNumber.trim()) {
-      setValidationError('Vui lòng nhập đầy đủ họ tên, email và số điện thoại.');
+    if (!form.email.trim() || !accountResolved) {
+      setValidationError('Vui lòng nhập và kiểm tra email học viên.');
       return;
     }
-    if (!form.confirmedLevel || !form.classroomId) {
-      setValidationError('Vui lòng chọn trình độ đã xác nhận và lớp học.');
+    if ((accountLookup.status === 'new' && !form.fullName.trim()) || !form.phoneNumber.trim()) {
+      setValidationError('Vui lòng nhập đầy đủ họ tên và số điện thoại.');
+      return;
+    }
+    if (!form.classroomId) {
+      setValidationError('Vui lòng chọn lớp học.');
       return;
     }
     onSubmit({
       fullName: form.fullName.trim(),
       email: form.email.trim().toLowerCase(),
       phoneNumber: form.phoneNumber.trim(),
-      confirmedLevel: form.confirmedLevel,
       classroomId: Number(form.classroomId),
       note: form.note.trim() || null,
     });
@@ -908,8 +967,8 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-6 shrink-0 bg-white">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">Ghi danh tại trung tâm</p>
-            <h2 className="mt-2 text-xl font-black text-[#0b1c30]" id="center-enrollment-title">Tạo tài khoản và xếp lớp</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">Nếu email đã có tài khoản học viên, hệ thống sẽ dùng tài khoản đó. Tài khoản mới nhận email để tự thiết lập mật khẩu.</p>
+            <h2 className="mt-2 text-xl font-black text-[#0b1c30]" id="center-enrollment-title">Kiểm tra tài khoản và xếp lớp</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Nhập email học viên trước khi chọn lớp.</p>
           </div>
           <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100" disabled={working} onClick={onClose} type="button">
             <X className="h-5 w-5" />
@@ -919,25 +978,29 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
         <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
           {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
           <div className="grid gap-4 sm:grid-cols-2">
+            <label className="sm:col-span-2">
+              <FieldLabel>Email đăng nhập *</FieldLabel>
+              <input autoFocus autoComplete="off" className={FIELD_CLASS} maxLength={150} onChange={(event) => update('email', event.target.value)} type="email" value={form.email} />
+              {accountLookup.status === 'loading' ? (
+                <p className="mt-2 text-xs font-semibold text-slate-500">Đang kiểm tra tài khoản...</p>
+              ) : accountLookup.message ? (
+                <p className={`mt-2 text-xs font-semibold ${accountLookup.status === 'error' ? 'text-rose-600' : 'text-slate-500'}`}>
+                  {accountLookup.message}
+                </p>
+              ) : null}
+            </label>
             <label>
               <FieldLabel>Họ và tên *</FieldLabel>
-              <input autoFocus className={FIELD_CLASS} maxLength={100} onChange={(event) => update('fullName', event.target.value)} value={form.fullName} />
+              <input className={FIELD_CLASS} disabled={accountLookup.status !== 'new'} maxLength={100} onChange={(event) => update('fullName', event.target.value)} value={form.fullName} />
             </label>
             <label>
               <FieldLabel>Số điện thoại *</FieldLabel>
-              <input className={FIELD_CLASS} inputMode="tel" maxLength={30} onChange={(event) => update('phoneNumber', event.target.value)} value={form.phoneNumber} />
+              <input className={FIELD_CLASS} disabled={!accountResolved || (accountLookup.status === 'existing' && Boolean(form.phoneNumber))} inputMode="tel" maxLength={30} onChange={(event) => update('phoneNumber', event.target.value)} value={form.phoneNumber} />
             </label>
-            <label className="sm:col-span-2">
-              <FieldLabel>Email đăng nhập *</FieldLabel>
-              <input autoComplete="off" className={FIELD_CLASS} maxLength={150} onChange={(event) => update('email', event.target.value)} type="email" value={form.email} />
-            </label>
-            <div>
-              <FieldLabel>Trình độ đã xác nhận *</FieldLabel>
-              <BrandedSelect onChange={(event) => update('confirmedLevel', event.target.value)} options={placementOptions} placeholder="Chọn trình độ" value={form.confirmedLevel} />
-            </div>
-            <div>
+            <div className="sm:col-span-2">
               <FieldLabel>Lớp học *</FieldLabel>
               <BrandedSelect
+                disabled={!accountResolved}
                 onChange={(event) => update('classroomId', event.target.value)}
                 options={classrooms.map((item) => ({
                   value: String(item.id),
@@ -961,8 +1024,8 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
 
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Hủy</button>
-            <button className={PRIMARY_BUTTON_CLASS} disabled={working || !classrooms.length} onClick={submit} type="button">
-              <UserRoundCheck className="h-4 w-4" />{working ? 'Đang ghi danh...' : 'Tạo tài khoản & xếp lớp'}
+            <button className={PRIMARY_BUTTON_CLASS} disabled={working || !classrooms.length || !accountResolved} onClick={submit} type="button">
+              <UserRoundCheck className="h-4 w-4" />{working ? 'Đang ghi danh...' : 'Ghi danh & xếp lớp'}
             </button>
           </div>
         </div>

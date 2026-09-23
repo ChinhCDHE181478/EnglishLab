@@ -12,6 +12,7 @@ import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementTestSummaryResponse;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
+import fu.sep490.g23.backend.dto.response.classroom.CenterEnrollmentLearnerResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentRequestHistoryResponse;
 import fu.sep490.g23.backend.entity.User;
@@ -148,6 +149,36 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public CenterEnrollmentLearnerResponse findCenterEnrollmentLearner(
+            String email,
+            String staffEmail
+    ) {
+        User staff = requireUser(staffEmail);
+        assertStaff(staff);
+        if (!StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Vui lòng nhập email học viên.");
+        }
+
+        User learner = userRepository.findByEmail(email.trim().toLowerCase()).orElse(null);
+        if (learner == null) {
+            return CenterEnrollmentLearnerResponse.builder()
+                    .existingAccount(false)
+                    .build();
+        }
+        if (!learner.hasRole(RoleCodes.LEARNER)) {
+            throw new IllegalArgumentException(
+                    "Email này đang thuộc tài khoản nội bộ và không thể dùng để ghi danh học viên."
+            );
+        }
+        return CenterEnrollmentLearnerResponse.builder()
+                .existingAccount(true)
+                .fullName(learner.getFullName())
+                .phoneNumber(learner.getPhoneNumber())
+                .build();
+    }
+
+    @Override
     public CourseEnrollmentRequestResponse createAtCenter(
             CreateCenterEnrollmentRequest payload,
             String staffEmail
@@ -162,6 +193,12 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         boolean setupEmailRequired = accountCreated || !learner.isEmailVerified();
 
         if (accountCreated) {
+            if (!StringUtils.hasText(payload.getFullName())) {
+                throw new IllegalArgumentException("Vui lòng nhập họ và tên cho tài khoản học viên mới.");
+            }
+            if (!StringUtils.hasText(payload.getPhoneNumber())) {
+                throw new IllegalArgumentException("Vui lòng nhập số điện thoại cho tài khoản học viên mới.");
+            }
             learner = User.builder()
                     .fullName(payload.getFullName().trim())
                     .email(normalizedEmail)
@@ -183,6 +220,9 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 learner.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
             }
             if (!StringUtils.hasText(learner.getPhoneNumber())) {
+                if (!StringUtils.hasText(payload.getPhoneNumber())) {
+                    throw new IllegalArgumentException("Vui lòng bổ sung số điện thoại cho tài khoản học viên.");
+                }
                 learner.setPhoneNumber(payload.getPhoneNumber().trim());
             }
             learner = userRepository.save(learner);
@@ -215,11 +255,10 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .assignedClassSection(target)
                 .contactName(learner.getFullName())
                 .contactEmail(learner.getEmail())
-                .contactPhone(payload.getPhoneNumber().trim())
+                .contactPhone(learner.getPhoneNumber())
                 .consultationTrack(target.getInstructorLedCourse() == null
                         ? null
                         : target.getInstructorLedCourse().getCode())
-                .confirmedLevel(payload.getConfirmedLevel())
                 .status(EnrollmentRequestStatus.CLASS_ASSIGNED)
                 .requestSource(EnrollmentRequestSource.CENTER)
                 .staffNote(trimOrNull(payload.getNote()))
@@ -341,7 +380,11 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         + payload.getAppointmentAt().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"))
                         + " tại " + payload.getLocation().trim() + "."
         );
-        enrollmentRequestMailService.sendTestAppointment(request);
+        enrollmentRequestMailService.sendTestAppointment(
+                request,
+                payload.getAppointmentAt(),
+                payload.getLocation().trim()
+        );
         return toResponse(request);
     }
 
@@ -787,7 +830,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
-                    "Chỉ có thể xếp vào lớp đã công bố, còn chỗ và có ngày khai giảng trong tương lai."
+                    "Chỉ có thể xếp vào lớp đã công bố, đang hoặc sắp diễn ra, chưa kết thúc và còn chỗ."
             );
         }
         return target;
@@ -798,17 +841,26 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
-                    "Chỉ có thể xếp vào lớp đã công bố, còn chỗ và có ngày khai giảng trong tương lai."
+                    "Chỉ có thể xếp vào lớp đã công bố, đang hoặc sắp diễn ra, chưa kết thúc và còn chỗ."
             );
         }
         return target;
     }
 
     private boolean isAssignableClassroom(ClassSection target) {
-        return target.getInstructorLedCourse() != null
-                && target.getStatus() == ClassroomOfferingStatus.UPCOMING
-                && target.getStartDate() != null
-                && target.getStartDate().isAfter(LocalDate.now());
+        boolean hasCapacity = target.getCapacity() == null
+                || target.getCapacity() <= 0
+                || classEnrollmentRepository.countByOfferingAndRegistrationStatuses(
+                        target.getId(),
+                        ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT
+                ) < target.getCapacity();
+
+        return hasCapacity
+                && target.getInstructorLedCourse() != null
+                && target.getInstructorLedCourse().getPublicationStatus() == PackageStatus.PUBLISHED
+                && (target.getStatus() == ClassroomOfferingStatus.UPCOMING
+                    || target.getStatus() == ClassroomOfferingStatus.ACTIVE)
+                && (target.getPlannedEndDate() == null || !target.getPlannedEndDate().isBefore(LocalDate.now()));
     }
 
     private boolean isAvailableForLearner(ClassSection offering, Long learnerId) {

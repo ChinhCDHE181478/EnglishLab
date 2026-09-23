@@ -17,13 +17,14 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailService {
-    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final JavaMailSender mailSender;
@@ -48,24 +49,33 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
     private String baseUrl;
 
     @Override
-    public void sendTestAppointment(CourseRegistrationRequest request) {
-        String appointment = "Theo lịch đã đăng ký";
-        String location = "Hệ thống trực tuyến EnglishLab";
+    public void sendTestAppointment(
+            CourseRegistrationRequest request,
+            LocalDateTime appointmentAt,
+            String location
+    ) {
+        String appointment = appointmentAt == null
+                ? "Đang cập nhật"
+                : appointmentAt.format(DATE_TIME_FORMAT);
+        String appointmentLocation = valueOrDefault(location, "Tại trung tâm EnglishLab");
 
         String highlightContent = """
                 <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">THỜI GIAN TƯ VẤN & TEST</p>
                 <p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#730014;">%s</p>
                 <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">ĐỊA ĐIỂM</p>
                 <p style="margin:0;font-size:14px;font-weight:700;color:#2b1f1f;">%s</p>
-                """.formatted(EmailTemplateUtil.escapeHtml(appointment), EmailTemplateUtil.escapeHtml(location));
+                """.formatted(
+                EmailTemplateUtil.escapeHtml(appointment),
+                EmailTemplateUtil.escapeHtml(appointmentLocation)
+        );
 
         String html = EmailTemplateUtil.buildBrandedEmailHtml(
                 name(request),
                 "Xác nhận lịch hẹn tư vấn & test",
                 "Cảm ơn bạn đã đăng ký tư vấn tại EnglishLab. Dưới đây là thông tin chi tiết buổi làm việc và kiểm tra trình độ đầu vào của bạn.",
                 highlightContent,
-                normalizedBaseUrl() + "/placement-tests",
-                "Xem chi tiết lịch hẹn",
+                null,
+                null,
                 supportEmail,
                 "Vui lòng đến trước giờ hẹn 10 phút và mang theo giấy tờ tùy thân. Nếu cần thay đổi lịch hẹn, xin liên hệ hotline/email của EnglishLab."
         );

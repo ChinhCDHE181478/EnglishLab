@@ -6,6 +6,7 @@ import fu.sep490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
+import fu.sep490.g23.backend.dto.response.classroom.CenterEnrollmentLearnerResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
 import jakarta.validation.Valid;
@@ -43,6 +44,17 @@ public class StaffEnrollmentRequestController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(enrollmentRequestService.createAtCenter(request, authentication.getName()));
+    }
+
+    @GetMapping("/center/learner")
+    public ResponseEntity<CenterEnrollmentLearnerResponse> findCenterEnrollmentLearner(
+            @RequestParam String email,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.findCenterEnrollmentLearner(
+                email,
+                authentication.getName()
+        ));
     }
 
     @PatchMapping("/{requestId}/schedule-test")

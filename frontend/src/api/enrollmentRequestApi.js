@@ -55,6 +55,13 @@ const enrollmentRequestApi = {
     return unwrapData(response);
   },
 
+  async findCenterEnrollmentLearner(email) {
+    const response = await axiosClient.get('/api/staff/enrollment-requests/center/learner', {
+      params: { email },
+    });
+    return unwrapData(response);
+  },
+
   async scheduleTest(requestId, payload) {
     const response = await axiosClient.patch(
       `/api/staff/enrollment-requests/${requestId}/schedule-test`,
