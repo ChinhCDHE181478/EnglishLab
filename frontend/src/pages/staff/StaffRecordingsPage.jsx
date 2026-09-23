@@ -205,6 +205,23 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
     }));
   };
 
+  const updateManualRecordingUrl = (sessionId, recordingUrl) => {
+    setSessionForms((current) => {
+      const currentForm = current[sessionId] || {};
+      const isNewRecording = !currentForm.recordingUrl?.trim() && recordingUrl.trim();
+      return {
+        ...current,
+        [sessionId]: {
+          ...currentForm,
+          recordingUrl,
+          recordingVisible: recordingUrl.trim()
+            ? (isNewRecording ? true : currentForm.recordingVisible)
+            : false,
+        },
+      };
+    });
+  };
+
   return (
     <div className="space-y-5">
       <ManagementToast message={error} onClose={() => setError('')} />
@@ -341,10 +358,7 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                     <input
                       value={form.recordingUrl || ''}
-                      onChange={(event) => setSessionForms((current) => ({
-                        ...current,
-                        [session.id]: { ...current[session.id], recordingUrl: event.target.value },
-                      }))}
+                      onChange={(event) => updateManualRecordingUrl(session.id, event.target.value)}
                       placeholder="https://..."
                       aria-label="Đường dẫn bản ghi thủ công"
                       className={FIELD_CLASS}

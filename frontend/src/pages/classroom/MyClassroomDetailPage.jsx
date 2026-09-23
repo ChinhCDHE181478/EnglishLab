@@ -1091,6 +1091,11 @@ export default function MyClassroomDetailPage() {
                             Xem lại ghi hình
                           </a>
                         )}
+                        {!session.recordingUrl && session.recordingStatus === 'READY' && (
+                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">
+                            <Video className="h-4 w-4" /> Bản ghi chưa được công bố
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
