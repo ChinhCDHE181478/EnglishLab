@@ -16,22 +16,36 @@ export default function AuthenticatedFileLink({
 
   if (!url) return null;
 
-  if (!isProtectedAttachmentUrl(url)) {
-    return (
-      <a className={className} href={url} rel="noreferrer" target="_blank" title={title} {...rest}>
-        {children}
-      </a>
-    );
-  }
+  // Always render a button to intercept clicks and force downloads where possible.
 
   const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
     setError('');
     try {
-      await downloadProtectedFile(url, fileName);
+      if (isProtectedAttachmentUrl(url)) {
+        await downloadProtectedFile(url, fileName);
+      } else {
+        // Attempt to fetch public URL to force download
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = fileName || String(url).split('/').pop()?.split('?')[0] || 'tep-dinh-kem';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      }
     } catch {
-      setError('Không thể tải tệp hoặc bạn không có quyền truy cập.');
+      if (!isProtectedAttachmentUrl(url)) {
+        // Fallback for public URLs if fetch fails (e.g., due to CORS)
+        window.open(url, '_blank');
+      } else {
+        setError('Không thể tải tệp hoặc bạn không có quyền truy cập.');
+      }
     } finally {
       setDownloading(false);
     }
