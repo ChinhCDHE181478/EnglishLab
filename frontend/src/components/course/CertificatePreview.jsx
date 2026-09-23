@@ -121,7 +121,7 @@ const CertificatePreview = ({ certificate, verificationUrl: verificationUrlProp 
                 rel="noopener noreferrer"
                 className="text-xs font-bold text-[#730014] hover:underline break-all block"
               >
-                {typeof window !== 'undefined' ? `${window.location.host}/certificates/${certificate.verificationCode}` : `/certificates/${certificate.verificationCode}`}
+                {typeof window !== 'undefined' ? `https://${window.location.host}/certificates/${certificate.verificationCode}` : `https://englishlab.io.vn/certificates/${certificate.verificationCode}`}
               </a>
               <p className="mt-2 text-[9px] leading-tight text-[#9b9b9b]">
                 EnglishLab Academy · Mã tra cứu: <span className="font-mono font-bold text-slate-700">{certificate.verificationCode}</span>

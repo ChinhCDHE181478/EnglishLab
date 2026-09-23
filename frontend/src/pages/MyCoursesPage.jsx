@@ -23,7 +23,8 @@ const CertificateModal = ({ certificate, onClose }) => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(certificate.verificationCode || '');
+      const verificationLink = `${window.location.origin}/certificates/${encodeURIComponent(certificate.verificationCode || '')}`;
+      await navigator.clipboard.writeText(verificationLink);
     } catch {
       // Trình duyệt không hỗ trợ sao chép.
     }
@@ -42,7 +43,7 @@ const CertificateModal = ({ certificate, onClose }) => {
             In / Tải PDF
           </button>
           <button className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-extrabold text-[#730014] transition hover:bg-gray-50" onClick={handleCopy} type="button">
-            Sao chép mã xác thực
+            Sao chép link xác thực
           </button>
           <button className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-extrabold text-gray-700 transition hover:bg-gray-50" onClick={onClose} type="button">
             Đóng
