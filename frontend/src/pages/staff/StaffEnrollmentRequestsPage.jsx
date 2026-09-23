@@ -883,6 +883,14 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
   const [validationError, setValidationError] = useState('');
   const [accountLookup, setAccountLookup] = useState({ status: 'idle', message: '' });
   const accountResolved = ['existing', 'new'].includes(accountLookup.status);
+  const unavailableCourseIds = new Set((accountLookup.unavailableCourseIds || []).map(String));
+  const unavailableClassroomIds = new Set((accountLookup.unavailableClassroomIds || []).map(String));
+  const availableClassrooms = accountResolved
+    ? classrooms.filter((item) => (
+      !unavailableCourseIds.has(String(item.instructorLedCourseId))
+      && !unavailableClassroomIds.has(String(item.id))
+    ))
+    : [];
 
   useEffect(() => {
     const email = form.email.trim().toLowerCase();
@@ -910,13 +918,20 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
             message: result.phoneNumber
               ? 'Đã tìm thấy tài khoản học viên.'
               : 'Đã tìm thấy tài khoản. Vui lòng bổ sung số điện thoại.',
+            unavailableCourseIds: result.unavailableCourseIds || [],
+            unavailableClassroomIds: result.unavailableClassroomIds || [],
           });
           return;
         }
         setForm((current) => current.email.trim().toLowerCase() === email
           ? { ...current, fullName: '', phoneNumber: '' }
           : current);
-        setAccountLookup({ status: 'new', message: 'Email chưa có tài khoản. Nhập thông tin để tạo mới.' });
+        setAccountLookup({
+          status: 'new',
+          message: 'Email chưa có tài khoản. Nhập thông tin để tạo mới.',
+          unavailableCourseIds: [],
+          unavailableClassroomIds: [],
+        });
       } catch (lookupError) {
         if (!active) return;
         setAccountLookup({
@@ -934,7 +949,7 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
 
   const update = (field, value) => {
     setForm((current) => field === 'email'
-      ? { ...current, email: value, fullName: '', phoneNumber: '' }
+      ? { ...current, email: value, fullName: '', phoneNumber: '', classroomId: '' }
       : { ...current, [field]: value });
     setValidationError('');
   };
@@ -1002,12 +1017,12 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
               <BrandedSelect
                 disabled={!accountResolved}
                 onChange={(event) => update('classroomId', event.target.value)}
-                options={classrooms.map((item) => ({
+                options={availableClassrooms.map((item) => ({
                   value: String(item.id),
                   label: item.title,
                   description: `${formatClassroomDate(item.startDate)} · ${item.enrolledCount || 0} học viên`,
                 }))}
-                placeholder={classrooms.length ? 'Chọn lớp đang tuyển sinh' : 'Chưa có lớp còn chỗ'}
+                placeholder={availableClassrooms.length ? 'Chọn lớp sắp hoặc đang khai giảng' : 'Chưa có lớp phù hợp'}
                 searchable
                 value={form.classroomId}
               />
@@ -1019,12 +1034,12 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose,
             <textarea className={TEXTAREA_CLASS} maxLength={700} onChange={(event) => update('note', event.target.value)} placeholder="Thông tin cần lưu cùng hồ sơ ghi danh." rows={3} value={form.note} />
           </label>
 
-          {!classrooms.length ? <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{classroomLoadError || 'Chưa có lớp đang tuyển sinh và còn chỗ.'}</p> : null}
+          {accountResolved && !availableClassrooms.length ? <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{classroomLoadError || 'Chưa có lớp sắp hoặc đang khai giảng phù hợp.'}</p> : null}
           {validationError ? <p className={ERROR_NOTICE_CLASS}>{validationError}</p> : null}
 
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Hủy</button>
-            <button className={PRIMARY_BUTTON_CLASS} disabled={working || !classrooms.length || !accountResolved} onClick={submit} type="button">
+            <button className={PRIMARY_BUTTON_CLASS} disabled={working || !availableClassrooms.length || !accountResolved} onClick={submit} type="button">
               <UserRoundCheck className="h-4 w-4" />{working ? 'Đang ghi danh...' : 'Ghi danh & xếp lớp'}
             </button>
           </div>

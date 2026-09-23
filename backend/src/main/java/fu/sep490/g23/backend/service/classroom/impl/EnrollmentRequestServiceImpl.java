@@ -22,6 +22,7 @@ import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.EnrollmentRequestStatusHistory;
 import fu.sep490.g23.backend.entity.course.InstructorLedCourse;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
@@ -164,6 +165,8 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         if (learner == null) {
             return CenterEnrollmentLearnerResponse.builder()
                     .existingAccount(false)
+                    .unavailableCourseIds(List.of())
+                    .unavailableClassroomIds(List.of())
                     .build();
         }
         if (!learner.hasRole(RoleCodes.LEARNER)) {
@@ -175,6 +178,8 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .existingAccount(true)
                 .fullName(learner.getFullName())
                 .phoneNumber(learner.getPhoneNumber())
+                .unavailableCourseIds(findUnavailableCourseIds(learner))
+                .unavailableClassroomIds(findUnavailableClassroomIds(learner))
                 .build();
     }
 
@@ -228,13 +233,10 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             learner = userRepository.save(learner);
         }
 
-        if (classEnrollmentRepository
-                .existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
-                        learner.getId(),
-                        target.getId(),
-                        ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS
-                )) {
-            throw new IllegalArgumentException("Học viên đã có hồ sơ còn hiệu lực trong lớp này.");
+        if (hasActiveRequestOrEnrollmentForCourse(learner, target.getInstructorLedCourse().getId())) {
+            throw new IllegalArgumentException(
+                    "Học viên đã có hồ sơ đăng ký hoặc lớp học còn hiệu lực cho khóa học này."
+            );
         }
 
         ClassroomEnrollmentResponse enrollment = classSectionService.enrollStudent(
@@ -244,7 +246,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         .note(trimOrNull(payload.getNote()))
                         .build()
         );
-        if (!enrollment.isHasClassAccess()) {
+        if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST) {
             throw new IllegalArgumentException("Lớp đã đủ chỗ; hãy chọn lớp khác cho học viên.");
         }
 
@@ -830,7 +832,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
-                    "Chỉ có thể xếp vào lớp đã công bố, đang hoặc sắp diễn ra, chưa kết thúc và còn chỗ."
+                    "Chỉ có thể xếp vào lớp đã công bố, sắp hoặc đang khai giảng, chưa kết thúc và còn chỗ."
             );
         }
         return target;
@@ -841,7 +843,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
-                    "Chỉ có thể xếp vào lớp đã công bố, đang hoặc sắp diễn ra, chưa kết thúc và còn chỗ."
+                    "Chỉ có thể xếp vào lớp đã công bố, sắp hoặc đang khai giảng, chưa kết thúc và còn chỗ."
             );
         }
         return target;
@@ -861,6 +863,39 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 && (target.getStatus() == ClassroomOfferingStatus.UPCOMING
                     || target.getStatus() == ClassroomOfferingStatus.ACTIVE)
                 && (target.getPlannedEndDate() == null || !target.getPlannedEndDate().isBefore(LocalDate.now()));
+    }
+
+    private List<Long> findUnavailableCourseIds(User learner) {
+        Set<Long> courseIds = enrollmentRequestRepository.findByLearnerOrderByCreatedAtDesc(learner).stream()
+                .filter(request -> !TERMINAL_STATUSES.contains(request.getStatus()))
+                .map(CourseRegistrationRequest::getCourseOffering)
+                .filter(java.util.Objects::nonNull)
+                .map(InstructorLedCourse::getId)
+                .collect(Collectors.toSet());
+        classEnrollmentRepository.findByStudentIdAndRegistrationStatusIn(
+                        learner.getId(),
+                        ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS
+                ).stream()
+                .map(enrollment -> enrollment.getClassSection().getInstructorLedCourse())
+                .filter(java.util.Objects::nonNull)
+                .map(InstructorLedCourse::getId)
+                .forEach(courseIds::add);
+        return courseIds.stream().sorted().toList();
+    }
+
+    private List<Long> findUnavailableClassroomIds(User learner) {
+        return classEnrollmentRepository.findByStudentIdAndRegistrationStatusIn(
+                        learner.getId(),
+                        ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS
+                ).stream()
+                .map(enrollment -> enrollment.getClassSection().getId())
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    private boolean hasActiveRequestOrEnrollmentForCourse(User learner, Long courseId) {
+        return findUnavailableCourseIds(learner).contains(courseId);
     }
 
     private boolean isAvailableForLearner(ClassSection offering, Long learnerId) {
