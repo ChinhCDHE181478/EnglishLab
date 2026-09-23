@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -32,6 +33,7 @@ public class ClassroomHomeworkMailServiceImpl implements ClassroomHomeworkMailSe
     @Value("${englishlab.mail.support-email:support@englishlab.vn}") private String supportEmail;
     @Value("${englishlab.mail.base-url:http://localhost:5173}") private String baseUrl;
 
+    @Async
     public void sendHomeworkAssigned(User student, ClassroomHomework homework) {
         if (student != null && !notificationPreferenceService.isEmailEnabled(student)) return;
         if (!enabled || blank(mailHost) || blank(fromAddress) || student == null || blank(student.getEmail())) return;
