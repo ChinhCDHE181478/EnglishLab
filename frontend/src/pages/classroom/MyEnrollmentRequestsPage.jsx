@@ -15,7 +15,7 @@ const statusOptions = [
   { label: 'Đã hẹn lịch test', value: 'TEST_SCHEDULED' },
   { label: 'Chờ xác nhận khóa đề xuất', value: 'CLASS_PROPOSED' },
   { label: 'Đủ điều kiện - chờ xếp lớp', value: 'WAITING_FOR_CLASS' },
-  { label: 'Hoàn tất - Đã xếp lớp', value: 'CLASS_ASSIGNED' },
+  { label: 'Đã chọn lớp - chờ học phí', value: 'CLASS_ASSIGNED' },
   { label: 'Đã kết thúc', value: 'CLOSED' },
 ];
 
@@ -179,7 +179,7 @@ function requestGuidance(request) {
       : 'Lịch hẹn đã được xác nhận. Vui lòng kiểm tra email để xem chi tiết.',
     WAITING_FOR_CLASS: 'Kết quả đầu vào đã được ghi nhận. Hồ sơ đang chờ lớp phù hợp.',
     CLASS_PROPOSED: 'Vui lòng xác nhận khóa học được đề xuất để trung tâm tiếp tục xếp lớp.',
-    CLASS_ASSIGNED: 'Bạn đã được xếp lớp. Thông tin lớp học có trong mục Lớp của tôi.',
+    CLASS_ASSIGNED: 'Lớp phù hợp đã được chọn. Vào mục Lớp của tôi để hoàn tất học phí và theo dõi trạng thái.',
     REJECTED: 'Hồ sơ này đã kết thúc. Bạn có thể đăng ký một khóa học khác.',
     CANCELLED: 'Hồ sơ này đã được hủy.',
   }[request.status] || 'Các cập nhật mới nhất của hồ sơ sẽ hiển thị tại đây.';

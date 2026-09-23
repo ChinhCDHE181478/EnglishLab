@@ -175,16 +175,16 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
 
         String html = EmailTemplateUtil.buildBrandedEmailHtml(
                 name(request),
-                "Thông báo xếp lớp thành công!",
-                "EnglishLab xin chúc mừng bạn đã hoàn tất đăng ký và được xếp vào lớp học chính thức.",
+                "Lớp học của bạn đã được xác nhận",
+                "EnglishLab đã giữ chỗ cho bạn trong lớp dưới đây. Vui lòng hoàn tất học phí để được cấp quyền vào học.",
                 highlightContent,
-                normalizedBaseUrl() + "/my-classrooms/" + classroom.getId(),
-                "Vào lớp học ngay",
+                normalizedBaseUrl() + "/my-classrooms/" + classroom.getId() + "?tab=payment",
+                "Thanh toán học phí",
                 supportEmail,
-                "Truy cập EnglishLab để xem thời khóa biểu chi tiết và tài liệu học tập của lớp."
+                "Bạn có thể thanh toán trực tuyến qua PayOS hoặc gửi minh chứng chuyển khoản trong mục Học phí."
         );
 
-        send(request, "Bạn đã được xếp lớp thành công - EnglishLab", html);
+        send(request, "Hoàn tất học phí lớp học - EnglishLab", html);
     }
 
     private void send(CourseRegistrationRequest request, String subject, String htmlContent) {

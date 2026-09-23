@@ -503,13 +503,13 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         .note(trimOrNull(payload.getNote()))
                         .build()
         );
-        if (!enrollment.isHasClassAccess()) {
+        if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST) {
             throw new IllegalArgumentException("Lớp đã đủ chỗ; hãy chọn lớp khác cho học viên.");
         }
         request.setAssignedClassSection(target);
         request.setStaffNote(trimOrNull(payload.getNote()));
         transition(request, EnrollmentRequestStatus.CLASS_ASSIGNED, staff,
-                "Staff đã xếp học viên vào lớp " + target.getTitle() + ".");
+                "Đã chọn lớp " + target.getTitle() + " và chuyển học viên sang bước thanh toán học phí.");
         enrollmentRequestMailService.sendClassAssignment(request, target);
         return toResponse(request);
     }
@@ -821,7 +821,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             case UNDER_STAFF_REVIEW -> "Nhân viên đang rà soát";
             case WAITING_FOR_CLASS -> "Đủ điều kiện - chờ xếp lớp";
             case CLASS_PROPOSED -> "Chờ học viên xác nhận khóa đề xuất";
-            case CLASS_ASSIGNED -> "Hoàn tất - Đã xếp lớp";
+            case CLASS_ASSIGNED -> "Đã chọn lớp - chờ hoàn tất học phí";
             case REJECTED -> "Đã từ chối";
             case CANCELLED -> "Đã hủy";
         };

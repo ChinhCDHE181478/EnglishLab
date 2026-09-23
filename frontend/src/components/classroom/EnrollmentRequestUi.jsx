@@ -9,7 +9,7 @@ export const enrollmentStatusMeta = {
   UNDER_STAFF_REVIEW: { label: 'Đang rà soát', tone: 'bg-violet-50 text-violet-700 border-violet-200' },
   WAITING_FOR_CLASS: { label: 'Đủ điều kiện · Chờ xếp lớp', tone: 'bg-blue-50 text-blue-700 border-blue-200' },
   CLASS_PROPOSED: { label: 'Chờ xác nhận khóa đề xuất', tone: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  CLASS_ASSIGNED: { label: 'Hoàn tất · Đã xếp lớp', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  CLASS_ASSIGNED: { label: 'Đã chọn lớp · Chờ học phí', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   REJECTED: { label: 'Đã từ chối', tone: 'bg-rose-50 text-rose-700 border-rose-200' },
   CANCELLED: { label: 'Đã hủy', tone: 'bg-slate-100 text-slate-600 border-slate-200' },
 };
