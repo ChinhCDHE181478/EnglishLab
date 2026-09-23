@@ -147,6 +147,13 @@ export default function MyHomeworkPage() {
   const [submitAnswers, setSubmitAnswers] = useState({});
   const [submitFiles, setSubmitFiles] = useState({});
   const [actionMessage, setActionMessage] = useState('');
+
+  useEffect(() => {
+    if (!actionMessage) return undefined;
+    const timer = setTimeout(() => setActionMessage(''), 3000);
+    return () => clearTimeout(timer);
+  }, [actionMessage]);
+
   const [selectedHomework, setSelectedSession] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [examHomework, setExamHomework] = useState(null);

@@ -547,20 +547,20 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (!aiEnabled) {
             return;
         }
-        if (assessment == null) {
-            throw new RuntimeException("Chấm điểm AI chỉ dùng được khi chọn đề Writing hoặc Speaking của hệ thống.");
-        }
-        if (assessment.getSkill() != AssessmentSkill.SPEAKING && assessment.getSkill() != AssessmentSkill.WRITING) {
+        // AI grading only depends on the homework's own skill and a matching rubric — it does not
+        // require the content to come from the assessment bank. homework.getSkill() is already
+        // resolved above from either the bank item or the self-authored request.getSkill().
+        if (homework.getSkill() != AssessmentSkill.SPEAKING && homework.getSkill() != AssessmentSkill.WRITING) {
             throw new RuntimeException("Chấm điểm AI chỉ hỗ trợ đề Writing hoặc Speaking.");
         }
         Long rubricId = request.getRubricId() != null
                 ? request.getRubricId()
-                : assessment.getRubric() == null ? null : assessment.getRubric().getId();
+                : assessment != null && assessment.getRubric() != null ? assessment.getRubric().getId() : null;
         if (rubricId == null) {
-            throw new RuntimeException("Đề đã chọn chưa có bộ tiêu chí chấm AI.");
+            throw new RuntimeException("Vui lòng chọn bộ tiêu chí chấm AI.");
         }
         AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(rubricId);
-        if (rubric.getSkill() != assessment.getSkill()) {
+        if (rubric.getSkill() != homework.getSkill()) {
             throw new RuntimeException("Bộ tiêu chí không khớp với kỹ năng của đề.");
         }
         homework.setRubric(rubric);

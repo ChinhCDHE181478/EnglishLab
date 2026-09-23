@@ -665,7 +665,7 @@ export default function ToeicExamMode({
                           <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#40554c]">{shownDirections}</p>
                         ) : null}
                         {activeStep?.group?.instructions ? (
-                          <p className="mt-2 text-sm italic leading-7 text-[#5f746c]">{activeStep.group.instructions}</p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm italic leading-7 text-[#5f746c]">{activeStep.group.instructions}</p>
                         ) : null}
                       </>
                     ) : null}

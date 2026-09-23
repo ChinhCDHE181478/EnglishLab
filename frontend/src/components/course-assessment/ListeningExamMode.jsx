@@ -579,7 +579,7 @@ export default function ListeningExamMode({
         <section key={group.title} className="space-y-3">
           <div>
             <h3 className="font-['Manrope'] text-xl font-extrabold text-[#8a0018]">{group.title}</h3>
-            <p className="mt-2 text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
           </div>
           <div className="grid gap-2">
             {(group.options || []).map((option) => (
@@ -615,8 +615,13 @@ export default function ListeningExamMode({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="font-['Manrope'] text-xl font-extrabold text-[#8a0018]">{group.title}</h3>
-            <p className="mt-2 text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
-            {renderRichText(group.descriptionHtml, 'mt-2 text-sm leading-6 text-[#584140]')}
+            {group.instructions ? (
+              <p className="mt-2 whitespace-pre-wrap text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
+            ) : (
+              // Legacy content authored before "Hướng dẫn" and "Nội dung dẫn nhập hoặc biểu mẫu"
+              // were merged into one field — keep showing it for exams that already have it.
+              renderRichText(group.descriptionHtml, 'mt-2 text-sm leading-6 text-[#584140]')
+            )}
           </div>
           {group.audioScript ? (
             <button

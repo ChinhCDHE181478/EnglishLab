@@ -70,17 +70,20 @@ describe('AssessmentExamBuilder', () => {
     await act(async () => findButton(container, 'Thông tin bổ sung của câu hỏi').click());
 
     expect(container.textContent).toContain('Nội dung sau ô trả lời');
-    expect(container.textContent).toContain('Mốc audio/transcript');
   });
 
-  it('migrates and reveals legacy group descriptions', async () => {
-    await renderBuilder(createAssessment({ description: 'Personal details for homestay application' }));
+  it('preserves a legacy group description through save even without a dedicated field', async () => {
+    // "Hướng dẫn" and the old "Nội dung dẫn nhập hoặc biểu mẫu" field were merged into one
+    // ("Hướng dẫn") field. Legacy descriptionHtml content is no longer editable in the builder,
+    // but a save must not silently drop it — the learner view still falls back to it.
+    const onChange = vi.fn();
+    await renderBuilder(createAssessment({ description: 'Personal details for homestay application' }), 'Biên soạn bài nghe', onChange);
 
-    const descriptionField = Array.from(container.querySelectorAll('label'))
-      .find((label) => label.textContent.includes('Nội dung dẫn nhập hoặc biểu mẫu'))
-      ?.querySelector('textarea');
+    await act(async () => findButton(container, 'Lưu cấu trúc bài nghe').click());
 
-    expect(descriptionField?.value).toBe('Personal details for homestay application');
+    const configCall = onChange.mock.calls.find(([field]) => field === 'uiConfigJson');
+    const saved = JSON.parse(configCall[1]);
+    expect(saved.parts[0].questionGroups[0].descriptionHtml).toBe('Personal details for homestay application');
   });
 
   it('keeps IELTS Listening focused on one assessment audio source', async () => {
@@ -92,8 +95,10 @@ describe('AssessmentExamBuilder', () => {
 
     expect(container.textContent).toContain('Audio của toàn bài nghe');
     expect(container.textContent).not.toContain('Mô tả ngắn');
+    // Non-TOEIC Listening has no TOEIC-only media fields left, so the whole "Thông tin bổ sung
+    // của nhóm" section is hidden instead of showing an empty collapsible.
+    expect(findButton(container, 'Thông tin bổ sung của nhóm')).toBeUndefined();
 
-    await act(async () => findButton(container, 'Thông tin bổ sung của nhóm').click());
     await act(async () => findButton(container, 'Thông tin bổ sung của câu hỏi').click());
 
     expect(container.textContent).not.toContain('Audio nhóm');

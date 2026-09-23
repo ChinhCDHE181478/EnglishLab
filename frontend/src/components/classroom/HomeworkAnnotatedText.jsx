@@ -22,7 +22,7 @@ export default function HomeworkAnnotatedText({
       <div
         ref={containerRef}
         data-annotation-canvas="true"
-        className={`relative min-h-[220px] rounded-2xl border border-[#dfbfbd]/40 bg-white p-6 shadow-sm text-sm leading-loose text-slate-800 selection:bg-rose-100 selection:text-[#730014] ${canvasClassName}`}
+        className={`relative min-h-[220px] whitespace-pre-wrap break-words rounded-2xl border border-[#dfbfbd]/40 bg-white p-6 shadow-sm text-sm leading-loose text-slate-800 selection:bg-rose-100 selection:text-[#730014] ${canvasClassName}`}
       >
         {segments.map((segment, index) => {
           if (!segment.annotation) {

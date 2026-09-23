@@ -55,6 +55,13 @@ export default function TeacherSessionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
+
+  useEffect(() => {
+    if (!actionMessage) return undefined;
+    const timer = setTimeout(() => setActionMessage(''), 3000);
+    return () => clearTimeout(timer);
+  }, [actionMessage]);
+
   const [meetMessage, setMeetMessage] = useState('');
   const [sessionMeta, setSessionMeta] = useState(null);
   const [records, setRecords] = useState({});

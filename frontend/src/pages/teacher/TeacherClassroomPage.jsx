@@ -85,6 +85,12 @@ export default function TeacherClassroomPage() {
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
 
+  useEffect(() => {
+    if (!actionMessage) return undefined;
+    const timer = setTimeout(() => setActionMessage(''), 3000);
+    return () => clearTimeout(timer);
+  }, [actionMessage]);
+
   const loadData = async () => {
     setLoading(true);
     setError('');
