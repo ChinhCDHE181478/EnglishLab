@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 @Service
 public class GoogleMeetServiceImpl implements VirtualMeetingService {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration MAX_CONFERENCE_START_OFFSET = Duration.ofMinutes(90);
     private static final String GOOGLE_MEET_CODE_PATTERN = "/[a-z]{3}-[a-z]{4}-[a-z]{3}/?";
 
     private final GoogleMeetProperties properties;
@@ -100,12 +101,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
             try {
                 space = sendMeetRequest("POST", "/spaces", spaceConfigPayload(properties.isAutoRecording()), owner, refreshToken);
             } catch (RuntimeException exception) {
-                if (isRestrictedAccessUnavailable(exception)) {
-                    // Consumer Gmail often cannot set RESTRICTED / updateAccessType — fall back to OPEN.
-                    space = sendMeetRequest("POST", "/spaces", openAccessPayload(), owner, refreshToken);
-                } else if (!properties.isAutoRecording() || !isAutoRecordingUnavailable(exception)) {
-                    throw exception;
-                } else {
+                if (properties.isAutoRecording() && isAutoRecordingUnavailable(exception)) {
                     try {
                         space = sendMeetRequest("POST", "/spaces", restrictedAccessPayload(), owner, refreshToken);
                     } catch (RuntimeException nested) {
@@ -114,6 +110,11 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                         }
                         space = sendMeetRequest("POST", "/spaces", openAccessPayload(), owner, refreshToken);
                     }
+                } else if (isRestrictedAccessUnavailable(exception)) {
+                    // Consumer Gmail often cannot set RESTRICTED / updateAccessType — fall back to OPEN.
+                    space = sendMeetRequest("POST", "/spaces", openAccessPayload(), owner, refreshToken);
+                } else {
+                    throw exception;
                 }
             }
             ensureRestrictedAccess(space, owner, refreshToken);
@@ -210,7 +211,9 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
     private JsonNode findConferenceForSchedule(JsonNode conferences, ClassSchedule schedule) {
         JsonNode records = conferences.path("conferenceRecords");
         if (!records.isArray() || records.isEmpty()) return objectMapper.createObjectNode();
-        if (schedule.getSessionDate() == null || schedule.getStartTime() == null) return records.path(0);
+        if (schedule.getSessionDate() == null || schedule.getStartTime() == null) {
+            return objectMapper.createObjectNode();
+        }
         LocalDateTime expected = LocalDateTime.of(schedule.getSessionDate(), schedule.getStartTime());
         JsonNode closest = null;
         long closestMinutes = Long.MAX_VALUE;
@@ -221,6 +224,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 LocalDateTime actual = LocalDateTime.ofInstant(Instant.parse(value), ZoneId.of("Asia/Ho_Chi_Minh"));
                 if (!actual.toLocalDate().equals(schedule.getSessionDate())) continue;
                 long minutes = Math.abs(Duration.between(expected, actual).toMinutes());
+                if (minutes > MAX_CONFERENCE_START_OFFSET.toMinutes()) continue;
                 if (minutes < closestMinutes) {
                     closest = record;
                     closestMinutes = minutes;
@@ -368,17 +372,24 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         }
     }
 
-    private boolean isAutoRecordingUnavailable(RuntimeException exception) {
+    static boolean isAutoRecordingUnavailable(RuntimeException exception) {
         String message = exception.getMessage();
         return message != null && (message.contains("FEATURE_UNAVAILABLE_TO_USER")
-                || message.contains("updateAutoRecordingGeneration"));
+                || message.contains("updateAutoRecordingGeneration")
+                || isFeatureUnavailableToUser(message));
     }
 
-    private boolean isRestrictedAccessUnavailable(RuntimeException exception) {
+    static boolean isRestrictedAccessUnavailable(RuntimeException exception) {
         String message = exception.getMessage();
         return message != null && (message.contains("FEATURE_UNAVAILABLE_TO_USER")
                 || message.contains("updateAccessType")
-                || message.contains("not available to the user"));
+                || isFeatureUnavailableToUser(message));
+    }
+
+    private static boolean isFeatureUnavailableToUser(String message) {
+        String normalized = message.toLowerCase();
+        return normalized.contains("not available to this user")
+                || normalized.contains("not available to the user");
     }
 
     private String spaceConfigPayload(boolean autoRecording) {

@@ -250,7 +250,34 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
 
     @Override
     public void delete(Long homeworkId) {
-        homeworkRepository.delete(findHomework(homeworkId));
+        ClassroomHomework homework = findHomework(homeworkId);
+        Long offeringId = homework.getClassSection().getId();
+        List<ClassroomHomeworkSubmission> submissions = submissionRepository.findByHomeworkId(homeworkId);
+        Set<Long> affectedStudentIds = submissions.stream()
+                .map(submission -> submission.getStudent().getId())
+                .collect(Collectors.toSet());
+
+        if (!submissions.isEmpty()) {
+            submissionRepository.deleteAll(submissions);
+        }
+        homeworkRepository.delete(homework);
+
+        List<ClassroomHomework> remainingHomeworks = homeworkRepository
+                .findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
+                .filter(item -> !item.getId().equals(homeworkId))
+                .toList();
+
+        for (Long studentId : affectedStudentIds) {
+            BigDecimal average = homeworkScoreCalculator.calculateAverage(
+                    remainingHomeworks,
+                    submissionRepository.findAllForStudentGradebook(offeringId, studentId)
+            );
+            gradebookEntryRepository.findByClassSectionIdAndStudentId(offeringId, studentId)
+                    .ifPresent(entry -> {
+                        entry.setHomeworkScore(average);
+                        gradebookEntryRepository.save(entry);
+                    });
+        }
     }
 
     /**

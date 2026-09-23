@@ -66,7 +66,12 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     @Query("""
             SELECT s FROM ClassSchedule s
             WHERE s.recordingStatus IN :statuses
+              AND COALESCE(s.deliveryModeOverride, s.classSection.deliveryMode) =
+                  fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode.VIRTUAL
+              AND s.status <> fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus.CANCELLED
               AND s.classSection.googleMeetSpaceName LIKE 'spaces/%'
+              AND (s.sessionDate < :cutoffDate
+                   OR (s.sessionDate = :cutoffDate AND s.endTime <= :cutoffTime))
               AND s.recordingSyncAttempts < :maxAttempts
               AND (s.recordingLastAttemptAt IS NULL OR s.recordingLastAttemptAt <= :retryBefore)
             ORDER BY s.recordingLastAttemptAt ASC, s.id ASC
@@ -74,7 +79,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findGoogleMeetRecordingsPendingSync(
             @Param("statuses") Collection<RecordingSyncStatus> statuses,
             @Param("maxAttempts") int maxAttempts,
-            @Param("retryBefore") LocalDateTime retryBefore
+            @Param("retryBefore") LocalDateTime retryBefore,
+            @Param("cutoffDate") LocalDate cutoffDate,
+            @Param("cutoffTime") LocalTime cutoffTime
     );
 
     @Query("""
