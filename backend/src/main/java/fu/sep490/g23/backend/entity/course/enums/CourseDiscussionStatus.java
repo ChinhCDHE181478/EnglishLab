@@ -4,5 +4,6 @@ public enum CourseDiscussionStatus {
     OPEN,
     RESOLVED,
     PENDING_REVIEW,
-    HIDDEN
+    HIDDEN,
+    DELETED
 }

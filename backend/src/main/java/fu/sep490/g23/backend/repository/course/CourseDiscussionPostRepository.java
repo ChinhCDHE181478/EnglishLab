@@ -27,7 +27,7 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
     @Query("""
             select t from CourseDiscussionPost t left join t.lesson l
             where t.postType = :threadType
-              and t.course.id = :courseId and t.status <> :hidden
+              and t.course.id = :courseId and t.status <> :hidden and t.status <> :deleted
               and ((:lessonOnly = true and l is not null)
                    or (:lessonOnly = false and :moduleId is null and l is null)
                    or (:lessonOnly = false and :moduleId is not null and l.module.id = :moduleId))
@@ -41,6 +41,7 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
                             where r.parentPost = t
                               and r.postType = :replyType
                               and r.status <> :hidden
+                              and r.status <> :deleted
                         ))
                     or :filter = 'HELPFUL'
               )
@@ -52,6 +53,7 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
             @Param("filter") String filter,
             @Param("authorId") Long authorId,
             @Param("hidden") CourseDiscussionStatus hidden,
+            @Param("deleted") CourseDiscussionStatus deleted,
             @Param("resolved") CourseDiscussionStatus resolved,
             @Param("threadType") CourseDiscussionPostType threadType,
             @Param("replyType") CourseDiscussionPostType replyType,
@@ -61,7 +63,8 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
     @Query("""
             select t from CourseDiscussionPost t
             where t.postType = :threadType
-              and t.course.id = :courseId and t.lesson.id = :lessonId and t.status <> :hidden
+              and t.course.id = :courseId and t.lesson.id = :lessonId
+              and t.status <> :hidden and t.status <> :deleted
               and (
                     :filter = 'ALL'
                     or (:filter = 'MINE' and :authorId is not null and t.author.id = :authorId)
@@ -72,6 +75,7 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
                             where r.parentPost = t
                               and r.postType = :replyType
                               and r.status <> :hidden
+                              and r.status <> :deleted
                         ))
                     or :filter = 'HELPFUL'
               )
@@ -82,6 +86,7 @@ public interface CourseDiscussionPostRepository extends JpaRepository<CourseDisc
             @Param("filter") String filter,
             @Param("authorId") Long authorId,
             @Param("hidden") CourseDiscussionStatus hidden,
+            @Param("deleted") CourseDiscussionStatus deleted,
             @Param("resolved") CourseDiscussionStatus resolved,
             @Param("threadType") CourseDiscussionPostType threadType,
             @Param("replyType") CourseDiscussionPostType replyType,

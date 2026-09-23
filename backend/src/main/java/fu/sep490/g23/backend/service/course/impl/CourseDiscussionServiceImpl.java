@@ -84,6 +84,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                         normalizedFilter,
                         currentUser == null ? null : currentUser.getId(),
                         CourseDiscussionStatus.HIDDEN,
+                        CourseDiscussionStatus.DELETED,
                         CourseDiscussionStatus.RESOLVED,
                         CourseDiscussionPostType.THREAD,
                         CourseDiscussionPostType.REPLY,
@@ -104,6 +105,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                         normalizedFilter,
                         currentUser == null ? null : currentUser.getId(),
                         CourseDiscussionStatus.HIDDEN,
+                        CourseDiscussionStatus.DELETED,
                         CourseDiscussionStatus.RESOLVED,
                         CourseDiscussionPostType.THREAD,
                         CourseDiscussionPostType.REPLY,
@@ -171,7 +173,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     @Override
     public CourseDiscussionReplyResponse createReply(Long threadId, CourseDiscussionReplyRequest request, String email) {
         CourseDiscussionPost thread = findThread(threadId);
-        if (thread.getStatus() == CourseDiscussionStatus.HIDDEN) {
+        if (isUnavailable(thread)) {
             throw new RuntimeException("Thảo luận này hiện không khả dụng.");
         }
 
@@ -198,8 +200,21 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     }
 
     @Override
+    public void deleteThread(Long threadId, String email) {
+        CourseDiscussionPost thread = findThread(threadId);
+        markDeletedByAuthor(thread, findUser(email), "Bạn chỉ có thể xóa thảo luận của mình.");
+    }
+
+    @Override
+    public void deleteReply(Long replyId, String email) {
+        CourseDiscussionPost reply = findReply(replyId);
+        markDeletedByAuthor(reply, findUser(email), "Bạn chỉ có thể xóa câu trả lời của mình.");
+    }
+
+    @Override
     public CourseDiscussionReplyResponse toggleHelpful(Long replyId, String email) {
         CourseDiscussionPost reply = findReply(replyId);
+        ensureAvailable(reply, "Câu trả lời này hiện không khả dụng.");
         User user = findUser(email);
         ensureDiscussionAccess(user, reply.getCourse());
         if (reply.getAuthor().getId().equals(user.getId())) {
@@ -224,9 +239,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     @Override
     public CourseDiscussionThreadResponse toggleThreadReaction(Long threadId, CourseDiscussionReactionRequest request, String email) {
         CourseDiscussionPost thread = findThread(threadId);
-        if (thread.getStatus() == CourseDiscussionStatus.HIDDEN) {
-            throw new RuntimeException("Thảo luận này hiện không khả dụng.");
-        }
+        ensureAvailable(thread, "Thảo luận này hiện không khả dụng.");
         User user = findUser(email);
         ensureDiscussionAccess(user, thread.getCourse());
         toggleReaction(thread, request.getType(), user);
@@ -236,9 +249,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     @Override
     public CourseDiscussionReplyResponse toggleReplyReaction(Long replyId, CourseDiscussionReactionRequest request, String email) {
         CourseDiscussionPost reply = findReply(replyId);
-        if (reply.getStatus() == CourseDiscussionStatus.HIDDEN) {
-            throw new RuntimeException("Câu trả lời này hiện không khả dụng.");
-        }
+        ensureAvailable(reply, "Câu trả lời này hiện không khả dụng.");
         User user = findUser(email);
         ensureDiscussionAccess(user, reply.getCourse());
         toggleReaction(reply, request.getType(), user);
@@ -249,9 +260,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     @Transactional(readOnly = true)
     public List<CourseDiscussionReactionResponse> getThreadReactions(Long threadId) {
         CourseDiscussionPost thread = findThread(threadId);
-        if (thread.getStatus() == CourseDiscussionStatus.HIDDEN) {
-            throw new RuntimeException("Thảo luận này hiện không khả dụng.");
-        }
+        ensureAvailable(thread, "Thảo luận này hiện không khả dụng.");
         return getReactionResponses(thread);
     }
 
@@ -259,15 +268,14 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     @Transactional(readOnly = true)
     public List<CourseDiscussionReactionResponse> getReplyReactions(Long replyId) {
         CourseDiscussionPost reply = findReply(replyId);
-        if (reply.getStatus() == CourseDiscussionStatus.HIDDEN) {
-            throw new RuntimeException("Câu trả lời này hiện không khả dụng.");
-        }
+        ensureAvailable(reply, "Câu trả lời này hiện không khả dụng.");
         return getReactionResponses(reply);
     }
 
     @Override
     public CourseDiscussionThreadResponse markResolved(Long threadId, Long replyId, String email) {
         CourseDiscussionPost thread = findThread(threadId);
+        ensureAvailable(thread, "Thảo luận này hiện không khả dụng.");
         User user = findUser(email);
         ensureDiscussionAccess(user, thread.getCourse());
         if (!canModerate(user) && !thread.getAuthor().getId().equals(user.getId())) {
@@ -277,6 +285,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         thread.setStatus(CourseDiscussionStatus.RESOLVED);
         if (replyId != null) {
             CourseDiscussionPost acceptedReply = findReply(replyId);
+            ensureAvailable(acceptedReply, "Câu trả lời này hiện không khả dụng.");
             if (acceptedReply.getParentPost() == null
                     || !acceptedReply.getParentPost().getId().equals(thread.getId())) {
                 throw new RuntimeException("Câu trả lời không thuộc thảo luận này.");
@@ -295,6 +304,10 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 ? CourseDiscussionPostType.THREAD
                 : CourseDiscussionPostType.REPLY;
         CourseDiscussionPost post = discussionPostIdResolver.requirePost(postType, targetId);
+        ensureAvailable(post, "Nội dung này hiện không khả dụng.");
+        if (post.getAuthor().getId().equals(reporter.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bạn không thể báo cáo nội dung của mình.");
+        }
 
         reportRepository.findByPostAndReporter(post, reporter)
                 .ifPresent(existing -> {
@@ -376,6 +389,28 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         courseEnrollmentAccessPolicy.requireLearningAccess(user, course);
     }
 
+    private void markDeletedByAuthor(CourseDiscussionPost post, User user, String forbiddenMessage) {
+        if (!post.getAuthor().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, forbiddenMessage);
+        }
+        post.setStatus(CourseDiscussionStatus.DELETED);
+        post.setAccepted(false);
+    }
+
+    private boolean isUnavailable(CourseDiscussionPost post) {
+        return post.getStatus() == CourseDiscussionStatus.HIDDEN
+                || post.getStatus() == CourseDiscussionStatus.DELETED
+                || (post.getParentPost() != null
+                    && (post.getParentPost().getStatus() == CourseDiscussionStatus.HIDDEN
+                        || post.getParentPost().getStatus() == CourseDiscussionStatus.DELETED));
+    }
+
+    private void ensureAvailable(CourseDiscussionPost post, String message) {
+        if (isUnavailable(post)) {
+            throw new RuntimeException(message);
+        }
+    }
+
     private String clean(String value) {
         return String.valueOf(value == null ? "" : value).trim().replaceAll("\\s+", " ");
     }
@@ -424,6 +459,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         List<CourseDiscussionReplyResponse> replies = thread.getReplies().stream()
                 .filter(reply -> reply.getPostType() == CourseDiscussionPostType.REPLY)
                 .filter(reply -> reply.getStatus() != CourseDiscussionStatus.HIDDEN)
+                .filter(reply -> reply.getStatus() != CourseDiscussionStatus.DELETED)
                 .map(reply -> toReplyResponse(reply, currentUser))
                 .toList();
         int helpfulCount = replies.stream().mapToInt(CourseDiscussionReplyResponse::getHelpfulCount).sum();

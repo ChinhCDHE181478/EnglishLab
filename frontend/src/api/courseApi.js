@@ -165,6 +165,14 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async deleteDiscussionThread(threadId) {
+    await axiosClient.delete(`/api/student/online-courses/discussions/${threadId}`);
+  },
+
+  async deleteDiscussionReply(replyId) {
+    await axiosClient.delete(`/api/student/online-courses/discussions/replies/${replyId}`);
+  },
+
   async markDiscussionResolved(threadId, replyId = null) {
     const response = await axiosClient.patch(`/api/student/online-courses/discussions/${threadId}/resolved`, null, {
       params: replyId ? { replyId } : undefined,
