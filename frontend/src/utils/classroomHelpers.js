@@ -318,18 +318,23 @@ export const downloadClassroomMaterial = async (material, { openOnFailure = fals
 
   const fileName = buildMaterialDownloadName(material);
   try {
-    // Always use blob download for consistent behavior
-    const response = await fetch(url, { credentials: 'include' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    if (isProtectedAttachmentUrl(url)) {
+      // R2 / internal URL — route through authenticated backend proxy
+      await downloadProtectedFile(url, fileName);
+    } else {
+      // Truly public URL — try direct fetch first
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    }
     return true;
   } catch {
     if (openOnFailure) window.open(url, '_blank', 'noopener,noreferrer');

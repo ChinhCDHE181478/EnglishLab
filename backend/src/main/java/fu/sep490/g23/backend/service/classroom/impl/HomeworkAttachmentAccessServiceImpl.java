@@ -119,16 +119,20 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
             return canAccessClassContent(requester, material.get().getClassSection());
         }
 
+        var centerMaterial = centerMaterialRepository.findFirstByFileUrlEndingWith(suffix);
+        if (centerMaterial.isPresent()) {
+            // Any authenticated user can download published center materials;
+            // CONTENT_MANAGER can also download draft/archived ones.
+            String status = centerMaterial.get().getStatus();
+            return "PUBLISHED".equalsIgnoreCase(status)
+                    || requester.hasRole(RoleCodes.CONTENT_MANAGER);
+        }
+
         if (requester.hasRole(RoleCodes.CONTENT_MANAGER)) {
             return assessmentBankItemRepository.existsByUiConfigJsonContaining(suffix);
         }
 
-        if (assessmentBankItemRepository.existsPublishedByUiConfigJsonContaining(suffix)) {
-            return true;
-        }
-
-        return requester.hasRole(RoleCodes.CONTENT_MANAGER)
-                && centerMaterialRepository.findFirstByFileUrlEndingWith(suffix).isPresent();
+        return assessmentBankItemRepository.existsPublishedByUiConfigJsonContaining(suffix);
     }
 
     private boolean isReferenced(String suffix) {
