@@ -840,6 +840,11 @@ export default function TeacherHomeworkSection({
   };
 
   const handleSaveHomework = async (statusOverride) => {
+    const effectiveSkill = selectedAiAssessment?.skill || form.skill || null;
+    const effectiveActivityType = form.activityType === 'SKILL_PRACTICE' && SKILL_PRACTICE_TEXT_RESPONSE_SKILLS.includes(effectiveSkill)
+      ? 'TEXT_RESPONSE'
+      : form.activityType;
+
     if (!form.title.trim()) {
       setFormError('Vui lòng nhập tiêu đề bài tập.');
       return;
@@ -854,7 +859,7 @@ export default function TeacherHomeworkSection({
     }
     if (richBuilderEnabled) {
       const builderError = validateAssessmentBuilderConfig(
-        form.skill,
+        effectiveSkill,
         form.activityConfigJson,
       );
       if (builderError) {
@@ -862,7 +867,7 @@ export default function TeacherHomeworkSection({
         return;
       }
     }
-    if (!selectedAiAssessment && !richBuilderEnabled && form.activityType === 'SKILL_PRACTICE') {
+    if (!selectedAiAssessment && !richBuilderEnabled && effectiveActivityType === 'SKILL_PRACTICE') {
       const invalidQuestion = questionDrafts.find((question) => (
         !question.prompt.trim()
         || question.options.some((option) => !option.trim())
@@ -873,13 +878,13 @@ export default function TeacherHomeworkSection({
         return;
       }
     }
-    if (!selectedAiAssessment && !richBuilderEnabled && (form.activityType === 'TEXT_RESPONSE' || form.activityType === 'MIXED') && form.skill === 'SPEAKING') {
+    if (!selectedAiAssessment && !richBuilderEnabled && (effectiveActivityType === 'TEXT_RESPONSE' || effectiveActivityType === 'MIXED') && effectiveSkill === 'SPEAKING') {
       if (speakingPartDrafts.some((part) => !part.prompts.length || part.prompts.some((prompt) => !prompt.trim()))) {
         setFormError('Vui lòng nhập đầy đủ câu hỏi cho từng phần Speaking.');
         return;
       }
     }
-    if (!selectedAiAssessment && !richBuilderEnabled && (form.activityType === 'TEXT_RESPONSE' || form.activityType === 'MIXED') && form.skill !== 'SPEAKING') {
+    if (!selectedAiAssessment && !richBuilderEnabled && (effectiveActivityType === 'TEXT_RESPONSE' || effectiveActivityType === 'MIXED') && effectiveSkill !== 'SPEAKING') {
       if (writingTaskDrafts.some((task) => !task.question.trim())) {
         setFormError('Vui lòng nhập đầy đủ nội dung đề bài trực tiếp.');
         return;
