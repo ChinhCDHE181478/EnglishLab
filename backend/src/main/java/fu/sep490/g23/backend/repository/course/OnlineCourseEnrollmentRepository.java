@@ -4,6 +4,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -29,6 +30,12 @@ public interface OnlineCourseEnrollmentRepository
     boolean existsByStudentAndOnlineCourse(User student, OnlineCourse onlineCourse);
 
     Optional<OnlineCourseEnrollment> findByStudentAndOnlineCourse(User student, OnlineCourse onlineCourse);
+
+    @EntityGraph(attributePaths = {"student", "onlineCourse"})
+    List<OnlineCourseEnrollment> findTop5ByReviewRatingAndReviewCommentIsNotNullAndOnlineCourse_StatusOrderByReviewedAtDescIdDesc(
+            Integer reviewRating,
+            PackageStatus courseStatus
+    );
 
     @EntityGraph(attributePaths = {"onlineCourse"})
     List<OnlineCourseEnrollment> findByStudentOrderByRegisteredAtDesc(User student);

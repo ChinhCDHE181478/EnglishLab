@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.controller;
 
-import fu.sep490.g23.backend.dto.response.ApiResponse;
+import fu.sep490.g23.backend.dto.response.home.HomePageResponse;
 import fu.sep490.g23.backend.service.home.HomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ public class HomeController {
     private final HomeService homeService;
 
     @GetMapping("/home")
-    public ResponseEntity<ApiResponse> home() {
-        return ResponseEntity.ok(homeService.getHomeMessage());
+    public ResponseEntity<HomePageResponse> home() {
+        return ResponseEntity.ok(homeService.getHomePage());
     }
 }
