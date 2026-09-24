@@ -174,27 +174,11 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
             @Param("status") String status
     );
 
-    @Query(value = """
-            SELECT * FROM content_bank_items
-            WHERE bank_type = 'ASSESSMENT'
-              AND status = :status
-              AND skill IN (:skills)
-            ORDER BY updated_at DESC NULLS LAST, id DESC
-            """, nativeQuery = true)
-    List<AssessmentBankItem> findByStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
+    @Query("SELECT a FROM AssessmentBankItem a WHERE a.status = :status AND a.skill IN :skills ORDER BY a.updatedAt DESC, a.id DESC")
+    List<AssessmentBankItem> findByStatusAndSkillInOrderByUpdatedAtDescIdDesc(
             @Param("status") String status,
-            @Param("skills") List<String> skills
+            @Param("skills") List<AssessmentSkill> skills
     );
-
-    default List<AssessmentBankItem> findByStatusAndSkillInOrderByUpdatedAtDescIdDesc(
-            String status,
-            List<AssessmentSkill> skills
-    ) {
-        return findByStatusAndSkillCodeInOrderByUpdatedAtDescIdDesc(
-                status,
-                skills.stream().map(Enum::name).toList()
-        );
-    }
 
     @Query(value = """
             SELECT * FROM content_bank_items

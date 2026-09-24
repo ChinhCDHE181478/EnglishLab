@@ -596,7 +596,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
 
     private boolean isSupportedSkillBankItem(AssessmentBankItem item) {
         if (item == null || item.getSkill() == null || item.getType() == null) return false;
-        if (item.getType() == AssessmentType.MODULE_TEST) return true;
+        if (item.getType() == AssessmentType.MODULE_TEST || item.getType() == AssessmentType.MOCK_TEST) return true;
         return switch (item.getSkill()) {
             case LISTENING, READING -> item.getType() == AssessmentType.LESSON_PRACTICE
                     || item.getType() == AssessmentType.QUIZ;
