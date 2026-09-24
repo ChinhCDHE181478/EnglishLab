@@ -2,10 +2,28 @@ import { ChevronLeft, ChevronRight, Pause, Play, UserRound } from 'lucide-react'
 import { useState } from 'react';
 import useRotatingCarousel from './useRotatingCarousel';
 
-const TeacherImage = ({ teacher }) => {
-  const [hasError, setHasError] = useState(false);
+const FALLBACK_TEACHER_IMAGES = [
+  '/teachers/teacher-01.jpg',
+  '/teachers/teacher-02.jpg',
+  '/teachers/teacher-03.jpg',
+  '/teachers/teacher-04.jpg',
+];
 
-  if (!teacher.avatarUrl || hasError) {
+const getFallbackTeacherImage = (teacherId) => {
+  const numericId = Number(teacherId);
+  const imageIndex = Number.isFinite(numericId)
+    ? Math.abs(numericId) % FALLBACK_TEACHER_IMAGES.length
+    : 0;
+  return FALLBACK_TEACHER_IMAGES[imageIndex];
+};
+
+const TeacherImage = ({ teacher }) => {
+  const [useFallback, setUseFallback] = useState(false);
+  const [fallbackFailed, setFallbackFailed] = useState(false);
+  const fallbackImage = getFallbackTeacherImage(teacher.id);
+  const imageSource = useFallback || !teacher.avatarUrl ? fallbackImage : teacher.avatarUrl;
+
+  if (fallbackFailed) {
     return (
       <div className="flex h-full items-center justify-center">
         <UserRound className="text-[#584140]/50" size={76} />
@@ -17,8 +35,14 @@ const TeacherImage = ({ teacher }) => {
     <img
       alt={teacher.name}
       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-      onError={() => setHasError(true)}
-      src={teacher.avatarUrl}
+      onError={() => {
+        if (!useFallback && teacher.avatarUrl) {
+          setUseFallback(true);
+          return;
+        }
+        setFallbackFailed(true);
+      }}
+      src={imageSource}
     />
   );
 };
@@ -101,22 +125,18 @@ function CarouselControls({ goNext, goPrevious, goToPage, label, page, pageCount
       <button aria-label={`Xem ${label} trước`} className="rounded-full border border-[#dfbfbd] bg-white p-2 text-[#730014] transition hover:bg-[#fff2f3]" onClick={goPrevious} type="button">
         <ChevronLeft className="h-5 w-5" />
       </button>
-      {pageCount <= 5 ? (
-        <div className="flex gap-2">
-          {Array.from({ length: pageCount }).map((_, index) => (
-            <button
-              aria-label={`Trang ${label} ${index + 1}`}
-              aria-pressed={page === index}
-              className={`h-2.5 rounded-full transition-all ${page === index ? 'w-8 bg-[#730014]' : 'w-2.5 bg-[#dfbfbd]'}`}
-              key={index}
-              onClick={() => goToPage(index)}
-              type="button"
-            />
-          ))}
-        </div>
-      ) : (
-        <span className="min-w-12 text-center text-sm font-semibold text-[#584140]">{page + 1}/{pageCount}</span>
-      )}
+      <div className="flex gap-2">
+        {Array.from({ length: pageCount }).map((_, index) => (
+          <button
+            aria-label={`Trang ${label} ${index + 1}`}
+            aria-pressed={page === index}
+            className={`h-2.5 rounded-full transition-all ${page === index ? 'w-8 bg-[#730014]' : 'w-2.5 bg-[#dfbfbd]'}`}
+            key={index}
+            onClick={() => goToPage(index)}
+            type="button"
+          />
+        ))}
+      </div>
       <button aria-label={paused ? `Tiếp tục xoay ${label}` : `Tạm dừng xoay ${label}`} className="rounded-full p-2 text-[#730014] transition hover:bg-[#fff2f3]" onClick={togglePaused} type="button">
         {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
       </button>
