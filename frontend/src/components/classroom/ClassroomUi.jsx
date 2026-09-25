@@ -157,6 +157,8 @@ export const ClassroomEmptyState = ({
 // ==========================================
 
 export const StatusBadge = ({ status }) => {
+  if (status === 'SCHEDULED') return null;
+
   const configMap = {
     // Registration Statuses
     PENDING_CONFIRMATION: { text: 'Chờ xác nhận', bg: 'bg-amber-50 border-amber-100 text-amber-700' },
@@ -176,6 +178,7 @@ export const StatusBadge = ({ status }) => {
     FULL: { text: 'Đã đủ chỗ', bg: 'bg-amber-50 border-amber-200 text-amber-700' },
     ACTIVE: { text: 'Đang học', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800 font-extrabold' },
     IN_PROGRESS: { text: 'Đang học', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800 font-extrabold' },
+    SCHEDULED: { text: 'Đã lên lịch', bg: 'bg-sky-50 border-sky-100 text-sky-700' },
     COMPLETED: { text: 'Đã kết thúc', bg: 'bg-slate-100 border-slate-200 text-slate-700 font-semibold' },
     CLOSED: { text: 'Đã đóng', bg: 'bg-gray-100 border-gray-200 text-gray-500' },
 

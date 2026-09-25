@@ -260,8 +260,26 @@ export default function TeacherClassroomPage() {
   // Group sessions into upcoming vs past
   const { upcomingSessions, pastSessions } = useMemo(() => {
     const now = new Date();
-    const upcoming = sessions.filter((s) => s.status === 'SCHEDULED' || s.status === 'OPEN');
-    const past = sessions.filter((s) => s.status === 'COMPLETED' || s.status === 'CANCELLED');
+    const upcoming = [];
+    const past = [];
+
+    sessions.forEach((s) => {
+      if (s.status === 'COMPLETED' || s.status === 'CANCELLED') {
+        past.push(s);
+        return;
+      }
+
+      if (s.sessionDate && s.endTime) {
+        const sessionEndTime = new Date(`${s.sessionDate}T${s.endTime}`);
+        if (sessionEndTime < now) {
+          past.push(s);
+          return;
+        }
+      }
+
+      upcoming.push(s);
+    });
+
     return { upcomingSessions: upcoming, pastSessions: past };
   }, [sessions]);
 
