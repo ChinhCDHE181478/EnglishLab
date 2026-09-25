@@ -65,11 +65,11 @@ export default function VietnameseDateInput({
   const parsedDisplayValue = parseVietnameseDate(displayValue);
 
   return (
-    <div>
-      <div className="relative">
+    <div className="min-w-0 w-full">
+      <div className="relative min-w-0 w-full">
         <input
           aria-invalid={invalid}
-          className={`${className} pr-11 ${invalid ? 'border-rose-400 focus:border-rose-500' : ''}`}
+          className={`${className} block min-w-0 max-w-full pr-11 ${invalid ? 'border-rose-400 focus:border-rose-500' : ''}`}
           id={id}
           inputMode="numeric"
           maxLength={10}
@@ -82,7 +82,7 @@ export default function VietnameseDateInput({
         />
         <button
           aria-label="Mở lịch chọn ngày"
-          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center rounded-r-xl text-slate-400 transition hover:bg-slate-50 hover:text-[#730014]"
+          className="absolute inset-y-px right-px inline-flex w-10 items-center justify-center rounded-r-xl text-slate-400 transition hover:bg-slate-50 hover:text-[#730014]"
           onClick={openPicker}
           type="button"
         >

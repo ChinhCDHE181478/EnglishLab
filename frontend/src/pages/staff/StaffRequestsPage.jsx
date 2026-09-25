@@ -259,6 +259,9 @@ export default function StaffRequestsPage() {
                       <p className={`mt-2 text-[10px] ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
                         {['SUSPEND_STUDENT', 'RESUME_STUDENT'].includes(item.requestType) ? 'HV' : 'GV'}: {item.requesterName || '—'}
                       </p>
+                      <p className={`mt-1 text-[10px] ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
+                        Phụ trách: {item.reviewerName || 'Chưa phân công'}
+                      </p>
                     </button>
                   );
                 })}
@@ -279,6 +282,9 @@ export default function StaffRequestsPage() {
                         ) : null}
                       </div>
                       <p className="text-xs text-[#8b706e] mt-0.5">Người gửi: {selected.requesterName || '—'}</p>
+                      {selected.reviewerName ? (
+                        <p className="mt-1 text-xs text-[#8b706e]">Phụ trách: {selected.reviewerName}</p>
+                      ) : null}
                     </div>
                     <StatusBadge status="PENDING" />
                   </div>

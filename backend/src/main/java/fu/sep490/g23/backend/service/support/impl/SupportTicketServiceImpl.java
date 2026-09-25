@@ -171,15 +171,29 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(java.util.Locale.ROOT);
         if (!normalizedKeyword.isBlank()) {
             String pattern = "%" + normalizedKeyword + "%";
-            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("subject")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.join("requester").get("fullName")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.join("requester").get("email")), pattern),
-                    criteriaBuilder.equal(root.get("id").as(String.class), normalizedKeyword)
-            ));
+            Long ticketId = parseTicketId(normalizedKeyword);
+            specification = specification.and((root, query, criteriaBuilder) -> {
+                var textMatches = criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("subject")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.join("requester").get("fullName")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.join("requester").get("email")), pattern)
+                );
+                return ticketId == null
+                        ? textMatches
+                        : criteriaBuilder.or(textMatches, criteriaBuilder.equal(root.get("id"), ticketId));
+            });
         }
         return ticketRepository.findAll(specification, pageable)
                 .map(ticket -> toResponse(ticket, false));
+    }
+
+    private Long parseTicketId(String keyword) {
+        String candidate = keyword.startsWith("#") ? keyword.substring(1) : keyword;
+        try {
+            return candidate.isBlank() ? null : Long.valueOf(candidate);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     @Override

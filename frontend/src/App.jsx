@@ -59,6 +59,7 @@ import TeacherManagementPage from './pages/staff/TeacherManagementPage';
 import ManagerClassroomProposalsPage from './pages/manager/ManagerClassroomProposalsPage';
 import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmentsPage';
 import ManagerSupportTicketsPage from './pages/manager/ManagerSupportTicketsPage';
+import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import StaffEnrollmentRequestsPage from './pages/staff/StaffEnrollmentRequestsPage';
 import StaffClassroomProposalsPage from './pages/staff/StaffClassroomProposalsPage';
@@ -193,6 +194,8 @@ function AppRoutes() {
       {/* Manager routes */}
       <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
         <Route element={<StaffLayout />}>
+          <Route path="/manager" element={<ManagerDashboardPage />} />
+          <Route path="/manager/requests" element={<StaffRequestsPage />} />
           <Route path="/manager/classroom-proposals" element={<ManagerClassroomProposalsPage />} />
           <Route path="/manager/online-enrollments" element={<ManagerOnlineEnrollmentsPage />} />
           <Route path="/manager/teacher-performance" element={<ManagerTeacherFeedbackPage />} />

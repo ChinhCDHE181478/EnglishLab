@@ -448,6 +448,11 @@ export default function SupportTicketsPage() {
                           Dự kiến quay lại: {newValues.requestedReturnDate || '—'}
                         </p>
                       ) : null}
+                      {request.status === 'PENDING' && request.reviewerName ? (
+                        <p className="mt-1 text-xs text-[#584140]">
+                          Nhân viên phụ trách: <strong>{request.reviewerName}</strong>
+                        </p>
+                      ) : null}
                       {returnExpired ? (
                         <p className="mt-1 text-xs font-semibold text-rose-600">
                           Đã quá thời hạn đăng ký học lại. Vui lòng gửi yêu cầu hỗ trợ mới.

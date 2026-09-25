@@ -46,7 +46,7 @@ export const isContentManagerUser = (user) =>
 
 export const getDefaultAuthenticatedPath = (user) => {
   if (hasAnyUserRole(user, ['ADMIN'])) return '/admin';
-  if (hasAnyUserRole(user, ['MANAGER'])) return '/manager/classroom-proposals';
+  if (hasAnyUserRole(user, ['MANAGER'])) return '/manager';
   if (hasAnyUserRole(user, ['CONTENT_MANAGER'])) return '/content-manager/dashboard';
   if (hasAnyUserRole(user, ['STAFF'])) return '/staff';
   if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';
