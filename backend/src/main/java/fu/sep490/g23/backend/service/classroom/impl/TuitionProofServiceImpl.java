@@ -13,6 +13,8 @@ import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
@@ -43,6 +45,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     private final ClassroomTuitionPaymentProofRepository proofRepository;
     private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
+    private final PaymentOrderItemRepository paymentOrderItemRepository;
     private final HomeworkAttachmentStorageService attachmentStorageService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
@@ -78,6 +81,12 @@ public class TuitionProofServiceImpl implements TuitionProofService {
         if (ClassroomRegistrationSupport.isTuitionPaymentOverdue(
                 enrollment, ClassroomRegistrationSupport.currentBusinessTime())) {
             throw new RuntimeException("Đăng ký đã quá hạn thanh toán học phí.");
+        }
+        if (paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(
+                enrollment.getId(),
+                List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING)
+        )) {
+            throw new RuntimeException("Bạn đang có đơn PayOS chưa hoàn tất. Vui lòng hoàn tất hoặc chờ đơn hết hạn trước khi gửi minh chứng chuyển khoản.");
         }
         BigDecimal pendingAmount = proofRepository.findByEnrollmentIdOrderByCreatedAtDesc(enrollment.getId())
                 .stream()

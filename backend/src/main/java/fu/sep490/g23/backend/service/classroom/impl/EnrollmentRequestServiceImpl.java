@@ -627,7 +627,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         : preferredClassSection.getRoom().getLocationAddress())
                 .deliveryType(preferredClassSection == null ? null : preferredClassSection.getDeliveryMode())
                 .status(request.getStatus())
-                .statusLabel(statusLabel(request.getStatus()))
+                .statusLabel(statusLabel(request.getStatus(), assignedEnrollment))
                 .requestSource(request.getRequestSource() == null
                         ? EnrollmentRequestSource.ONLINE
                         : request.getRequestSource())
@@ -835,6 +835,25 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             case CLASS_ASSIGNED -> "Đã chọn lớp - chờ hoàn tất học phí";
             case REJECTED -> "Đã từ chối";
             case CANCELLED -> "Đã hủy";
+        };
+    }
+
+    private String statusLabel(
+            EnrollmentRequestStatus status,
+            ClassroomEnrollmentResponse assignedEnrollment
+    ) {
+        if (status != EnrollmentRequestStatus.CLASS_ASSIGNED || assignedEnrollment == null) {
+            return statusLabel(status);
+        }
+        if (assignedEnrollment.isHasPendingTuitionProof()) {
+            return "Đã nộp học phí - chờ xác nhận";
+        }
+        return switch (assignedEnrollment.getRegistrationStatus()) {
+            case DEPOSIT_PAID -> "Đã đặt cọc học phí";
+            case PARTIALLY_PAID -> "Đã thanh toán một phần học phí";
+            case FULLY_PAID -> "Đã thanh toán học phí";
+            case ASSIGNED -> "Đã thanh toán học phí - đã vào lớp";
+            default -> statusLabel(status);
         };
     }
 

@@ -192,6 +192,7 @@ export default function StaffClassroomDetailPage() {
   const tuitionPaymentAmount = tuitionModal.paymentKind === 'DEPOSIT'
     ? tuitionDepositRemaining
     : tuitionBalance;
+  const hasPendingPayosPayment = Boolean(tuitionModal.enrollment?.hasPendingPayosPayment);
 
   const scheduledSessions = useMemo(
     () => [...(classroom?.sessions || [])].sort((left, right) => {
@@ -568,6 +569,7 @@ export default function StaffClassroomDetailPage() {
       setActionMessage('Đã từ chối minh chứng thanh toán.');
       const proofs = await classroomApi.getEnrollmentTuitionProofs(tuitionModal.enrollment.id);
       setTuitionModal((current) => ({ ...current, proofs }));
+      await loadClassroom();
     } catch (err) {
       setActionTone('error');
       setActionMessage(getClassroomErrorMessage(err, 'Không thể từ chối minh chứng.'));
@@ -953,52 +955,60 @@ export default function StaffClassroomDetailPage() {
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
               {actionMessage && actionTone === 'error' ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{actionMessage}</div> : null}
 
-              <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                <div>
-                  <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Khoản thu tại trung tâm</h3>
-                  <p className="mt-1 text-xs text-slate-500">Chỉ xác nhận sau khi trung tâm đã thực nhận tiền.</p>
+              {tuitionBalance > 0 && hasPendingPayosPayment ? (
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">
+                  Đơn PayOS đang chờ xử lý. Hệ thống sẽ tự ghi nhận học phí sau khi PayOS xác nhận.
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+              ) : null}
+
+              {tuitionBalance > 0 && !hasPendingPayosPayment ? (
+                <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
                   <div>
-                    <Field label="Hình thức thanh toán">
-                      <BrandedSelect
-                        onChange={(event) => setTuitionModal((current) => ({ ...current, paymentKind: event.target.value }))}
-                        options={[
-                          ...(tuitionDepositRemaining > 0 ? [{ label: `Đặt cọc ${formatClassroomPrice(tuitionDepositRemaining)}`, value: 'DEPOSIT' }] : []),
-                          { label: `Thanh toán toàn bộ ${formatClassroomPrice(tuitionBalance)}`, value: 'FULL' },
-                        ]}
-                        value={tuitionModal.paymentKind}
-                      />
-                    </Field>
+                    <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Khoản thu tại trung tâm</h3>
+                    <p className="mt-1 text-xs text-slate-500">Chỉ xác nhận sau khi trung tâm đã thực nhận tiền.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Field label="Hình thức thanh toán">
+                        <BrandedSelect
+                          onChange={(event) => setTuitionModal((current) => ({ ...current, paymentKind: event.target.value }))}
+                          options={[
+                            ...(tuitionDepositRemaining > 0 ? [{ label: `Đặt cọc ${formatClassroomPrice(tuitionDepositRemaining)}`, value: 'DEPOSIT' }] : []),
+                            { label: `Thanh toán toàn bộ ${formatClassroomPrice(tuitionBalance)}`, value: 'FULL' },
+                          ]}
+                          value={tuitionModal.paymentKind}
+                        />
+                      </Field>
+                    </div>
+                    <div>
+                      <Field label="Phương thức nhận tiền">
+                        <BrandedSelect
+                          onChange={(event) => setTuitionModal((current) => ({ ...current, paymentMethod: event.target.value }))}
+                          options={[
+                            { label: 'Tiền mặt tại trung tâm', value: 'CASH' },
+                            { label: 'Chuyển khoản tại trung tâm', value: 'BANK_TRANSFER' },
+                          ]}
+                          value={tuitionModal.paymentMethod}
+                        />
+                      </Field>
+                    </div>
                   </div>
                   <div>
-                    <Field label="Phương thức nhận tiền">
-                      <BrandedSelect
-                        onChange={(event) => setTuitionModal((current) => ({ ...current, paymentMethod: event.target.value }))}
-                        options={[
-                          { label: 'Tiền mặt tại trung tâm', value: 'CASH' },
-                          { label: 'Chuyển khoản tại trung tâm', value: 'BANK_TRANSFER' },
-                        ]}
-                        value={tuitionModal.paymentMethod}
-                      />
-                    </Field>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Số tiền xác nhận</p>
+                    <p className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#730014]">{formatClassroomPrice(tuitionPaymentAmount)}</p>
                   </div>
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Số tiền xác nhận</p>
-                  <p className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#730014]">{formatClassroomPrice(tuitionPaymentAmount)}</p>
-                </div>
-                <input
-                  className={inputClass}
-                  onChange={(event) => setTuitionModal((current) => ({ ...current, note: event.target.value }))}
-                  placeholder="Mã phiếu thu hoặc ghi chú"
-                  value={tuitionModal.note}
-                />
-                <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#730014] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50" disabled={tuitionWorking || tuitionPaymentAmount <= 0 || tuitionModal.enrollment.tuitionPaymentOverdue} onClick={handleRecordCenterPayment} type="button">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Xác nhận đã nhận tiền
-                </button>
-              </section>
+                  <input
+                    className={inputClass}
+                    onChange={(event) => setTuitionModal((current) => ({ ...current, note: event.target.value }))}
+                    placeholder="Mã phiếu thu hoặc ghi chú"
+                    value={tuitionModal.note}
+                  />
+                  <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#730014] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50" disabled={tuitionWorking || tuitionPaymentAmount <= 0 || tuitionModal.enrollment.tuitionPaymentOverdue} onClick={handleRecordCenterPayment} type="button">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Xác nhận đã nhận tiền
+                  </button>
+                </section>
+              ) : null}
 
               <section className="space-y-3">
                 <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Minh chứng chuyển khoản</h3>

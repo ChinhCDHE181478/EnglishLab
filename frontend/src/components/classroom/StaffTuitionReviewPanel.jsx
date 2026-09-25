@@ -126,7 +126,13 @@ export default function StaffTuitionReviewPanel({ enrollment, onUpdated }) {
 
       {message ? <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">{message}</div> : null}
 
-      {balance > 0 ? (
+      {balance > 0 && enrollment.hasPendingPayosPayment ? (
+        <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-sm font-semibold text-sky-800">
+          Đơn PayOS đang chờ xử lý. Hệ thống sẽ tự ghi nhận học phí sau khi PayOS xác nhận.
+        </div>
+      ) : null}
+
+      {balance > 0 && !enrollment.hasPendingPayosPayment ? (
         <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <BrandedSelect
