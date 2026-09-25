@@ -2572,7 +2572,8 @@ function LearnerCurriculumPanel({
           <div className="space-y-3">
             {units.map((unit) => {
               const isExpanded = expandedUnits.has(unit.id);
-              const totalResources = (unit.materials?.length ?? 0) + (unit.exercises?.length ?? 0) + (unit.flashcards?.length ?? 0);
+              const practiceRefs = [...(unit.exercises || []), ...(unit.assessments || [])];
+              const totalResources = (unit.materials?.length ?? 0) + practiceRefs.length + (unit.flashcards?.length ?? 0);
 
               return (
                 <article
@@ -2651,7 +2652,7 @@ function LearnerCurriculumPanel({
                         />
                         <LearnerRefList
                           title="Luyện tập trong giáo trình"
-                          refs={unit.exercises}
+                          refs={practiceRefs}
                           type="exercises"
                           unitId={unit.id}
                           onOpenPractice={onOpenPractice}

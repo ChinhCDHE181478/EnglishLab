@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.entity.classroom;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -32,7 +32,7 @@ public class ClassroomPracticeAttemptHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exercise_content_bank_item_id")
-    private ExerciseBankItem exercise;
+    private ContentBankItem exercise;
 
     @Column(name = "attempt_number", nullable = false)
     private Integer attemptNumber;

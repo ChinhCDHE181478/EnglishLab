@@ -16,7 +16,6 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
-  GraduationCap,
   HelpCircle,
   Info,
   Layers,
@@ -111,16 +110,17 @@ const emptyInstructorLedCourseForm = {
 
 const typeOptions = [
   { label: 'Học liệu trung tâm', value: 'MATERIAL', description: 'Thêm tài liệu từ kho học liệu trung tâm.' },
-  { label: 'Bài tập & Đề luyện tập', value: 'ASSESSMENT', description: 'Thêm bài tập / đề luyện tập từ 4 mục Luyện nghe, Luyện đọc, Luyện viết, Luyện nói.' },
+  { label: 'Luyện tập', value: 'ASSESSMENT', description: 'Thêm nội dung từ Luyện nghe, Luyện đọc, Luyện viết hoặc Luyện nói.' },
   { label: 'Bộ Flashcard', value: 'FLASHCARD', description: 'Thêm bộ flashcard từ kho từ vựng.' },
 ];
 
 const refGroups = [
-  { key: 'materials', title: 'Học liệu', icon: BookMarked },
-  { key: 'exercises', title: 'Bài tập', icon: Layers },
-  { key: 'assessments', title: 'Đề đánh giá', icon: GraduationCap },
-  { key: 'flashcards', title: 'Flashcard', icon: Sparkles },
+  { key: 'materials', keys: ['materials'], title: 'Học liệu', icon: BookMarked },
+  { key: 'practice', keys: ['exercises', 'assessments'], title: 'Luyện tập', icon: Layers },
+  { key: 'flashcards', keys: ['flashcards'], title: 'Flashcard', icon: Sparkles },
 ];
+
+const getGroupReferences = (unit, group) => group.keys.flatMap((key) => unit?.[key] || []);
 
 const asList = (value) => (Array.isArray(value) ? value : value?.content || value?.items || []);
 const countStructuredLessons = (items = []) => items.reduce(
@@ -1251,7 +1251,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                 <>
                   <div className="space-y-5 p-5 sm:p-6">
                     {pageItems.map((unit) => {
-                      const resourceCount = refGroups.reduce((total, group) => total + (unit[group.key]?.length || 0), 0);
+                      const resourceCount = refGroups.reduce((total, group) => total + getGroupReferences(unit, group).length, 0);
                       const expanded = expandedUnitIds.has(unit.id);
                       const lessons = [...(unit.lessons || [])].sort((left, right) => (
                         Number(left.sessionNumber || 0) - Number(right.sessionNumber || 0)
@@ -1880,15 +1880,15 @@ function InstructorLedCourseListPanel({
 }
 
 function UnitResourceGroups({ onDetach, unit, working }) {
-  const total = refGroups.reduce((sum, group) => sum + (unit?.[group.key]?.length || 0), 0);
+  const total = refGroups.reduce((sum, group) => sum + getGroupReferences(unit, group).length, 0);
   if (!total) {
     return <p className="mt-2 text-xs font-medium text-slate-400">Chưa có tài nguyên nào được gắn vào Unit này.</p>;
   }
 
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {refGroups.map((group) => {
-        const references = unit?.[group.key] || [];
+        const references = getGroupReferences(unit, group);
         if (!references.length) return null;
         const Icon = group.icon;
         return (
