@@ -21,4 +21,8 @@ public interface ClassroomHomeworkRepository extends JpaRepository<ClassroomHome
     Optional<ClassroomHomework> findFirstByAttachmentUrlEndingWith(String suffix);
 
     boolean existsByAttachmentUrlEndingWith(String suffix);
+
+    Optional<ClassroomHomework> findFirstByActivityConfigJsonContaining(String suffix);
+
+    boolean existsByActivityConfigJsonContaining(String suffix);
 }

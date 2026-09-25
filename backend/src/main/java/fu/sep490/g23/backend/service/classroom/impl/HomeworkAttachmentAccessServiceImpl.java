@@ -114,6 +114,14 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
             return canAccessClassContent(requester, homework.get().getClassSection());
         }
 
+        // Self-authored Listening/Reading homework embeds audio/image URLs inside its
+        // activityConfigJson (built via AssessmentExamBuilder) rather than the attachmentUrl
+        // field, so students/teachers playing that media need this separate lookup.
+        var homeworkContent = homeworkRepository.findFirstByActivityConfigJsonContaining(suffix);
+        if (homeworkContent.isPresent()) {
+            return canAccessClassContent(requester, homeworkContent.get().getClassSection());
+        }
+
         var material = materialRepository.findFirstByFileUrlEndingWith(suffix);
         if (material.isPresent()) {
             return canAccessClassContent(requester, material.get().getClassSection());
@@ -135,6 +143,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
         return proofRepository.existsByFileUrlEndingWith(suffix)
                 || submissionRepository.existsByAttachmentUrlEndingWith(suffix)
                 || homeworkRepository.existsByAttachmentUrlEndingWith(suffix)
+                || homeworkRepository.existsByActivityConfigJsonContaining(suffix)
                 || materialRepository.existsByFileUrlEndingWith(suffix)
                 || changeRequestRepository.existsByNewValuesJsonContaining(suffix)
                 || assessmentBankItemRepository.existsByUiConfigJsonContaining(suffix)
