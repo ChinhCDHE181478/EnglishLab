@@ -174,15 +174,6 @@ const TYPE_DISPLAY_LABELS = {
 
 const normalizeAssessmentKey = (value) => String(value || '').toUpperCase().trim();
 
-const isReusablePracticeAssessment = (item = {}) => {
-  const skill = normalizeAssessmentKey(item.skill);
-  const type = normalizeAssessmentKey(item.type);
-  if (['LISTENING', 'READING'].includes(skill)) return type === 'LESSON_PRACTICE';
-  if (skill === 'WRITING') return type === 'WRITING_TASK';
-  if (skill === 'SPEAKING') return type === 'SPEAKING_TASK';
-  return false;
-};
-
 const formatAssessmentSkill = (skill) => SKILL_DISPLAY_LABELS[normalizeAssessmentKey(skill)] || String(skill || '');
 
 const formatAssessmentType = (type) => TYPE_DISPLAY_LABELS[normalizeAssessmentKey(type)] || String(type || '');
@@ -325,9 +316,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       setBanks({
         materials: asList(materials).filter(isPublished),
         exercises: [],
-        assessments: asList(assessments)
-          .filter(isPublished)
-          .filter(isReusablePracticeAssessment),
+        assessments: asList(assessments).filter(isPublished),
         flashcards: asList(flashcards).filter(isPublished),
       });
     } catch (err) {
