@@ -1,52 +1,84 @@
 {
   "version": 1,
   "type": "ielts_listening_exam",
-  "key": "englishlab_placement_mock_1_listening",
-  "title": "IELTS Mock Test 2025 January Listening Practice Test 1",
+  "key": "ielts_mock_2025_january_listening_practice_test_2",
+  "title": "IELTS Mock Test 2025 January Listening Practice Test 2",
+  "sourceLabel": "Imported from local HTML 2025de2.html",
   "durationMinutes": 32,
-  "audioUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/Audio/IELTS_Practice_Test/9/Practice%20test%201.mp3",
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
   "parts": [
     {
       "key": "part_1",
       "partNumber": 1,
-      "title": "Homestay application",
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
       "questionGroups": [
         {
           "title": "Questions 1-5",
-          "instructions": "Complete the form with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
-          "description": "PERSONAL DETAILS FOR HOMESTAY APPLICATION",
+          "instructions": "Complete the form below.",
           "type": "text",
           "questions": [
-            {"number": 1, "promptBefore": "First name"},
-            {"number": 2, "promptBefore": "Passport number"},
-            {"number": 3, "promptBefore": "Course enrolled"},
-            {"number": 4, "promptBefore": "Length of the course"},
-            {"number": 5, "promptBefore": "Homestay time"}
+            {
+              "number": 1,
+              "promptBefore": "HAN TWO WORDS AND/OR A NUMBER for each answer. Southern Rental Car – booking Name: William",
+              "promptAfter": "Address: 10"
+            },
+            {
+              "number": 2,
+              "promptBefore": "Address: 10",
+              "promptAfter": "Nelson Contact number: 07 3 <in"
+            },
+            {
+              "number": 3,
+              "promptBefore": "Nelson Contact number: 07",
+              "promptAfter": "Payment by credit card type:"
+            },
+            {
+              "number": 4,
+              "promptBefore": "Payment by credit card type:",
+              "promptAfter": "card. Card No. 4550 1392 8309 3221 Card expiry date: July 20XX Rental period: <"
+            },
+            {
+              "number": 5,
+              "promptBefore": "card. Card No. 4550 1392 8309 3221 Card expiry date: July 20XX Rental period:",
+              "promptAfter": "days"
+            }
           ]
         },
         {
-          "title": "Question 6",
-          "instructions": "Choose TWO letters.",
-          "description": "Which kind of family does the girl prefer?",
-          "type": "multi_select_letters",
-          "questionNumbers": [6],
-          "maxSelections": 2,
-          "options": [
-            {"value": "A", "label": "A big family with many young children"},
-            {"value": "B", "label": "A family without smokers or drinkers"},
-            {"value": "C", "label": "A family without any pets"},
-            {"value": "D", "label": "A family with many animals or pets"}
-          ]
-        },
-        {
-          "title": "Questions 7-10",
-          "instructions": "Fill in the blanks with NO MORE THAN THREE WORDS for each answer.",
+          "title": "Questions 6-10",
+          "instructions": "Answer the following questions USING NO MORE THAN TWO WORDS OR A NUMBER",
           "type": "text",
           "questions": [
-            {"number": 7, "promptBefore": "Although the girl is not a vegetarian, her favourite food is"},
-            {"number": 8, "promptBefore": "She has given up playing handball and now plays", "promptAfter": "with her friends at weekends."},
-            {"number": 9, "promptBefore": "She does not like the bus and would rather"},
-            {"number": 10, "promptBefore": "She can get information about the homestay family she wants"}
+            {
+              "number": 6,
+              "promptBefore": " following questions USING NO MORE THAN TWO WORDS OR A NUMBER How much is the car per day?",
+              "promptAfter": "What does the price include?"
+            },
+            {
+              "number": 7,
+              "promptBefore": "What does the price include?",
+              "promptAfter": "Who will he be visiting?"
+            },
+            {
+              "number": 8,
+              "promptBefore": "Who will he be visiting?",
+              "promptAfter": "What kind of car does the agent recommend? 9</spa"
+            },
+            {
+              "number": 9,
+              "promptBefore": "What kind of car does the agent recommend?",
+              "promptAfter": "What does he need to collect the car? 10 <"
+            },
+            {
+              "number": 10,
+              "promptBefore": "What does he need to collect the car?",
+              "promptAfter": ""
+            }
           ]
         }
       ]
@@ -54,24 +86,72 @@
     {
       "key": "part_2",
       "partNumber": 2,
-      "title": "Travel to Enzia",
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 11-20",
-          "instructions": "Complete the notes with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
-          "description": "You will hear a tour guide giving visa, customs, student and currency advice for Enzia.",
+          "title": "Questions 11-15",
+          "instructions": "Complete the tables below. If there is no information given, write X .",
           "type": "text",
           "questions": [
-            {"number": 11, "promptBefore": "Normal visas last"},
-            {"number": 12, "promptBefore": "You need to pay", "promptAfter": "for the visa."},
-            {"number": 13, "promptBefore": "Some consulates require a letter to"},
-            {"number": 14, "promptBefore": "Information about major embassies is on", "promptAfter": "of the student handbook."},
-            {"number": 15, "promptBefore": "If you carry a lot of money, complete a"},
-            {"number": 16, "promptBefore": "Declare expensive items on a"},
-            {"number": 17, "promptBefore": "The required health certificate is the"},
-            {"number": 18, "promptBefore": "For a youth fare card, show your"},
-            {"number": 19, "promptBefore": "Take at least", "promptAfter": "passport photos."},
-            {"number": 20, "promptBefore": "Take Yen or", "promptAfter": "with you."}
+            {
+              "number": 11,
+              "promptBefore": "X . Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer. Overlander Distance / km",
+              "promptAfter": "Highlight 3 volcanoes Time / hours 11 Transalpine</s"
+            },
+            {
+              "number": 12,
+              "promptBefore": "Highlight 3 volcanoes Time / hours 11 Transalpine Distance / km 223 Highlight 16",
+              "promptAfter": "Time / hours"
+            },
+            {
+              "number": 13,
+              "promptBefore": "Time / hours",
+              "promptAfter": "Transcoastal Distance / km <s"
+            },
+            {
+              "number": 14,
+              "promptBefore": "Transcoastal Distance / km",
+              "promptAfter": "Highlight"
+            },
+            {
+              "number": 15,
+              "promptBefore": "Highlight",
+              "promptAfter": "Time / hours"
+            }
+          ]
+        },
+        {
+          "title": "Questions 16-20",
+          "instructions": "Complete the summary below USING NO MORE THAN TWO WORDS OR A NUMBER.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 16,
+              "promptBefore": "summary below USING NO MORE THAN TWO WORDS OR A NUMBER. Taking three days to complete, the",
+              "promptAfter": "is one of the world’s longest train journeys. The Ghan is shorter, passing throu"
+            },
+            {
+              "number": 17,
+              "promptBefore": "he world’s longest train journeys. The Ghan is shorter, passing through towns built by the",
+              "promptAfter": "There is also a sculpture designed to mark the laying of the"
+            },
+            {
+              "number": 18,
+              "promptBefore": "There is also a sculpture designed to mark the laying of the",
+              "promptAfter": "concrete sleeper. The Overland was the first train to travel between the capital"
+            },
+            {
+              "number": 19,
+              "promptBefore": "rete sleeper. The Overland was the first train to travel between the capital cities in two",
+              "promptAfter": "and it is also the oldest journey of its kind on 20 <i"
+            },
+            {
+              "number": 20,
+              "promptBefore": "and it is also the oldest journey of its kind on",
+              "promptAfter": "<section"
+            }
           ]
         }
       ]
@@ -79,44 +159,137 @@
     {
       "key": "part_3",
       "partNumber": 3,
-      "title": "Shopping habits",
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 21-24",
-          "instructions": "Complete the sentences with NO MORE THAN THREE WORDS AND/OR A NUMBER.",
-          "type": "text",
+          "title": "Questions 21-25",
+          "instructions": "Circle the correct letter A–C.",
+          "type": "single_choice",
           "questions": [
-            {"number": 21, "promptBefore": "The woman works in a bank. Her occupation is"},
-            {"number": 22, "promptBefore": "She usually spends about", "promptAfter": "when shopping."},
-            {"number": 23, "promptBefore": "She often goes to", "promptAfter": "because they are convenient."},
-            {"number": 24, "promptBefore": "Her most difficult item to buy is"}
+            {
+              "number": 21,
+              "prompt": "Lyn is having difficulty completing her project because",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "she doesn’t have enough information."
+                },
+                {
+                  "value": "B",
+                  "label": "she can’t organise her presentation."
+                },
+                {
+                  "value": "C",
+                  "label": "she doesn’t have enough time."
+                }
+              ]
+            },
+            {
+              "number": 22,
+              "prompt": "Her presentation is going to focus on",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "solar power in America."
+                },
+                {
+                  "value": "B",
+                  "label": "solar-powered water heaters."
+                },
+                {
+                  "value": "C",
+                  "label": "alternative energy technology."
+                }
+              ]
+            },
+            {
+              "number": 23,
+              "prompt": "Why does Lyn think we should be looking for alternative sources of energy?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Fossil fuels are expensive."
+                },
+                {
+                  "value": "B",
+                  "label": "Fossil fuels have an impact on the environment."
+                },
+                {
+                  "value": "C",
+                  "label": "Fossil fuels are limited."
+                }
+              ]
+            },
+            {
+              "number": 24,
+              "prompt": "Solar power is a good form of alternative energy because",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "it can be harnessed with simple technology"
+                },
+                {
+                  "value": "B",
+                  "label": "it is infinite"
+                },
+                {
+                  "value": "C",
+                  "label": "it can be applied equally well in any country."
+                }
+              ]
+            },
+            {
+              "number": 25,
+              "prompt": "Which graph best indicates what Lyn is describing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ]
+            }
           ]
         },
         {
-          "title": "Questions 25-27",
-          "instructions": "Fill in each blank with ONE WORD AND/OR A NUMBER.",
+          "title": "Questions 26-30",
+          "instructions": "Label the following diagram USING NO MORE THAN TWO WORDS AND / OR A NUMBER",
           "type": "text",
-          "imageUrl": "/placement-test/current/questions-25-27.png",
           "questions": [
-            {"number": 25, "promptBefore": "50% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-25.png"},
-            {"number": 26, "promptBefore": "15% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-26.png"},
-            {"number": 27, "promptBefore": "35% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-27.png"}
-          ]
-        },
-        {
-          "title": "Questions 28-30",
-          "instructions": "Choose THREE letters.",
-          "description": "Which items do most interviewees think are the most difficult to buy?",
-          "type": "multi_select_letters",
-          "questionNumbers": [28, 29, 30],
-          "maxSelections": 3,
-          "options": [
-            {"value": "A", "label": "Books"},
-            {"value": "B", "label": "Study materials"},
-            {"value": "C", "label": "Foods"},
-            {"value": "D", "label": "Trousers"},
-            {"value": "E", "label": "Shoes"},
-            {"value": "F", "label": "Sportswear"}
+            {
+              "number": 26,
+              "promptBefore": "Label the following diagram USING NO MORE THAN TWO WORDS AND / OR A NUMBER",
+              "promptAfter": "27"
+            },
+            {
+              "number": 27,
+              "promptBefore": "Question 27",
+              "promptAfter": "28"
+            },
+            {
+              "number": 28,
+              "promptBefore": "Question 28",
+              "promptAfter": "29"
+            },
+            {
+              "number": 29,
+              "promptBefore": "Question 29",
+              "promptAfter": "30"
+            },
+            {
+              "number": 30,
+              "promptBefore": "Question 30",
+              "promptAfter": ""
+            }
           ]
         }
       ]
@@ -124,32 +297,117 @@
     {
       "key": "part_4",
       "partNumber": 4,
-      "title": "Time management",
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
       "questionGroups": [
         {
           "title": "Questions 31-40",
-          "instructions": "Choose the correct letter A, B, C or D.",
-          "type": "single_choice",
+          "instructions": "Complete the sentences below using NO MORE THAN TWO WORDS OR A NUMBER",
+          "type": "text",
           "questions": [
-            {"number":31,"prompt":"What does the lecturer provide for those interested in extra reading?","options":[{"value":"A","label":"Personal consultation sessions."},{"value":"B","label":"Extra materials, such as a booklist."},{"value":"C","label":"A mid-term examination."},{"value":"D","label":"Free glasses."}]},
-            {"number":32,"prompt":"In the past, time management meant you needed to","options":[{"value":"A","label":"reduce your stress."},{"value":"B","label":"plan for every hour of the week."},{"value":"C","label":"own a good watch."},{"value":"D","label":"set goals and try to achieve them."}]},
-            {"number":33,"prompt":"Today, wise time management means you need to","options":[{"value":"A","label":"set goals and work systematically."},{"value":"B","label":"work faster."},{"value":"C","label":"set an overview of your assignment."},{"value":"D","label":"plan everything and follow the plan rigidly."}]},
-            {"number":34,"prompt":"At the end of each semester, students at this college are assigned","options":[{"value":"A","label":"team projects."},{"value":"B","label":"final term examinations."},{"value":"C","label":"essays."},{"value":"D","label":"time management courses."}]},
-            {"number":35,"prompt":"One sign that students feel under pressure is","options":[{"value":"A","label":"library books go missing."},{"value":"B","label":"students get angry for no reason."},{"value":"C","label":"lower class attendance."},{"value":"D","label":"trouble at the library."}]},
-            {"number":36,"prompt":"What suggestion does the lecturer give?","options":[{"value":"A","label":"Make a very detailed daily plan."},{"value":"B","label":"Do not feel stressed about assignments."},{"value":"C","label":"Reserve a regular one-hour session in the timetable."},{"value":"D","label":"Wear comfortable shoes."}]},
-            {"number":37,"prompt":"What are the three kinds of planners?","options":[{"value":"A","label":"Weekly, daily and hourly."},{"value":"B","label":"Yearly, weekly and daily."},{"value":"C","label":"Term, monthly and weekly."},{"value":"D","label":"Term, weekly and daily."}]},
-            {"number":38,"prompt":"To set an overview of your time, you need at least","options":[{"value":"A","label":"one week."},{"value":"B","label":"half a week."},{"value":"C","label":"one month."},{"value":"D","label":"one term."}]},
-            {"number":39,"prompt":"The daily planner is mainly concerned with","options":[{"value":"A","label":"detailed planning."},{"value":"B","label":"planning all available time."},{"value":"C","label":"TV schedules."},{"value":"D","label":"an overview of several days."}]},
-            {"number":40,"prompt":"A benefit of wise time management is","options":[{"value":"A","label":"more time for relaxation and other activities."},{"value":"B","label":"better performance in the final assignment."},{"value":"C","label":"better essay writing."},{"value":"D","label":"better memory."}]}
+            {
+              "number": 31,
+              "promptBefore": "Complete the sentences below using NO MORE THAN TWO WORDS OR A NUMBER Lecture on",
+              "promptAfter": "Examples: tourism and"
+            },
+            {
+              "number": 32,
+              "promptBefore": "Examples: tourism and",
+              "promptAfter": "Common misconception is that marketing points to 33</sp"
+            },
+            {
+              "number": 33,
+              "promptBefore": "Common misconception is that marketing points to",
+              "promptAfter": "in what is being provided. Marketing is actually essential in maintaining"
+            },
+            {
+              "number": 34,
+              "promptBefore": "in what is being provided. Marketing is actually essential in maintaining",
+              "promptAfter": "Selling a product is easier because it is 35 <in"
+            },
+            {
+              "number": 35,
+              "promptBefore": "Selling a product is easier because it is",
+              "promptAfter": "and customers do not have such different"
+            },
+            {
+              "number": 36,
+              "promptBefore": "and customers do not have such different",
+              "promptAfter": "Aim: offer service beyond hopes of"
+            },
+            {
+              "number": 37,
+              "promptBefore": "Aim: offer service beyond hopes of",
+              "promptAfter": "Important to: (a) keep informed & (b) 38 <inp"
+            },
+            {
+              "number": 38,
+              "promptBefore": "Important to: (a) keep informed & (b)",
+              "promptAfter": "One way to achieve this:"
+            },
+            {
+              "number": 39,
+              "promptBefore": "One way to achieve this:",
+              "promptAfter": "40"
+            },
+            {
+              "number": 40,
+              "promptBefore": "Question 40",
+              "promptAfter": "must always be available for any queries or problems."
+            }
           ]
         }
       ]
     }
   ],
   "answerKey": {
-    "1":"Keiko","2":"JO6337","3":"advanced English studies","4":["4 months","5 months","5 weeks"],"5":"about 4 months","6":["B","D"],"7":"seafood","8":"tennis","9":"take the train","10":"this afternoon",
-    "11":"90 days","12":"30 pounds","13":"confirm your nationality","14":["page 13","13"],"15":"currency form","16":"tourist export form","17":"BM276","18":"international student card","19":"12","20":["Australian dollar","Yen"],
-    "21":"cashier","22":["50 pounds","£50"],"23":["big department stores","big department store"],"24":"jeans","25":["45 pounds","£45"],"26":["75 pounds","£75"],"27":["20 pounds","£20"],"28":"D","29":"E","30":"F",
-    "31":"B","32":"B","33":"A","34":"C","35":"D","36":"C","37":"D","38":"A","39":"A","40":"A"
-  }
+    "1": "B",
+    "2": "Robyn Place",
+    "3": "263 8666",
+    "4": "Visa",
+    "5": "10",
+    "6": "$35",
+    "7": "Unlimited kilometres",
+    "8": "Relatives",
+    "9": "(An) automatic",
+    "10": [
+      "Driving license",
+      "Drivers license"
+    ],
+    "11": "681",
+    "12": "Tunnels",
+    "13": "5",
+    "14": "X",
+    "15": "Whale watching",
+    "16": "Indian Pacific",
+    "17": [
+      "Earlier",
+      "early settlers"
+    ],
+    "18": "1 Millionth",
+    "19": "States",
+    "20": "The continent",
+    "21": "B",
+    "22": "B",
+    "23": "C",
+    "24": "A",
+    "25": "A",
+    "26": "40 litres (or liters)",
+    "27": "Solar coil",
+    "28": "20",
+    "29": "65",
+    "30": "Rigid foam",
+    "31": "Services marketing",
+    "32": "Legal advice",
+    "33": "Weakness",
+    "34": "Customer numbers",
+    "35": "Tangible",
+    "36": "Expectations",
+    "37": "Clients",
+    "38": "Constantly improve",
+    "39": "(Conduct) surveys",
+    "40": "A representative"
+  },
+  "audioUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/Audio/IELTS_Practice_Test/9/Practice%20test%202.mp3"
 }

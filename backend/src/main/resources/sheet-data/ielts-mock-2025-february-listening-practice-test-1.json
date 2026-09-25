@@ -1,52 +1,113 @@
 {
   "version": 1,
   "type": "ielts_listening_exam",
-  "key": "englishlab_placement_mock_1_listening",
-  "title": "IELTS Mock Test 2025 January Listening Practice Test 1",
+  "key": "ielts_mock_2025_february_listening_practice_test_1",
+  "title": "IELTS Mock Test 2025 February Listening Practice Test 1",
+  "sourceLabel": "Imported from local HTML 2025de3.html",
   "durationMinutes": 32,
-  "audioUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/Audio/IELTS_Practice_Test/9/Practice%20test%201.mp3",
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
   "parts": [
     {
       "key": "part_1",
       "partNumber": 1,
-      "title": "Homestay application",
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 1-5",
-          "instructions": "Complete the form with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
-          "description": "PERSONAL DETAILS FOR HOMESTAY APPLICATION",
-          "type": "text",
+          "title": "Questions 1-2",
+          "instructions": "Choose the correct letter A–C. Example: The customer went to South Africa A. last month B. last week C. last year.",
+          "type": "single_choice",
           "questions": [
-            {"number": 1, "promptBefore": "First name"},
-            {"number": 2, "promptBefore": "Passport number"},
-            {"number": 3, "promptBefore": "Course enrolled"},
-            {"number": 4, "promptBefore": "Length of the course"},
-            {"number": 5, "promptBefore": "Homestay time"}
+            {
+              "number": 1,
+              "prompt": "The text has 5 paragraphs ( A - E ).",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "In the survey, students could only rate employers on a given list."
+                },
+                {
+                  "value": "B",
+                  "label": "The Environment Agency rose the most places in this year’s survey."
+                },
+                {
+                  "value": "C",
+                  "label": "The NHS offers a variety of careers outside health care."
+                },
+                {
+                  "value": "D",
+                  "label": "British Airways fell in popularity amongst business students."
+                }
+              ]
+            },
+            {
+              "number": 2,
+              "prompt": "The customer:",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "knows people living in Canada"
+                }
+              ]
+            }
           ]
         },
         {
-          "title": "Question 6",
-          "instructions": "Choose TWO letters.",
-          "description": "Which kind of family does the girl prefer?",
-          "type": "multi_select_letters",
-          "questionNumbers": [6],
-          "maxSelections": 2,
-          "options": [
-            {"value": "A", "label": "A big family with many young children"},
-            {"value": "B", "label": "A family without smokers or drinkers"},
-            {"value": "C", "label": "A family without any pets"},
-            {"value": "D", "label": "A family with many animals or pets"}
+          "title": "Questions 3-6",
+          "instructions": "Questions 3-6",
+          "type": "text",
+          "questions": [
+            {
+              "number": 3,
+              "promptBefore": "MORE THAN TWO WORDS OR A NUMBER. The Travel Depot flight reservations Customer’s name: Jim",
+              "promptAfter": "Address 10 Allen Road, Oldham Destination Vancouver, Canada Contact numb"
+            },
+            {
+              "number": 4,
+              "promptBefore": "Address 10 Allen Road, Oldham Destination Vancouver, Canada Contact number: 0151",
+              "promptAfter": "(home number) Flight number"
+            },
+            {
+              "number": 5,
+              "promptBefore": "(home number) Flight number",
+              "promptAfter": "Length of stay (nights): 6 <i"
+            },
+            {
+              "number": 6,
+              "promptBefore": "Length of stay (nights):",
+              "promptAfter": ""
+            }
           ]
         },
         {
           "title": "Questions 7-10",
-          "instructions": "Fill in the blanks with NO MORE THAN THREE WORDS for each answer.",
+          "instructions": "Complete the sentences below USING NO MORE THAN TWO WORDS OR A NUMBER",
           "type": "text",
           "questions": [
-            {"number": 7, "promptBefore": "Although the girl is not a vegetarian, her favourite food is"},
-            {"number": 8, "promptBefore": "She has given up playing handball and now plays", "promptAfter": "with her friends at weekends."},
-            {"number": 9, "promptBefore": "She does not like the bus and would rather"},
-            {"number": 10, "promptBefore": "She can get information about the homestay family she wants"}
+            {
+              "number": 7,
+              "promptBefore": "es below USING NO MORE THAN TWO WORDS OR A NUMBER The travel agent recommends some form of",
+              "promptAfter": "cover for peace of mind. There are two types of cover, but the best cover is off"
+            },
+            {
+              "number": 8,
+              "promptBefore": "er for peace of mind. There are two types of cover, but the best cover is offered with the",
+              "promptAfter": "Star policy. The client can see a play at the theatre for $"
+            },
+            {
+              "number": 9,
+              "promptBefore": "Star policy. The client can see a play at the theatre for $",
+              "promptAfter": "The flight and the insurance together cost £"
+            },
+            {
+              "number": 10,
+              "promptBefore": "The flight and the insurance together cost £",
+              "promptAfter": ""
+            }
           ]
         }
       ]
@@ -54,24 +115,117 @@
     {
       "key": "part_2",
       "partNumber": 2,
-      "title": "Travel to Enzia",
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 11-20",
-          "instructions": "Complete the notes with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
-          "description": "You will hear a tour guide giving visa, customs, student and currency advice for Enzia.",
+          "title": "Questions 11-15",
+          "instructions": "Select the correct answers A-D .",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 11,
+              "prompt": "Who is the speaker addressing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "People selling houses"
+                },
+                {
+                  "value": "C",
+                  "label": "People buying second homes"
+                }
+              ]
+            },
+            {
+              "number": 12,
+              "prompt": "Rental property in the city…",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "is becoming more difficult to find"
+                },
+                {
+                  "value": "C",
+                  "label": "is often the only option"
+                }
+              ]
+            },
+            {
+              "number": 13,
+              "prompt": "Lisa Brown believes…",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "there is a psychological factor involved in owning your own home"
+                },
+                {
+                  "value": "C",
+                  "label": "most young people need a deposit before they can buy a house."
+                }
+              ]
+            },
+            {
+              "number": 14,
+              "prompt": "Property in the countryside is becoming more popular because…",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "some parts of the city are becoming overcrowded"
+                },
+                {
+                  "value": "C",
+                  "label": "public transport is beginning to serve outlying areas."
+                }
+              ]
+            },
+            {
+              "number": 15,
+              "prompt": "What kind of properties does the speaker specialise in?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Investment"
+                },
+                {
+                  "value": "C",
+                  "label": "Rural"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 16-20",
+          "instructions": "Questions 16-20",
           "type": "text",
           "questions": [
-            {"number": 11, "promptBefore": "Normal visas last"},
-            {"number": 12, "promptBefore": "You need to pay", "promptAfter": "for the visa."},
-            {"number": 13, "promptBefore": "Some consulates require a letter to"},
-            {"number": 14, "promptBefore": "Information about major embassies is on", "promptAfter": "of the student handbook."},
-            {"number": 15, "promptBefore": "If you carry a lot of money, complete a"},
-            {"number": 16, "promptBefore": "Declare expensive items on a"},
-            {"number": 17, "promptBefore": "The required health certificate is the"},
-            {"number": 18, "promptBefore": "For a youth fare card, show your"},
-            {"number": 19, "promptBefore": "Take at least", "promptAfter": "passport photos."},
-            {"number": 20, "promptBefore": "Take Yen or", "promptAfter": "with you."}
+            {
+              "number": 16,
+              "promptBefore": "ions USING NO MORE THAN THREE WORDS OR A NUMBER What end of the market are the properties?",
+              "promptAfter": "What does the speaker compare buying houses with?"
+            },
+            {
+              "number": 17,
+              "promptBefore": "What does the speaker compare buying houses with?",
+              "promptAfter": "What kind of equity can be the result of buying a property when the market is hi"
+            },
+            {
+              "number": 18,
+              "promptBefore": "What kind of equity can be the result of buying a property when the market is high?",
+              "promptAfter": "How does she describe the feeling of successful property investment?"
+            },
+            {
+              "number": 19,
+              "promptBefore": "How does she describe the feeling of successful property investment?",
+              "promptAfter": "How can you ask the speaker a question?"
+            },
+            {
+              "number": 20,
+              "promptBefore": "How can you ask the speaker a question?",
+              "promptAfter": ""
+            }
           ]
         }
       ]
@@ -79,44 +233,105 @@
     {
       "key": "part_3",
       "partNumber": 3,
-      "title": "Shopping habits",
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
       "questionGroups": [
         {
           "title": "Questions 21-24",
-          "instructions": "Complete the sentences with NO MORE THAN THREE WORDS AND/OR A NUMBER.",
+          "instructions": "Questions 21-24",
           "type": "text",
           "questions": [
-            {"number": 21, "promptBefore": "The woman works in a bank. Her occupation is"},
-            {"number": 22, "promptBefore": "She usually spends about", "promptAfter": "when shopping."},
-            {"number": 23, "promptBefore": "She often goes to", "promptAfter": "because they are convenient."},
-            {"number": 24, "promptBefore": "Her most difficult item to buy is"}
+            {
+              "number": 21,
+              "promptBefore": "ing questions USING NO MORE THAN THREE WORDS AND / OR A NUMBER How long is the radio show?",
+              "promptAfter": "What is the general focus of the programme? 22</s"
+            },
+            {
+              "number": 22,
+              "promptBefore": "What is the general focus of the programme?",
+              "promptAfter": "Where is Professor Ripley from?"
+            },
+            {
+              "number": 23,
+              "promptBefore": "Where is Professor Ripley from?",
+              "promptAfter": "According to Professor Ripley, what animals do people most associate with the Af"
+            },
+            {
+              "number": 24,
+              "promptBefore": "ccording to Professor Ripley, what animals do people most associate with the African bush?",
+              "promptAfter": ""
+            }
           ]
         },
         {
-          "title": "Questions 25-27",
-          "instructions": "Fill in each blank with ONE WORD AND/OR A NUMBER.",
+          "title": "Questions 25-28",
+          "instructions": "Questions 25-28",
           "type": "text",
-          "imageUrl": "/placement-test/current/questions-25-27.png",
           "questions": [
-            {"number": 25, "promptBefore": "50% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-25.png"},
-            {"number": 26, "promptBefore": "15% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-26.png"},
-            {"number": 27, "promptBefore": "35% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-27.png"}
+            {
+              "number": 25,
+              "promptBefore": "E WORDS OR A NUMBER. Threats Natural habitat Population African lions bush Estimated to be",
+              "promptAfter": "Tigers"
+            },
+            {
+              "number": 26,
+              "promptBefore": "Tigers",
+              "promptAfter": "forests and plains fewer than"
+            },
+            {
+              "number": 27,
+              "promptBefore": "forests and plains fewer than",
+              "promptAfter": "Snow leopards Expansion of"
+            },
+            {
+              "number": 28,
+              "promptBefore": "Snow leopards Expansion of",
+              "promptAfter": "high-altitude pastures"
+            }
           ]
         },
         {
-          "title": "Questions 28-30",
-          "instructions": "Choose THREE letters.",
-          "description": "Which items do most interviewees think are the most difficult to buy?",
-          "type": "multi_select_letters",
-          "questionNumbers": [28, 29, 30],
-          "maxSelections": 3,
-          "options": [
-            {"value": "A", "label": "Books"},
-            {"value": "B", "label": "Study materials"},
-            {"value": "C", "label": "Foods"},
-            {"value": "D", "label": "Trousers"},
-            {"value": "E", "label": "Shoes"},
-            {"value": "F", "label": "Sportswear"}
+          "title": "Questions 29-30",
+          "instructions": "Circle the appropriate letter A–D.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 29,
+              "prompt": "The Electrolux Trilobite 2.0 robot vacuum cleaner",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "asks permission before moving from room to room."
+                },
+                {
+                  "value": "B",
+                  "label": "uses lasers to help it avoid objects."
+                },
+                {
+                  "value": "C",
+                  "label": "is programmable."
+                }
+              ]
+            },
+            {
+              "number": 30,
+              "prompt": "The Honda Asimo robot",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "has two pairs of hands."
+                },
+                {
+                  "value": "B",
+                  "label": "uses lasers to help it recognise its surroundings."
+                },
+                {
+                  "value": "C",
+                  "label": "can run."
+                }
+              ]
+            }
           ]
         }
       ]
@@ -124,32 +339,154 @@
     {
       "key": "part_4",
       "partNumber": 4,
-      "title": "Time management",
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 31-40",
-          "instructions": "Choose the correct letter A, B, C or D.",
+          "title": "Question 31",
+          "instructions": "Circle the correct answer A–C.",
           "type": "single_choice",
           "questions": [
-            {"number":31,"prompt":"What does the lecturer provide for those interested in extra reading?","options":[{"value":"A","label":"Personal consultation sessions."},{"value":"B","label":"Extra materials, such as a booklist."},{"value":"C","label":"A mid-term examination."},{"value":"D","label":"Free glasses."}]},
-            {"number":32,"prompt":"In the past, time management meant you needed to","options":[{"value":"A","label":"reduce your stress."},{"value":"B","label":"plan for every hour of the week."},{"value":"C","label":"own a good watch."},{"value":"D","label":"set goals and try to achieve them."}]},
-            {"number":33,"prompt":"Today, wise time management means you need to","options":[{"value":"A","label":"set goals and work systematically."},{"value":"B","label":"work faster."},{"value":"C","label":"set an overview of your assignment."},{"value":"D","label":"plan everything and follow the plan rigidly."}]},
-            {"number":34,"prompt":"At the end of each semester, students at this college are assigned","options":[{"value":"A","label":"team projects."},{"value":"B","label":"final term examinations."},{"value":"C","label":"essays."},{"value":"D","label":"time management courses."}]},
-            {"number":35,"prompt":"One sign that students feel under pressure is","options":[{"value":"A","label":"library books go missing."},{"value":"B","label":"students get angry for no reason."},{"value":"C","label":"lower class attendance."},{"value":"D","label":"trouble at the library."}]},
-            {"number":36,"prompt":"What suggestion does the lecturer give?","options":[{"value":"A","label":"Make a very detailed daily plan."},{"value":"B","label":"Do not feel stressed about assignments."},{"value":"C","label":"Reserve a regular one-hour session in the timetable."},{"value":"D","label":"Wear comfortable shoes."}]},
-            {"number":37,"prompt":"What are the three kinds of planners?","options":[{"value":"A","label":"Weekly, daily and hourly."},{"value":"B","label":"Yearly, weekly and daily."},{"value":"C","label":"Term, monthly and weekly."},{"value":"D","label":"Term, weekly and daily."}]},
-            {"number":38,"prompt":"To set an overview of your time, you need at least","options":[{"value":"A","label":"one week."},{"value":"B","label":"half a week."},{"value":"C","label":"one month."},{"value":"D","label":"one term."}]},
-            {"number":39,"prompt":"The daily planner is mainly concerned with","options":[{"value":"A","label":"detailed planning."},{"value":"B","label":"planning all available time."},{"value":"C","label":"TV schedules."},{"value":"D","label":"an overview of several days."}]},
-            {"number":40,"prompt":"A benefit of wise time management is","options":[{"value":"A","label":"more time for relaxation and other activities."},{"value":"B","label":"better performance in the final assignment."},{"value":"C","label":"better essay writing."},{"value":"D","label":"better memory."}]}
+            {
+              "number": 31,
+              "prompt": "The students are expecting",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Mr Mackenzie"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 32-36",
+          "instructions": "Questions 32-36",
+          "type": "text",
+          "questions": [
+            {
+              "number": 32,
+              "promptBefore": "Complete the table below using TWO WORDS OR A NUMBER. 42 million adults",
+              "promptAfter": "50 million adults have the reading ability of a 33</spa"
+            },
+            {
+              "number": 33,
+              "promptBefore": "million adults have the reading ability of a",
+              "promptAfter": "year-old. Increasing by around"
+            },
+            {
+              "number": 34,
+              "promptBefore": "year-old. Increasing by around",
+              "promptAfter": "and a quarter million per year. Illiteracy costs Unemployment Unrealised earning"
+            },
+            {
+              "number": 35,
+              "promptBefore": "ts Unemployment Unrealised earnings Literacy programmes cost (in billions of US dollars) $",
+              "promptAfter": "237 $"
+            },
+            {
+              "number": 36,
+              "promptBefore": "$",
+              "promptAfter": ""
+            }
+          ]
+        },
+        {
+          "title": "Question 37",
+          "instructions": "Circle the appropriate letter A–D.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 37,
+              "prompt": "Illiteracy is increasing because many young learners are",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "given word lists which are too long"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 38-40",
+          "instructions": "Questions 38-40",
+          "type": "text",
+          "questions": [
+            {
+              "number": 38,
+              "promptBefore": " the summary below USING NO MORE THAN TWO WORDS. English is made up of 26 letters, with 44",
+              "promptAfter": "and 70 ways of"
+            },
+            {
+              "number": 39,
+              "promptBefore": "and 70 ways of",
+              "promptAfter": ". Unsuccessful teaching practices persist, however, because reading is"
+            },
+            {
+              "number": 40,
+              "promptBefore": ". Unsuccessful teaching practices persist, however, because reading is",
+              "promptAfter": "."
+            }
           ]
         }
       ]
     }
   ],
   "answerKey": {
-    "1":"Keiko","2":"JO6337","3":"advanced English studies","4":["4 months","5 months","5 weeks"],"5":"about 4 months","6":["B","D"],"7":"seafood","8":"tennis","9":"take the train","10":"this afternoon",
-    "11":"90 days","12":"30 pounds","13":"confirm your nationality","14":["page 13","13"],"15":"currency form","16":"tourist export form","17":"BM276","18":"international student card","19":"12","20":["Australian dollar","Yen"],
-    "21":"cashier","22":["50 pounds","£50"],"23":["big department stores","big department store"],"24":"jeans","25":["45 pounds","£45"],"26":["75 pounds","£75"],"27":["20 pounds","£20"],"28":"D","29":"E","30":"F",
-    "31":"B","32":"B","33":"A","34":"C","35":"D","36":"C","37":"D","38":"A","39":"A","40":"A"
-  }
+    "1": "B",
+    "2": "B",
+    "3": "Jackson",
+    "4": "433 398",
+    "5": "VN217",
+    "6": "20",
+    "7": [
+      "Travel insurance",
+      "Insurance"
+    ],
+    "8": "Gold",
+    "9": "54",
+    "10": "433",
+    "11": "D",
+    "12": "B",
+    "13": "B",
+    "14": "C",
+    "15": "B",
+    "16": "(the) cheaper (end)",
+    "17": "(having a) pension(s)",
+    "18": "Negative",
+    "19": "(Enormously) satisfying",
+    "20": [
+      "Raise (your",
+      "a) hand"
+    ],
+    "21": "1 hour",
+    "22": "Conservation (issues)",
+    "23": "B",
+    "24": "A",
+    "25": "50,000",
+    "26": [
+      "Hunters",
+      "Hunting"
+    ],
+    "27": "A",
+    "28": "C",
+    "29": "C",
+    "30": "C",
+    "31": "C",
+    "32": "Cannot read",
+    "33": "10",
+    "34": "2",
+    "35": "6",
+    "36": "10",
+    "37": "A",
+    "38": "Sounds",
+    "39": [
+      "Spelling",
+      "spelling sounds"
+    ],
+    "40": "big business"
+  },
+  "audioUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/Audio/IELTS_Practice_Test/10/Practice%20test%202.mp3"
 }

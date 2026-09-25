@@ -1,52 +1,77 @@
 {
   "version": 1,
   "type": "ielts_listening_exam",
-  "key": "englishlab_placement_mock_1_listening",
-  "title": "IELTS Mock Test 2025 January Listening Practice Test 1",
+  "key": "ielts_mock_2025_february_listening_practice_test_2",
+  "title": "IELTS Mock Test 2025 February Listening Practice Test 2",
+  "sourceLabel": "Imported from local HTML 2025de4.html",
   "durationMinutes": 32,
-  "audioUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/Audio/IELTS_Practice_Test/9/Practice%20test%201.mp3",
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
   "parts": [
     {
       "key": "part_1",
       "partNumber": 1,
-      "title": "Homestay application",
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 1-5",
-          "instructions": "Complete the form with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
-          "description": "PERSONAL DETAILS FOR HOMESTAY APPLICATION",
+          "title": "Questions 1-10",
+          "instructions": "Write ONE WORD ONLY for each answer.",
           "type": "text",
           "questions": [
-            {"number": 1, "promptBefore": "First name"},
-            {"number": 2, "promptBefore": "Passport number"},
-            {"number": 3, "promptBefore": "Course enrolled"},
-            {"number": 4, "promptBefore": "Length of the course"},
-            {"number": 5, "promptBefore": "Homestay time"}
-          ]
-        },
-        {
-          "title": "Question 6",
-          "instructions": "Choose TWO letters.",
-          "description": "Which kind of family does the girl prefer?",
-          "type": "multi_select_letters",
-          "questionNumbers": [6],
-          "maxSelections": 2,
-          "options": [
-            {"value": "A", "label": "A big family with many young children"},
-            {"value": "B", "label": "A family without smokers or drinkers"},
-            {"value": "C", "label": "A family without any pets"},
-            {"value": "D", "label": "A family with many animals or pets"}
-          ]
-        },
-        {
-          "title": "Questions 7-10",
-          "instructions": "Fill in the blanks with NO MORE THAN THREE WORDS for each answer.",
-          "type": "text",
-          "questions": [
-            {"number": 7, "promptBefore": "Although the girl is not a vegetarian, her favourite food is"},
-            {"number": 8, "promptBefore": "She has given up playing handball and now plays", "promptAfter": "with her friends at weekends."},
-            {"number": 9, "promptBefore": "She does not like the bus and would rather"},
-            {"number": 10, "promptBefore": "She can get information about the homestay family she wants"}
+            {
+              "number": 1,
+              "promptBefore": "month __The library now has a seating area with magazines an expanded section for books on",
+              "promptAfter": "a new section on local"
+            },
+            {
+              "number": 2,
+              "promptBefore": "a new section on local",
+              "promptAfter": "a community room for meetings (also possible to 3</sp"
+            },
+            {
+              "number": 3,
+              "promptBefore": "a community room for meetings (also possible to",
+              "promptAfter": "there) a new section of books for"
+            },
+            {
+              "number": 4,
+              "promptBefore": "there) a new section of books for",
+              "promptAfter": "For younger children the next Science Club meeting: experiments using things fro"
+            },
+            {
+              "number": 5,
+              "promptBefore": "For younger children the next Science Club meeting: experiments using things from your",
+              "promptAfter": "Reading Challenge: read six books during the holidays For adults this Friday: a"
+            },
+            {
+              "number": 6,
+              "promptBefore": "ng the holidays For adults this Friday: a local author talks about a novel based on a real",
+              "promptAfter": "IT support is available on Tuesdays - no 7 <in"
+            },
+            {
+              "number": 7,
+              "promptBefore": "IT support is available on Tuesdays - no",
+              "promptAfter": "is necessary free check of blood"
+            },
+            {
+              "number": 8,
+              "promptBefore": "is necessary free check of blood",
+              "promptAfter": "and cholesterol levels (over 60s only) Other information the library shop sells"
+            },
+            {
+              "number": 9,
+              "promptBefore": "rol levels (over 60s only) Other information the library shop sells wall-charts, cards and",
+              "promptAfter": "evenings and weekends: free"
+            },
+            {
+              "number": 10,
+              "promptBefore": "evenings and weekends: free",
+              "promptAfter": "is available <section"
+            }
           ]
         }
       ]
@@ -54,24 +79,175 @@
     {
       "key": "part_2",
       "partNumber": 2,
-      "title": "Travel to Enzia",
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 11-20",
-          "instructions": "Complete the notes with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
-          "description": "You will hear a tour guide giving visa, customs, student and currency advice for Enzia.",
+          "title": "Questions 11-12",
+          "instructions": "Choose TWO letters, A-E. Which TWO age groups are taking increasing numbers of holidays with BC Travel?",
+          "type": "multi_select_letters",
+          "questionNumbers": [
+            11,
+            12
+          ],
+          "maxSelections": 2,
+          "options": [
+            {
+              "value": "A",
+              "label": "16-30 years"
+            },
+            {
+              "value": "B",
+              "label": "31-42 years"
+            },
+            {
+              "value": "C",
+              "label": "43-54 years"
+            },
+            {
+              "value": "D",
+              "label": "55-64 years"
+            },
+            {
+              "value": "E",
+              "label": "over 65 years"
+            }
+          ],
+          "questions": [
+            {
+              "number": 11,
+              "prompt": "Choose TWO letters, A-E. Which TWO age groups are taking increasing numbers of holidays with BC Travel?"
+            },
+            {
+              "number": 12,
+              "prompt": "Choose TWO letters, A-E. Which TWO age groups are taking increasing numbers of holidays with BC Travel?"
+            }
+          ]
+        },
+        {
+          "title": "Questions 13-14",
+          "instructions": "Choose TWO letters, A-E. Which TWO are the main reasons given for the popularity of activity holidays?",
+          "type": "multi_select_letters",
+          "questionNumbers": [
+            13,
+            14
+          ],
+          "maxSelections": 2,
+          "options": [
+            {
+              "value": "A",
+              "label": "Clients make new friends."
+            },
+            {
+              "value": "B",
+              "label": "Clients learn a useful skill."
+            },
+            {
+              "value": "C",
+              "label": "Clients learn about a different culture."
+            },
+            {
+              "value": "D",
+              "label": "Clients are excited by the risk involved."
+            },
+            {
+              "value": "E",
+              "label": "Clients find them good value for money."
+            }
+          ],
+          "questions": [
+            {
+              "number": 13,
+              "prompt": "Choose TWO letters, A-E. Which TWO are the main reasons given for the popularity of activity holidays?"
+            },
+            {
+              "number": 14,
+              "prompt": "Choose TWO letters, A-E. Which TWO are the main reasons given for the popularity of activity holidays?"
+            }
+          ]
+        },
+        {
+          "title": "Questions 15-17",
+          "instructions": "Choose the correct letter, A, B or C .",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 15,
+              "prompt": "What kind of properties does the speaker specialise in?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Commercial"
+                },
+                {
+                  "value": "B",
+                  "label": "Investment"
+                },
+                {
+                  "value": "C",
+                  "label": "First homes"
+                },
+                {
+                  "value": "D",
+                  "label": "Rural"
+                }
+              ]
+            },
+            {
+              "number": 16,
+              "prompt": "What does the speaker compare buying houses with?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Nepal, Pakistan and Bhutan"
+                },
+                {
+                  "value": "B",
+                  "label": "Nepal and Pakistan"
+                },
+                {
+                  "value": "C",
+                  "label": "Bhutan and Nepal"
+                },
+                {
+                  "value": "D",
+                  "label": "Pakistan and Bhutan"
+                }
+              ]
+            },
+            {
+              "number": 17,
+              "prompt": "What does the speaker say about the photography holidays?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The tutors are also trained guides."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 18-20",
+          "instructions": "Complete the table below.",
           "type": "text",
           "questions": [
-            {"number": 11, "promptBefore": "Normal visas last"},
-            {"number": 12, "promptBefore": "You need to pay", "promptAfter": "for the visa."},
-            {"number": 13, "promptBefore": "Some consulates require a letter to"},
-            {"number": 14, "promptBefore": "Information about major embassies is on", "promptAfter": "of the student handbook."},
-            {"number": 15, "promptBefore": "If you carry a lot of money, complete a"},
-            {"number": 16, "promptBefore": "Declare expensive items on a"},
-            {"number": 17, "promptBefore": "The required health certificate is the"},
-            {"number": 18, "promptBefore": "For a youth fare card, show your"},
-            {"number": 19, "promptBefore": "Take at least", "promptAfter": "passport photos."},
-            {"number": 20, "promptBefore": "Take Yen or", "promptAfter": "with you."}
+            {
+              "number": 18,
+              "promptBefore": "ther comments Ireland and Italy general fitness personally designed programme also reduces",
+              "promptAfter": "Greece"
+            },
+            {
+              "number": 19,
+              "promptBefore": "Greece",
+              "promptAfter": "control includes exercise on the beach Morocco mountain biking wide variety of l"
+            },
+            {
+              "number": 20,
+              "promptBefore": " Morocco mountain biking wide variety of levels one holiday that is specially designed for",
+              "promptAfter": "<section"
+            }
           ]
         }
       ]
@@ -79,44 +255,120 @@
     {
       "key": "part_3",
       "partNumber": 3,
-      "title": "Shopping habits",
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
       "questionGroups": [
         {
-          "title": "Questions 21-24",
-          "instructions": "Complete the sentences with NO MORE THAN THREE WORDS AND/OR A NUMBER.",
-          "type": "text",
-          "questions": [
-            {"number": 21, "promptBefore": "The woman works in a bank. Her occupation is"},
-            {"number": 22, "promptBefore": "She usually spends about", "promptAfter": "when shopping."},
-            {"number": 23, "promptBefore": "She often goes to", "promptAfter": "because they are convenient."},
-            {"number": 24, "promptBefore": "Her most difficult item to buy is"}
-          ]
-        },
-        {
-          "title": "Questions 25-27",
-          "instructions": "Fill in each blank with ONE WORD AND/OR A NUMBER.",
-          "type": "text",
-          "imageUrl": "/placement-test/current/questions-25-27.png",
-          "questions": [
-            {"number": 25, "promptBefore": "50% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-25.png"},
-            {"number": 26, "promptBefore": "15% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-26.png"},
-            {"number": 27, "promptBefore": "35% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-27.png"}
-          ]
-        },
-        {
-          "title": "Questions 28-30",
-          "instructions": "Choose THREE letters.",
-          "description": "Which items do most interviewees think are the most difficult to buy?",
-          "type": "multi_select_letters",
-          "questionNumbers": [28, 29, 30],
-          "maxSelections": 3,
+          "title": "Questions 21-26",
+          "instructions": "Complete the flow-chart below.",
+          "type": "select",
           "options": [
-            {"value": "A", "label": "Books"},
-            {"value": "B", "label": "Study materials"},
-            {"value": "C", "label": "Foods"},
-            {"value": "D", "label": "Trousers"},
-            {"value": "E", "label": "Shoes"},
-            {"value": "F", "label": "Sportswear"}
+            "A patterns",
+            "B names",
+            "C sources",
+            "D questions",
+            "E employees",
+            "F solutions",
+            "G headings",
+            "H officials"
+          ],
+          "questions": [
+            {
+              "number": 21,
+              "prompt": "Identify a problem or need Select interviewees - these may be site"
+            },
+            {
+              "number": 22,
+              "prompt": ", visitors or city"
+            },
+            {
+              "number": 23,
+              "prompt": "Prepare and carry out interviews. If possible, collect statistics. Check whether"
+            },
+            {
+              "number": 24,
+              "prompt": "of interviewees can be used ANALYSIS Select relevant information and try to identify"
+            },
+            {
+              "number": 25,
+              "prompt": "Decide on the best form of visuals WRITING THE CASE STUDY Give some background before writing the main sections Do NOT end with"
+            },
+            {
+              "number": 26,
+              "prompt": "Question 26"
+            }
+          ]
+        },
+        {
+          "title": "Questions 27-30",
+          "instructions": "Choose the correct letter, A, B or C . The Horton Castle site",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 27,
+              "prompt": "Natalie and Dave agree one reason why so few people visit Horton Castle is that",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "it is difficult to get to."
+                }
+              ]
+            },
+            {
+              "number": 28,
+              "prompt": "Natalie and Dave agree that the greatest problem with a visitor centre could be",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "finding a big enough space for it."
+                }
+              ]
+            },
+            {
+              "number": 29,
+              "prompt": "Where is the WWF currently funding projects to help the snow leopard?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Nepal, Pakistan and Bhutan"
+                },
+                {
+                  "value": "B",
+                  "label": "Nepal and Pakistan"
+                },
+                {
+                  "value": "C",
+                  "label": "Bhutan and Nepal"
+                },
+                {
+                  "value": "D",
+                  "label": "Pakistan and Bhutan"
+                }
+              ]
+            },
+            {
+              "number": 30,
+              "prompt": "Listeners should telephone",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "immediately if they want to put forward an opinion"
+                },
+                {
+                  "value": "B",
+                  "label": "during the commercial break"
+                },
+                {
+                  "value": "C",
+                  "label": "in 10 minutes if they have anything they want to ask the professor"
+                },
+                {
+                  "value": "D",
+                  "label": "if they have any information regarding pumas or jaguars."
+                }
+              ]
+            }
           ]
         }
       ]
@@ -124,32 +376,128 @@
     {
       "key": "part_4",
       "partNumber": 4,
-      "title": "Time management",
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
       "questionGroups": [
         {
           "title": "Questions 31-40",
-          "instructions": "Choose the correct letter A, B, C or D.",
-          "type": "single_choice",
+          "instructions": "Complete the notes below.",
+          "type": "text",
           "questions": [
-            {"number":31,"prompt":"What does the lecturer provide for those interested in extra reading?","options":[{"value":"A","label":"Personal consultation sessions."},{"value":"B","label":"Extra materials, such as a booklist."},{"value":"C","label":"A mid-term examination."},{"value":"D","label":"Free glasses."}]},
-            {"number":32,"prompt":"In the past, time management meant you needed to","options":[{"value":"A","label":"reduce your stress."},{"value":"B","label":"plan for every hour of the week."},{"value":"C","label":"own a good watch."},{"value":"D","label":"set goals and try to achieve them."}]},
-            {"number":33,"prompt":"Today, wise time management means you need to","options":[{"value":"A","label":"set goals and work systematically."},{"value":"B","label":"work faster."},{"value":"C","label":"set an overview of your assignment."},{"value":"D","label":"plan everything and follow the plan rigidly."}]},
-            {"number":34,"prompt":"At the end of each semester, students at this college are assigned","options":[{"value":"A","label":"team projects."},{"value":"B","label":"final term examinations."},{"value":"C","label":"essays."},{"value":"D","label":"time management courses."}]},
-            {"number":35,"prompt":"One sign that students feel under pressure is","options":[{"value":"A","label":"library books go missing."},{"value":"B","label":"students get angry for no reason."},{"value":"C","label":"lower class attendance."},{"value":"D","label":"trouble at the library."}]},
-            {"number":36,"prompt":"What suggestion does the lecturer give?","options":[{"value":"A","label":"Make a very detailed daily plan."},{"value":"B","label":"Do not feel stressed about assignments."},{"value":"C","label":"Reserve a regular one-hour session in the timetable."},{"value":"D","label":"Wear comfortable shoes."}]},
-            {"number":37,"prompt":"What are the three kinds of planners?","options":[{"value":"A","label":"Weekly, daily and hourly."},{"value":"B","label":"Yearly, weekly and daily."},{"value":"C","label":"Term, monthly and weekly."},{"value":"D","label":"Term, weekly and daily."}]},
-            {"number":38,"prompt":"To set an overview of your time, you need at least","options":[{"value":"A","label":"one week."},{"value":"B","label":"half a week."},{"value":"C","label":"one month."},{"value":"D","label":"one term."}]},
-            {"number":39,"prompt":"The daily planner is mainly concerned with","options":[{"value":"A","label":"detailed planning."},{"value":"B","label":"planning all available time."},{"value":"C","label":"TV schedules."},{"value":"D","label":"an overview of several days."}]},
-            {"number":40,"prompt":"A benefit of wise time management is","options":[{"value":"A","label":"more time for relaxation and other activities."},{"value":"B","label":"better performance in the final assignment."},{"value":"C","label":"better essay writing."},{"value":"D","label":"better memory."}]}
+            {
+              "number": 31,
+              "promptBefore": "r it may be consumed by fish It has also recently been found to affect birds which feed on",
+              "promptAfter": "Research on effects of mercury or binds Claire Varian-Ramos is investigating <l"
+            },
+            {
+              "number": 32,
+              "promptBefore": " on effects of mercury or binds Claire Varian-Ramos is investigating the effects on birds’",
+              "promptAfter": "or mental processes, e.g. memory the effects on bird song (usually learned from"
+            },
+            {
+              "number": 33,
+              "promptBefore": "or mental processes, e.g. memory the effects on bird song (usually learned from a bird’s",
+              "promptAfter": ") Findings songs learned by birds exposed to mercury are less"
+            },
+            {
+              "number": 34,
+              "promptBefore": ") Findings songs learned by birds exposed to mercury are less",
+              "promptAfter": "this may have a negative effect on birds’ 35 <"
+            },
+            {
+              "number": 35,
+              "promptBefore": "this may have a negative effect on birds’",
+              "promptAfter": "Lab-based studies allow more"
+            },
+            {
+              "number": 36,
+              "promptBefore": "Lab-based studies allow more",
+              "promptAfter": "for the experimenter Implications for humans Migrating birds such as"
+            },
+            {
+              "number": 37,
+              "promptBefore": "for the experimenter Implications for humans Migrating birds such as",
+              "promptAfter": "containing mercury may be eaten by humans Mercury also causes problems in learni"
+            },
+            {
+              "number": 38,
+              "promptBefore": "containing mercury may be eaten by humans Mercury also causes problems in learning",
+              "promptAfter": "Mercury in a mother’s body from"
+            },
+            {
+              "number": 39,
+              "promptBefore": "Mercury in a mother’s body from",
+              "promptAfter": "may affect the unborn child New regulations for mercury emissions will affect ev"
+            },
+            {
+              "number": 40,
+              "promptBefore": "ffect the unborn child New regulations for mercury emissions will affect everyone’s energy",
+              "promptAfter": ""
+            }
           ]
         }
       ]
     }
   ],
   "answerKey": {
-    "1":"Keiko","2":"JO6337","3":"advanced English studies","4":["4 months","5 months","5 weeks"],"5":"about 4 months","6":["B","D"],"7":"seafood","8":"tennis","9":"take the train","10":"this afternoon",
-    "11":"90 days","12":"30 pounds","13":"confirm your nationality","14":["page 13","13"],"15":"currency form","16":"tourist export form","17":"BM276","18":"international student card","19":"12","20":["Australian dollar","Yen"],
-    "21":"cashier","22":["50 pounds","£50"],"23":["big department stores","big department store"],"24":"jeans","25":["45 pounds","£45"],"26":["75 pounds","£75"],"27":["20 pounds","£20"],"28":"D","29":"E","30":"F",
-    "31":"B","32":"B","33":"A","34":"C","35":"D","36":"C","37":"D","38":"A","39":"A","40":"A"
-  }
+    "1": "B",
+    "2": "B",
+    "3": "D",
+    "4": "teenagers",
+    "5": "kitchen",
+    "6": "crime",
+    "7": [
+      "appointment",
+      "booking"
+    ],
+    "8": "sugar",
+    "9": "stamps",
+    "10": "parking",
+    "11": "D",
+    "13": "B",
+    "15": "B",
+    "16": "B",
+    "17": "A",
+    "18": "stress",
+    "19": "weight",
+    "20": "families",
+    "21": "C",
+    "22": "E",
+    "23": "H",
+    "24": "B",
+    "25": "A",
+    "26": "F",
+    "27": "A",
+    "28": "C",
+    "29": "B",
+    "30": "C",
+    "31": "C",
+    "32": "A",
+    "33": "father",
+    "34": [
+      "complex",
+      "complicated"
+    ],
+    "35": [
+      "reproduction",
+      "breeding"
+    ],
+    "36": "control",
+    "37": "A",
+    "38": "language",
+    "39": "food",
+    "40": "cost(s)",
+    "11-12": [
+      "D",
+      "E"
+    ],
+    "13-14": [
+      "A",
+      "C"
+    ],
+    "12": "B",
+    "14": "C"
+  },
+  "audioUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/Audio/IELTS_Practice_Test/10/Practice%20test%201.mp3"
 }
