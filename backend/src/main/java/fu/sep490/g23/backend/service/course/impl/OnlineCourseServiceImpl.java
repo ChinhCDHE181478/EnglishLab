@@ -626,7 +626,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     public OnlineCourseResponse registerCourse(Long courseId, String studentEmail) {
-        User student = userRepository.findByEmail(studentEmail)
+        User resolvedStudent = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        User student = userRepository.findByIdForUpdate(resolvedStudent.getId())
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findPublishedCourseForEnrollment(courseId);
         if (!isFreeCourse(course)) {
