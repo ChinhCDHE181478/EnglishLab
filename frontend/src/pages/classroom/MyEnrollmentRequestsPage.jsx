@@ -106,7 +106,7 @@ export default function MyEnrollmentRequestsPage() {
                   <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" key={request.id}>
                     <div className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:p-6">
                       <div>
-                        <div className="flex flex-wrap items-center gap-2"><EnrollmentStatusBadge status={request.status} /><span className="text-xs font-bold text-slate-400">Yêu cầu #{request.id}</span></div>
+                        <div className="flex flex-wrap items-center gap-2"><EnrollmentStatusBadge label={request.statusLabel} status={request.status} /><span className="text-xs font-bold text-slate-400">Yêu cầu #{request.id}</span></div>
                         <h2 className="mt-3 font-['Manrope'] text-xl font-black text-[#0b1c30]">{request.courseOfferingTitle || 'Đăng ký học và nhận tư vấn'}</h2>
                         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
                           <span className="font-bold">{formatConsultationTrack(request.consultationTrack)}</span>
@@ -131,6 +131,7 @@ export default function MyEnrollmentRequestsPage() {
                               onUpdated={load}
                               tuitionDepositRemaining={request.assignedEnrollment.tuitionDepositRemaining}
                               tuitionFullPaymentRequired={Boolean(request.assignedEnrollment.tuitionFullPaymentRequired)}
+                              hasPendingPayosPayment={Boolean(request.assignedEnrollment.hasPendingPayosPayment)}
                               tuitionPaymentDeadline={request.assignedEnrollment.tuitionPaymentDeadline}
                               tuitionPaymentOverdue={Boolean(request.assignedEnrollment.tuitionPaymentOverdue)}
                               tuitionRemaining={Math.max(0, Number(request.assignedEnrollment.tuitionAmountDue || 0) - Number(request.assignedEnrollment.tuitionAmountPaid || 0))}
@@ -190,6 +191,16 @@ function formatConsultationTrack(value) {
 }
 
 function requestGuidance(request) {
+  const enrollment = request.assignedEnrollment;
+  if (request.status === 'CLASS_ASSIGNED' && enrollment?.hasPendingTuitionProof) {
+    return 'Trung tâm đã nhận minh chứng học phí. Nhân viên đào tạo sẽ kiểm tra và xác nhận khoản thanh toán.';
+  }
+  if (request.status === 'CLASS_ASSIGNED' && enrollment?.hasPendingPayosPayment) {
+    return 'Đơn PayOS đang được xử lý. Học phí sẽ tự cập nhật sau khi PayOS xác nhận giao dịch thành công.';
+  }
+  if (request.status === 'CLASS_ASSIGNED' && enrollment?.registrationStatus === 'ASSIGNED') {
+    return 'Học phí đã được xác nhận. Bạn đã được vào lớp và có thể theo dõi lịch học trong mục Lớp của tôi.';
+  }
   return {
     SUBMITTED: 'Hồ sơ đã được tiếp nhận. Đội ngũ tư vấn sẽ liên hệ qua email hoặc số điện thoại bạn cung cấp.',
     INVITATION_SENT: 'Lời mời tư vấn và đánh giá đầu vào đã được gửi. Vui lòng kiểm tra email của bạn.',

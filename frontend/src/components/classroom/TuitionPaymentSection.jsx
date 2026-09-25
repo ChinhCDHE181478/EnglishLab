@@ -29,6 +29,7 @@ export default function TuitionPaymentSection({
   tuitionPaymentDeadline = null,
   tuitionFullPaymentRequired = false,
   tuitionPaymentOverdue = false,
+  hasPendingPayosPayment = false,
   canSubmitProof = true,
   onUpdated,
   compact = false,
@@ -53,7 +54,11 @@ export default function TuitionPaymentSection({
     ...(depositRemaining > 0 ? [{ label: `Đặt cọc ${formatClassroomPrice(depositRemaining)}`, value: 'DEPOSIT' }] : []),
     { label: `Thanh toán toàn bộ ${formatClassroomPrice(remaining)}`, value: 'FULL' },
   ];
-  const canMakePayment = canSubmitProof && !tuitionPaymentOverdue;
+  const hasPendingTuitionProof = proofs.some((proof) => proof.status === 'PENDING');
+  const canMakePayment = canSubmitProof
+    && !tuitionPaymentOverdue
+    && !hasPendingPayosPayment
+    && !hasPendingTuitionProof;
   const canPayOnline = canMakePayment && remaining > 0;
 
   const loadData = useCallback(async () => {
@@ -109,7 +114,7 @@ export default function TuitionPaymentSection({
         setMessage(result?.message || 'Đã ghi nhận học phí thành công.');
         setSuccess(true);
         await loadData();
-        onUpdated?.();
+        await onUpdated?.();
         return;
       }
 
@@ -171,7 +176,7 @@ export default function TuitionPaymentSection({
         note: '',
       });
       await loadData();
-      onUpdated?.();
+      await onUpdated?.();
     } catch (err) {
       setMessage(getClassroomErrorMessage(err, 'Không thể gửi minh chứng thanh toán.'));
       setSuccess(false);
@@ -218,6 +223,18 @@ export default function TuitionPaymentSection({
             ? 'Đăng ký đã quá hạn thanh toán.'
             : `Hạn hoàn tất học phí: ${formatClassroomDateTime(tuitionPaymentDeadline)}`}
           {!tuitionPaymentOverdue && tuitionFullPaymentRequired ? ' · Cần thanh toán toàn bộ.' : ''}
+        </div>
+      ) : null}
+
+      {hasPendingPayosPayment ? (
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-semibold leading-5 text-sky-800">
+          Đơn PayOS đang chờ xử lý. Hệ thống sẽ tự ghi nhận học phí khi PayOS xác nhận thành công.
+        </div>
+      ) : null}
+
+      {!hasPendingPayosPayment && hasPendingTuitionProof ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-800">
+          Đã nộp học phí và gửi minh chứng. Vui lòng chờ nhân viên đào tạo xác nhận.
         </div>
       ) : null}
 

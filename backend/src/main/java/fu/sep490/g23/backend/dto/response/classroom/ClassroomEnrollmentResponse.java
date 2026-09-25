@@ -32,6 +32,8 @@ public class ClassroomEnrollmentResponse {
     private LocalDateTime tuitionPaymentDeadline;
     private boolean tuitionFullPaymentRequired;
     private boolean tuitionPaymentOverdue;
+    private boolean hasPendingTuitionProof;
+    private boolean hasPendingPayosPayment;
     private boolean hasClassAccess;
     private Long transferredFromEnrollmentId;
     private LocalDateTime enrolledAt;

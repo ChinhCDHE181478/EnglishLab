@@ -50,6 +50,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/payos/webhook").permitAll()
                         .requestMatchers("/api/teacher/google-meet/callback").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/home").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/online-courses", "/api/online-courses/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/learning-paths", "/api/learning-paths/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/classroom-offerings", "/api/classroom-offerings/**").permitAll()

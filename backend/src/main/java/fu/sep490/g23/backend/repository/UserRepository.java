@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.repository;
 
 import fu.sep490.g23.backend.entity.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
@@ -27,6 +28,18 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     @Query("select distinct user from User user join user.roles role where role.code in :roles")
     List<User> findDistinctByRoles_CodeIn(@Param("roles") Collection<String> roles);
+
+    @EntityGraph(attributePaths = "roles")
+    @Query("""
+            select distinct user
+            from User user join user.roles role
+            where role.code = :roleCode
+              and role.active = true
+              and user.emailVerified = true
+              and user.teacherPublicProfile = true
+            order by user.fullName
+            """)
+    List<User> findPublicTeachersByRoleCode(@Param("roleCode") String roleCode);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

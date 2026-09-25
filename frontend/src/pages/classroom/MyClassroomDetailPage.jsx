@@ -1156,6 +1156,7 @@ export default function MyClassroomDetailPage() {
             classroomId={id}
             tuitionDepositRemaining={classroom.tuitionDepositRemaining ?? 0}
             tuitionFullPaymentRequired={Boolean(classroom.tuitionFullPaymentRequired)}
+            hasPendingPayosPayment={Boolean(classroom.hasPendingPayosPayment)}
             tuitionPaymentDeadline={classroom.tuitionPaymentDeadline}
             tuitionPaymentOverdue={Boolean(classroom.tuitionPaymentOverdue)}
             tuitionRemaining={tuitionRemaining}

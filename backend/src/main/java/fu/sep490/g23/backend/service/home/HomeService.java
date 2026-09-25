@@ -1,8 +1,8 @@
 package fu.sep490.g23.backend.service.home;
 
-import fu.sep490.g23.backend.dto.response.ApiResponse;
+import fu.sep490.g23.backend.dto.response.home.HomePageResponse;
 
 public interface HomeService {
 
-    ApiResponse getHomeMessage();
+    HomePageResponse getHomePage();
 }

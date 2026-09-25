@@ -55,6 +55,10 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRep
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentProofRepository;
+import fu.sep490.g23.backend.repository.payment.PaymentOrderItemRepository;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkGradingCatalogService;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkObjectiveGrader;
 import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
@@ -86,6 +90,8 @@ public class ClassroomMapper {
     private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
+    private final ClassroomTuitionPaymentProofRepository tuitionProofRepository;
+    private final PaymentOrderItemRepository paymentOrderItemRepository;
     private final ClassScheduleRepository sessionRepository;
     private final VirtualMeetingService virtualMeetingService;
     private final ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
@@ -328,6 +334,10 @@ public class ClassroomMapper {
                 .tuitionFullPaymentRequired(ClassroomRegistrationSupport.requiresFullTuitionPayment(enrollment))
                 .tuitionPaymentOverdue(ClassroomRegistrationSupport.isTuitionPaymentOverdue(
                         enrollment, ClassroomRegistrationSupport.currentBusinessTime()))
+                .hasPendingTuitionProof(tuitionProofRepository.countByEnrollmentIdAndStatus(
+                        enrollment.getId(), TuitionProofStatus.PENDING) > 0)
+                .hasPendingPayosPayment(paymentOrderItemRepository.existsByClassEnrollmentIdAndPaymentOrderStatusIn(
+                        enrollment.getId(), List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING)))
                 .hasClassAccess(enrollment.hasClassAccess())
                 .transferredFromEnrollmentId(enrollment.getTransferredFromEnrollmentId())
                 .enrolledAt(enrollment.getEnrolledAt())
