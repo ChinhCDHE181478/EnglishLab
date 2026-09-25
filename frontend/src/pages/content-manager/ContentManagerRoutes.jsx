@@ -18,6 +18,7 @@ import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
 import ContentManagerInstructorLedCoursesPage from './ContentManagerInstructorLedCoursesPage';
 import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 import ContentManagerCoursePreviewPage from './ContentManagerCoursePreviewPage';
+import ContentManagerNotificationsPage from './ContentManagerNotificationsPage';
 
 export default function ContentManagerRoutes() {
   return (
@@ -54,6 +55,7 @@ export default function ContentManagerRoutes() {
         <Route path="analytics" element={<ContentManagerAnalyticsPage />} />
         <Route path="discussion-moderation" element={<ContentManagerDiscussionModerationPage />} />
         <Route path="categories" element={<ContentManagerCategoriesPage />} />
+        <Route path="notifications" element={<ContentManagerNotificationsPage />} />
         <Route path="*" element={<Navigate replace to="dashboard" />} />
       </Routes>
     </ContentManagerLayout>

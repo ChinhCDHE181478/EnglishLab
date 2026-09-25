@@ -168,4 +168,9 @@ export const contentManagerPageMeta = {
     subtitle: 'Tạo, sắp xếp và cập nhật các nhóm khóa học được sử dụng trên toàn nền tảng.',
     searchPlaceholder: 'Tìm danh mục...',
   },
+  '/content-manager/notifications': {
+    title: 'Thông báo của tôi',
+    subtitle: 'Thông báo về nội dung, khóa học và lộ trình học sẽ hiển thị tại đây.',
+    searchPlaceholder: 'Tìm thông báo...',
+  },
 };

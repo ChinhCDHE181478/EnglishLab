@@ -176,7 +176,7 @@ export function ContentManagerLayout({ children }) {
               <Link
                 aria-label="Thông báo"
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-[#730014]"
-                to="/notifications"
+                to="/content-manager/notifications"
               >
                 <Bell className="h-5 w-5" />
               </Link>
@@ -360,6 +360,7 @@ function resolveCrumbHref(crumbs, index) {
   if (current === 'reading') return '/content-manager/reading';
   if (current === 'writing') return '/content-manager/writing';
   if (current === 'speaking') return '/content-manager/speaking';
+  if (current === 'notifications') return '/content-manager/notifications';
 
   if (crumbs[0] === 'flashcards') {
     if (index === 1) {
@@ -405,6 +406,7 @@ function formatCrumbLabel(crumbs, index) {
     rubrics: 'Bộ tiêu chí chấm điểm',
     publication: 'Hàng chờ xuất bản',
     analytics: 'Phân tích nội dung',
+    notifications: 'Thông báo',
     edit: 'Chỉnh sửa khóa học',
     builder: 'Biên soạn nội dung',
     new: 'Tạo khóa học',

@@ -63,6 +63,8 @@ import ManagerDashboardPage from './pages/manager/ManagerDashboardPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import StaffEnrollmentRequestsPage from './pages/staff/StaffEnrollmentRequestsPage';
 import StaffClassroomProposalsPage from './pages/staff/StaffClassroomProposalsPage';
+import StaffNotificationsPage from './pages/staff/StaffNotificationsPage';
+import ManagerNotificationsPage from './pages/manager/ManagerNotificationsPage';
 import AdminRoutes from './pages/admin/AdminRoutes';
 import { getDefaultAuthenticatedPath } from './utils/auth';
 
@@ -188,6 +190,7 @@ function AppRoutes() {
           <Route path="/staff/recordings" element={<Navigate replace to="/staff/classrooms" />} />
           <Route path="/staff/teachers" element={<TeacherManagementPage mode="STAFF" />} />
           <Route path="/staff/support-tickets" element={<ManagerSupportTicketsPage />} />
+          <Route path="/staff/notifications" element={<StaffNotificationsPage />} />
         </Route>
       </Route>
 
@@ -200,6 +203,7 @@ function AppRoutes() {
           <Route path="/manager/online-enrollments" element={<ManagerOnlineEnrollmentsPage />} />
           <Route path="/manager/teacher-performance" element={<ManagerTeacherFeedbackPage />} />
           <Route path="/manager/support-tickets" element={<ManagerSupportTicketsPage />} />
+          <Route path="/manager/notifications" element={<ManagerNotificationsPage />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute requireCompleteProfile={false} />}>

@@ -115,6 +115,18 @@ function resolvePageMeta(pathname) {
       subtitle: 'Theo dõi, phản hồi và giải quyết các khiếu nại, hỗ trợ kỹ thuật của học viên.',
     };
   }
+  if (pathname.startsWith('/staff/notifications')) {
+    return {
+      title: 'Thông báo',
+      subtitle: 'Thông báo từ quản trị viên, cập nhật đăng ký và vận hành lớp học sẽ hiển thị tại đây.',
+    };
+  }
+  if (pathname.startsWith('/manager/notifications')) {
+    return {
+      title: 'Thông báo',
+      subtitle: 'Thông báo điều hành, phê duyệt đề xuất lớp và thông tin ghi danh sẽ hiển thị tại đây.',
+    };
+  }
   return {
     title: 'Vận hành đào tạo',
     subtitle: 'Hệ thống quản lý, giám sát và vận hành các hoạt động đào tạo tại EnglishLab.',
@@ -293,7 +305,7 @@ export default function StaffLayout() {
               <Link
                 aria-label="Thông báo"
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-[#730014]"
-                to="/notifications"
+                to={isManager ? '/manager/notifications' : '/staff/notifications'}
               >
                 <Bell className="h-5 w-5" />
               </Link>
@@ -403,6 +415,7 @@ function formatCrumbLabel(crumbs, index) {
     'enrollment-requests': 'Yêu cầu đăng ký',
     'support-tickets': 'Yêu cầu hỗ trợ',
     'online-enrollments': 'Ghi danh online',
+    notifications: 'Thông báo',
   };
   if (/^\d+$/.test(value)) {
     return `Chi tiết #${value}`;
