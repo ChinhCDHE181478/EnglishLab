@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
-import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import ManagementToast from '../../components/ui/ManagementToast';
@@ -112,8 +111,7 @@ const emptyInstructorLedCourseForm = {
 
 const typeOptions = [
   { label: 'Học liệu trung tâm', value: 'MATERIAL', description: 'Thêm tài liệu từ kho học liệu trung tâm.' },
-  { label: 'Ngân hàng bài tập', value: 'EXERCISE', description: 'Thêm bài tập dùng chung từ ngân hàng bài tập.' },
-  // { label: 'Đề đánh giá', value: 'ASSESSMENT', description: 'Thêm đề kiểm tra / luyện tập từ ngân hàng đề.' },
+  { label: 'Bài tập & Đề luyện tập', value: 'ASSESSMENT', description: 'Thêm bài tập / đề luyện tập từ 4 mục Luyện nghe, Luyện đọc, Luyện viết, Luyện nói.' },
   { label: 'Bộ Flashcard', value: 'FLASHCARD', description: 'Thêm bộ flashcard từ kho từ vựng.' },
 ];
 
@@ -156,6 +154,41 @@ const describeStructuredResource = (config) => {
     parts.length ? `${parts.length} phần làm bài` : null,
   ].filter(Boolean).join(' · ') || 'Nội dung làm trực tiếp trên hệ thống';
 };
+
+// Các kỹ năng mà khóa học có giảng viên được phép tham chiếu tới kho đề luyện tập
+// (đồng bộ với 4 tab Luyện nghe / Luyện đọc / Luyện viết / Luyện nói).
+const REUSABLE_PRACTICE_SKILLS = new Set(['LISTENING', 'READING', 'WRITING', 'SPEAKING']);
+const REUSABLE_PRACTICE_TYPES = new Set(['LESSON_PRACTICE', 'WRITING_TASK', 'SPEAKING_TASK']);
+
+const SKILL_DISPLAY_LABELS = {
+  LISTENING: 'Luyện nghe',
+  READING: 'Luyện đọc',
+  WRITING: 'Luyện viết',
+  SPEAKING: 'Luyện nói',
+};
+
+const TYPE_DISPLAY_LABELS = {
+  LESSON_PRACTICE: 'Bài luyện trong bài học',
+  WRITING_TASK: 'Bài luyện viết',
+  SPEAKING_TASK: 'Bài luyện nói',
+  QUIZ: 'Quiz',
+  MOCK_TEST: 'Đề thi thử',
+};
+
+const normalizeAssessmentKey = (value) => String(value || '').toUpperCase().trim();
+
+const isReusablePracticeAssessment = (item = {}) => {
+  const skill = normalizeAssessmentKey(item.skill);
+  const type = normalizeAssessmentKey(item.type);
+  if (REUSABLE_PRACTICE_SKILLS.has(skill) && REUSABLE_PRACTICE_TYPES.has(type)) return true;
+  // MOCK_TEST liên quan tới ngân hàng đề thi thử — cho phép tham chiếu nếu thuộc 4 kỹ năng.
+  if (REUSABLE_PRACTICE_SKILLS.has(skill) && type === 'MOCK_TEST') return true;
+  return false;
+};
+
+const formatAssessmentSkill = (skill) => SKILL_DISPLAY_LABELS[normalizeAssessmentKey(skill)] || String(skill || '');
+
+const formatAssessmentType = (type) => TYPE_DISPLAY_LABELS[normalizeAssessmentKey(type)] || String(type || '');
 
 const getReadableResourceText = (value) => {
   const config = parseStructuredResource(value);
@@ -286,17 +319,18 @@ export default function ContentManagerInstructorLedCoursesPage() {
 
   const loadBanks = async () => {
     try {
-      const [materials, exercises, assessments, flashcards] = await Promise.all([
+      const [materials, assessments, flashcards] = await Promise.all([
         classroomApi.getContentManagerMaterialLibrary(),
-        courseApi.getExerciseBankItems({ includeInactive: true }),
         curriculumApi.getAssessmentBank(),
         curriculumApi.getFlashcardSets(),
       ]);
       const isPublished = (item) => String(item?.status || '').toUpperCase() === 'PUBLISHED';
       setBanks({
         materials: asList(materials).filter(isPublished),
-        exercises: asList(exercises).filter(isPublished),
-        assessments: asList(assessments).filter(isPublished),
+        exercises: [],
+        assessments: asList(assessments)
+          .filter(isPublished)
+          .filter(isReusablePracticeAssessment),
         flashcards: asList(flashcards).filter(isPublished),
       });
     } catch (err) {
@@ -808,7 +842,6 @@ export default function ContentManagerInstructorLedCoursesPage() {
     };
     try {
       if (attachForm.type === 'MATERIAL') await curriculumApi.attachUnitMaterial(attachForm.unitId, payload);
-      else if (attachForm.type === 'EXERCISE') await curriculumApi.attachUnitExercise(attachForm.unitId, payload);
       else if (attachForm.type === 'ASSESSMENT') await curriculumApi.attachUnitAssessment(attachForm.unitId, payload);
       else if (attachForm.type === 'FLASHCARD') await curriculumApi.attachUnitFlashcard(attachForm.unitId, payload);
       await loadInstructorLedCourseDetail(selectedInstructorLedCourseId);
@@ -906,12 +939,32 @@ export default function ContentManagerInstructorLedCoursesPage() {
   const resourceOptions = useMemo(() => {
     const items = banks[attachForm.type.toLowerCase() + 's'] || [];
     const availableItems = items.filter((item) => !attachedResourceIds.has(String(item.id)));
+    const placeholder = availableItems.length
+      ? 'Tìm kiếm theo tên, kỹ năng hoặc loại bài...'
+      : 'Không còn tài nguyên khả dụng (đã gắn hết vào Unit)';
+    const descriptionFor = (item) => {
+      if (attachForm.type === 'ASSESSMENT') {
+        const skillLabel = formatAssessmentSkill(item.skill);
+        const typeLabel = formatAssessmentType(item.type);
+        const exam = item.examCategory ? String(item.examCategory) : '';
+        // Skill/type được đưa vào cả label lẫn description để BrandedSelect có thể
+        // tìm kiếm theo TÊN hoặc KỸ NĂNG hoặc LOẠI BÀI (chỉ cần khớp 1 trong 3).
+        return [skillLabel, typeLabel, exam].filter(Boolean).join(' · ');
+      }
+      if (attachForm.type === 'MATERIAL') {
+        return item.materialType || item.category || '';
+      }
+      if (attachForm.type === 'FLASHCARD') {
+        return item.topic || item.level || '';
+      }
+      return '';
+    };
     return [
-      { label: availableItems.length ? 'Chọn tài nguyên từ kho...' : 'Không còn tài nguyên khả dụng (đã gắn hết vào Unit)', value: '' },
+      { label: placeholder, value: '' },
       ...availableItems.map((item) => ({
         label: item.title || item.name || `Tài nguyên #${item.id}`,
         value: String(item.id),
-        description: [item.skill, item.examCategory, item.type].filter(Boolean).join(' · '),
+        description: descriptionFor(item),
       })),
     ];
   }, [banks, attachForm.type, attachedResourceIds]);
@@ -1170,10 +1223,12 @@ export default function ContentManagerInstructorLedCoursesPage() {
                   </div>
                   <FieldSelect
                     disabled={!resourceOptions.length}
-                    label="Chọn tài liệu từ ngân hàng"
+                    label="Chọn học liệu / bài tập từ ngân hàng"
                     onChange={(value) => setAttachForm({ ...attachForm, resourceId: value })}
                     options={resourceOptions}
-                    placeholder={resourceOptions.length ? 'Tìm kiếm và chọn tài liệu...' : 'Kho tài liệu này đang trống'}
+                    placeholder={resourceOptions.length
+                      ? 'Gõ để tìm theo tên, kỹ năng (Nghe/Đọc/Viết/Nói) hoặc loại bài...'
+                      : 'Kho tài liệu này đang trống'}
                     searchable
                     value={attachForm.resourceId}
                   />

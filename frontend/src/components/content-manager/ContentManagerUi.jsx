@@ -351,7 +351,6 @@ function resolveCrumbHref(crumbs, index) {
   if (current === 'categories') return '/content-manager/categories';
   if (current === 'learning-paths' || current === 'syllabus') return '/content-manager/learning-paths';
   if (current === 'mock-exams') return '/content-manager/mock-exams';
-  if (current === 'exercise-bank') return '/content-manager/exercise-bank';
   if (current === 'placement-test') return '/content-manager/placement-test';
   if (current === 'rubrics') return '/content-manager/rubrics';
   if (current === 'publication') return '/content-manager/publication';
@@ -402,7 +401,6 @@ function formatCrumbLabel(crumbs, index) {
     speaking: 'Luyện nói',
     'placement-test': 'Bài đánh giá đầu vào',
     'mock-exams': 'Ngân hàng đề thi thử',
-    'exercise-bank': 'Ngân hàng bài tập',
     rubrics: 'Bộ tiêu chí chấm điểm',
     publication: 'Hàng chờ xuất bản',
     analytics: 'Phân tích nội dung',

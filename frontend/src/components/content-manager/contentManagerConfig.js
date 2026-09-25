@@ -16,7 +16,6 @@ import {
   Route,
   School,
   SlidersHorizontal,
-  Dumbbell,
   ShieldAlert,
 } from 'lucide-react';
 
@@ -43,7 +42,6 @@ export const contentManagerNav = [
       { label: 'Luyện nói', href: '/content-manager/speaking', icon: Mic2 },
       { label: 'Bài đánh giá đầu vào', href: '/content-manager/placement-test', icon: ClipboardCheck },
       { label: 'Ngân hàng đề thi thử', href: '/content-manager/mock-exams', icon: FileQuestion },
-      { label: 'Ngân hàng bài tập', href: '/content-manager/exercise-bank', icon: Dumbbell },
       { label: 'Bộ tiêu chí chấm điểm', href: '/content-manager/rubrics', icon: SlidersHorizontal },
     ],
   },
@@ -72,11 +70,6 @@ export const contentManagerPageMeta = {
     title: 'Khóa học có giảng viên',
     subtitle: 'Biên soạn Unit, bài học và học liệu dùng chung cho các lớp tại trung tâm hoặc trực tuyến.',
     searchPlaceholder: 'Tìm unit hoặc tài nguyên...',
-  },
-  '/content-manager/exercise-bank': {
-    title: 'Ngân hàng bài tập',
-    subtitle: 'Tạo và tái sử dụng đề bài tập, quiz theo kỹ năng và cấp độ.',
-    searchPlaceholder: 'Tìm bài tập hoặc kỹ năng...',
   },
   '/content-manager/courses/new': {
     title: 'Tạo khóa học Online',
