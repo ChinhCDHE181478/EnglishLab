@@ -26,14 +26,27 @@ export const fetchProtectedFileBlob = async (url) => {
   return response.data;
 };
 
-export const downloadProtectedFile = async (url, fileName = '') => {
-  const blob = await fetchProtectedFileBlob(url);
+export const getAttachmentFileName = (url = '', fileName = '') => (
+  fileName || String(url).split('/').pop()?.split('?')[0] || 'tep-dinh-kem'
+);
+
+export const isImageAttachment = (url = '', fileName = '', contentType = '') => (
+  String(contentType).toLowerCase().startsWith('image/')
+  || /\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(`${fileName} ${url}`)
+);
+
+export const downloadFileBlob = (blob, url = '', fileName = '') => {
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = objectUrl;
-  anchor.download = fileName || String(url).split('/').pop()?.split('?')[0] || 'tep-dinh-kem';
+  anchor.download = getAttachmentFileName(url, fileName);
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+};
+
+export const downloadProtectedFile = async (url, fileName = '') => {
+  const blob = await fetchProtectedFileBlob(url);
+  downloadFileBlob(blob, url, fileName);
 };

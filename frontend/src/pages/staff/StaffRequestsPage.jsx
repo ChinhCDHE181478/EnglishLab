@@ -26,6 +26,7 @@ import { buildChangeRequestDiff, hasBlockingConflict, parseChangeRequestValues }
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
 
 export default function StaffRequestsPage() {
   const [searchParams] = useSearchParams();
@@ -314,14 +315,12 @@ export default function StaffRequestsPage() {
                         <>
                           <p>Tiến độ: <strong>{selectedOldValues.completedSessions}/{selectedOldValues.totalSessions} buổi ({selectedOldValues.progressPercent}%)</strong></p>
                           <p>Thời gian: <strong>{selectedNewValues.requestedStartDate} đến {selectedNewValues.requestedReturnDate}</strong></p>
-                          <a
+                          <AuthenticatedFileLink
                             className="inline-flex items-center gap-2 font-bold text-[#730014] hover:underline sm:col-span-2"
-                            href={selectedNewValues.proofUrl}
-                            rel="noreferrer"
-                            target="_blank"
+                            url={selectedNewValues.proofUrl}
                           >
                             Xem giấy tờ minh chứng
-                          </a>
+                          </AuthenticatedFileLink>
                         </>
                       ) : (
                         <p>Hạn đăng ký quay lại: <strong>{selectedOldValues.returnDeadline || '—'}</strong></p>
@@ -377,7 +376,13 @@ export default function StaffRequestsPage() {
                         options={returnOptions.map((item) => ({
                           label: item.title,
                           value: String(item.id),
-                          description: [item.scheduleSummary, item.primaryTeacherName].filter(Boolean).join(' · '),
+                          description: [
+                            Number.isInteger(item.completedSessions) && Number.isInteger(item.totalSessions)
+                              ? `Đã học ${item.completedSessions}/${item.totalSessions} buổi`
+                              : '',
+                            item.scheduleSummary,
+                            item.primaryTeacherName,
+                          ].filter(Boolean).join(' · '),
                         }))}
                         placeholder={loadingReturnOptions
                           ? 'Đang kiểm tra lớp phù hợp...'

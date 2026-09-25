@@ -1,12 +1,18 @@
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { downloadProtectedFile, isProtectedAttachmentUrl } from '../../utils/protectedFile';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Loader2, X } from 'lucide-react';
+import {
+  downloadFileBlob,
+  fetchProtectedFileBlob,
+  isImageAttachment,
+  isProtectedAttachmentUrl,
+} from '../../utils/protectedFile';
 
 /**
  * A flexible file link component.
  *
- * - `forceDownload={false}` (default): renders a plain <a> link that opens in a new tab.
- *   Use this for navigation links, YouTube, Google Drive, etc.
+ * Protected images are fetched with the current access token and shown in a preview.
+ * Protected documents are downloaded instead of navigating to an authenticated API URL.
  *
  * - `forceDownload={true}`: renders a <button> that always tries to download the file.
  *   - Protected URLs (internal backend / R2 via proxy) → fetched through authenticated backend.
@@ -25,11 +31,25 @@ export default function AuthenticatedFileLink({
 }) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  useEffect(() => {
+    if (!previewUrl) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setPreviewUrl('');
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   if (!url) return null;
 
-  // ── Link mode (default) ─────────────────────────────────────────────────────
-  if (!forceDownload) {
+  const protectedUrl = isProtectedAttachmentUrl(url);
+
+  if (!forceDownload && !protectedUrl) {
     return (
       <a className={className} href={url} rel="noreferrer" target="_blank" title={title} {...rest}>
         {children}
@@ -37,32 +57,32 @@ export default function AuthenticatedFileLink({
     );
   }
 
-  // ── Download mode ───────────────────────────────────────────────────────────
-  const handleDownload = async () => {
+  const closePreview = () => setPreviewUrl('');
+
+  const handleFileAccess = async () => {
     if (downloading) return;
     setDownloading(true);
     setError('');
     try {
-      if (isProtectedAttachmentUrl(url)) {
-        // Internal / R2 via backend proxy — uses authenticated axiosClient
-        await downloadProtectedFile(url, fileName);
+      if (protectedUrl) {
+        const blob = await fetchProtectedFileBlob(url);
+        if (isImageAttachment(url, fileName, blob.type)) {
+          setPreviewUrl(URL.createObjectURL(blob));
+        } else {
+          downloadFileBlob(blob, url, fileName);
+        }
       } else {
-        // External public URL — try direct fetch to force blob download
         const response = await fetch(url);
         if (!response.ok) throw new Error('fetch failed');
         const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = objectUrl;
-        anchor.download = fileName || String(url).split('/').pop()?.split('?')[0] || 'tep-dinh-kem';
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        downloadFileBlob(blob, url, fileName);
       }
     } catch {
-      // Fallback: open in new tab so the user can still access the file
-      window.open(url, '_blank');
+      if (protectedUrl) {
+        setError('Không thể mở tệp hoặc bạn không có quyền truy cập.');
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
     } finally {
       setDownloading(false);
     }
@@ -73,7 +93,7 @@ export default function AuthenticatedFileLink({
       <button
         className={className}
         disabled={downloading}
-        onClick={handleDownload}
+        onClick={handleFileAccess}
         title={title}
         type="button"
         {...rest}
@@ -82,6 +102,31 @@ export default function AuthenticatedFileLink({
         {children}
       </button>
       {error ? <span className="text-[10px] font-bold text-red-600" role="alert">{error}</span> : null}
+      {previewUrl ? createPortal(
+        <div
+          aria-label="Xem ảnh đính kèm"
+          aria-modal="true"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          onClick={closePreview}
+          role="dialog"
+        >
+          <button
+            aria-label="Đóng ảnh"
+            className="absolute right-5 top-5 rounded-full bg-white/95 p-2 text-slate-700 shadow-lg transition hover:bg-white"
+            onClick={closePreview}
+            type="button"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            alt={fileName || 'Ảnh đính kèm'}
+            className="max-h-[90vh] max-w-[95vw] rounded-2xl bg-white object-contain shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            src={previewUrl}
+          />
+        </div>,
+        document.body,
+      ) : null}
     </span>
   );
 }

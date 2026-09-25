@@ -57,6 +57,8 @@ public class ClassroomOfferingResponse {
     private String duration;
     private ClassroomSessionResponse nextSession;
     private Integer progressPercent;
+    private Integer completedSessions;
+    private Integer totalSessions;
     private Long enrollmentId;
     private boolean enrolled;
     private boolean registered;

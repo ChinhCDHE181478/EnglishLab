@@ -330,6 +330,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         oldValues.put("registrationStatus", ClassroomRegistrationStatus.SUSPENDED.name());
         oldValues.put("suspensionRequestId", suspension.getId());
         oldValues.put("returnDeadline", returnDeadline.toString());
+        Map<String, Object> suspensionOldValues = parseJsonMap(suspension.getOldValuesJson());
+        oldValues.put("completedSessions", suspensionOldValues.get("completedSessions"));
+        oldValues.put("totalSessions", suspensionOldValues.get("totalSessions"));
 
         Map<String, Object> newValues = new LinkedHashMap<>();
         newValues.put("enrollmentId", enrollment.getId());
@@ -381,13 +384,15 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ bảo lưu."));
         Long courseId = enrollment.getClassSection().getInstructorLedCourse().getId();
         LocalDate today = LocalDate.now();
+        long completedSessionsAtSuspension = completedSessionsAtSuspension(changeRequest);
 
         return offeringRepository.findByStatusIn(List.of(ClassroomOfferingStatus.UPCOMING, ClassroomOfferingStatus.ACTIVE))
                 .stream()
                 .filter(classroom -> classroom.getInstructorLedCourse().getId().equals(courseId))
                 .filter(classroom -> hasFutureSession(classroom, today))
+                .filter(classroom -> hasCompatibleReturnProgress(classroom, completedSessionsAtSuspension))
                 .filter(classroom -> canReceiveReturningLearner(classroom, enrollment))
-                .map(classroom -> mapper.toOfferingResponse(classroom, false, null, null, false))
+                .map(classroom -> toReturnOption(classroom))
                 .toList();
     }
 
@@ -970,6 +975,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 || !hasFutureSession(target, LocalDate.now())) {
             throw new RuntimeException("Lớp được chọn không còn nhận học viên học lại.");
         }
+        if (!hasCompatibleReturnProgress(target, completedSessionsAtSuspension(changeRequest))) {
+            throw new RuntimeException("Lớp được chọn đã học vượt quá tiến độ của học viên tại thời điểm bảo lưu.");
+        }
         if (!canReceiveReturningLearner(target, enrollment)) {
             throw new RuntimeException("Lớp được chọn đã hết chỗ hoặc trùng lịch học của học viên.");
         }
@@ -1037,6 +1045,57 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(classroom.getId()).stream()
                 .anyMatch(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED
                         && !session.getSessionDate().isBefore(today));
+    }
+
+    private ClassroomOfferingResponse toReturnOption(ClassSection classroom) {
+        List<ClassSchedule> sessions = activeCourseSessions(classroom);
+        long completedSessions = completedSessionCount(sessions, LocalDateTime.now());
+        ClassroomOfferingResponse response = mapper.toOfferingResponse(classroom, false, null, null, false);
+        response.setCompletedSessions(Math.toIntExact(completedSessions));
+        response.setTotalSessions(sessions.size());
+        response.setProgressPercent(sessions.isEmpty()
+                ? 0
+                : (int) Math.round(completedSessions * 100.0 / sessions.size()));
+        return response;
+    }
+
+    private boolean hasCompatibleReturnProgress(ClassSection classroom, long completedSessionsAtSuspension) {
+        List<ClassSchedule> sessions = activeCourseSessions(classroom);
+        long completedSessions = completedSessionCount(sessions, LocalDateTime.now());
+        return sessions.size() >= completedSessionsAtSuspension
+                && completedSessions <= completedSessionsAtSuspension;
+    }
+
+    private long completedSessionsAtSuspension(ClassroomChangeRequest returnRequest) {
+        Map<String, Object> returnValues = parseJsonMap(returnRequest.getOldValuesJson());
+        Object completedSessions = returnValues.get("completedSessions");
+        if (completedSessions != null) {
+            return Long.parseLong(String.valueOf(completedSessions));
+        }
+        Long suspensionRequestId = longValue(
+                returnValues,
+                "suspensionRequestId",
+                "Thiếu thông tin tiến độ tại thời điểm bảo lưu."
+        );
+        ClassroomChangeRequest suspension = changeRequestRepository.findById(suspensionRequestId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu bảo lưu gốc."));
+        return longValue(
+                parseJsonMap(suspension.getOldValuesJson()),
+                "completedSessions",
+                "Thiếu thông tin tiến độ tại thời điểm bảo lưu."
+        );
+    }
+
+    private List<ClassSchedule> activeCourseSessions(ClassSection classroom) {
+        return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(classroom.getId()).stream()
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
+                .toList();
+    }
+
+    private long completedSessionCount(List<ClassSchedule> sessions, LocalDateTime now) {
+        return sessions.stream()
+                .filter(session -> !session.getEndDateTime().isAfter(now))
+                .count();
     }
 
     private void assertEnrollmentOwner(ClassEnrollment enrollment, User learner) {

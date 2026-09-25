@@ -33,7 +33,8 @@ import {
   X,
   Paperclip,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  PauseCircle,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import VirtualJoinButton from '../../components/classroom/VirtualJoinButton';
@@ -336,8 +337,11 @@ export default function MyClassroomDetailPage() {
         setMaterials([]);
         setAnnouncements([]);
         setSyllabus([]);
-        if (!['overview', 'payment'].includes(activeTab)) {
-          setActiveTab('payment');
+        const allowedTabs = classroomData.registrationStatus === 'SUSPENDED'
+          ? ['overview']
+          : ['overview', 'payment'];
+        if (!allowedTabs.includes(activeTab)) {
+          setActiveTab(classroomData.registrationStatus === 'SUSPENDED' ? 'overview' : 'payment');
         }
         return;
       }
@@ -390,7 +394,11 @@ export default function MyClassroomDetailPage() {
 
   const visibleDetailTabs = classroom?.hasClassAccess
     ? detailTabs
-    : detailTabs.filter((tab) => ['overview', 'payment'].includes(tab.id));
+    : detailTabs.filter((tab) => (
+      classroom?.registrationStatus === 'SUSPENDED'
+        ? tab.id === 'overview'
+        : ['overview', 'payment'].includes(tab.id)
+    ));
 
   useEffect(() => {
     loadClassroom();
@@ -585,6 +593,27 @@ export default function MyClassroomDetailPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
 
   const renderTabContent = () => {
+    if (classroom?.registrationStatus === 'SUSPENDED') {
+      return (
+        <div className="flex min-h-[360px] flex-col items-center justify-center rounded-3xl border border-amber-200 bg-amber-50/70 px-6 py-12 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-amber-700 shadow-sm">
+            <PauseCircle className="h-7 w-7" />
+          </span>
+          <h3 className="mt-5 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Khóa học đang được bảo lưu</h3>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-[#8b706e]">
+            Nội dung lớp học được tạm khóa trong thời gian bảo lưu.
+          </p>
+          <Link
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#730014] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#4b0009]"
+            to="/support"
+          >
+            Xem yêu cầu bảo lưu
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+      );
+    }
+
     if (activeTab === 'syllabus') {
       return (
         <LearnerCurriculumPanel
