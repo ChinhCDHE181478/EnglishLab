@@ -133,7 +133,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         List<CourseAssessment> publishedAssessments = published == null
                 ? List.of()
                 : courseAssessmentRepository
-                        .findByOnlineCourseVersionAndActiveTrueOrderByDisplayOrderAscIdAsc(published);
+                        .findByOnlineCourseVersionOrderByDisplayOrderAscIdAsc(published);
 
         OnlineCourseVersion draft = OnlineCourseVersion.builder()
                 .onlineCourse(course)
@@ -379,7 +379,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                     .toList();
         }
         return courseAssessmentRepository
-                .findByOnlineCourseVersionAndActiveTrueOrderByDisplayOrderAscIdAsc(version).stream()
+                .findByOnlineCourseVersionOrderByDisplayOrderAscIdAsc(version).stream()
                 .map(CourseAssessment::getId)
                 .toList();
     }
@@ -389,9 +389,10 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     public List<Long> getProgressBaselineAssessmentIds(OnlineCourseEnrollment enrollment) {
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
         normalizeAssessmentProgressKeys(course);
+        OnlineCourseVersion latestPublishedVersion = findLatestPublishedVersion(course);
         OnlineCourseVersion baselineVersion = enrollment.getCourseVersion();
         if (baselineVersion == null) {
-            baselineVersion = findLatestPublishedVersion(course);
+            baselineVersion = latestPublishedVersion;
         }
         if (baselineVersion == null) {
             return courseAssessmentRepository
@@ -400,10 +401,28 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                     .map(CourseAssessment::getId)
                     .toList();
         }
-        return courseAssessmentRepository
-                .findByOnlineCourseVersionAndActiveTrueOrderByDisplayOrderAscIdAsc(baselineVersion).stream()
+        List<CourseAssessment> baselineAssessments = courseAssessmentRepository
+                .findByOnlineCourseVersionOrderByDisplayOrderAscIdAsc(baselineVersion);
+        if (latestPublishedVersion == null || baselineVersion.getId().equals(latestPublishedVersion.getId())) {
+            return baselineAssessments.stream()
+                    .map(CourseAssessment::getId)
+                    .toList();
+        }
+        Set<String> latestProgressKeys = courseAssessmentRepository
+                .findByOnlineCourseVersionOrderByDisplayOrderAscIdAsc(latestPublishedVersion).stream()
+                .map(this::assessmentProgressKey)
+                .collect(java.util.stream.Collectors.toSet());
+        return baselineAssessments.stream()
+                .filter(assessment -> latestProgressKeys.contains(assessmentProgressKey(assessment)))
                 .map(CourseAssessment::getId)
                 .toList();
+    }
+
+    private String assessmentProgressKey(CourseAssessment assessment) {
+        String progressKey = assessment.getProgressKey();
+        return progressKey == null || progressKey.isBlank()
+                ? "ID:" + assessment.getId()
+                : "KEY:" + progressKey;
     }
 
     private void validateReadyToPublish(OnlineCourse course) {
@@ -590,7 +609,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .filter(version -> version.getStatus() == CourseVersionStatus.PUBLISHED
                         || version.getStatus() == CourseVersionStatus.RETIRED)
                 .flatMap(version -> courseAssessmentRepository
-                        .findByOnlineCourseVersionAndActiveTrueOrderByDisplayOrderAscIdAsc(version).stream())
+                        .findByOnlineCourseVersionOrderByDisplayOrderAscIdAsc(version).stream())
                 .anyMatch(assessment -> assessmentId.equals(assessment.getId()));
     }
 
@@ -609,7 +628,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         List<CourseAssessment> previousAssessments = List.of();
         for (OnlineCourseVersion version : history) {
             List<CourseAssessment> assessments = courseAssessmentRepository
-                    .findByOnlineCourseVersionAndActiveTrueOrderByDisplayOrderAscIdAsc(version);
+                    .findByOnlineCourseVersionOrderByDisplayOrderAscIdAsc(version);
             Set<String> usedProgressKeys = new HashSet<>();
 
             for (int index = 0; index < assessments.size(); index++) {

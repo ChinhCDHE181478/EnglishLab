@@ -30,7 +30,7 @@ const trainingOperationsNav = [
       { label: 'Hồ sơ giáo viên', href: '/staff/teachers', icon: UserRoundCheck, staffOnly: true },
       { label: 'Duyệt đề xuất lớp', href: '/manager/classroom-proposals', icon: CalendarDays, managerOnly: true },
       { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList, managerOnly: true },
-      { label: 'Hiệu suất giáo viên', href: '/manager/teacher-performance', icon: ChartNoAxesCombined, managerOnly: true },
+      { label: 'Phản hồi giáo viên', href: '/manager/teacher-performance', icon: ChartNoAxesCombined, managerOnly: true },
       { label: 'Yêu cầu hỗ trợ', href: '/staff/support-tickets', managerHref: '/manager/support-tickets', icon: LifeBuoy },
     ],
   },
@@ -94,7 +94,7 @@ function resolvePageMeta(pathname) {
   if (pathname.startsWith('/manager/classroom-proposals')) {
     return {
       title: 'Duyệt đề xuất mở lớp',
-      subtitle: 'Rà soát kế hoạch mở lớp, lịch học và nguồn lực dự kiến.',
+      subtitle: 'Duyệt kế hoạch mở lớp từ staff, hoặc gửi yêu cầu staff mở lớp từ báo cáo nhu cầu.',
     };
   }
   if (pathname.startsWith('/manager/online-enrollments')) {
@@ -105,8 +105,8 @@ function resolvePageMeta(pathname) {
   }
   if (pathname.startsWith('/manager/teacher-performance')) {
     return {
-      title: 'Hiệu suất giáo viên',
-      subtitle: 'Theo dõi dữ liệu vận hành và công bố đánh giá định kỳ cho đội ngũ giảng dạy.',
+      title: 'Phản hồi giáo viên',
+      subtitle: 'Xem phản hồi ẩn danh của học viên về giáo viên sau khi lớp kết thúc.',
     };
   }
   if (pathname.startsWith('/staff/support-tickets') || pathname.startsWith('/manager/support-tickets')) {

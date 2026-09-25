@@ -960,7 +960,26 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 builder.invitationSentAt(LocalDateTime.now().minusDays(5));
                 builder.staffNote("Đã gọi điện tư vấn ca tối và hướng dẫn bài xếp lớp.");
             }
-                builder.confirmedLevel(i % 3 == 0 ? PlacementLevel.BEGINNER : PlacementLevel.INTERMEDIATE);
+            if (status == EnrollmentRequestStatus.TEST_SCHEDULED
+                    || status == EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED
+                    || status == EnrollmentRequestStatus.UNDER_STAFF_REVIEW
+                    || status == EnrollmentRequestStatus.WAITING_FOR_CLASS
+                    || status == EnrollmentRequestStatus.CLASS_ASSIGNED) {
+                LocalDateTime appointmentAt = LocalDateTime.now()
+                        .minusDays(8 - (i % 5))
+                        .withHour(9 + (i % 4))
+                        .withMinute(i % 2 == 0 ? 0 : 30)
+                        .withSecond(0)
+                        .withNano(0);
+                builder.testAppointmentAt(appointmentAt);
+                builder.testLocation(i % 2 == 0
+                        ? "EnglishLab Hai Bà Trưng - Phòng 101"
+                        : "EnglishLab Cầu Giấy - Phòng Test A");
+                if (status != EnrollmentRequestStatus.TEST_SCHEDULED) {
+                    builder.testCompletedAt(appointmentAt.plusHours(2));
+                }
+            }
+            builder.confirmedLevel(i % 3 == 0 ? PlacementLevel.BEGINNER : PlacementLevel.INTERMEDIATE);
             if (status == EnrollmentRequestStatus.CLASS_ASSIGNED && assigned != null) {
                 builder.assignedClassSection(assigned);
                 builder.preferredClassSection(assigned);

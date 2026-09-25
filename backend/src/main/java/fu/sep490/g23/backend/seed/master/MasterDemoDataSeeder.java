@@ -149,6 +149,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -296,7 +297,7 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
         seedDiscountCodes(world.path("discountCodes"), usersByEmail);
         seedPayments(world.path("payments"), onlineCoursesBySlug, usersByEmail);
         Map<String, SupportTicket> ticketsByNaturalKey = seedSupportTickets(world.path("tickets"), usersByEmail);
-        seedProposals(world.path("proposals"), programsByCode, usersByEmail);
+        seedProposals(world.path("proposals"), programsByCode, usersByEmail, sectionsByCode);
         seedRegistrationRequests(world.path("registrations"), programsByCode, usersByEmail);
         seedNotifications(world.path("notifications"), usersByEmail);
         seedTeacherEvaluations(world.path("evaluations"), usersByEmail);
@@ -1069,8 +1070,65 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
             enrollment.setTuitionAmountDue(BigDecimal.valueOf(node.path("tuitionAmountDue").asLong(0)));
             enrollment.setTuitionAmountPaid(BigDecimal.valueOf(node.path("tuitionAmountPaid").asLong(0)));
             enrollment.setEnrolledAt(parseDateTime(node.path("enrolledAt").asText(null)));
-            classEnrollmentRepository.save(enrollment);
+            if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED
+                    && enrollment.getAssignedAt() == null) {
+                enrollment.setAssignedAt(enrollment.getEnrolledAt() == null
+                        ? LocalDateTime.now()
+                        : enrollment.getEnrolledAt());
+            }
+            enrollment = classEnrollmentRepository.save(enrollment);
+            ensureAssignedRegistrationRequest(enrollment, section, learner);
         }
+    }
+
+    private void ensureAssignedRegistrationRequest(
+            ClassEnrollment enrollment,
+            ClassSection section,
+            User learner
+    ) {
+        if (enrollment == null
+                || section == null
+                || learner == null
+                || section.getInstructorLedCourse() == null
+                || enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.ASSIGNED) {
+            return;
+        }
+        Long courseId = section.getInstructorLedCourse().getId();
+        boolean exists = courseRegistrationRequestRepository.findByLearnerOrderByCreatedAtDesc(learner).stream()
+                .anyMatch(row -> row.getCourseOffering() != null
+                        && courseId.equals(row.getCourseOffering().getId())
+                        && row.getStatus() == EnrollmentRequestStatus.CLASS_ASSIGNED);
+        if (exists) {
+            return;
+        }
+        String marker = NATURAL_KEY_PREFIX + "ENROLL|" + section.getCode() + "|" + learner.getEmail();
+        CourseRegistrationRequest request = CourseRegistrationRequest.builder()
+                .learner(learner)
+                .courseOffering(section.getInstructorLedCourse())
+                .preferredClassSection(section)
+                .assignedClassSection(section)
+                .contactName(learner.getFullName())
+                .contactEmail(learner.getEmail())
+                .contactPhone(learner.getPhoneNumber())
+                .consultationTrack(marker)
+                .status(EnrollmentRequestStatus.CLASS_ASSIGNED)
+                .requestSource(EnrollmentRequestSource.CENTER)
+                .reviewedAt(enrollment.getAssignedAt() == null ? enrollment.getEnrolledAt() : enrollment.getAssignedAt())
+                .build();
+        LocalDateTime createdAt = enrollment.getEnrolledAt() == null
+                ? LocalDateTime.now().minusDays(3)
+                : enrollment.getEnrolledAt().minusDays(3);
+        // Demo freeze: registration requests must stay strictly before 2026-09-26.
+        LocalDateTime freezeBefore = LocalDateTime.of(2026, 9, 26, 0, 0);
+        if (!createdAt.isBefore(freezeBefore)) {
+            createdAt = freezeBefore.minusDays(1)
+                    .withHour(10)
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0);
+        }
+        request.setCreatedAt(createdAt);
+        courseRegistrationRequestRepository.save(request);
     }
 
     private void seedAttendance(
@@ -1415,11 +1473,24 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
     private void seedProposals(
             JsonNode proposalsNode,
             Map<String, InstructorLedCourse> programsByCode,
-            Map<String, User> usersByEmail
+            Map<String, User> usersByEmail,
+            Map<String, ClassSection> sectionsByCode
     ) {
         Set<String> existingCodes = classroomProposalRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(ClassroomProposal::getProposalCode)
                 .collect(Collectors.toCollection(HashSet::new));
+        List<User> teachers = usersByEmail.values().stream()
+                .filter(user -> user.hasRole(RoleCodes.TEACHER))
+                .sorted(Comparator.comparing(User::getId))
+                .toList();
+        List<Room> rooms = roomRepository.findByActiveTrueOrderByNameAsc();
+        Set<Long> linkedSectionIds = classroomProposalRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(ClassroomProposal::getApprovedClassroom)
+                .filter(java.util.Objects::nonNull)
+                .map(ClassSection::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+        int teacherCursor = 0;
+        int roomCursor = 0;
         for (JsonNode node : proposalsNode) {
             String proposalCode = node.path("naturalKey").asText();
             if (existingCodes.contains(proposalCode)) {
@@ -1433,12 +1504,48 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
             }
             LocalDateTime createdAt = parseDateTime(node.path("createdAt").asText(null));
             LocalDate start = createdAt == null ? LocalDate.parse("2026-06-01") : createdAt.toLocalDate().plusDays(14);
+            ClassroomApprovalStatus status = mapProposalStatus(node.path("status").asText("DRAFT"));
+            User teacher = teachers.isEmpty() ? null : teachers.get(teacherCursor % teachers.size());
+            Room room = rooms.isEmpty() ? null : rooms.get(roomCursor % rooms.size());
+            if (!teachers.isEmpty()) {
+                teacherCursor++;
+            }
+            if (!rooms.isEmpty()) {
+                roomCursor++;
+            }
+            ClassSection linkedSection = null;
+            if (status == ClassroomApprovalStatus.APPROVED) {
+                linkedSection = sectionsByCode.values().stream()
+                        .filter(section -> section.getInstructorLedCourse() != null
+                                && program.getId().equals(section.getInstructorLedCourse().getId()))
+                        .filter(section -> section.getStatus() == ClassroomOfferingStatus.UPCOMING
+                                || section.getStatus() == ClassroomOfferingStatus.ACTIVE)
+                        .filter(section -> !linkedSectionIds.contains(section.getId()))
+                        .sorted(Comparator.comparing(ClassSection::getStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                                .thenComparing(ClassSection::getId))
+                        .findFirst()
+                        .orElse(null);
+                if (linkedSection != null) {
+                    linkedSectionIds.add(linkedSection.getId());
+                    if (linkedSection.getPrimaryTeacher() != null) {
+                        teacher = linkedSection.getPrimaryTeacher();
+                    }
+                    if (linkedSection.getRoom() != null) {
+                        room = linkedSection.getRoom();
+                    }
+                    if (linkedSection.getStartDate() != null) {
+                        start = linkedSection.getStartDate();
+                    }
+                }
+            }
             ClassroomProposal proposal = ClassroomProposal.builder()
                     .proposalCode(proposalCode)
                     .title(node.path("title").asText())
                     .courseOffering(program)
                     .deliveryType(ClassroomDeliveryMode.OFFLINE)
-                    .capacity(12)
+                    .capacity(linkedSection != null && linkedSection.getCapacity() != null
+                            ? linkedSection.getCapacity()
+                            : 12)
                     .plannedStartDate(start)
                     .plannedEndDate(start.plusWeeks(10))
                     .scheduleWeekdays("1,3,5")
@@ -1446,7 +1553,10 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
                     .sessionEndTime(LocalTime.of(19, 30))
                     .createdBy(createdBy)
                     .reviewedBy(reviewedBy)
-                    .approvalStatus(mapProposalStatus(node.path("status").asText("DRAFT")))
+                    .primaryTeacher(teacher)
+                    .room(room)
+                    .approvedClassroom(linkedSection)
+                    .approvalStatus(status)
                     .build();
             proposal.setCreatedAt(createdAt);
             if (node.hasNonNull("reviewedAt")) {

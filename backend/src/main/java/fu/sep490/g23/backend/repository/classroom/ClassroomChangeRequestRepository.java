@@ -35,9 +35,16 @@ public interface ClassroomChangeRequestRepository extends JpaRepository<Classroo
 
     List<ClassroomChangeRequest> findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus status);
 
+    List<ClassroomChangeRequest> findByStatusInOrderByCreatedAtDesc(Collection<ClassroomChangeRequestStatus> statuses);
+
     List<ClassroomChangeRequest> findByReviewerAndStatusOrderByCreatedAtDesc(
             User reviewer,
             ClassroomChangeRequestStatus status
+    );
+
+    List<ClassroomChangeRequest> findByReviewerAndStatusInOrderByCreatedAtDesc(
+            User reviewer,
+            Collection<ClassroomChangeRequestStatus> statuses
     );
 
     Optional<ClassroomChangeRequest> findFirstByReviewerInOrderByCreatedAtDescIdDesc(Collection<User> reviewers);

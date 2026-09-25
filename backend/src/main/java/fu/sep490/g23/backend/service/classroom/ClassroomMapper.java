@@ -109,6 +109,10 @@ public class ClassroomMapper {
     ) {
         InstructorLedCourse course = offering.getInstructorLedCourse();
         long enrolledCount = enrollmentRepository.countByOfferingAndRegistrationStatuses(offering.getId(), OCCUPIES_CLASS_SLOT);
+        long assignedCount = enrollmentRepository.countByOfferingAndRegistrationStatuses(
+                offering.getId(),
+                ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
+        );
         long waitlistCount = enrollmentRepository.countByOfferingAndRegistrationStatuses(offering.getId(), WAITLIST_STATUSES);
         List<ClassSchedule> sessions = includeSessions
                 ? offering.getSchedules()
@@ -142,6 +146,7 @@ public class ClassroomMapper {
                 .targetOutcome(course.getLearningOutcomes())
                 .capacity(offering.getCapacity())
                 .enrolledCount((int) enrolledCount)
+                .assignedCount((int) assignedCount)
                 .startDate(offering.getStartDate())
                 .endDate(offering.getPlannedEndDate())
                 .primaryTeacherId(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getId())

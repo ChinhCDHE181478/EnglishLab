@@ -781,7 +781,15 @@ export default function StaffClassroomDetailPage() {
         <p className="mt-2 text-sm text-[#584140]">
           Khai giảng: <strong>{formatClassroomDate(classroom.startDate)}</strong>
           {' · '}
-          Sĩ số: <strong>{classroom.enrolledCount ?? 0} học viên</strong>
+          Sĩ số: <strong>{classroom.assignedCount ?? assignedStudents.length} đã xếp</strong>
+          {Number(classroom.enrolledCount || 0) > Number(classroom.assignedCount ?? assignedStudents.length) ? (
+            <>
+              {' · '}
+              <strong>{classroom.enrolledCount} giữ chỗ</strong>
+            </>
+          ) : null}
+          {' / '}
+          <strong>{classroom.capacity ?? 0}</strong>
           {' · '}
           Học phí: <strong>{formatClassroomPrice(classroom.tuitionFeeVnd ?? classroom.price ?? 0)}</strong>
         </p>
@@ -791,13 +799,20 @@ export default function StaffClassroomDetailPage() {
 
       {activeTab === 'overview' ? (
         <>
-          <section className="grid gap-4 md:grid-cols-2">
+          <section className="grid gap-4 md:grid-cols-3">
             <OverviewCard
               description="Học viên đã được xếp lớp chính thức"
               icon={Users}
               label="Đã xếp lớp"
               onClick={() => setTab('students')}
-              value={classroom.enrolledCount ?? 0}
+              value={assignedStudents.length}
+            />
+            <OverviewCard
+              description="Hồ sơ đang giữ chỗ / chờ thanh toán"
+              icon={Banknote}
+              label="Giữ chỗ"
+              onClick={() => setTab('students')}
+              value={pendingTuitionStudents.length}
             />
             <OverviewCard
               description="Số buổi học đã lên lịch"
@@ -829,7 +844,9 @@ export default function StaffClassroomDetailPage() {
 
       {activeTab === 'students' ? (
         <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-          <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Học viên đã xếp lớp</h3>
+          <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">
+            Học viên đã xếp lớp ({assignedStudents.length})
+          </h3>
           {assignedStudents.length ? (
             <div className="mt-4 space-y-3">
               {assignedStudents.map((enrollment) => (
@@ -841,15 +858,19 @@ export default function StaffClassroomDetailPage() {
             </div>
           ) : (
             <ClassroomEmptyState
-              description="Lớp chưa có học viên."
-              title="Chưa có học viên"
+              description={pendingTuitionStudents.length
+                ? 'Chưa có học viên đã xếp lớp. Các hồ sơ giữ chỗ nằm ở mục học phí bên dưới.'
+                : 'Lớp chưa có học viên đã xếp lớp.'}
+              title="Chưa có học viên đã xếp lớp"
             />
           )}
           {pendingTuitionStudents.length ? (
             <div className="mt-6 border-t border-slate-100 pt-5">
               <div className="flex items-center gap-2">
                 <Banknote className="h-4 w-4 text-[#730014]" />
-                <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Hồ sơ học phí</h3>
+                <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">
+                  Giữ chỗ / chờ thanh toán ({pendingTuitionStudents.length})
+                </h3>
               </div>
               <div className="mt-4 space-y-3">
                 {pendingTuitionStudents.map((enrollment) => {

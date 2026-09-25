@@ -37,7 +37,10 @@ public class ClassroomOfferingResponse {
     private String entryLevel;
     private String targetOutcome;
     private Integer capacity;
+    /** Số chỗ đang bị giữ (chờ thanh toán / đã xếp) — dùng cho sức chứa. */
     private Integer enrolledCount;
+    /** Số học viên đã xếp lớp chính thức (ASSIGNED). */
+    private Integer assignedCount;
     private LocalDate startDate;
     private LocalDate endDate;
     private Long primaryTeacherId;

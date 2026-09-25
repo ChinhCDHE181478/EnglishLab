@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.controller.classroom;
 
 import fu.sep490.g23.backend.dto.request.classroom.RejectClassroomProposalRequest;
+import fu.sep490.g23.backend.dto.request.classroom.RequestStaffOpenClassRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sep490.g23.backend.service.classroom.ClassroomProposalService;
@@ -11,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -57,6 +59,18 @@ public class ManagerClassroomProposalController {
         return ResponseEntity.ok(classroomProposalService.reject(
                 proposalId,
                 request,
+                authentication.getName()
+        ));
+    }
+
+    @PostMapping("/request-open")
+    public ResponseEntity<ClassroomProposalResponse> requestStaffOpenClass(
+            @Valid @RequestBody RequestStaffOpenClassRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomProposalService.requestStaffOpenClass(
+                request.getCourseOfferingId(),
+                request.getNote(),
                 authentication.getName()
         ));
     }

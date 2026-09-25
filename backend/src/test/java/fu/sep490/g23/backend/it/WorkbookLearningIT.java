@@ -267,6 +267,59 @@ public class WorkbookLearningIT extends WorkbookTestSupport {
     }
 
     /**
+     * Regression: a learner enrolled in V1 must not be blocked by content removed from V2.
+     */
+    @Test
+    @DisplayName("IT_LEARNING_06B — Verify removed lessons no longer block course completion after publishing a new version.")
+    void IT_LEARNING_06B() throws Exception {
+        String learner = freshLearner();
+        long courseId = course(0, 2);
+        assessment(courseId);
+        enroll(learner, courseId);
+
+        String retainedLessonKey = str("""
+                select l.stable_lesson_key
+                from online_lessons l
+                join online_course_modules m on m.id=l.module_id
+                join online_course_versions v on v.id=m.online_course_version_id
+                where v.online_course_id=? and v.status='PUBLISHED'
+                order by l.sequence_number,l.id
+                limit 1
+                """, courseId);
+        long draftVersionId = ok(
+                "POST",
+                "/api/content-manager/online-courses/" + courseId + "/versions",
+                CM,
+                body("changeNote", "Remove obsolete lesson")
+        ).path("id").asLong();
+        sql("""
+                delete from online_lessons
+                where module_id in (
+                    select id from online_course_modules where online_course_version_id=?
+                ) and stable_lesson_key<>?
+                """, draftVersionId, retainedLessonKey);
+        sql("delete from course_assessments where online_course_version_id=?", draftVersionId);
+        em.clear();
+        ok("PATCH", "/api/content-manager/online-courses/" + courseId + "/versions/"
+                + draftVersionId + "/publish", CM, null);
+        em.clear();
+
+        JsonNode latestContent = ok("GET", content(courseId), learner, null);
+        assertEquals(1, latestContent.path("totalLessons").asInt());
+        long latestLessonId = latestContent.path("modules").get(0).path("lessons").get(0).path("id").asLong();
+        ok("PATCH", progress(courseId, latestLessonId, true), learner, null);
+
+        JsonNode completion = ok("GET", "/api/student/online-courses/" + courseId + "/completion", learner, null);
+        assertEquals(1, completion.path("totalLessons").asInt());
+        assertEquals(1, completion.path("completedLessons").asInt());
+        assertEquals(0, completion.path("totalAssessments").asInt());
+        assertEquals(100, completion.path("progressPercent").asInt());
+        assertTrue(completion.path("eligibleForCertificate").asBoolean());
+        assertEquals("COMPLETED", str("select status from online_course_enrollments where id=?",
+                enrollment(learner, courseId)));
+    }
+
+    /**
      * Workbook: Online Course Learning!A19
      * Preconditions:
      * LEARNER is enrolled in course F.

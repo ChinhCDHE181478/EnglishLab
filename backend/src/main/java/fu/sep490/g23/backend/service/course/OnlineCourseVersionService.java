@@ -52,6 +52,7 @@ public interface OnlineCourseVersionService {
 
     List<Long> getLatestPublishedAssessmentIds(OnlineCourseEnrollment enrollment);
 
+    /** Returns purchased assessments that still exist in the latest published version lineage. */
     List<Long> getProgressBaselineAssessmentIds(OnlineCourseEnrollment enrollment);
 
     void assertAssessmentBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long assessmentId);

@@ -19,6 +19,7 @@ public interface CourseAssessmentRepository extends JpaRepository<CourseAssessme
             """)
     List<CourseAssessment> findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(OnlineCourse onlineCourse);
     List<CourseAssessment> findByOnlineCourseVersionAndActiveTrueOrderByDisplayOrderAscIdAsc(OnlineCourseVersion version);
+    List<CourseAssessment> findByOnlineCourseVersionOrderByDisplayOrderAscIdAsc(OnlineCourseVersion version);
     List<CourseAssessment> findByModuleAndActiveTrueOrderByDisplayOrderAscIdAsc(OnlineCourseModule module);
     List<CourseAssessment> findByModule(OnlineCourseModule module);
     List<CourseAssessment> findByOnlineLesson(OnlineLesson onlineLesson);

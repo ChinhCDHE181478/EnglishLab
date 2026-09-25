@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   CreditCard,
   History,
   Receipt,
@@ -42,6 +44,7 @@ export default function TuitionPaymentSection({
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({ file: null, amount: '', paymentKind: 'FULL', note: '' });
+  const [detailsOpen, setDetailsOpen] = useState(!compact);
 
   const remaining = Number(tuitionRemaining) > 0 ? Number(tuitionRemaining) : 0;
   const depositRemaining = Math.min(
@@ -334,60 +337,84 @@ export default function TuitionPaymentSection({
         </form>
       ) : null}
 
-      <div className="space-y-2">
-        <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Minh chứng đã gửi</p>
-        {loading ? <p className="text-xs text-gray-400">Đang tải...</p> : null}
-        {!loading && !proofs.length ? (
-          <p className="text-xs text-gray-400 italic">Chưa có minh chứng thanh toán nào.</p>
-        ) : null}
-        {proofs.map((proof) => (
-          <div className="rounded-2xl border border-gray-100 bg-white p-3 space-y-1.5" key={proof.id}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-extrabold text-[#2b2828]">{formatClassroomPrice(proof.amount)}</p>
-              <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${proofStatusStyle(proof.status)}`}>
-                {proof.statusLabel || proof.status}
-              </span>
-            </div>
-            <p className="text-[11px] text-[#8b706e]">
-              {proof.paymentKindLabel}
-              {proof.note ? ` · ${proof.note}` : ''}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <button
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
+          onClick={() => setDetailsOpen((current) => !current)}
+          type="button"
+        >
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">
+              Minh chứng & lịch sử thanh toán
             </p>
-            {proof.status === 'CONFIRMED' ? (
-              <p className="text-[11px] font-bold text-emerald-700">Mã xác nhận: TP-{proof.id}</p>
-            ) : null}
-            {proof.status === 'REJECTED' && proof.reviewNote ? (
-              <p className="text-[11px] text-rose-700">Lý do từ chối: {proof.reviewNote}</p>
-            ) : null}
-            {proof.fileUrl ? (
-              <TuitionProofMedia
-                alt={`Minh chứng ${formatClassroomPrice(proof.amount)}`}
-                url={proof.fileUrl}
-              />
-            ) : null}
+            <p className="mt-1 text-xs text-slate-500">
+              {loading
+                ? 'Đang tải...'
+                : `${proofs.length} minh chứng · ${history.length} giao dịch`}
+            </p>
           </div>
-        ))}
-      </div>
+          {detailsOpen ? <ChevronUp className="h-4 w-4 text-[#730014]" /> : <ChevronDown className="h-4 w-4 text-[#730014]" />}
+        </button>
 
-      <div className="space-y-2">
-        <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider flex items-center gap-1.5">
-          <History className="h-3.5 w-3.5 text-[#730014]" />
-          Lịch sử thanh toán
-        </p>
-        {!loading && !history.length ? (
-          <p className="text-xs text-gray-400 italic">Chưa có giao dịch học phí nào được ghi nhận.</p>
-        ) : null}
-        {history.map((payment) => (
-          <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50/30 p-3" key={payment.id}>
-            <div>
-              <p className="text-sm font-extrabold text-emerald-700">+ {formatClassroomPrice(payment.amount)}</p>
-              <p className="text-[11px] text-[#8b706e]">
-                {payment.paymentKindLabel}
-                {payment.note ? ` · ${payment.note}` : ''}
-              </p>
+        {detailsOpen ? (
+          <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Minh chứng đã gửi</p>
+              {loading ? <p className="text-xs text-gray-400">Đang tải...</p> : null}
+              {!loading && !proofs.length ? (
+                <p className="text-xs text-gray-400 italic">Chưa có minh chứng thanh toán nào.</p>
+              ) : null}
+              {proofs.map((proof) => (
+                <div className="rounded-2xl border border-gray-100 bg-white p-3 space-y-1.5" key={proof.id}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-extrabold text-[#2b2828]">{formatClassroomPrice(proof.amount)}</p>
+                    <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${proofStatusStyle(proof.status)}`}>
+                      {proof.statusLabel || proof.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#8b706e]">
+                    {proof.paymentKindLabel}
+                    {proof.note ? ` · ${proof.note}` : ''}
+                  </p>
+                  {proof.status === 'CONFIRMED' ? (
+                    <p className="text-[11px] font-bold text-emerald-700">Mã xác nhận: TP-{proof.id}</p>
+                  ) : null}
+                  {proof.status === 'REJECTED' && proof.reviewNote ? (
+                    <p className="text-[11px] text-rose-700">Lý do từ chối: {proof.reviewNote}</p>
+                  ) : null}
+                  {proof.fileUrl ? (
+                    <TuitionProofMedia
+                      alt={`Minh chứng ${formatClassroomPrice(proof.amount)}`}
+                      url={proof.fileUrl}
+                    />
+                  ) : null}
+                </div>
+              ))}
             </div>
-            <p className="text-[10px] text-[#8b706e]">{formatClassroomDate(payment.createdAt)}</p>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider flex items-center gap-1.5">
+                <History className="h-3.5 w-3.5 text-[#730014]" />
+                Lịch sử thanh toán
+              </p>
+              {!loading && !history.length ? (
+                <p className="text-xs text-gray-400 italic">Chưa có giao dịch học phí nào được ghi nhận.</p>
+              ) : null}
+              {history.map((payment) => (
+                <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50/30 p-3" key={payment.id}>
+                  <div>
+                    <p className="text-sm font-extrabold text-emerald-700">+ {formatClassroomPrice(payment.amount)}</p>
+                    <p className="text-[11px] text-[#8b706e]">
+                      {payment.paymentKindLabel}
+                      {payment.note ? ` · ${payment.note}` : ''}
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-[#8b706e]">{formatClassroomDate(payment.createdAt)}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+        ) : null}
       </div>
     </div>
   );

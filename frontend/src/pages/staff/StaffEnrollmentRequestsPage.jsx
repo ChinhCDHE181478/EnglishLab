@@ -32,8 +32,18 @@ import {
 import { ERROR_NOTICE_CLASS, FIELD_CLASS, PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS, TEXTAREA_CLASS } from '../../utils/formStyles';
 import { combineLocalDateTime } from '../../utils/vietnameseDate';
 
+const OPEN_PIPELINE_STATUSES = new Set([
+  'SUBMITTED',
+  'INVITATION_SENT',
+  'TEST_SCHEDULED',
+  'UNDER_STAFF_REVIEW',
+  'WAITING_FOR_CLASS',
+  'CLASS_PROPOSED',
+]);
+
 const views = [
-  { label: 'Tất cả của tôi', value: 'ALL' },
+  { label: 'Tất cả', value: 'ALL' },
+  { label: 'Cần xử lý', value: 'NEED_ACTION' },
   { label: 'Mới đăng ký', value: 'SUBMITTED' },
   { label: 'Đã hẹn test', value: 'TEST_SCHEDULED' },
   { label: 'Chờ học viên xác nhận', value: 'CLASS_PROPOSED' },
@@ -73,7 +83,7 @@ const initialAction = {
 
 export default function StaffEnrollmentRequestsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = searchParams.get('tab') || 'ALL';
+  const view = searchParams.get('tab') || 'NEED_ACTION';
   const setView = (newTab) => {
     setSearchParams((previous) => {
       const next = new URLSearchParams(previous);
@@ -153,7 +163,10 @@ export default function StaffEnrollmentRequestsPage() {
 
   // Tab counts
   const tabCounts = useMemo(() => {
-    const counts = { ALL: requests.length };
+    const counts = {
+      ALL: requests.length,
+      NEED_ACTION: requests.filter((item) => OPEN_PIPELINE_STATUSES.has(item.status)).length,
+    };
     for (const item of requests) {
       counts[item.status] = (counts[item.status] || 0) + 1;
     }
@@ -168,7 +181,7 @@ export default function StaffEnrollmentRequestsPage() {
 
   // Stats computation for top cards
   const stats = useMemo(() => ({
-    total: requests.length,
+    total: requests.filter((r) => OPEN_PIPELINE_STATUSES.has(r.status)).length,
     submitted: requests.filter((r) => r.status === 'SUBMITTED').length,
     testScheduled: requests.filter((r) => r.status === 'TEST_SCHEDULED').length,
     waitingForClass: requests.filter((r) => r.status === 'WAITING_FOR_CLASS').length,
@@ -177,7 +190,8 @@ export default function StaffEnrollmentRequestsPage() {
   const filteredRequests = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase('vi-VN');
     return requests.filter((item) => {
-      const matchesView = view === 'ALL' || item.status === view;
+      const matchesView = view === 'ALL'
+        || (view === 'NEED_ACTION' ? OPEN_PIPELINE_STATUSES.has(item.status) : item.status === view);
       const matchesKeyword = !normalized || [
         item.learnerName,
         item.learnerEmail,
@@ -393,7 +407,7 @@ export default function StaffEnrollmentRequestsPage() {
 
       {/* Metric Cards Summary */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={BookOpenCheck} label="Hồ sơ phụ trách" value={stats.total} />
+        <MetricCard icon={BookOpenCheck} label="Cần xử lý" value={stats.total} />
         <MetricCard icon={UserPlus} label="Mới đăng ký" value={stats.submitted} />
         <MetricCard icon={CalendarClock} label="Đã hẹn test" value={stats.testScheduled} />
         <MetricCard icon={UserRoundCheck} label="Đủ điều kiện" value={stats.waitingForClass} />
@@ -511,14 +525,16 @@ export default function StaffEnrollmentRequestsPage() {
                         ) : null}
                       </td>
                       <td className="px-5 py-4 text-xs leading-5 text-slate-600">
-                        {item.requestSource === 'CENTER' ? (
+                        {item.testAppointmentAt ? (
+                          <>
+                            <p className="font-bold text-slate-800">{formatClassroomDateTime(item.testAppointmentAt)}</p>
+                            {item.testLocation ? <p>{item.testLocation}</p> : null}
+                          </>
+                        ) : item.requestSource === 'CENTER' ? (
                           <p className="font-semibold text-slate-500">Không áp dụng</p>
-                        ) : item.testAppointmentAt ? (
-                          <p className="font-bold text-slate-800">{formatClassroomDateTime(item.testAppointmentAt)}</p>
                         ) : (
                           <p className="font-semibold text-slate-400">Chưa chốt lịch test</p>
                         )}
-                        {item.testLocation ? <p>{item.testLocation}</p> : null}
                       </td>
                       <td className="px-5 py-4 text-xs text-slate-500">{formatClassroomDateTime(item.createdAt)}</td>
                       <td className="px-5 py-4 text-center">

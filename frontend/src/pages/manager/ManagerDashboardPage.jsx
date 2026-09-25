@@ -96,16 +96,30 @@ export default function ManagerDashboardPage() {
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Nhu cầu mở lớp</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Nhu cầu mở lớp</h2>
+              <p className="mt-1 text-xs text-slate-500">Chỉ đăng ký chưa xếp lớp hoặc lớp sắp khai giảng.</p>
+            </div>
+            <Link className="text-xs font-bold text-[#730014] hover:underline" to="/manager/classroom-proposals">
+              Yêu cầu mở lớp
+            </Link>
+          </div>
           <div className="mt-4 space-y-3">
             {demand.slice(0, 5).map((item) => (
-              <div className="rounded-xl border border-slate-100 px-4 py-3" key={item.courseOfferingId}>
+              <Link
+                className="block rounded-xl border border-slate-100 px-4 py-3 transition hover:border-[#dfbfbd] hover:bg-[#fff8f8]"
+                key={item.courseOfferingId}
+                to="/manager/classroom-proposals"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-bold text-[#0b1c30]">{item.courseOfferingTitle}</p>
                   <span className="rounded-lg bg-[#fff1f3] px-2.5 py-1 text-xs font-extrabold text-[#730014]">{item.totalRegistrations || 0}</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">Đề xuất mở {item.suggestedClassCount || 0} lớp</p>
-              </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {item.existingOpenClassCount || 0} lớp sắp KG · đề xuất mở {item.suggestedClassCount || 0}
+                </p>
+              </Link>
             ))}
             {!demand.length ? <p className="py-10 text-center text-sm text-slate-500">Chưa có nhu cầu mở lớp mới.</p> : null}
           </div>

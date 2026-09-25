@@ -7,7 +7,10 @@ import TuitionPaymentSection from '../../components/classroom/TuitionPaymentSect
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import ManagementToast from '../../components/ui/ManagementToast';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
+
+const PAGE_SIZE = 10;
 
 const statusOptions = [
   { label: 'Tất cả trạng thái', value: 'ALL' },
@@ -69,6 +72,12 @@ export default function MyEnrollmentRequestsPage() {
     return item.status === status;
   }), [requests, status]);
 
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    filteredRequests,
+    PAGE_SIZE,
+    status,
+  );
+
   return (
     <LearnerPageShell
       actions={(
@@ -100,7 +109,7 @@ export default function MyEnrollmentRequestsPage() {
 
           {!loading && filteredRequests.length ? (
             <div className="mt-6 space-y-4">
-              {filteredRequests.map((request) => {
+              {pageItems.map((request) => {
                 const expanded = expandedId === request.id;
                 return (
                   <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" key={request.id}>
@@ -174,6 +183,15 @@ export default function MyEnrollmentRequestsPage() {
                   </article>
                 );
               })}
+              <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <Pagination
+                  onChange={setPage}
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  totalItems={totalItems}
+                  totalPages={totalPages}
+                />
+              </div>
             </div>
           ) : null}
       </div>

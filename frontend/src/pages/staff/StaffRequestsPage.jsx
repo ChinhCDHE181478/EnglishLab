@@ -12,6 +12,7 @@ import {
   Clock,
   HelpCircle,
   MessageSquare,
+  Search,
   X,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
@@ -19,6 +20,7 @@ import {
   ClassroomEmptyState,
   ClassroomErrorState,
   ClassroomLoadingState,
+  ClassroomTabBar,
   ConflictPanel,
   StatusBadge,
 } from '../../components/classroom/ClassroomUi';
@@ -27,6 +29,32 @@ import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
+
+const requestFilters = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'pending', label: 'Chờ duyệt' },
+  { id: 'approved', label: 'Đã duyệt' },
+  { id: 'rejected', label: 'Từ chối' },
+];
+
+const emptyCopyByFilter = {
+  all: {
+    title: 'Chưa có yêu cầu',
+    description: 'Chưa có yêu cầu thay đổi nào trong phạm vi của bạn.',
+  },
+  pending: {
+    title: 'Không có yêu cầu cần duyệt',
+    description: 'Hiện tại không có yêu cầu thay đổi nào cần điều phối đào tạo phê duyệt.',
+  },
+  approved: {
+    title: 'Chưa có yêu cầu đã duyệt',
+    description: 'Các yêu cầu đã duyệt sẽ hiển thị tại đây để bạn xem lại.',
+  },
+  rejected: {
+    title: 'Chưa có yêu cầu bị từ chối',
+    description: 'Các yêu cầu đã từ chối sẽ hiển thị tại đây để bạn xem lại.',
+  },
+};
 
 export default function StaffRequestsPage() {
   const [searchParams] = useSearchParams();
@@ -42,6 +70,8 @@ export default function StaffRequestsPage() {
   const [targetClassSectionId, setTargetClassSectionId] = useState('');
   const [loadingReturnOptions, setLoadingReturnOptions] = useState(false);
   const [rooms, setRooms] = useState([]);
+  const [activeFilter, setActiveFilter] = useState('pending');
+  const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
     classroomApi.listRooms().then(setRooms).catch(() => setRooms([]));
@@ -56,7 +86,8 @@ export default function StaffRequestsPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await classroomApi.getPendingChangeRequests();
+      const status = activeFilter === 'all' ? 'ALL' : activeFilter.toUpperCase();
+      const data = await classroomApi.getStaffChangeRequests(status);
       setRequests(data);
       const requestedId = searchParams.get('requestId');
       if (data.length > 0) {
@@ -77,12 +108,45 @@ export default function StaffRequestsPage() {
 
   useEffect(() => {
     loadRequests();
-  }, []);
+  }, [activeFilter]);
 
   const selected = useMemo(
     () => requests.find((item) => String(item.id) === selectedId) || null,
     [requests, selectedId],
   );
+  const isPending = selected?.status === 'PENDING';
+  const emptyCopy = emptyCopyByFilter[activeFilter] || emptyCopyByFilter.pending;
+
+  const visibleRequests = useMemo(() => {
+    const normalized = keyword.trim().toLocaleLowerCase('vi-VN');
+    if (!normalized) return requests;
+    return requests.filter((item) => {
+      const haystack = [
+        item.requestTypeLabel,
+        item.requestType,
+        item.classroomTitle,
+        item.requesterName,
+        item.reviewerName,
+        item.reason,
+        item.reviewNote,
+        item.id != null ? `#${item.id}` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('vi-VN');
+      return haystack.includes(normalized);
+    });
+  }, [keyword, requests]);
+
+  useEffect(() => {
+    if (!visibleRequests.length) {
+      if (selectedId) setSelectedId('');
+      return;
+    }
+    if (!visibleRequests.some((item) => String(item.id) === selectedId)) {
+      setSelectedId(String(visibleRequests[0].id));
+    }
+  }, [visibleRequests, selectedId]);
 
   const diffRows = useMemo(
     () => (selected ? buildChangeRequestDiff(selected.oldValuesJson, selected.newValuesJson, { rooms: roomsById }) : []),
@@ -104,13 +168,13 @@ export default function StaffRequestsPage() {
   );
 
   useEffect(() => {
-    if (selected?.id && !isCourseSuspensionFlow && !conflictResults[selected.id] && !checkingConflicts[selected.id]) {
+    if (selected?.id && isPending && !isCourseSuspensionFlow && !conflictResults[selected.id] && !checkingConflicts[selected.id]) {
       handleConflictCheck(selected.id, { silent: true });
     }
-  }, [selected?.id, isCourseSuspensionFlow]);
+  }, [selected?.id, isPending, isCourseSuspensionFlow]);
 
   useEffect(() => {
-    if (!selected?.id || selected.requestType !== 'RESUME_STUDENT') {
+    if (!selected?.id || !isPending || selected.requestType !== 'RESUME_STUDENT') {
       setReturnOptions([]);
       setTargetClassSectionId('');
       return;
@@ -132,7 +196,7 @@ export default function StaffRequestsPage() {
     };
     loadReturnOptions();
     return () => { active = false; };
-  }, [selected?.id, selected?.requestType]);
+  }, [selected?.id, selected?.requestType, isPending]);
 
   const handleReview = async (requestId, action, overrideConflict = false) => {
     setActionMessage('');
@@ -222,23 +286,48 @@ export default function StaffRequestsPage() {
         </div>
       ) : null}
 
-      <section className="flex flex-1 flex-col">
+      <section className="flex flex-1 flex-col space-y-4">
+        <ClassroomTabBar activeTab={activeFilter} onChange={setActiveFilter} tabs={requestFilters} />
+
         {loading ? <ClassroomLoadingState message="Đang tải danh sách yêu cầu thay đổi..." /> : null}
         {!loading && error ? <ClassroomErrorState message={error} onRetry={loadRequests} /> : null}
         {!loading && !error && !requests.length ? (
           <ClassroomEmptyState
-            description="Hiện tại không có yêu cầu thay đổi nào cần điều phối đào tạo phê duyệt."
-            title="Không có yêu cầu cần duyệt"
+            description={emptyCopy.description}
+            title={emptyCopy.title}
             icon={HelpCircle}
           />
         ) : null}
 
-        {!loading && !error && requests.length ? (
+        {!loading && !error && requests.length && !visibleRequests.length ? (
+          <ClassroomEmptyState
+            description="Thử đổi từ khóa hoặc xóa bộ lọc tìm kiếm."
+            title="Không có yêu cầu khớp tìm kiếm"
+            icon={Search}
+          />
+        ) : null}
+
+        {!loading && !error && visibleRequests.length ? (
           <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
             <aside className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-3 max-h-[750px] overflow-y-auto">
-              <h3 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider px-2">Yêu cầu chờ duyệt</h3>
+              <h3 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider px-2">
+                {activeFilter === 'pending' ? 'Yêu cầu chờ duyệt'
+                  : activeFilter === 'approved' ? 'Yêu cầu đã duyệt'
+                    : activeFilter === 'rejected' ? 'Yêu cầu đã từ chối'
+                      : 'Tất cả yêu cầu'}
+              </h3>
+              <div className="relative px-0.5">
+                <Search className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#9b8582]" />
+                <input
+                  className="w-full rounded-2xl border border-[#ead9db] bg-white py-2.5 pl-10 pr-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="Tìm lớp, người gửi, loại yêu cầu..."
+                  type="search"
+                  value={keyword}
+                />
+              </div>
               <div className="space-y-2">
-                {requests.map((item) => {
+                {visibleRequests.map((item) => {
                   const isSelected = String(item.id) === selectedId;
                   return (
                     <button
@@ -251,9 +340,12 @@ export default function StaffRequestsPage() {
                       onClick={() => setSelectedId(String(item.id))}
                       type="button"
                     >
-                      <p className="font-extrabold text-sm line-clamp-1">
-                        {item.requestTypeLabel || item.requestType}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-extrabold text-sm line-clamp-1">
+                          {item.requestTypeLabel || item.requestType}
+                        </p>
+                        {!isSelected ? <StatusBadge status={item.status} /> : null}
+                      </div>
                       <p className={`mt-1.5 text-xs line-clamp-1 ${isSelected ? 'text-white/80' : 'text-[#8b706e]'}`}>
                         {item.classroomTitle}
                       </p>
@@ -287,7 +379,7 @@ export default function StaffRequestsPage() {
                         <p className="mt-1 text-xs text-[#8b706e]">Phụ trách: {selected.reviewerName}</p>
                       ) : null}
                     </div>
-                    <StatusBadge status="PENDING" />
+                    <StatusBadge status={selected.status || 'PENDING'} />
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2 text-sm text-[#584140]">
@@ -299,6 +391,12 @@ export default function StaffRequestsPage() {
                       <Calendar className="h-4 w-4 text-[#730014]" />
                       <span>Gửi lúc: <strong>{formatClassroomDateTime(selected.createdAt)}</strong></span>
                     </p>
+                    {selected.reviewedAt ? (
+                      <p className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-[#730014]" />
+                        <span>Xử lý lúc: <strong>{formatClassroomDateTime(selected.reviewedAt)}</strong></span>
+                      </p>
+                    ) : null}
                     {selected.targetSessionId ? (
                       <p className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-[#730014]" />
@@ -353,8 +451,21 @@ export default function StaffRequestsPage() {
                       {selected.reason || 'Không có mô tả chi tiết.'}
                     </p>
                   </div>
+
+                  {!isPending && (selected.reviewNote || selected.reviewedAt) ? (
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 space-y-2">
+                      <h4 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider flex items-center gap-1">
+                        <MessageSquare className="h-4 w-4 text-[#730014]" />
+                        Ghi chú xử lý
+                      </h4>
+                      <p className="text-sm text-[#584140] whitespace-pre-wrap leading-6">
+                        {selected.reviewNote || 'Không có ghi chú.'}
+                      </p>
+                    </div>
+                  ) : null}
                 </section>
 
+                {isPending ? (
                 <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                   <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
                     <Activity className="h-5 w-5 text-[#730014]" />
@@ -448,6 +559,7 @@ export default function StaffRequestsPage() {
                     />
                   </div>
                 </section>
+                ) : null}
               </div>
             ) : (
               <ClassroomEmptyState

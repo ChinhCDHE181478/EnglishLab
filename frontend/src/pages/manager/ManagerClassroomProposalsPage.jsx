@@ -74,6 +74,7 @@ export default function ManagerClassroomProposalsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [demandReport, setDemandReport] = useState([]);
+  const [requestingCourseId, setRequestingCourseId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -180,6 +181,29 @@ export default function ManagerClassroomProposalsPage() {
     setRejectionReason('');
   };
 
+  const requestStaffOpenClass = async (item) => {
+    if (!item?.courseOfferingId || requestingCourseId) return;
+    setRequestingCourseId(item.courseOfferingId);
+    setError('');
+    try {
+      const created = await enrollmentRequestApi.requestStaffOpenClass(
+        item.courseOfferingId,
+        `Nhu cầu: ${item.totalRegistrations || 0} đăng ký · ${item.suggestedClassCount || 0} lớp cần mở thêm.`,
+      );
+      const assignee = created.createdByName || 'nhân viên phụ trách';
+      setSuccess(`Đã gửi yêu cầu mở lớp (${created.proposalCode}) cho ${assignee}.`);
+    } catch (err) {
+      const payload = err?.response?.data;
+      if (payload && typeof payload === 'object' && payload.message) {
+        setError(payload);
+      } else {
+        setError(err?.message || 'Không thể gửi yêu cầu mở lớp.');
+      }
+    } finally {
+      setRequestingCourseId(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {!selectedProposal ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
@@ -201,7 +225,7 @@ export default function ManagerClassroomProposalsPage() {
             </div>
             <span className="font-['Manrope'] text-2xl font-black text-[#2b2828]">{stats.capacity}</span>
           </div>
-          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Tổng sức chứa</p>
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Sức chứa đề xuất chờ duyệt</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
@@ -230,28 +254,75 @@ export default function ManagerClassroomProposalsPage() {
               <BarChart3 className="h-5 w-5 text-[#730014]" />
               <h2 className="font-['Manrope'] text-lg font-black text-[#0b1c30]">Báo cáo nhu cầu mở lớp</h2>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Tổng hợp trực tiếp từ hồ sơ học viên đăng ký từng khóa học.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Tất cả khóa đã xuất bản. Bấm “Yêu cầu staff mở lớp” kể cả khi chưa có học viên đăng ký.
+            </p>
           </div>
-          <span className="rounded-full bg-[#fff0f2] px-3 py-1 text-xs font-extrabold text-[#730014]">{demandReport.length} khóa học có nhu cầu</span>
+          <span className="rounded-full bg-[#fff0f2] px-3 py-1 text-xs font-extrabold text-[#730014]">{demandReport.length} khóa đã xuất bản</span>
         </div>
         {demandReport.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[1100px] text-left text-sm">
               <thead className="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                <tr><th className="px-5 py-3">Khóa học</th><th className="px-5 py-3 text-center">Tổng đăng ký</th><th className="px-5 py-3 text-center">Chờ liên hệ</th><th className="px-5 py-3 text-center">Đã hẹn test</th><th className="px-5 py-3 text-center">Đủ điều kiện</th><th className="px-5 py-3 text-center">Đã xếp lớp</th><th className="px-5 py-3 text-center">Ước tính lớp cần mở</th></tr>
+                <tr>
+                  <th className="px-5 py-3">Khóa học</th>
+                  <th className="px-5 py-3 text-center">Tổng đăng ký</th>
+                  <th className="px-5 py-3 text-center">Chờ liên hệ</th>
+                  <th className="px-5 py-3 text-center">Đã hẹn test</th>
+                  <th className="px-5 py-3 text-center">Đủ điều kiện</th>
+                  <th className="px-5 py-3 text-center">Đã xếp (chưa KG)</th>
+                  <th className="px-5 py-3 text-center">Lớp sắp KG</th>
+                  <th className="px-5 py-3 text-center">Chỗ trống</th>
+                  <th className="px-5 py-3 text-center">Cần mở thêm</th>
+                  <th className="px-5 py-3 text-center">Thao tác</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {demandReport.map((item) => (
-                  <tr key={item.courseOfferingId}>
-                    <td className="px-5 py-4"><p className="font-extrabold text-slate-800">{item.courseOfferingTitle}</p><p className="mt-1 text-xs text-slate-400">{item.courseOfferingCode} · {deliveryLabels[item.deliveryMode] || item.deliveryMode}</p></td>
-                    <td className="px-5 py-4 text-center font-black text-[#730014]">{item.totalRegistrations}</td>
-                    <td className="px-5 py-4 text-center">{item.awaitingContact}</td>
-                    <td className="px-5 py-4 text-center">{item.testsScheduled}</td>
-                    <td className="px-5 py-4 text-center font-bold text-emerald-700">{item.qualifiedForClass}</td>
-                    <td className="px-5 py-4 text-center">{item.assigned}</td>
-                    <td className="px-5 py-4 text-center"><span className="rounded-lg bg-blue-50 px-3 py-1.5 font-extrabold text-blue-700">{item.suggestedClassCount} lớp</span><p className="mt-1 text-[10px] text-slate-400">{item.classCapacity} học viên/lớp</p></td>
-                  </tr>
-                ))}
+                {demandReport.map((item) => {
+                  const openClasses = Number(item.existingOpenClassCount || 0);
+                  const openSeats = Number(item.openSeatRemaining || 0);
+                  const suggested = Number(item.suggestedClassCount || 0);
+                  const busy = requestingCourseId === item.courseOfferingId;
+                  return (
+                    <tr key={item.courseOfferingId}>
+                      <td className="px-5 py-4">
+                        <p className="font-extrabold text-slate-800">{item.courseOfferingTitle}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {item.courseOfferingCode} · {deliveryLabels[item.deliveryMode] || item.deliveryMode || '—'}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4 text-center font-black text-[#730014]">{item.totalRegistrations}</td>
+                      <td className="px-5 py-4 text-center">{item.awaitingContact}</td>
+                      <td className="px-5 py-4 text-center">{item.testsScheduled}</td>
+                      <td className="px-5 py-4 text-center font-bold text-emerald-700">{item.qualifiedForClass}</td>
+                      <td className="px-5 py-4 text-center">{item.assigned}</td>
+                      <td className="px-5 py-4 text-center font-bold text-slate-700">{openClasses}</td>
+                      <td className="px-5 py-4 text-center font-bold text-slate-700">{openSeats}</td>
+                      <td className="px-5 py-4 text-center">
+                        <span className={`rounded-lg px-3 py-1.5 font-extrabold ${suggested > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {suggested} lớp
+                        </span>
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          {suggested > 0
+                            ? `Sau chỗ trống · ${item.classCapacity || 16} HV/lớp`
+                            : openSeats > 0
+                              ? 'Đủ chỗ trên lớp hiện có'
+                              : `${item.classCapacity || 16} HV/lớp`}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <button
+                          className={`${SECONDARY_BUTTON_CLASS} whitespace-nowrap`}
+                          disabled={busy || loading}
+                          onClick={() => requestStaffOpenClass(item)}
+                          type="button"
+                        >
+                          {busy ? 'Đang gửi...' : 'Yêu cầu staff mở lớp'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -369,6 +440,11 @@ function ProposalCard({ proposal, onOpen }) {
         <div className="min-w-0 text-xs text-slate-500">
           <p className="truncate font-bold text-slate-700">{proposal.primaryTeacherName || 'Chưa chọn giáo viên'}</p>
           <p className="mt-1 truncate">Người đề xuất: {proposal.createdByName || 'Không rõ'}</p>
+          {proposal.approvedClassroomId ? (
+            <p className="mt-1 truncate text-emerald-700">
+              Đã gắn lớp #{proposal.approvedClassroomId}
+            </p>
+          ) : null}
         </div>
         <button className={PRIMARY_BUTTON_CLASS} onClick={onOpen} type="button">
           <Eye className="h-4 w-4" />

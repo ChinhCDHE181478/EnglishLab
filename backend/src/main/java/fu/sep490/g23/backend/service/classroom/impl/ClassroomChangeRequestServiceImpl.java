@@ -399,14 +399,37 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     @Override
     @Transactional(readOnly = true)
     public List<ClassroomChangeRequestResponse> listPending(String reviewerEmail) {
+        return listForReview(reviewerEmail, "PENDING");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomChangeRequestResponse> listForReview(String reviewerEmail, String statusGroup) {
         User reviewer = accessHelper.requireUser(reviewerEmail);
         accessHelper.assertStaffOperator(reviewer);
+        String normalized = statusGroup == null || statusGroup.isBlank()
+                ? "ALL"
+                : statusGroup.trim().toUpperCase(java.util.Locale.ROOT);
+        List<ClassroomChangeRequestStatus> statuses = switch (normalized) {
+            case "PENDING" -> List.of(ClassroomChangeRequestStatus.PENDING);
+            case "APPROVED" -> List.of(
+                    ClassroomChangeRequestStatus.APPROVED,
+                    ClassroomChangeRequestStatus.APPLIED
+            );
+            case "REJECTED" -> List.of(ClassroomChangeRequestStatus.REJECTED);
+            case "ALL" -> List.of(
+                    ClassroomChangeRequestStatus.PENDING,
+                    ClassroomChangeRequestStatus.APPROVED,
+                    ClassroomChangeRequestStatus.APPLIED,
+                    ClassroomChangeRequestStatus.REJECTED
+            );
+            default -> throw new IllegalArgumentException(
+                    "Trạng thái lọc không hợp lệ. Dùng ALL, PENDING, APPROVED hoặc REJECTED."
+            );
+        };
         List<ClassroomChangeRequest> requests = canReviewEveryRequest(reviewer)
-                ? changeRequestRepository.findByStatusOrderByCreatedAtDesc(ClassroomChangeRequestStatus.PENDING)
-                : changeRequestRepository.findByReviewerAndStatusOrderByCreatedAtDesc(
-                        reviewer,
-                        ClassroomChangeRequestStatus.PENDING
-                );
+                ? changeRequestRepository.findByStatusInOrderByCreatedAtDesc(statuses)
+                : changeRequestRepository.findByReviewerAndStatusInOrderByCreatedAtDesc(reviewer, statuses);
         return requests.stream()
                 .map(mapper::toChangeRequestResponse)
                 .toList();

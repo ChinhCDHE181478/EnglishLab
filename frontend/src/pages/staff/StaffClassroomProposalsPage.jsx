@@ -125,6 +125,7 @@ export default function StaffClassroomProposalsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [managerOnly, setManagerOnly] = useState(false);
   const loadRequestId = useRef(0);
 
   const load = async (requestedStatus = status) => {
@@ -152,10 +153,15 @@ export default function StaffClassroomProposalsPage() {
     load(status);
   }, [status]);
 
+  const visibleProposals = useMemo(() => {
+    if (!managerOnly) return proposals;
+    return proposals.filter((item) => String(item.staffNote || '').startsWith('MANAGER_OPEN_REQUEST|'));
+  }, [managerOnly, proposals]);
+
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
-    proposals,
+    visibleProposals,
     8,
-    status,
+    `${status}-${managerOnly ? 'manager' : 'all'}`,
   );
 
   const openCreate = () => {
@@ -291,6 +297,17 @@ export default function StaffClassroomProposalsPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
+            className={`inline-flex h-11 items-center rounded-xl px-4 text-xs font-extrabold transition ${
+              managerOnly
+                ? 'bg-[#fff0f2] text-[#730014] ring-1 ring-[#730014]/20'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+            onClick={() => setManagerOnly((current) => !current)}
+            type="button"
+          >
+            Từ Manager
+          </button>
+          <button
             className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             disabled={loading}
             onClick={() => load(status)}
@@ -358,11 +375,18 @@ function ProposalCard({ proposal, onEdit, onSubmit, working }) {
   const canEdit = ['DRAFT', 'REJECTED'].includes(proposal.approvalStatus);
   const canSubmit = ['DRAFT', 'REJECTED'].includes(proposal.approvalStatus);
   const sessionCount = proposal.scheduleItems?.length || proposal.plannedSessionCount || 0;
+  const managerRequest = String(proposal.staffNote || '').startsWith('MANAGER_OPEN_REQUEST|');
+  const managerRequestNote = managerRequest
+    ? String(proposal.staffNote).slice('MANAGER_OPEN_REQUEST|'.length)
+    : '';
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${proposal.approvalStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' : proposal.approvalStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700' : proposal.approvalStatus === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>{proposal.approvalStatusLabel}</span>
+          {managerRequest ? (
+            <span className="ml-2 rounded-full bg-[#fff0f2] px-3 py-1 text-xs font-extrabold text-[#730014]">Yêu cầu từ Manager</span>
+          ) : null}
           <p className="mt-3 text-xs font-bold text-slate-400">{proposal.proposalCode}</p>
           <h2 className="mt-1 font-['Manrope'] text-lg font-black text-[#0b1c30]">{proposal.title}</h2>
           <p className="mt-1 text-sm text-slate-500">{proposal.courseOfferingTitle}</p>
@@ -375,6 +399,7 @@ function ProposalCard({ proposal, onEdit, onSubmit, working }) {
         <Info icon={Clock3} label="Lịch" value={`${(proposal.weekdays || []).join(', ')} · ${String(proposal.sessionStartTime).slice(0, 5)} (${sessionCount} buổi)`} />
         <Info icon={Check} label="Nguồn lực" value={proposal.primaryTeacherName || 'Chưa chọn giáo viên'} />
       </div>
+      {managerRequestNote ? <p className="mt-4 rounded-xl bg-[#fff8f8] p-3 text-sm text-[#584140]">{managerRequestNote}</p> : null}
       {proposal.reviewNote ? <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">Phản hồi xét duyệt: {proposal.reviewNote}</p> : null}
       {canEdit || canSubmit ? (
         <div className="mt-4 flex justify-end gap-2">

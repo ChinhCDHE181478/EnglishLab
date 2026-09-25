@@ -27,6 +27,8 @@ public interface ClassroomChangeRequestService {
 
     List<ClassroomChangeRequestResponse> listPending(String reviewerEmail);
 
+    List<ClassroomChangeRequestResponse> listForReview(String reviewerEmail, String statusGroup);
+
     ClassroomChangeRequestResponse approve(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail);
 
     ClassroomChangeRequestResponse reject(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail);

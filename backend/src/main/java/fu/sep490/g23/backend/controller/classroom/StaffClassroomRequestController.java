@@ -20,6 +20,14 @@ public class StaffClassroomRequestController {
 
     private final ClassroomChangeRequestService changeRequestService;
 
+    @GetMapping
+    public ResponseEntity<List<ClassroomChangeRequestResponse>> list(
+            @RequestParam(required = false) String status,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(changeRequestService.listForReview(authentication.getName(), status));
+    }
+
     @GetMapping("/pending")
     public ResponseEntity<List<ClassroomChangeRequestResponse>> listPending(Authentication authentication) {
         return ResponseEntity.ok(changeRequestService.listPending(authentication.getName()));

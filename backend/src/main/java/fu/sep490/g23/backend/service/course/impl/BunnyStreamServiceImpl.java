@@ -50,7 +50,7 @@ public class BunnyStreamServiceImpl implements BunnyStreamService {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20);
     private static final int TRANSCRIBE_POLL_ATTEMPTS = 8;
     private static final long TRANSCRIBE_POLL_DELAY_MS = 2000L;
-    private static final List<String> PREFERRED_CAPTION_LANGS = List.of("en", "vi", "en-US", "en-GB");
+    private static final List<String> PREFERRED_CAPTION_LANGS = List.of("en-auto", "en", "vi", "en-US", "en-GB");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 

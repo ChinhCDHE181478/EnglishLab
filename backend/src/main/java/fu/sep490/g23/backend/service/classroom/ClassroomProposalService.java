@@ -39,4 +39,9 @@ public interface ClassroomProposalService {
             RejectClassroomProposalRequest request,
             String managerEmail
     );
+
+    /**
+     * Manager yêu cầu staff soạn đề xuất mở lớp (tái sử dụng classroom_proposals + staff_note, không bảng mới).
+     */
+    ClassroomProposalResponse requestStaffOpenClass(Long courseOfferingId, String note, String managerEmail);
 }

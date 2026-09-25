@@ -36,7 +36,7 @@ import java.util.List;
 public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
     private static final String COURSE_SLUG = "e2-ielts-practice-tests";
-    private static final String BUNNY_LIBRARY_ID = "729032";
+    private static final String BUNNY_LIBRARY_ID = "762627";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final CourseCategoryRepository courseCategoryRepository;
@@ -91,7 +91,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Listening Practice Test with Answers",
                 "Practice a full Listening test and focus on main ideas, details, and answer checking.",
                 "Listening",
-                bunnyVideo("b0b3efc4-7fcf-46b9-840f-542b8c9bdd3e"),
+                bunnyVideo("81b15e73-36b7-4b08-84ee-83a516e7a40e"),
                 29,
                 true,
                 "Review the Listening test format and a quick question-reading strategy before you start.",
@@ -101,7 +101,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Reading Practice Test with Answer Explanations",
                 "Reading practice with answer explanations for scanning, skimming, and locating evidence.",
                 "Reading",
-                bunnyVideo("6927ea2a-9592-4659-97df-97fdf542273a"),
+                bunnyVideo("5a27827b-0fb8-4295-a403-99952bb5c32b"),
                 26,
                 false,
                 "Review how to identify keywords and predict where evidence appears in the passage.",
@@ -111,7 +111,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "Full IELTS Listening Test with Answers | 2024",
                 "A full Listening test to build pacing and time control under test-like conditions.",
                 "Listening",
-                bunnyVideo("eab36be2-3cca-4090-a187-8ee3cd0a1f60"),
+                bunnyVideo("3fd759d3-8668-42e8-aa5e-b66259baf2eb"),
                 33,
                 false,
                 "Prepare an answer sheet and complete the test in one pass without pausing the video.",
@@ -121,7 +121,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Speaking Practice Test with Answers",
                 "A simulated Speaking test to improve structure, examples, and natural delivery.",
                 "Speaking",
-                bunnyVideo("4f9949d9-0271-4298-996d-35bf79e9838e"),
+                bunnyVideo("a57e1539-8354-4fba-a4b4-bd67f6104b09"),
                 33,
                 false,
                 "Review Fluency, Lexical Resource, Grammar Range, and Pronunciation before watching.",
@@ -131,7 +131,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Listening: Techniques and Practice Questions",
                 "Learn core Listening techniques and apply them in guided practice questions.",
                 "Listening",
-                bunnyVideo("05cda2ce-eae3-4dce-8e57-12f715cc311f"),
+                bunnyVideo("9af83591-8f0d-4088-a54a-9975a8804c52"),
                 36,
                 false,
                 "Focus on predicting, signposting, paraphrasing, and avoiding distractors.",
@@ -141,7 +141,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "100 IELTS Speaking Questions | Part 1 - 20+ IELTS Speaking Topics",
                 "A speaking prompt bank across common Part 1 topics to build faster response habits.",
                 "Speaking",
-                bunnyVideo("e1bcc9de-991b-426d-8cc2-71baf0665ca9"),
+                bunnyVideo("674ea796-fda0-4ebd-98e9-2455dd7a0bce"),
                 35,
                 false,
                 "Choose five familiar topics and outline short answers with the Answer-Explain-Example pattern.",

@@ -45,6 +45,7 @@ import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomProposalService;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
+import fu.sep490.g23.backend.service.notification.AppNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
@@ -54,6 +55,7 @@ import org.springframework.util.StringUtils;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,6 +71,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class ClassroomProposalServiceImpl implements ClassroomProposalService {
+    private static final String MANAGER_OPEN_REQUEST_PREFIX = "MANAGER_OPEN_REQUEST|";
+
     private final ClassroomProposalRepository proposalRepository;
     private final InstructorLedCourseRepository instructorLedCourseRepository;
     private final RoomRepository roomRepository;
@@ -78,6 +82,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     private final ClassroomScheduleLockService scheduleLockService;
     private final ClassroomOfferingService classSectionService;
     private final CourseLessonRepository courseLessonRepository;
+    private final AppNotificationService appNotificationService;
 
     @Override
     public ClassroomProposalResponse create(CreateClassroomProposalRequest payload, String staffEmail) {
@@ -121,7 +126,13 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         applyProposalFields(proposal, payload, 0);
         scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
-        proposal.setStaffNote(trimOrNull(payload.getNote()));
+        String previousNote = proposal.getStaffNote();
+        String nextNote = trimOrNull(payload.getNote());
+        if (previousNote != null && previousNote.startsWith(MANAGER_OPEN_REQUEST_PREFIX)
+                && (nextNote == null || !nextNote.startsWith(MANAGER_OPEN_REQUEST_PREFIX))) {
+            nextNote = MANAGER_OPEN_REQUEST_PREFIX + (nextNote == null ? "" : nextNote);
+        }
+        proposal.setStaffNote(nextNote);
         proposal.setReviewedBy(null);
         proposal.setReviewedAt(null);
         proposal.setReviewNote(null);
@@ -292,13 +303,78 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             String staffEmail
     ) {
         User staff = requireStaff(staffEmail);
+        List<ClassroomProposal> proposals;
         if (staff.hasRole(RoleCodes.ADMIN)) {
             return list(status);
         }
-        List<ClassroomProposal> proposals = status == null
-                ? proposalRepository.findByCreatedByOrderByCreatedAtDesc(staff)
-                : proposalRepository.findByCreatedByAndApprovalStatusOrderByCreatedAtAsc(staff, status);
+        if (status == null) {
+            proposals = proposalRepository.findAllByOrderByCreatedAtDesc().stream()
+                    .filter(proposal -> isOwnedOrManagerOpenRequest(proposal, staff))
+                    .toList();
+        } else {
+            proposals = proposalRepository.findByApprovalStatusOrderByCreatedAtAsc(status).stream()
+                    .filter(proposal -> isOwnedOrManagerOpenRequest(proposal, staff))
+                    .toList();
+        }
         return proposals.stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public ClassroomProposalResponse requestStaffOpenClass(
+            Long courseOfferingId,
+            String note,
+            String managerEmail
+    ) {
+        User manager = requireApprover(managerEmail);
+        InstructorLedCourse course = requirePublishedOffering(courseOfferingId);
+
+        ClassroomProposal existing = proposalRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(proposal -> proposal.getApprovalStatus() == ClassroomApprovalStatus.DRAFT)
+                .filter(this::isManagerOpenRequest)
+                .filter(proposal -> proposal.getCourseOffering() != null
+                        && course.getId().equals(proposal.getCourseOffering().getId()))
+                .findFirst()
+                .orElse(null);
+        if (existing != null) {
+            return toResponse(existing);
+        }
+
+        User assignedStaff = nextManagerOpenRequestOwner();
+        LocalDate start = LocalDate.now().plusWeeks(2);
+        while (start.getDayOfWeek() != DayOfWeek.MONDAY) {
+            start = start.plusDays(1);
+        }
+        LocalDate end = start.plusWeeks(10);
+        String managerNote = StringUtils.hasText(note) ? note.trim() : "Cần mở thêm lớp theo nhu cầu đăng ký.";
+
+        ClassroomProposal proposal = ClassroomProposal.builder()
+                .proposalCode("CP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .title("Yêu cầu mở lớp: " + course.getTitle())
+                .courseOffering(course)
+                .deliveryType(ClassroomDeliveryMode.OFFLINE)
+                .capacity(16)
+                .plannedStartDate(start)
+                .plannedEndDate(end)
+                .scheduleWeekdays(DayOfWeek.MONDAY.name() + "," + DayOfWeek.WEDNESDAY.name() + "," + DayOfWeek.FRIDAY.name())
+                .sessionStartTime(LocalTime.of(18, 0))
+                .sessionEndTime(LocalTime.of(19, 30))
+                .createdBy(assignedStaff)
+                .approvalStatus(ClassroomApprovalStatus.DRAFT)
+                .staffNote(MANAGER_OPEN_REQUEST_PREFIX + managerNote)
+                .build();
+        proposalRepository.save(proposal);
+
+        appNotificationService.createForUserOnce(
+                assignedStaff,
+                "CLASSROOM_OPEN_REQUEST",
+                "Yêu cầu mở lớp mới",
+                manager.getFullName() + " yêu cầu soạn đề xuất mở lớp cho khóa "
+                        + course.getTitle() + ".",
+                "/staff/classroom-proposals",
+                "mgr-open-" + proposal.getId() + "-" + assignedStaff.getId(),
+                Map.of("proposalId", proposal.getId(), "courseOfferingId", course.getId())
+        );
+        return toResponse(proposal);
     }
 
     @Override
@@ -822,13 +898,44 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     }
 
     private void assertProposalOwner(ClassroomProposal proposal, User staff) {
-        if (staff.hasRole(RoleCodes.ADMIN)) {
+        if (staff.hasRole(RoleCodes.ADMIN) || isOwnedOrManagerOpenRequest(proposal, staff)) {
             return;
         }
-        if (proposal.getCreatedBy() == null
-                || !proposal.getCreatedBy().getId().equals(staff.getId())) {
-            throw new AccessDeniedException("Bạn chỉ có thể xử lý đề xuất lớp do mình tạo.");
+        throw new AccessDeniedException("Bạn chỉ có thể xử lý đề xuất lớp do mình tạo.");
+    }
+
+    private boolean isOwnedOrManagerOpenRequest(ClassroomProposal proposal, User staff) {
+        return proposal.getCreatedBy() != null
+                && proposal.getCreatedBy().getId().equals(staff.getId());
+    }
+
+    private boolean isManagerOpenRequest(ClassroomProposal proposal) {
+        return proposal != null
+                && StringUtils.hasText(proposal.getStaffNote())
+                && proposal.getStaffNote().startsWith(MANAGER_OPEN_REQUEST_PREFIX);
+    }
+
+    private User nextManagerOpenRequestOwner() {
+        List<User> staffMembers = userRepository.findEnabledByRoleCodeForUpdate(RoleCodes.STAFF);
+        if (staffMembers.isEmpty()) {
+            throw new IllegalStateException("Hiện chưa có nhân viên phụ trách đề xuất lớp đang hoạt động.");
         }
+        User lastOwner = proposalRepository
+                .findFirstByCreatedByInAndStaffNoteStartingWithOrderByCreatedAtDescIdDesc(
+                        staffMembers,
+                        MANAGER_OPEN_REQUEST_PREFIX
+                )
+                .map(ClassroomProposal::getCreatedBy)
+                .orElse(null);
+        if (lastOwner == null) {
+            return staffMembers.get(0);
+        }
+        for (int index = 0; index < staffMembers.size(); index++) {
+            if (staffMembers.get(index).getId().equals(lastOwner.getId())) {
+                return staffMembers.get((index + 1) % staffMembers.size());
+            }
+        }
+        return staffMembers.get(0);
     }
 
     private void assertExcludedProposalOwnership(Long proposalId, User staff) {

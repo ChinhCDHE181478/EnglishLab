@@ -38,13 +38,13 @@ import fu.sep490.g23.backend.repository.course.InstructorLedCourseRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.security.TrainingRolePolicy;
+import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.assessment.PlacementEligibilityService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
-import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.service.mail.AuthMailService;
@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
-    private static final int ESTIMATED_CLASS_CAPACITY = 30;
+    private static final int ESTIMATED_CLASS_CAPACITY = 16;
 
     private static final Set<EnrollmentRequestStatus> TERMINAL_STATUSES = Set.of(
             EnrollmentRequestStatus.REJECTED,
@@ -375,6 +375,8 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             throw new IllegalArgumentException("Ngày giờ đến test phải ở trong tương lai.");
         }
         request.setInvitationSentAt(LocalDateTime.now());
+        request.setTestAppointmentAt(payload.getAppointmentAt());
+        request.setTestLocation(payload.getLocation().trim());
         request.setStaffNote(trimOrNull(payload.getNote()));
         transition(
                 request,
@@ -404,6 +406,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         if (request.getStatus() != EnrollmentRequestStatus.TEST_SCHEDULED) {
             throw new IllegalArgumentException("Chỉ có thể ghi kết quả sau khi hồ sơ đã được xếp lịch test.");
         }
+        request.setTestCompletedAt(LocalDateTime.now());
         String evaluatedCourseTitle = request.getCourseOffering() == null
                 ? null
                 : request.getCourseOffering().getTitle();
@@ -545,10 +548,25 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .findAllByOrderByCreatedAtDesc()
                 .stream()
                 .filter(request -> request.getCourseOffering() != null)
+                .filter(this::isRelevantForClassOpeningDemand)
                 .collect(Collectors.groupingBy(CourseRegistrationRequest::getCourseOffering));
-        return grouped.entrySet().stream()
-                .map(entry -> toDemandReport(entry.getKey(), entry.getValue()))
-                .sorted((left, right) -> Long.compare(right.getTotalRegistrations(), left.getTotalRegistrations()))
+
+        // Include every published instructor-led course so manager can request opening
+        // even when there are currently zero registration requests.
+        return instructorLedCourseRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
+                .filter(course -> course.getPublicationStatus() == PackageStatus.PUBLISHED)
+                .map(course -> toDemandReport(course, grouped.getOrDefault(course, List.of())))
+                .sorted((left, right) -> {
+                    int byDemand = Long.compare(
+                            right.getTotalRegistrations() == null ? 0L : right.getTotalRegistrations(),
+                            left.getTotalRegistrations() == null ? 0L : left.getTotalRegistrations()
+                    );
+                    if (byDemand != 0) {
+                        return byDemand;
+                    }
+                    return String.valueOf(left.getCourseOfferingTitle())
+                            .compareToIgnoreCase(String.valueOf(right.getCourseOfferingTitle()));
+                })
                 .toList();
     }
 
@@ -637,6 +655,9 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .staffNote(request.getStaffNote())
                 .rejectionReason(request.getRejectionReason())
                 .invitationSentAt(request.getInvitationSentAt())
+                .testAppointmentAt(request.getTestAppointmentAt())
+                .testLocation(request.getTestLocation())
+                .testCompletedAt(request.getTestCompletedAt())
                 .placementAttemptId(request.getPlacementAttempt() == null ? null : request.getPlacementAttempt().getId())
                 .placementEligibility(eligibility)
                 .latestPlacementResult(latestPlacementResult(request.getLearner()))
@@ -693,13 +714,44 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             InstructorLedCourse program,
             List<CourseRegistrationRequest> requests
     ) {
+        // requests already filtered to opening-demand scope
         long awaitingContact = countStatus(requests, EnrollmentRequestStatus.SUBMITTED);
         long invitationsSent = countStatus(requests, EnrollmentRequestStatus.INVITATION_SENT);
-        long testsScheduled = countStatus(requests, EnrollmentRequestStatus.TEST_SCHEDULED);
-        long qualified = countStatus(requests, EnrollmentRequestStatus.WAITING_FOR_CLASS);
-        long assigned = countStatus(requests, EnrollmentRequestStatus.CLASS_ASSIGNED);
-        long rejected = countStatus(requests, EnrollmentRequestStatus.REJECTED);
+        long testsScheduled = countStatus(requests, EnrollmentRequestStatus.TEST_SCHEDULED)
+                + countStatus(requests, EnrollmentRequestStatus.AWAITING_PLACEMENT_TEST);
+        long qualified = countStatus(requests, EnrollmentRequestStatus.WAITING_FOR_CLASS)
+                + countStatus(requests, EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED)
+                + countStatus(requests, EnrollmentRequestStatus.UNDER_STAFF_REVIEW)
+                + countStatus(requests, EnrollmentRequestStatus.CLASS_PROPOSED);
+        long assignedUpcoming = requests.stream()
+                .filter(request -> request.getStatus() == EnrollmentRequestStatus.CLASS_ASSIGNED)
+                .count();
         long activePipeline = awaitingContact + invitationsSent + testsScheduled + qualified;
+
+        List<ClassSection> upcomingClasses = classSectionRepository.findAll().stream()
+                .filter(section -> section.getInstructorLedCourse() != null
+                        && program.getId().equals(section.getInstructorLedCourse().getId()))
+                .filter(section -> section.getStatus() == ClassroomOfferingStatus.UPCOMING)
+                .toList();
+        int capacityHint = upcomingClasses.stream()
+                .map(ClassSection::getCapacity)
+                .filter(java.util.Objects::nonNull)
+                .filter(capacity -> capacity > 0)
+                .findFirst()
+                .orElse(ESTIMATED_CLASS_CAPACITY);
+        long openSeatRemaining = upcomingClasses.stream()
+                .mapToLong(section -> {
+                    int capacity = section.getCapacity() == null ? 0 : Math.max(0, section.getCapacity());
+                    long occupied = classEnrollmentRepository.countByOfferingAndRegistrationStatuses(
+                            section.getId(),
+                            ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT
+                    );
+                    return Math.max(0, capacity - occupied);
+                })
+                .sum();
+        long overflow = Math.max(0, activePipeline - openSeatRemaining);
+        int suggested = overflow == 0 ? 0 : (int) Math.ceil((double) overflow / capacityHint);
+
         return EnrollmentDemandReportResponse.builder()
                 .courseOfferingId(program.getId())
                 .courseOfferingCode(program.getCode())
@@ -709,19 +761,48 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         .filter(java.util.Objects::nonNull)
                         .map(ClassSection::getDeliveryMode)
                         .findFirst()
-                        .orElse(null))
-                .classCapacity(ESTIMATED_CLASS_CAPACITY)
+                        .orElseGet(() -> upcomingClasses.stream()
+                                .map(ClassSection::getDeliveryMode)
+                                .filter(java.util.Objects::nonNull)
+                                .findFirst()
+                                .orElse(null)))
+                .classCapacity(capacityHint)
                 .totalRegistrations((long) requests.size())
                 .awaitingContact(awaitingContact)
                 .invitationsSent(invitationsSent)
                 .testsScheduled(testsScheduled)
                 .qualifiedForClass(qualified)
-                .assigned(assigned)
-                .rejected(rejected)
-                .suggestedClassCount(activePipeline == 0
-                        ? 0
-                        : (int) Math.ceil((double) activePipeline / ESTIMATED_CLASS_CAPACITY))
+                .assigned(assignedUpcoming)
+                .rejected(0L)
+                .existingOpenClassCount(upcomingClasses.size())
+                .openSeatRemaining(openSeatRemaining)
+                .suggestedClassCount(suggested)
                 .build();
+    }
+
+    /**
+     * Nhu cầu mở lớp chỉ gồm hồ sơ còn phải xử lý hoặc đã xếp vào lớp chưa khai giảng.
+     * Không tính đơn đã xếp vào lớp đang học / đã kết thúc, cũng không tính từ chối / hủy.
+     */
+    private boolean isRelevantForClassOpeningDemand(CourseRegistrationRequest request) {
+        if (request == null || request.getStatus() == null) {
+            return false;
+        }
+        return switch (request.getStatus()) {
+            case REJECTED, CANCELLED -> false;
+            case CLASS_ASSIGNED -> isAssignedToUpcomingClass(request);
+            case SUBMITTED, INVITATION_SENT, TEST_SCHEDULED, AWAITING_PLACEMENT_TEST,
+                    PLACEMENT_TEST_COMPLETED, UNDER_STAFF_REVIEW, WAITING_FOR_CLASS, CLASS_PROPOSED -> true;
+        };
+    }
+
+    private boolean isAssignedToUpcomingClass(CourseRegistrationRequest request) {
+        ClassSection assigned = request.getAssignedClassSection();
+        if (assigned != null) {
+            return assigned.getStatus() == ClassroomOfferingStatus.UPCOMING;
+        }
+        ClassSection preferred = request.getPreferredClassSection();
+        return preferred != null && preferred.getStatus() == ClassroomOfferingStatus.UPCOMING;
     }
 
     private long countStatus(List<CourseRegistrationRequest> requests, EnrollmentRequestStatus status) {

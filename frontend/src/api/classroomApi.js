@@ -377,6 +377,13 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async getStaffChangeRequests(status = 'ALL') {
+    const response = await axiosClient.get('/api/staff/requests', {
+      params: status && status !== 'ALL' ? { status } : { status: 'ALL' },
+    });
+    return asList(unwrapData(response));
+  },
+
   async checkChangeRequestConflict(requestId) {
     const response = await axiosClient.post(`/api/staff/requests/${requestId}/conflict-check`);
     return unwrapData(response);

@@ -10,6 +10,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.enums.RoleCodes;
 import fu.sep490.g23.backend.entity.teacher.TeacherCourseFeedback;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
@@ -107,13 +108,18 @@ public class TeacherFeedbackServiceImpl implements TeacherFeedbackService {
     @Override
     @Transactional(readOnly = true)
     public List<TeacherFeedbackAggregateResponse> getManagerDashboard() {
-        return feedbackRepository.findAll().stream()
-                .collect(Collectors.groupingBy(item -> item.getTeacher().getId(), LinkedHashMap::new, Collectors.toList()))
-                .values().stream()
-                .map(items -> aggregate(items, false))
-                .sorted(Comparator.comparing(
-                        TeacherFeedbackAggregateResponse::getTeacherName,
-                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+        Map<Long, List<TeacherCourseFeedback>> byTeacher = feedbackRepository.findAll().stream()
+                .collect(Collectors.groupingBy(
+                        item -> item.getTeacher().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleCodes.TEACHER)).stream()
+                .sorted(Comparator.comparing(User::getFullName, String.CASE_INSENSITIVE_ORDER))
+                .map(teacher -> {
+                    List<TeacherCourseFeedback> items = byTeacher.getOrDefault(teacher.getId(), List.of());
+                    return items.isEmpty() ? emptyAggregate(teacher) : aggregate(items, false);
+                })
                 .toList();
     }
 

@@ -19,5 +19,9 @@ public class EnrollmentDemandReportResponse {
     private Long qualifiedForClass;
     private Long assigned;
     private Long rejected;
+    /** Số lớp SẮP KHAI GIẢNG (UPCOMING) — không gồm đang học / đã kết thúc. */
+    private Integer existingOpenClassCount;
+    /** Chỗ trống còn lại trên các lớp sắp khai giảng. */
+    private Long openSeatRemaining;
     private Integer suggestedClassCount;
 }

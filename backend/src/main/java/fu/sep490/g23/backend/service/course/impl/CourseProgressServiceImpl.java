@@ -11,6 +11,7 @@ import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
@@ -118,39 +119,34 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     }
 
     private CompletionSnapshot buildSnapshot(OnlineCourseEnrollment enrollment, OnlineCourse course, User student) {
-        List<OnlineCourseModule> liveModules = enrollment.getCourseVersion() == null
-                ? course.getPublishedModules()
+        OnlineCourseVersion latestPublishedVersion = onlineCourseVersionService.requirePublishedVersion(course);
+        List<OnlineCourseModule> latestModules = latestPublishedVersion.getModules();
+        List<OnlineCourseModule> baselineModules = enrollment.getCourseVersion() == null
+                ? latestModules
                 : enrollment.getCourseVersion().getModules();
-        int liveLessonCount = liveModules.stream()
-                .mapToInt(module -> module.getLessons().size())
-                .sum();
-        int liveAssessmentCount = Math.toIntExact(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course));
-        int totalLessons = enrollment.getCourseVersion() == null
-                ? liveLessonCount
-                : enrollment.getCourseVersion().getTotalRequiredLessons();
-        int totalAssessments = enrollment.getCourseVersion() == null
-                ? liveAssessmentCount
-                : enrollment.getCourseVersion().getTotalRequiredAssessments();
+        // Preserve the purchased baseline without requiring content that no longer exists.
+        Set<String> latestLessonKeys = lessonKeys(latestModules);
+        Set<String> requiredLessonKeys = lessonKeys(baselineModules).stream()
+                .filter(latestLessonKeys::contains)
+                .collect(Collectors.toSet());
+        int totalLessons = requiredLessonKeys.size();
         List<LessonProgress> completedProgress = lessonProgressRepository
                 .findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED);
-        Set<String> baselineLessonKeys = liveModules.stream()
-                .flatMap(module -> module.getLessons().stream())
-                .map(this::lessonProgressKey)
-                .collect(Collectors.toSet());
         Set<String> completedLessonKeys = completedProgress.stream()
                 .map(LessonProgress::getLesson)
                 .filter(Objects::nonNull)
                 .map(this::lessonProgressKey)
                 .collect(Collectors.toSet());
-        int completedLessons = Math.min(totalLessons, (int) completedLessonKeys.stream()
-                .filter(baselineLessonKeys::contains)
-                .count());
+        int completedLessons = (int) completedLessonKeys.stream()
+                .filter(requiredLessonKeys::contains)
+                .count();
         List<CourseAssessment> baselineAssessments = courseAssessmentRepository.findAllById(
                 onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)
         );
-        int completedAssessments = Math.min(totalAssessments, (int) baselineAssessments.stream()
+        int totalAssessments = baselineAssessments.size();
+        int completedAssessments = (int) baselineAssessments.stream()
                 .filter(assessment -> hasCompletedSubmission(assessment, student))
-                .count());
+                .count();
         boolean completedRequiredLessons = totalLessons > 0 && completedLessons >= totalLessons;
         boolean completedRequiredAssessments = totalAssessments == 0 || completedAssessments >= totalAssessments;
         boolean hasEnoughDataForCertificate = totalLessons > 0;
@@ -199,6 +195,16 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     private String lessonProgressKey(fu.sep490.g23.backend.entity.course.OnlineLesson lesson) {
         String stableKey = lesson.getStableLessonKey();
         return stableKey == null || stableKey.isBlank() ? "ID:" + lesson.getId() : "KEY:" + stableKey;
+    }
+
+    private Set<String> lessonKeys(List<OnlineCourseModule> modules) {
+        if (modules == null) {
+            return Set.of();
+        }
+        return modules.stream()
+                .flatMap(module -> module.getLessons().stream())
+                .map(this::lessonProgressKey)
+                .collect(Collectors.toSet());
     }
 
     private CourseCompletionStatus resolveStatus(CompletionSnapshot snapshot, OnlineCourseEnrollment enrollment) {

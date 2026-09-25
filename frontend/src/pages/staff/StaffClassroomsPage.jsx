@@ -120,8 +120,9 @@ export default function StaffClassroomsPage() {
   );
   const stats = useMemo(() => ({
     total: classrooms.length,
-    active: classrooms.filter((item) => ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).length,
-    learners: classrooms.reduce((sum, item) => sum + Number(item.enrolledCount || 0), 0),
+    upcoming: classrooms.filter((item) => item.classroomStatus === 'UPCOMING').length,
+    running: classrooms.filter((item) => item.classroomStatus === 'ACTIVE').length,
+    learners: classrooms.reduce((sum, item) => sum + Number(item.assignedCount ?? item.enrolledCount ?? 0), 0),
     courses: new Set(classrooms.map((item) => item.instructorLedCourseId).filter(Boolean)).size,
   }), [classrooms]);
 
@@ -240,9 +241,9 @@ export default function StaffClassroomsPage() {
       <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật lớp học" />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={GraduationCap} label="Tổng lớp" value={stats.total} />
-        <Metric icon={CheckCircle2} label="Đang vận hành" value={stats.active} />
-        <Metric icon={Users} label="Tổng học viên" value={stats.learners} />
-        <Metric icon={BookOpen} label="Khóa học đang mở" value={stats.courses} />
+        <Metric icon={CheckCircle2} label="Đang học" value={stats.running} />
+        <Metric icon={CalendarDays} label="Sắp khai giảng" value={stats.upcoming} />
+        <Metric icon={Users} label="Đã xếp lớp" value={stats.learners} />
       </section>
 
       <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -290,7 +291,16 @@ function ClassroomRow({ item, navigate, onEdit, working }) {
     <td className="px-5 py-4"><p className="max-w-60 font-semibold text-slate-700">{item.scheduleSummary || 'Chưa có lịch học'}</p><p className="mt-1 text-xs text-slate-500">{dateRange(item)}</p></td>
     <td className="px-5 py-4"><div className="flex items-center gap-2 font-semibold text-slate-700">{item.deliveryMode === 'VIRTUAL' ? <Video className="h-4 w-4 text-blue-600" /> : <Building2 className="h-4 w-4 text-emerald-600" />}{formatDeliveryMode(item.deliveryMode, item.deliveryModeLabel)}</div><p className="mt-1 max-w-48 text-xs text-slate-500">{item.deliveryMode === 'VIRTUAL' ? meetStatus(item.googleMeetStatus) : item.roomName || 'Chưa chọn phòng học'}</p></td>
     <td className="px-5 py-4 font-semibold text-slate-700">{item.primaryTeacherName || 'Chưa phân công'}</td>
-    <td className="px-5 py-4 font-bold text-[#0b1c30]">{item.enrolledCount ?? 0}/{item.capacity ?? item.maxCapacity ?? 0}</td>
+    <td className="px-5 py-4">
+      <p className="font-bold text-[#0b1c30]">
+        {item.assignedCount ?? 0}/{item.capacity ?? item.maxCapacity ?? 0}
+      </p>
+      {Number(item.enrolledCount || 0) > Number(item.assignedCount || 0) ? (
+        <p className="mt-1 text-[11px] text-slate-500">
+          Giữ chỗ {item.enrolledCount}/{item.capacity ?? item.maxCapacity ?? 0}
+        </p>
+      ) : null}
+    </td>
     <td className="px-5 py-4 font-bold text-[#0b1c30]">{formatClassroomPrice(item.tuitionFeeVnd ?? item.price ?? 0)}</td>
     <td className="px-5 py-4"><StatusBadge status={item.classroomStatus} /></td>
     <td className="px-5 py-4"><div className="flex gap-2">{editable ? <button className={secondaryButton} disabled={working} onClick={() => onEdit(item)} type="button"><Edit3 className="h-3.5 w-3.5" />Sửa</button> : null}<button className={primaryButton} onClick={() => navigate(`/staff/classrooms/${item.id}`)} type="button">Quản lý<ChevronRight className="h-3.5 w-3.5" /></button></div></td>

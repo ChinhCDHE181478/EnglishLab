@@ -156,6 +156,14 @@ const enrollmentRequestApi = {
     const response = await axiosClient.patch(`/api/manager/classroom-proposals/${proposalId}/reject`, { reason });
     return unwrapData(response);
   },
+
+  async requestStaffOpenClass(courseOfferingId, note) {
+    const response = await axiosClient.post('/api/manager/classroom-proposals/request-open', {
+      courseOfferingId: Number(courseOfferingId),
+      note: note || null,
+    });
+    return unwrapData(response);
+  },
 };
 
 export default enrollmentRequestApi;
