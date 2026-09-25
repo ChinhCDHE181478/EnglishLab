@@ -1,10 +1,9 @@
 {
   "version": 1,
   "type": "ielts_speaking_exam",
-  "key": "ielts_mock_2025_january_speaking_practice_test_2",
-  "title": "IELTS Mock Test 2025 January Speaking Practice Test 2",
-  "sourceLabel": "Imported from local HTML 2025de2s.html",
-  "durationMinutes": 14,
+  "key": "englishlab_placement_mock_1_speaking",
+  "title": "IELTS Speaking Mock Test 1",
+  "durationMinutes": 15,
   "parts": [
     {
       "key": "part_1",
@@ -13,94 +12,69 @@
       "answerSeconds": 300,
       "prompts": [
         {
-          "text": "Are you a student or do you work now?",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q1-Are%20you%20a%20student%20or%20do%20you%20work%20now.mp4"
+          "text": "Where are you from?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q1-Where%20are%20you%20from.mp4"
         },
         {
-          "text": "Why did you choose this course/job?",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q2-Why%20did%20you%20choose%20this%20coursejob.mp4"
+          "text": "Where do you live now?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q2-Where%20do%20you%20live%20now.mp4"
         },
         {
-          "text": "Talk about your daily routine Is there anything about your course/job you would like to change?",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q3-Talk%20about%20your%20daily%20routine.mp4"
+          "text": "How long have you lived there?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q3-How%20long%20have%20you%20lived%20there.mp4"
         },
         {
-          "text": "Is there anything about your coursejob you would like to change",
-          "videoUrl": ""
+          "text": "Who do you live with?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q4-Who%20do%20you%20live%20with.mp4"
         },
         {
-          "text": "I’d like to move on and ask you some questions about shopping.",
-          "videoUrl": ""
+          "text": "Do you plan to live there for a long time?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q5-Do%20you%20plan%20to%20live%20there%20for%20a%20long%20time.mp4"
         },
         {
-          "text": "Who does most of the shopping in your household?",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q6-Who%20does%20most%20of%20the%20shopping%20in%20your%20household.mp4"
+          "text": "What kinds of films do you like best?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q7-What%20kinds%20of%20movies%20do%20you%20like%20best.mp4"
         },
         {
-          "text": "What type of shopping do you like? (Why?)",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q7-What%20type%20of%20shopping%20do%20you%20like%20%28Why%29.mp4"
-        },
-        {
-          "text": "Is shopping a popular activity in your country? (Why/why not?)",
-          "videoUrl": ""
-        },
-        {
-          "text": "What type of shops do teenagers like best in your country?",
-          "videoUrl": ""
-        },
-        {
-          "text": "Let’s talk about films. How often do you go to the cinema?",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q10-Let%E2%80%99s%20talk%20about%20films..mp4"
-        },
-        {
-          "text": "What type of films do you like best? (Why?)",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q11-What%20type%20of%20films%20do%20you%20like%20best%20%28Why%29.mp4"
-        },
-        {
-          "text": "What type of films don’t you like? (Why not?)",
-          "videoUrl": ""
+          "text": "How often do you watch films?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q8-How%20often%20do%20you%20watch%20films.mp4"
         }
       ]
     },
     {
       "key": "part_2",
-      "title": "Part 2 · Topic",
+      "title": "Part 2 · Cue Card",
       "prepSeconds": 60,
       "answerSeconds": 120,
-      "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%202-Describe%20an%20important%20event%20in%20your%20life..mp4",
-      "cueCardTitle": "Describe an important event in your life.",
+      "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%202-Describe%20an%20activity%20you%20would%20do%20when%20you%20are%20alone.mp4",
+      "cueCardTitle": "Describe a leisure activity you enjoy.",
       "cueCardBullets": [
-        "And explain why you feel it was important."
+        "What the activity is",
+        "When and where you do it",
+        "Who you do it with",
+        "Why you enjoy it"
       ]
     },
     {
       "key": "part_3",
-      "title": "Part 3 · Topic Discussion",
+      "title": "Part 3 · Discussion",
       "prepSeconds": 0,
       "answerSeconds": 300,
       "prompts": [
         {
-          "text": "What days are important in your country?",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%203-%20Q1-What%20days%20are%20important%20in%20your%20country.mp4"
+          "text": "Do you think people should only focus on work?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%203-%20Q1-Do%20you%20think%20people%20should%20only%20focus%20on%20work.mp4"
         },
         {
-          "text": "Why it is important to have national celebrations?",
-          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%203-%20Q2-Why%20it%20is%20important%20to%20have%20national%20celebrations.mp4"
-        },
-        {
-          "text": "How is the way your national celebrations are celebrated now different from the way they were celebrated in the past?",
+          "text": "How much leisure time should adults have each week?",
           "videoUrl": ""
         },
         {
-          "text": "Do you think any new national celebrations will come into being in the future?",
+          "text": "Should parents plan their children's leisure activities?",
           "videoUrl": ""
         },
         {
-          "text": "Are there any celebrations from other countries that you celebrate in your country?",
-          "videoUrl": ""
-        },
-        {
-          "text": "What are the benefits of having events that many people around the world are celebrating on the same day?",
+          "text": "How are young people's activities different from those of older generations?",
           "videoUrl": ""
         }
       ]

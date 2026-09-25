@@ -39,6 +39,7 @@ const learnerTabs = [
   { id: 'all', label: 'Tất cả lớp học' },
   { id: 'active', label: 'Đang diễn ra' },
   { id: 'upcoming', label: 'Sắp khai giảng' },
+  { id: 'suspended', label: 'Đang bảo lưu' },
   { id: 'completed', label: 'Đã hoàn thành' },
 ];
 
@@ -57,22 +58,30 @@ const daysUntil = (dateStr) => {
 };
 
 const isActiveClass = (item) => {
+  if (item.registrationStatus === 'SUSPENDED') return false;
   if (item.classroomStatus === 'ACTIVE') {
     const s = parseDate(item.startDate); return !s || s <= startOfToday();
   }
   return ['IN_PROGRESS', 'OPEN'].includes(item.classroomStatus);
 };
+const isSuspendedClass = (item) => item.registrationStatus === 'SUSPENDED';
 const isUpcomingClass = (item) => {
+  if (isSuspendedClass(item)) return false;
   if (['UPCOMING', 'DRAFT'].includes(item.classroomStatus)) return true;
   if (item.classroomStatus === 'ACTIVE') {
     const s = parseDate(item.startDate); return Boolean(s && s > startOfToday());
   }
   return false;
 };
-const isCompletedClass = (item) => ['COMPLETED', 'CANCELLED', 'CLOSED'].includes(item.classroomStatus);
+const isCompletedClass = (item) => (
+  !isSuspendedClass(item) && ['COMPLETED', 'CANCELLED', 'CLOSED'].includes(item.classroomStatus)
+);
 
 // ─── Custom Minimalist Status configuration ───────────────────────────────────
 const getMinimalistStatusInfo = (classroom) => {
+  if (isSuspendedClass(classroom)) {
+    return { text: 'Đang bảo lưu', dotColor: 'bg-amber-500', textColor: 'text-amber-700', badgeBg: 'bg-amber-50 border-amber-100' };
+  }
   const days = daysUntil(classroom.startDate);
   if (isActiveClass(classroom)) {
     const end = daysUntil(classroom.endDate);
@@ -121,6 +130,7 @@ export default function MyClassroomsPage() {
     return visibleClassrooms.filter((item) => {
       if (activeTab === 'active' && !isActiveClass(item)) return false;
       if (activeTab === 'upcoming' && !isUpcomingClass(item)) return false;
+      if (activeTab === 'suspended' && !isSuspendedClass(item)) return false;
       if (activeTab === 'completed' && !isCompletedClass(item)) return false;
       if (!query) return true;
       return String(item.title || item.classroomTitle || '').toLowerCase().includes(query) ||
@@ -139,6 +149,7 @@ export default function MyClassroomsPage() {
     all: visibleClassrooms.length,
     active: visibleClassrooms.filter(isActiveClass).length,
     upcoming: visibleClassrooms.filter(isUpcomingClass).length,
+    suspended: visibleClassrooms.filter(isSuspendedClass).length,
     completed: visibleClassrooms.filter(isCompletedClass).length,
   };
 
@@ -297,6 +308,7 @@ function GlassCounterCard({ label, value, dotColor, icon }) {
 // ─── Minimalist Classroom card component ────────────────────────────────────────
 function MinimalistClassroomCard({ classroom }) {
   const isClassActive = isActiveClass(classroom);
+  const isSuspended = isSuspendedClass(classroom);
   const isVirtual = classroom.deliveryMode === 'VIRTUAL';
 
   const tuitionDue = classroom.tuitionAmountDue ?? 0;
@@ -315,7 +327,7 @@ function MinimalistClassroomCard({ classroom }) {
           {/* Status Indicator Dot */}
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${statusInfo.dotColor}`} />
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500">
+            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${statusInfo.textColor}`}>
               {statusInfo.text}
             </span>
           </div>
@@ -326,6 +338,12 @@ function MinimalistClassroomCard({ classroom }) {
             {isVirtual ? 'Google Meet' : 'Tại cơ sở'}
           </span>
         </div>
+
+        {isSuspended ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-bold text-amber-800">
+            Lớp học đang được bảo lưu. Bạn chưa thể truy cập nội dung học tập.
+          </div>
+        ) : null}
 
         {/* Title */}
         <div className="space-y-2">
@@ -404,9 +422,9 @@ function MinimalistClassroomCard({ classroom }) {
         <div className="flex gap-2 w-full">
           <Link
             className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#730014] to-[#4b0009] py-3 text-xs font-bold text-white shadow-sm transition hover:shadow-md active:scale-95 btn-hover"
-            to={`/my-classrooms/${classroom.id}${classroom.hasClassAccess ? '' : '?tab=payment'}`}
+            to={isSuspended ? '/support' : `/my-classrooms/${classroom.id}${classroom.hasClassAccess ? '' : '?tab=payment'}`}
           >
-            {classroom.hasClassAccess ? 'Vào học' : tuitionRemaining > 0 ? 'Thanh toán học phí' : 'Xem trạng thái'}
+            {isSuspended ? 'Xem yêu cầu bảo lưu' : classroom.hasClassAccess ? 'Vào học' : tuitionRemaining > 0 ? 'Thanh toán học phí' : 'Xem trạng thái'}
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>

@@ -26,6 +26,7 @@ import { buildChangeRequestDiff, hasBlockingConflict, parseChangeRequestValues }
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
 
 export default function StaffRequestsPage() {
   const [searchParams] = useSearchParams();
@@ -259,6 +260,9 @@ export default function StaffRequestsPage() {
                       <p className={`mt-2 text-[10px] ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
                         {['SUSPEND_STUDENT', 'RESUME_STUDENT'].includes(item.requestType) ? 'HV' : 'GV'}: {item.requesterName || '—'}
                       </p>
+                      <p className={`mt-1 text-[10px] ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
+                        Phụ trách: {item.reviewerName || 'Chưa phân công'}
+                      </p>
                     </button>
                   );
                 })}
@@ -279,6 +283,9 @@ export default function StaffRequestsPage() {
                         ) : null}
                       </div>
                       <p className="text-xs text-[#8b706e] mt-0.5">Người gửi: {selected.requesterName || '—'}</p>
+                      {selected.reviewerName ? (
+                        <p className="mt-1 text-xs text-[#8b706e]">Phụ trách: {selected.reviewerName}</p>
+                      ) : null}
                     </div>
                     <StatusBadge status="PENDING" />
                   </div>
@@ -308,14 +315,12 @@ export default function StaffRequestsPage() {
                         <>
                           <p>Tiến độ: <strong>{selectedOldValues.completedSessions}/{selectedOldValues.totalSessions} buổi ({selectedOldValues.progressPercent}%)</strong></p>
                           <p>Thời gian: <strong>{selectedNewValues.requestedStartDate} đến {selectedNewValues.requestedReturnDate}</strong></p>
-                          <a
+                          <AuthenticatedFileLink
                             className="inline-flex items-center gap-2 font-bold text-[#730014] hover:underline sm:col-span-2"
-                            href={selectedNewValues.proofUrl}
-                            rel="noreferrer"
-                            target="_blank"
+                            url={selectedNewValues.proofUrl}
                           >
                             Xem giấy tờ minh chứng
-                          </a>
+                          </AuthenticatedFileLink>
                         </>
                       ) : (
                         <p>Hạn đăng ký quay lại: <strong>{selectedOldValues.returnDeadline || '—'}</strong></p>
@@ -371,7 +376,13 @@ export default function StaffRequestsPage() {
                         options={returnOptions.map((item) => ({
                           label: item.title,
                           value: String(item.id),
-                          description: [item.scheduleSummary, item.primaryTeacherName].filter(Boolean).join(' · '),
+                          description: [
+                            Number.isInteger(item.completedSessions) && Number.isInteger(item.totalSessions)
+                              ? `Đã học ${item.completedSessions}/${item.totalSessions} buổi`
+                              : '',
+                            item.scheduleSummary,
+                            item.primaryTeacherName,
+                          ].filter(Boolean).join(' · '),
                         }))}
                         placeholder={loadingReturnOptions
                           ? 'Đang kiểm tra lớp phù hợp...'

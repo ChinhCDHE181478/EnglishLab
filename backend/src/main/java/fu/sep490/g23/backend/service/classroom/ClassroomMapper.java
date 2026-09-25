@@ -374,7 +374,7 @@ public class ClassroomMapper {
     }
 
     public ClassroomChangeRequestResponse toChangeRequestResponse(ClassroomChangeRequest request) {
-        User reviewer = request.getReviewedAt() == null ? null : request.getReviewer();
+        User reviewer = request.getReviewer();
         return ClassroomChangeRequestResponse.builder()
                 .id(request.getId())
                 .requestType(request.getRequestType())

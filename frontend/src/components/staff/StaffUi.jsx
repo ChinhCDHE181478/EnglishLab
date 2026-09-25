@@ -21,11 +21,11 @@ const trainingOperationsNav = [
   {
     title: 'Vận hành đào tạo',
     items: [
-      { label: 'Bảng điều khiển', href: '/staff', icon: LayoutDashboard, end: true, staffOnly: true },
+      { label: 'Bảng điều khiển', href: '/staff', managerHref: '/manager', icon: LayoutDashboard, end: true },
       { label: 'Lớp học', href: '/staff/classrooms', icon: CalendarDays, staffOnly: true },
       { label: 'Yêu cầu đăng ký', href: '/staff/enrollment-requests', icon: ClipboardList, staffOnly: true },
       { label: 'Đề xuất mở lớp', href: '/staff/classroom-proposals', icon: CalendarDays, staffOnly: true },
-      { label: 'Duyệt yêu cầu', href: '/staff/requests', icon: CheckSquare, staffOnly: true },
+      { label: 'Duyệt yêu cầu', href: '/staff/requests', managerHref: '/manager/requests', icon: CheckSquare },
       { label: 'Cơ sở vật chất', href: '/staff/infrastructure', icon: Settings2, staffOnly: true },
       { label: 'Hồ sơ giáo viên', href: '/staff/teachers', icon: UserRoundCheck, staffOnly: true },
       { label: 'Duyệt đề xuất lớp', href: '/manager/classroom-proposals', icon: CalendarDays, managerOnly: true },
@@ -41,6 +41,12 @@ function resolvePageMeta(pathname) {
     return {
       title: 'Việc cần làm hôm nay',
       subtitle: 'Tổng hợp hồ sơ đăng ký, tư vấn, điểm giáo viên, điểm học viên và lớp cần lưu ý.',
+    };
+  }
+  if (pathname === '/manager' || pathname === '/manager/') {
+    return {
+      title: 'Tổng quan quản lý',
+      subtitle: 'Theo dõi đề xuất mở lớp, nhu cầu đăng ký, ghi danh và yêu cầu hỗ trợ.',
     };
   }
   if (pathname === '/staff/classrooms' || pathname === '/staff/classrooms/') {
@@ -67,7 +73,7 @@ function resolvePageMeta(pathname) {
       subtitle: 'Thiết lập lịch học, giáo viên, phòng học và sức chứa dự kiến.',
     };
   }
-  if (pathname.startsWith('/staff/requests')) {
+  if (pathname.startsWith('/staff/requests') || pathname.startsWith('/manager/requests')) {
     return {
       title: 'Duyệt yêu cầu thay đổi',
       subtitle: 'Thông tin và phê duyệt các đề xuất thay đổi buổi học từ giáo viên.',
@@ -149,7 +155,7 @@ export default function StaffLayout() {
   
   const mobileNavValue = mobileNavOptions.find((option) => option.value === location.pathname)?.value
     || mobileNavOptions.find((option) => location.pathname.startsWith(`${option.value}/`))?.value
-    || (isManager ? '/manager/classroom-proposals' : '/staff');
+    || (isManager ? '/manager' : '/staff');
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -188,7 +194,7 @@ export default function StaffLayout() {
   const displayName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'Nhân viên đào tạo';
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const hidePageShell = /^\/staff\/classrooms\/\d+/.test(location.pathname);
-  const homeHref = isManager ? '/manager/classroom-proposals' : '/staff';
+  const homeHref = isManager ? '/manager' : '/staff';
   const roleLabel = isManager ? 'Quản lý' : 'Nhân viên đào tạo';
 
   return (

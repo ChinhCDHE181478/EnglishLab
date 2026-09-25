@@ -1,12 +1,14 @@
 {
   "version": 1,
   "type": "ielts_reading_exam",
-  "key": "ielts_mock_2025_january_reading_practice_test_1",
-  "title": "IELTS Mock Test 2026 January Reading Practice Test 1",
-  "sourceLabel": "Imported from local HTML 2026de1r.html",
+  "key": "ielts_mock_2025_january_reading_test_1",
+  "title": "IELTS Mock Test 2025 January Reading Practice Test 1",
+  "sourceLabel": "Imported from local HTML sample",
   "durationMinutes": 60,
   "rules": [
-    "Do not switch tabs or leave the exam screen during the test."
+    "Do not switch tabs or leave the exam screen during the test.",
+    "Copy, paste, cut, and context menu actions are disabled in exam mode.",
+    "If focus is lost, EnglishLab records a warning and asks you to return to the test."
   ],
   "parts": [
     {
@@ -14,77 +16,90 @@
       "partNumber": 1,
       "title": "Reading Passage 1",
       "questionRange": "Questions 1-13",
-      "summary": "",
+      "passage": {
+        "title": "Money Transfers by Mobile",
+        "paragraphs": [
+          {
+            "label": "A",
+            "text": "The ping of a text message has never sounded so sweet. In what is being touted as a world first, Kenya's biggest mobile operator is allowing subscribers to send cash to other phone users by SMS. Known as M-Pesa, or mobile money, the service is expected to revolutionise banking in a country where more than 80% of people are excluded from the formal financial sector. Apart from transferring cash - a service much in demand among urban Kenyans supporting relatives in rural areas - customers of the Safaricom network will be able to keep up to 50,000 shillings in a virtual account on their handsets."
+          },
+          {
+            "label": "B",
+            "text": "Developed by Vodafone, which holds a 35% share in Safaricom, M-Pesa was formally launched in Kenya two weeks ago. More than 10,000 people have signed up for the service, with around 8 million shillings transferred so far, mostly in tiny denominations. Safaricom's executives are confident that growth will be strong in Kenya, and later across Africa. Michael Joseph, chief executive of Safaricom, described the service as giving people ATM cards without requiring a real bank account."
+          },
+          {
+            "label": "C",
+            "text": "M-Pesa is simple. There is no need for a new handset or SIM card. To send money, users hand over cash to a registered agent, typically a retailer, who credits the virtual account. They then send between 100 and 35,000 shillings by text message to the recipient, who cashes it at an agent by entering a secret code and showing ID. A commission of up to 170 shillings is paid by the recipient, which compares favourably with the fees charged by major banks."
+          },
+          {
+            "label": "D",
+            "text": "Mobile phone growth in Kenya has been remarkable, even among the rural poor. In June 1999, Kenya had 15,000 mobile subscribers. Today, it has nearly 8 million out of a population of 35 million, and the operators' networks are as extensive as access to banks is limited. In time, M-Pesa will allow people to borrow and repay money, make purchases, and receive salaries directly into phones. Safaricom says PIN protection prevents unauthorised withdrawals, though sending cash to the wrong number remains a risk."
+          },
+          {
+            "label": "E",
+            "text": "The project is being watched closely by mobile operators around the world as a way of targeting the international cash transfer industry long dominated by companies such as Western Union and Moneygram. Remittances from migrant workers to developing countries totalled 102 billion pounds last year, according to the World Bank. Vodafone has entered a partnership with Citigroup that will soon allow Kenyans in the UK to send money home by text message."
+          }
+        ]
+      },
       "questionGroups": [
         {
-          "title": "Questions 1-6",
-          "instructions": "Choose the correct letter, A, B or C , in boxes 1-6 below.",
+          "title": "Questions 1-4",
+          "instructions": "The text has 5 paragraphs (A-E). Which paragraph contains each of the following pieces of information?",
           "type": "select",
           "options": [
-            "A early adolescence",
-            "B middle adolescence",
-            "C late adolescence"
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
           ],
           "questions": [
             {
               "number": 1,
-              "prompt": "becoming interested in people of the other gender"
+              "prompt": "A possible security problem"
             },
             {
               "number": 2,
-              "prompt": "beginning to choose a future career"
+              "prompt": "The cost of M-Pesa"
             },
             {
               "number": 3,
-              "prompt": "needing to feel the same as one’s friends"
+              "prompt": "An international service similar to M-Pesa"
             },
             {
               "number": 4,
-              "prompt": "beginning to form a self-image separate from the family context"
-            },
+              "prompt": "The fact that most Kenyans do not have a bank account"
+            }
+          ]
+        },
+        {
+          "title": "Questions 5-8",
+          "instructions": "Complete the sentences using NO MORE THAN THREE WORDS from the text for each gap.",
+          "type": "text",
+          "questions": [
             {
               "number": 5,
-              "prompt": "having less need for the good opinion of friends"
+              "promptBefore": "Safaricom is the",
+              "promptAfter": "mobile phone company in Kenya."
             },
             {
               "number": 6,
-              "prompt": "exposing oneself to dangers"
-            }
-          ]
-        },
-        {
-          "title": "Questions 7-10",
-          "instructions": "Complete each sentence with the correct ending, A-E , below.",
-          "type": "select",
-          "options": [
-            "A reflects an adolescent’s emerging self-perception.",
-            "B cannot solve a problem without an example.",
-            "C is designed to become more challenging.",
-            "D formulates a personal set of moral beliefs and values.",
-            "E varies according to the individual."
-          ],
-          "questions": [
+              "promptBefore": "An M-Pesa account needs to be credited by"
+            },
             {
               "number": 7,
-              "prompt": "Havighurst proposed a set of tasks which"
+              "promptAfter": "companies are particularly interested in using M-Pesa."
             },
             {
               "number": 8,
-              "prompt": "A course of study at high school"
-            },
-            {
-              "number": 9,
-              "prompt": "The speed of development of thinking ability during adolescence"
-            },
-            {
-              "number": 10,
-              "prompt": "Adolescence is a time when the young person"
+              "promptBefore": "Companies like Moneygram and Western Union have",
+              "promptAfter": "the international money transfer market."
             }
           ]
         },
         {
-          "title": "Questions 11-13",
-          "instructions": "Do the following statements agree with the information given in the Reading Passage?",
+          "title": "Questions 9-13",
+          "instructions": "Do the statements agree with the information given in Reading Passage 1?",
           "type": "select",
           "options": [
             "TRUE",
@@ -93,216 +108,71 @@
           ],
           "questions": [
             {
+              "number": 9,
+              "prompt": "Most Kenyans working in urban areas have relatives in rural areas."
+            },
+            {
+              "number": 10,
+              "prompt": "So far, most of the people using M-Pesa have used it to send small amounts of money."
+            },
+            {
               "number": 11,
-              "prompt": "Most pre-adolescent children are capable of abstract thought."
+              "prompt": "M-Pesa can only be used by people using one phone network."
             },
             {
               "number": 12,
-              "prompt": "Adolescents ‘limited skills’ with words may give a false impression of their ability."
+              "prompt": "M-Pesa can be used to buy products and services."
             },
             {
               "number": 13,
-              "prompt": "Whether or not an adolescent is accepted by their age-group is an important clue to other aspects of their social adjustment."
+              "prompt": "The GSM Association is a consumer organisation."
             }
           ]
         }
-      ],
-      "passage": {
-        "title": "Developmental Tasks of Normal Adolescence",
-        "paragraphs": [
-          {
-            "label": "",
-            "text": "Some years ago, Professor Robert Havighurst of the University of Chicago, USA, proposed that stages in human development can best be thought of in terms of the developmental ‘tasks’ that are part of the normal transition. He identified ten developmental tasks associated with the adolescent transition. Each of the Havighurst tasks can also be seen as elements of the overall sense of self that adolescents carry with them as they move towards and into young adulthood. Adolescents do not progress through these multiple developmental tasks separately; at any given time they may be dealing with several."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must adjust to a new physical sense of self. At no other time since birth does an individual undergo such profound physical changes as during early adolescence. Puberty is marked by sudden rapid growth in height and weight. Also, the young person experiences the emergence and accentuation of those physical traits that make the person a boy or a girl. The young person looks less like a child and more like a physically mature adult. The effect of this rapid change is that mid-adolescents are body-conscious, and their concerns are directed towards their opposite-sexed peers."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must adjust to new intellectual abilities. In addition to a sudden spurt in physical growth, adolescents experience a sudden increase in their ability to think about their world. As a normal part of maturity, they are able to think more things. However, they are also able to conceive of their world with awareness. Before adolescence, children’s thinking is dominated by a concrete example for any problem that they solve; their thinking is constrained to what is real and physical. During adolescence, young people begin to recognise and understand abstractions. The growth in ability to deal with abstractions accelerates during the middle stages of adolescence."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must adjust to increased cognitive demands at school. Adults see high school in part as a place where adolescents prepare for adult roles and responsibilities and in part as preparatory for further education. School curricula are frequently dominated by the inclusion of more abstract, demanding material, regardless of whether the adolescents have achieved formal thought. Since not all adolescents make the intellectual transition at the same rate, demands for abstract thinking prior to the achievement of that ability may be frustrating."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must adopt a personal value system. During adolescence, as teens develop increasingly complex knowledge systems, they also adopt an integrated set of values and morals. During the early stages of moral development, parents provide their child with a structured set of rules of what is right and wrong, what is acceptable and unacceptable. Eventually the adolescent must assess the parent’s values as they come into conflict with values expressed by peers and other segments of society. To reconcile differences, the adolescent restructures those beliefs into a personal ideology."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must develop expanded verbal skills to accommodate more complex concepts and tasks. Their limited language of childhood is no longer adequate. As their conceptual development may outstrip their verbal development, adolescents may appear less competent than they really are."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must establish adult vocational goals. As part of the process of establishing a personal identity, the adolescent must also begin the process of focusing on the question, ‘What do you plan to be when you grow up? Mid-adolescents must identify, at least at a preliminary level, what their adult vocational goals are and how they intend to achieve them."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must develop a personal sense of identity. Prior to adolescence, one’s identity is an extension of one’s parents’ identity. During the early adolescent years a young person begins to recognise their uniqueness and to establish themselves as separate individuals, independent of their parents. As such, one must reconsider the answer to the question, ‘what does it mean to be me?’ or “who am l?”"
-          },
-          {
-            "label": "",
-            "text": "The adolescent must establish emotional and psychological independence from his or her parents, childhood is marked by strong dependence on one’s parents. Adolescents may yearn to keep that safe, secure, supportive, dependent relationship. Yet, to be an adult implies a sense of independence, of autonomy, of being one’s own person. In an attempt to assert their need for independence and individuality, adolescents may respond with what appears to be hostility and lack of cooperation."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must develop stable and productive peer relationships. Although peer interaction is not unique to adolescence, it seems to hit a peak of importance during early adolescence. Certainly by late adolescence or early adulthood the need for peer approval has diminished. This degree to which an adolescent is able to make friends and have an accepting peer group, though, is a major indicator of how well the adolescent will adjust in other areas of social and psychological development. Early adolescence is also a period of intense conformity to peers.” Fitting in’ not being different, and being accepted seem somehow pressing to this age group. The worst possibility, from the view of the young teen, is to be seen by peers as different."
-          },
-          {
-            "label": "",
-            "text": "The adolescent must develop increased impulse control and behavioural maturity. In their shift to adulthood, most young people engage in one or more behaviours that place them at physical, social, or educational risk. Risky behaviours are sufficiently pervasive among adolescents to suggest that risk-taking may be a normal developmental process of middle adolescence. Gradually adolescents develop a set of behavioural self-controls through which they assess which behaviours are acceptable and adult-like."
-          }
-        ]
-      }
+      ]
     },
     {
       "key": "part_2",
       "partNumber": 2,
       "title": "Reading Passage 2",
       "questionRange": "Questions 14-26",
-      "summary": "",
-      "questionGroups": [
-        {
-          "title": "Questions 14-18",
-          "instructions": "Choose the correct heading for paragraphs A, B, D, E and F from the list of headings below.",
-          "type": "select",
-          "options": [
-            "i Parallels between bee and human activities",
-            "v The commercial value of bees"
-          ],
-          "questions": [
-            {
-              "number": 14,
-              "prompt": "Paragraph A"
-            },
-            {
-              "number": 15,
-              "prompt": "Paragraph B"
-            },
-            {
-              "number": 16,
-              "prompt": "Paragraph D"
-            },
-            {
-              "number": 17,
-              "prompt": "Paragraph E"
-            },
-            {
-              "number": 18,
-              "prompt": "Paragraph F"
-            }
-          ]
-        },
-        {
-          "title": "Questions 19-25",
-          "instructions": "Complete the sentences below.",
-          "type": "text",
-          "questions": [
-            {
-              "number": 19,
-              "promptBefore": " each answer. Write your answers in boxes 19-25 below. Hunting wasps used to feed on other",
-              "promptAfter": ", rather than on vegetation. Flowering plants started to reward bees with rich p"
-            },
-            {
-              "number": 20,
-              "promptBefore": "ering plants started to reward bees with rich pollen and an additional food in the form of",
-              "promptAfter": "Approximately 21 <input type=\"text\" class=\"iot-q"
-            },
-            {
-              "number": 21,
-              "promptBefore": "Approximately",
-              "promptAfter": "of human food production relies on the activity of bees. If the process of <span"
-            },
-            {
-              "number": 22,
-              "promptBefore": "of human food production relies on the activity of bees. If the process of",
-              "promptAfter": "is to take place effectively, bees need to travel from one flower to another bef"
-            },
-            {
-              "number": 23,
-              "promptBefore": " travel from one flower to another before going back to the nest. Bees need to balance the",
-              "promptAfter": "of each trip against the calorific rewards they obtain. There can be over 120 di"
-            },
-            {
-              "number": 24,
-              "promptBefore": "of each trip against the calorific rewards they obtain. There can be over 120 different",
-              "promptAfter": "in an acre of rainforest. The bees that pollinate large forests regularly practi"
-            },
-            {
-              "number": 25,
-              "promptBefore": " rainforest. The bees that pollinate large forests regularly practise an activity known as",
-              "promptAfter": ""
-            }
-          ]
-        },
-        {
-          "title": "Question 26",
-          "instructions": "Choose the correct letter , A, B, C or D . Choose the correct letter in box 26 below",
-          "type": "single_choice",
-          "questions": [
-            {
-              "number": 26,
-              "prompt": "Which is the best title for Reading Passage 2?",
-              "options": [
-                {
-                  "value": "A",
-                  "label": "The Evolutionary History of Bees"
-                },
-                {
-                  "value": "C",
-                  "label": "The Geographical Distribution of Bees"
-                }
-              ]
-            }
-          ]
-        }
-      ],
       "passage": {
-        "title": "Bees (Ecological intelligence of bees)",
+        "title": "Park the Car Permanently",
         "paragraphs": [
           {
-            "label": "",
-            "text": "Sometime in the early Cretaceous period of the Earth's history, hunting wasps of a certain type became bees by adopting a vegetarian diet: they began to rely more and more on the pollen of plants as a source of protein for themselves and their offspring, as an alternative to insects. In so doing, they accidentally transported pollen on their bodies to other plants of the same species, bringing about pollination. The stage was thus set for a succession of ever-closer mutual adaptations of bees and flowering plants. In particular, flowers began to reward bees for their unwitting role in their reproduction by providing richer sources of pollen and another source of nutrition, nectar."
+            "label": "A",
+            "text": "More than a million people are likely to be disappointed by the Government's attempts to improve the democratic process. They may have signed an online petition against road pricing, but ministers are determined to push ahead with plans to make driving more expensive in order to reduce congestion and environmental damage."
           },
           {
-            "label": "",
-            "text": "Today about 15 per cent of our diet consists of crops which are pollinated by bees. The meat and other animal products we consume are ultimately derived from bee- pollinated forage crops, and account for another 15 per cent. It follows that around one third of our food is directly or indirectly dependent on the pollinating services of bees. On a global basis, the annual value of agricultural crops dependent on the pollination services of bees is estimated at £1,000 million (US$1,590 million). Much of this pollination is due to honey bees, and in monetary terms it exceeds the value of the annual honey crop by a factor of fifty."
+            "label": "B",
+            "text": "Why wait until you are forced off the road by costly charges? Many people enjoy the convenience of a car, but owning one often makes little financial sense. Donnachadh McCarthy, an environmental expert, says a car is a huge financial commitment as well as a psychological addiction."
           },
           {
-            "label": "",
-            "text": "But the apparently harmonious relationship between bees and plants conceals a conflict of interests. Although flowers need bees and vice versa, it pays each partner to minimise its costs and maximise its profits. This may sound like an extreme case of attributing human qualities to non-human species, but using the marketplace and the principles of double-entry book keeping as metaphors may give US some insights into what is really going on between bees and flowering plants. In the real world, both flower and bee operate in a competitive marketplace. A community of retailers, the flowers, seek to attract more or less discriminating consumers, the bees. Each flower has to juggle the costs and benefits of investing in advertising, by colour and scent, and providing rewards, nectar and pollen, clearly a species which depends on cross-pollination is on a knife-edge: it must provide sufficient nectar to attract the interest of a bee, but not enough to satisfy all of its needs in one visit. A satiated bee would return to its nest rather than visit another flower. The bee, on the other hand, is out to get the maximum amount of pollen and nectar. It must assess the quality and quantity of rewards which are on offer and juggle its energy costs so that it makes a calorific profit on each foraging trip. The apparent harmony between plants and bees is therefore not all that it seems. Instead, it is an equilibrium based on compromises between the competing interests of the protagonists."
+            "label": "C",
+            "text": "Cars may appear cheap to buy, especially second-hand, but the falling purchase price masks the fact that it has never been more expensive to own and run a vehicle. The cost of running a car rose by more than ten per cent last year alone, and many costs of car ownership are fixed."
           },
           {
-            "label": "",
-            "text": "This sounds remarkably like the ideas of the 18th-century economist Adam Smith. In his book, The Wealth of Nations, Smith postulated that in human society the competitive interactions of different ‘economic units' eventually resulted in a balanced, or ‘harmonious’ society. One might predict, therefore, that economists would find the relationships between bees and plants of some interest. This is the case in Israel, where economists are collaborating with botanists and entomologists in a long-term study of the pollination biology of the native flora, in an attempt to understand the dynamics of the relationship between communities of bees and plants."
+            "label": "D",
+            "text": "Depreciation, finance packages, insurance, maintenance, tax, and breakdown insurance cost broadly the same however many miles people drive. Petrol prices are visible, but for a typical driver they account for less than one fifth of the real yearly cost."
           },
           {
-            "label": "",
-            "text": "This sort of study is of more than passing academic interest. It is important that authorities understand the dynamic relationships between plants and their pollinators. This is especially true when, say, devising conservation policies. A good example comes from the forests of tropical South America. Here, as in all rainforests, there is a high diversity of tree species. There may be more than 120 per acre, but in a given acre there may only be one or two individuals of any one species: These trees are pollinated by large, fast-flying bees. There is evidence that certain types of bees learn the distribution of these scattered trees and forage regularly along the same routes. This is called ‘trap-lining’ and the bees forage for up to 23 km from their nests. The bees are therefore acting as long distance pollinators."
+            "label": "E",
+            "text": "Public transport can be much cheaper. In London, the most expensive annual travel card costs just over 1,700 pounds. A driver could give up a car, buy a travel card, and still have money left for occasional car hire."
           },
           {
-            "label": "",
-            "text": "An issue of current concern in tropical forest conservation is that of trying to estimate the minimum sustainable size of islands' of forest reserve in areas where large-scale felling is taking place. There is much discussion on seed dispersal distances. But this is only one half of the equation, so far as the reproduction of trees is concerned. There is another question that must be addressed in order to calculate whether proposed forest reserves are close enough to the nearest large tract of forest: ‘what is the flight range of these long-distance foragers?' We need to know much more about bees and their relationships with plants before this question can be answered."
+            "label": "F",
+            "text": "Streetcar and other car clubs charge members a deposit and provide an electronic smart card. Members use cars parked in set locations, pay an hourly rate, and return each car to the same spot or another designated parking place."
           },
           {
-            "label": "",
-            "text": "Bees, then, are vital to our survival. Furthermore, much of the visual impact of human environments derives from vegetation, and most vegetation is dependent on bees for pollination. Thus, as pollinators of crops and natural vegetation, bees occupy key positions in the web of relationships which sustain the living architecture of our planet."
+            "label": "G",
+            "text": "Car sharing is increasingly popular for regular journeys, especially commuting. Company schemes and national organisations such as Liftshare and Carshare help people who live and work near each other team up. Others can replace journeys with low-cost transport such as cycling or walking."
           }
         ]
-      }
-    },
-    {
-      "key": "part_3",
-      "partNumber": 3,
-      "title": "Reading Passage 3",
-      "questionRange": "Questions 27-40",
-      "summary": "",
+      },
       "questionGroups": [
         {
-          "title": "Questions 27-35",
-          "instructions": "Reading Passage has seven paragraphs, A-G .",
+          "title": "Questions 14-17",
+          "instructions": "The text has 7 paragraphs (A-G). Which paragraph does each heading best fit?",
           "type": "select",
           "options": [
             "A",
@@ -315,155 +185,397 @@
           ],
           "questions": [
             {
+              "number": 14,
+              "prompt": "Don't wait!"
+            },
+            {
+              "number": 15,
+              "prompt": "Team up"
+            },
+            {
+              "number": 16,
+              "prompt": "Join a club"
+            },
+            {
+              "number": 17,
+              "prompt": "Use public transport"
+            }
+          ]
+        },
+        {
+          "title": "Questions 18-22",
+          "instructions": "According to the text, FIVE of the following statements are true. Write the corresponding letters in answer boxes 18 to 22 in any order.",
+          "type": "multi_select_letters",
+          "questionNumbers": [
+            18,
+            19,
+            20,
+            21,
+            22
+          ],
+          "maxSelections": 5,
+          "options": [
+            {
+              "value": "A",
+              "label": "McCarthy claims people can become addicted to using cars."
+            },
+            {
+              "value": "B",
+              "label": "The cost of using a car rose by over ten per cent last year."
+            },
+            {
+              "value": "C",
+              "label": "Most British people borrow money to help buy cars."
+            },
+            {
+              "value": "D",
+              "label": "Many people need cars to drive in London occasionally."
+            },
+            {
+              "value": "E",
+              "label": "Streetcar operates in over 20 cities in Britain."
+            },
+            {
+              "value": "F",
+              "label": "Streetcar's cars must be left at specific locations."
+            },
+            {
+              "value": "G",
+              "label": "Car sharing is becoming more popular with people who live and work near each other."
+            },
+            {
+              "value": "H",
+              "label": "The government wants to encourage people to go to work on foot or by bicycle."
+            }
+          ]
+        },
+        {
+          "title": "Questions 23-26",
+          "instructions": "For each question, only ONE of the choices is correct.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 23,
+              "prompt": "The government has decided",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "not to follow protestors' suggestions."
+                },
+                {
+                  "value": "B",
+                  "label": "to become more democratic."
+                },
+                {
+                  "value": "C",
+                  "label": "to go ahead with charging drivers to use roads."
+                },
+                {
+                  "value": "D",
+                  "label": "Both A and C"
+                },
+                {
+                  "value": "E",
+                  "label": "Both B and C"
+                }
+              ]
+            },
+            {
+              "number": 24,
+              "prompt": "Cars are often",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "relatively cheap in Britain."
+                },
+                {
+                  "value": "B",
+                  "label": "relatively expensive to operate in Britain."
+                },
+                {
+                  "value": "C",
+                  "label": "sold second-hand in Britain."
+                },
+                {
+                  "value": "D",
+                  "label": "Both A and C"
+                },
+                {
+                  "value": "E",
+                  "label": "Both A and B"
+                }
+              ]
+            },
+            {
+              "number": 25,
+              "prompt": "Fuel costs",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "make up about 20% of the cost of running a car."
+                },
+                {
+                  "value": "B",
+                  "label": "are related to the amount drivers pay for their cars."
+                },
+                {
+                  "value": "C",
+                  "label": "depend on how far you drive."
+                },
+                {
+                  "value": "D",
+                  "label": "Both A and C"
+                },
+                {
+                  "value": "E",
+                  "label": "Both B and C"
+                }
+              ]
+            },
+            {
+              "number": 26,
+              "prompt": "Using public transport",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "will save money for British motorists, except in London."
+                },
+                {
+                  "value": "B",
+                  "label": "and renting a car part of the time can save money."
+                },
+                {
+                  "value": "C",
+                  "label": "costs Londoners about 1,700 pounds a year."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Reading Passage 3",
+      "questionRange": "Questions 27-40",
+      "passage": {
+        "title": "Low-Cost Lamps Light Rural India",
+        "paragraphs": [
+          {
+            "label": "",
+            "text": "Until three months ago, life in a humble village without electricity would come to a halt after sunset. Ganpat Jadhav's children studied by kerosene lamp or cooking fire until low-cost, energy-efficient lamps powered by the sun were installed by the Grameen Surya Bijli Foundation, an Indian NGO focused on bringing light to rural India."
+          },
+          {
+            "label": "",
+            "text": "The GSBF lamps use LEDs that are four times more efficient than a normal bulb. After a 55-dollar installation cost, solar energy lights the lamp free of charge. LED lighting, like cell phones, is another example of a technology whose low cost could help the rural poor leap into the 21st century."
+          },
+          {
+            "label": "",
+            "text": "As many as 1.5 billion people, nearly 80 million in India alone, light their houses using kerosene as the primary lighting medium. The fuel is dangerous, dirty, and consumes nearly four per cent of a typical rural Indian household's budget. LED lamps produce far more useful light than kerosene lamps or conventional bulbs."
+          },
+          {
+            "label": "",
+            "text": "The technology is not yet widely known in India and faces some scepticism. Ashok Jhunjhunwala says LED systems are revolutionising rural lighting, but are not a magic solution to the world's energy problems. The Indian government has launched a project to bring electricity to 112,000 rural villages, though remote locations make this difficult."
+          },
+          {
+            "label": "",
+            "text": "The lamps installed by GSBF cost nearly half the price of other solar lighting systems. Jasjeet Singh Chaddha imports LEDs from China and wants to manufacture LEDs and solar panels locally in India. He says the cost could fall sharply if the lamps did not incur heavy import duties."
+          },
+          {
+            "label": "",
+            "text": "The rural markets in India cannot afford the lamps until prices are brought down. Dave Irvine-Halliday argues that rural markets would be able to afford them if they had access to microcredit. Light up the World is creating such a facility for South Africa."
+          },
+          {
+            "label": "",
+            "text": "In villages near Khadakwadi, the new LED lamps are envied even by people connected to the grid, where power cuts are common. LED systems require far less maintenance and have a longer life. GSBF lamps provide four hours of light per day, enough for evening work, and villagers are taught to clean dust from the LED to preserve luminosity and life."
+          }
+        ]
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 27-30",
+          "instructions": "For each question, only ONE of the choices is correct.",
+          "type": "single_choice",
+          "questions": [
+            {
               "number": 27,
-              "prompt": "An overview of the range of methods that have been used over time to document history"
+              "prompt": "The GSBF lamps",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "provide light for 100,000 Indian villages."
+                },
+                {
+                  "value": "B",
+                  "label": "are very expensive to install."
+                },
+                {
+                  "value": "C",
+                  "label": "are powered by the sun."
+                }
+              ]
             },
             {
               "number": 28,
-              "prompt": "The main reason why many historians are unwilling to use films in their work"
+              "prompt": "More than half of India's population uses",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "kerosene as a cooking fuel."
+                },
+                {
+                  "value": "B",
+                  "label": "biomass as a cooking fuel."
+                },
+                {
+                  "value": "C",
+                  "label": "solar power as a cooking fuel."
+                }
+              ]
             },
             {
               "number": 29,
-              "prompt": "A reference to some differences between oral and written communication"
+              "prompt": "In India, the GSBF lamps are too expensive for most people",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "in rural areas."
+                },
+                {
+                  "value": "B",
+                  "label": "in urban areas."
+                },
+                {
+                  "value": "C",
+                  "label": "in all areas."
+                }
+              ]
             },
             {
               "number": 30,
-              "prompt": "How most citizens today gain an understanding of history"
-            },
+              "prompt": "The GSBF lamps",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "are not as reliable as electricity from the national power grid."
+                },
+                {
+                  "value": "B",
+                  "label": "require skill to use."
+                },
+                {
+                  "value": "C",
+                  "label": "only provide four hours of light a day."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 31-35",
+          "instructions": "Complete the sentences using NO MORE THAN THREE WORDS from the text for each gap.",
+          "type": "text",
+          "questions": [
             {
               "number": 31,
-              "prompt": "How current student events are sometimes captured for future audiences"
+              "promptBefore": "Another example of cheap technology helping poor people in the countryside is"
             },
             {
               "number": 32,
-              "prompt": "Mention of the fact that the advantages of film are greater than the disadvantages"
+              "promptBefore": "Kerosene lamps and conventional bulbs give off less",
+              "promptAfter": "than GSBF lamps."
             },
             {
               "number": 33,
-              "prompt": "The claim that there is no official title for film-based historical work"
+              "promptBefore": "It is unlikely that the Indian government will achieve its aim of connecting 112,000 villages to electricity because many villages are"
             },
             {
               "number": 34,
-              "prompt": "Reference to the active role the audience plays when watching films"
+              "promptBefore": "GSBF lamps would be cheaper if it weren't for"
             },
             {
               "number": 35,
-              "prompt": "A list of requirements that historians see as obstacles to their use of film to record history"
+              "promptBefore": "Users need to wipe",
+              "promptAfter": "from the LED in order to keep it working well."
             }
           ]
         },
         {
           "title": "Questions 36-40",
-          "instructions": "Do the following statements agree with the claims of the writer in Reading Passage?",
+          "instructions": "Do the following statements agree with the information given in Reading Passage 3?",
           "type": "select",
           "options": [
-            "YES",
-            "NO",
+            "TRUE",
+            "FALSE",
             "NOT GIVEN"
           ],
           "questions": [
             {
               "number": 36,
-              "prompt": "The needs of students in school have led to improvements in the teaching of history."
+              "prompt": "Ganpat Jadhav's monthly ration of kerosene was insufficient."
             },
             {
               "number": 37,
-              "prompt": "Academic and popular historians have different attitudes towards the value of innovations in communication."
+              "prompt": "Kerosene causes many fires in homes in developing countries."
             },
             {
               "number": 38,
-              "prompt": "It is common for historians to play a major role in creating historical documentaries for television."
+              "prompt": "LED systems could solve the world's energy problems."
             },
             {
               "number": 39,
-              "prompt": "Articles in American History Review have explored aspects of modern history through popular films."
+              "prompt": "Chaddha has so far funded the GSBF lamp project himself."
             },
             {
               "number": 40,
-              "prompt": "Developments in technology are influencing a range of academic subjects. Thank you for your feedback, we will investigate and resolve the issue within 48 hours. Part 1 : 0 of 13 questions 1 2 3 4 5 6 7 8 9 10 11 12 13 Part 2 : 0 of 13 questions 14 15 16 17 18 19 20 21 22 23 24 25 26 Part 3 : 0 of 14 questions 27 28 29 30 31 32 33 34 35 36 37 38 39 40 Notifications Look up Translate Setting Searching for ..."
+              "prompt": "Microcredit would help to get more people to use LED lamps."
             }
           ]
         }
-      ],
-      "passage": {
-        "title": "A new stage in the study and teaching of history",
-        "paragraphs": [
-          {
-            "label": "",
-            "text": "For hundreds of years, historians have relied on written or printed documents to provide the bulk of their source materials, and they have largely communicated with students and the wider public by writing books and journal articles. Today, however, the printed word is being superseded by a diversity of forms of communication, above all moving images on video or film"
-          },
-          {
-            "label": "",
-            "text": "The development of this new form of communication is leading to a growing gap between the practice of professional historians based in academia, and the practice of those aiming to popularise the study of history among the general public, and to encourage people to create their own records for the future. On the one hand, there are mainstream academics who continue to use only the written word as they examine more and more fields with an ever- increasing number of sophisticated methodologies. On the other hand, film and video, especially as broadcast on television, are probably the major influence on the public's consciousness of history, as they see film of events of fifty or a hundred years ago, events they had previously only read about."
-          },
-          {
-            "label": "",
-            "text": "In a related development, a great many people now document local and family events in the form of videos; many schools, too, produce video yearbooks. All these visual records may well prove to be invaluable sources of information for future historians. The glaring contradiction is that the two approaches-the academic and what we might term the popular - have intersected very little: with a few notable exceptions, professional historians have tended to avoid involvement in television programmes about history, and have even less impact on what is being captured and preserved on video. And the potential of moving images has wielded negligible influence on the academic study of history."
-          },
-          {
-            "label": "",
-            "text": "This gulf can be seen as resulting from the willingness or otherwise of individual historians to accept the validity of new forms of communication in the study of history. This is not the first time that the question has arisen. The study of history, as conceived of today, began with the transition from oral to literate culture, leading to the earliest written records and the earliest historical studies. The next great shift came with the advent of printing, which transformed everything. Today, as the printed word loses its dominance, historians are faced with a variety of forms of communication, ranging from simple audiotape to the promising complexities of videodiscs linked with computers. As yet, however, the use of moving images to record current events for the benefit of future historians does not even have a commonly agreed name."
-          },
-          {
-            "label": "",
-            "text": "This does not mean that mainstream historians have totally rejected the use of moving images as sources: the majority seem intrigued by the idea, and valuable research has been carried out into the history and analysis of films with a broad circulation, using them as a source of information on the social and intellectual history of the twentieth century. Journals such as American History Review have played a significant role in this field."
-          },
-          {
-            "label": "",
-            "text": "Yet the number of historians using moving images in their research or teaching is very small. The barrier seems to be that the profession is structured around the medium of the written word, and is somewhat insulated in its academic setting. The use of moving images presents a substantial challenge to this setting and its assumptions. As a result, historians have rejected the training, the institutions, the motivations and the professional structures that would be needed in order to use moving images effectively. Above all, they have rejected the necessity to learn complicated new skills."
-          },
-          {
-            "label": "",
-            "text": "So why should historians make this change? clearly, films or videos of events and people can be used as solid evidence of the past, linked to the words of the narrator (whether a television presenter/historian or a university teacher giving a lecture) but carrying information in their own right. Film has reintroduced the oral form as a mode of research and communication for documenting historical events. Now, with moving images, people are reminded that oral communication is not limited to words: it also includes body language, expression and tone, and is embedded in a context. Little of this is evident in a written transcript. A further effect of video and film is that the narrator gives up some control and has less need to give explanations, while the viewer becomes involved in the process of interpreting and understanding history."
-          },
-          {
-            "label": "",
-            "text": "Film or videotape can also aid historians by simplifying the work of the interviewer. Instead of trying to carry on an interview while simultaneously making notes about setting and other unspoken data, this new kind of historian can concentrate on the interview itself, and study the film later. The many benefits of using moving images as historical evidence easily outweigh worries about cost, technical skills, or the effect of a camera on a person telling his or her story. Moving images enhance the quality of historical research, and suggest new directions for historians to explore."
-          }
-        ]
-      }
+      ]
     }
   ],
   "answerKey": {
-    "1": "B",
-    "2": "B",
-    "3": "A",
+    "1": "D",
+    "2": "C",
+    "3": "E",
     "4": "A",
-    "5": "C",
-    "6": "B",
-    "7": "A",
-    "8": "C",
-    "9": "E",
-    "10": "D",
+    "5": "biggest",
+    "6": "a registered agent",
+    "7": "tea",
+    "8": "dominated",
+    "9": "NOT GIVEN",
+    "10": "TRUE",
     "11": "FALSE",
-    "12": "TRUE",
-    "13": "TRUE",
-    "14": "ii",
-    "15": "v",
-    "16": "i",
-    "17": "iv",
-    "18": "viii",
-    "19": "insects",
-    "20": "nectar",
-    "21": "one third",
-    "22": "cross-pollination",
-    "23": "energy costs",
-    "24": "tree species",
-    "25": "trap-lining",
-    "26": "A",
+    "12": "FALSE",
+    "13": "FALSE",
+    "14": "B",
+    "15": "G",
+    "16": "F",
+    "17": "E",
+    "18": "A",
+    "19": "B",
+    "20": "C",
+    "21": "F",
+    "22": "G",
+    "23": "D",
+    "24": "E",
+    "25": "D",
+    "26": "B",
     "27": "C",
-    "28": "E",
-    "29": "F",
-    "30": "A",
-    "31": "B",
-    "32": "G",
-    "33": "C",
-    "34": "F",
-    "35": "E",
-    "36": "NOT GIVEN",
-    "37": "YES",
-    "38": "NO",
-    "39": "YES",
-    "40": "NOT GIVEN"
+    "28": "B",
+    "29": "A",
+    "30": "C",
+    "31": "cell phones",
+    "32": "useful light",
+    "33": "remote",
+    "34": "heavy import duties",
+    "35": "dust",
+    "36": "TRUE",
+    "37": "NOT GIVEN",
+    "38": "FALSE",
+    "39": "TRUE",
+    "40": "TRUE"
   }
 }

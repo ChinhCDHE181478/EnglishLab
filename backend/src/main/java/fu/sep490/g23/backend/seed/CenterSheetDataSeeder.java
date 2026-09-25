@@ -740,6 +740,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 JsonNode key = objectMapper.readTree(json).path("answerKey");
                 existing.get().setObjectiveAnswerKey(key.isMissingNode() ? "{}" : objectMapper.writeValueAsString(key));
             }
+            existing.get().synchronizeContentData(); // Ensure the transient fields are flushed to the JSON map
+            // Hack to force JPA to recognize the entity as dirty since all above fields are transient
+            existing.get().setUpdatedAt(java.time.LocalDateTime.now());
             assessmentBankItemRepository.save(existing.get());
             return;
         }

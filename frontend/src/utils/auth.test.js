@@ -11,7 +11,7 @@ import {
 describe('role helpers', () => {
   it.each([
     ['ADMIN', '/admin'],
-    ['MANAGER', '/manager/classroom-proposals'],
+    ['MANAGER', '/manager'],
     ['CONTENT_MANAGER', '/content-manager/dashboard'],
     ['STAFF', '/staff'],
     ['TEACHER', '/teacher'],
