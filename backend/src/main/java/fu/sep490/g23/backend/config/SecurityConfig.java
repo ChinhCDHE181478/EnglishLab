@@ -65,6 +65,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/api/student/notifications/**").authenticated()
                         .requestMatchers("/api/student/classrooms/**").hasAnyRole("LEARNER", "TEACHER", "MANAGER", "ADMIN")
+                        // Teachers authoring Listening/Reading homework content via AssessmentExamBuilder
+                        // (shared with content-manager) need to upload audio/image files through this
+                        // same endpoint, so this specific path is opened to TEACHER before the general rule.
+                        .requestMatchers("/api/content-manager/material-library/upload").hasAnyRole("TEACHER", "CONTENT_MANAGER", "MANAGER", "ADMIN")
                         .requestMatchers("/api/content-manager/**").hasAnyRole("CONTENT_MANAGER", "ADMIN")
                         .requestMatchers("/api/student/**").hasAnyRole("LEARNER", "CONTENT_MANAGER", "MANAGER", "ADMIN")
                         .anyRequest().authenticated()
