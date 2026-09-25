@@ -157,9 +157,6 @@ const describeStructuredResource = (config) => {
 
 // Các kỹ năng mà khóa học có giảng viên được phép tham chiếu tới kho đề luyện tập
 // (đồng bộ với 4 tab Luyện nghe / Luyện đọc / Luyện viết / Luyện nói).
-const REUSABLE_PRACTICE_SKILLS = new Set(['LISTENING', 'READING', 'WRITING', 'SPEAKING']);
-const REUSABLE_PRACTICE_TYPES = new Set(['LESSON_PRACTICE', 'WRITING_TASK', 'SPEAKING_TASK']);
-
 const SKILL_DISPLAY_LABELS = {
   LISTENING: 'Luyện nghe',
   READING: 'Luyện đọc',
@@ -180,9 +177,9 @@ const normalizeAssessmentKey = (value) => String(value || '').toUpperCase().trim
 const isReusablePracticeAssessment = (item = {}) => {
   const skill = normalizeAssessmentKey(item.skill);
   const type = normalizeAssessmentKey(item.type);
-  if (REUSABLE_PRACTICE_SKILLS.has(skill) && REUSABLE_PRACTICE_TYPES.has(type)) return true;
-  // MOCK_TEST liên quan tới ngân hàng đề thi thử — cho phép tham chiếu nếu thuộc 4 kỹ năng.
-  if (REUSABLE_PRACTICE_SKILLS.has(skill) && type === 'MOCK_TEST') return true;
+  if (['LISTENING', 'READING'].includes(skill)) return type === 'LESSON_PRACTICE';
+  if (skill === 'WRITING') return type === 'WRITING_TASK';
+  if (skill === 'SPEAKING') return type === 'SPEAKING_TASK';
   return false;
 };
 
@@ -944,12 +941,12 @@ export default function ContentManagerInstructorLedCoursesPage() {
       : 'Không còn tài nguyên khả dụng (đã gắn hết vào Unit)';
     const descriptionFor = (item) => {
       if (attachForm.type === 'ASSESSMENT') {
+        const skill = normalizeAssessmentKey(item.skill);
+        const type = normalizeAssessmentKey(item.type);
         const skillLabel = formatAssessmentSkill(item.skill);
         const typeLabel = formatAssessmentType(item.type);
         const exam = item.examCategory ? String(item.examCategory) : '';
-        // Skill/type được đưa vào cả label lẫn description để BrandedSelect có thể
-        // tìm kiếm theo TÊN hoặc KỸ NĂNG hoặc LOẠI BÀI (chỉ cần khớp 1 trong 3).
-        return [skillLabel, typeLabel, exam].filter(Boolean).join(' · ');
+        return [skillLabel, skill, typeLabel, type, exam].filter(Boolean).join(' · ');
       }
       if (attachForm.type === 'MATERIAL') {
         return item.materialType || item.category || '';

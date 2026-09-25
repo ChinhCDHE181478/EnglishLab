@@ -455,6 +455,7 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         ContentBankItem assessment = contentBankItemRepository.findByIdAndBankType(resolvedId, ContentBankType.ASSESSMENT)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
         requirePublishedResource(assessment.getStatus(), "Đề đánh giá");
+        requireReusableSkillPractice(assessment);
         if (contentRefRepository.existsByCourseUnitIdAndContentTypeAndContentBankItemId(
                 unitId, CourseUnitContentType.ASSESSMENT, assessment.getId())) {
             throw new IllegalArgumentException("Đề đánh giá này đã tồn tại trong Unit.");
@@ -1499,6 +1500,24 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
     private void requirePublishedResource(String status, String resourceLabel) {
         if (!"PUBLISHED".equalsIgnoreCase(status)) {
             throw new IllegalArgumentException(resourceLabel + " phải được xuất bản trước khi gắn vào khóa học.");
+        }
+    }
+
+    /** Limits new unit references to content managed by the four skill-practice pages. */
+    private void requireReusableSkillPractice(ContentBankItem assessment) {
+        String skill = defaultText(assessment.getSkill(), "").toUpperCase(Locale.ROOT);
+        Object rawType = assessment.getContentData() == null ? null : assessment.getContentData().get("type");
+        String type = defaultText(rawType == null ? null : rawType.toString(), "").toUpperCase(Locale.ROOT);
+        boolean reusable = switch (skill) {
+            case "LISTENING", "READING" -> "LESSON_PRACTICE".equals(type);
+            case "WRITING" -> "WRITING_TASK".equals(type);
+            case "SPEAKING" -> "SPEAKING_TASK".equals(type);
+            default -> false;
+        };
+        if (!reusable) {
+            throw new IllegalArgumentException(
+                    "Chỉ được gắn bài luyện tập đã xuất bản từ các mục Luyện nghe, Luyện đọc, Luyện viết hoặc Luyện nói."
+            );
         }
     }
 
