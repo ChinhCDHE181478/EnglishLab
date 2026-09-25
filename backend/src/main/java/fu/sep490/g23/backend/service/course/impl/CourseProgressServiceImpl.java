@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 import java.util.List;
 import java.util.Objects;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,9 +61,17 @@ public class CourseProgressServiceImpl implements CourseProgressService {
                 ? EnrollmentStatus.CANCELLED
                 : snapshot.eligibleForCertificate() ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
                 
+        // Preserve the first completion time independently from later enrollment updates,
+        // such as rating or editing a course review.
+        boolean completionTimeAssigned = snapshot.eligibleForCertificate() && enrollment.getCompletedAt() == null;
+        if (completionTimeAssigned) {
+            enrollment.setCompletedAt(LocalDateTime.now());
+        }
+
         // If nothing changed, return early to avoid unnecessary DB updates
         if (java.util.Objects.equals(enrollment.getProgressPercent(), progressPercent)
-                && enrollment.getStatus() == nextStatus) {
+                && enrollment.getStatus() == nextStatus
+                && !completionTimeAssigned) {
             return enrollment;
         }
         
@@ -95,7 +104,7 @@ public class CourseProgressServiceImpl implements CourseProgressService {
                 .eligibleForCertificate(eligibleForCertificate)
                 .status(status)
                 .statusReason(statusReason)
-                .completionDate(eligibleForCertificate ? enrollment.getUpdatedAt() : null)
+                .completionDate(eligibleForCertificate ? enrollment.getCompletedAt() : null)
                 .latestLessonId(snapshot.latestLessonId())
                 .latestLessonTitle(snapshot.latestLessonTitle())
                 .latestLessonAccessedAt(snapshot.latestLessonAccessedAt())

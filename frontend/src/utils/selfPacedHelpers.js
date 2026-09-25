@@ -57,6 +57,29 @@ export const formatBandValue = (value) => {
   return Number.isInteger(parsed) ? parsed.toFixed(1) : String(parsed);
 };
 
+export const resolveCourseTargetDisplay = (course = {}) => {
+  const category = String(course.category || course.categoryCode || '').trim().toUpperCase();
+  if (category === 'IELTS') {
+    const band = formatBandValue(course.targetBand);
+    return {
+      label: 'Band mục tiêu',
+      value: band ? `Band ${band}` : 'Đang cập nhật',
+    };
+  }
+  if (category === 'TOEIC') {
+    const score = String(course.targetScore || '').trim();
+    return {
+      label: 'Điểm mục tiêu',
+      value: score || 'Đang cập nhật',
+    };
+  }
+  const outcome = String(course.targetScore || course.targetOutcome || '').trim();
+  return {
+    label: 'Chuẩn đầu ra',
+    value: outcome || 'Đang cập nhật',
+  };
+};
+
 const isUnavailableCourse = (course) => ['PAUSED', 'UNAVAILABLE'].includes(String(course?.status || '').toUpperCase());
 
 export const formatBandRangeText = (course) => {

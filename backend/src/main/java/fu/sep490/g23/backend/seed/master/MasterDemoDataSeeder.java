@@ -460,7 +460,20 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
             program.setExamType(categoryCode);
             program.setBaseTuitionFeeVnd(BigDecimal.valueOf(node.path("tuition").asLong(0)));
             program.setPublicationStatus(PackageStatus.PUBLISHED);
-            program.setShortDescription(node.path("title").asText() + " — chương trình instructor-led tại trung tâm.");
+            program.setShortDescription(node.path("shortDescription")
+                    .asText(node.path("title").asText() + " — chương trình có giảng viên tại trung tâm."));
+            program.setDescription(nullableText(node, "description"));
+            program.setEntryLevel(nullableText(node, "entryLevel"));
+            program.setFocusSkills(nullableText(node, "focusSkills"));
+            program.setTargetBand(node.hasNonNull("targetBand")
+                    ? node.path("targetBand").decimalValue()
+                    : null);
+            program.setTargetScore(node.hasNonNull("targetScore")
+                    ? node.path("targetScore").asInt()
+                    : null);
+            program.setLearningOutcomes(nullableText(node, "learningOutcomes"));
+            program.setTeacherGuide(nullableText(node, "teacherGuide"));
+            program.setDurationLabel(nullableText(node, "durationLabel"));
             if (program.getCreatedBy() == null && creator != null) {
                 program.setCreatedBy(creator);
             }
@@ -468,6 +481,11 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
             byCode.put(code, program);
         }
         return byCode;
+    }
+
+    private String nullableText(JsonNode node, String fieldName) {
+        String value = node.path(fieldName).asText("").trim();
+        return value.isEmpty() ? null : value;
     }
 
     private void seedCourseSyllabus(

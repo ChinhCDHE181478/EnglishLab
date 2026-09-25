@@ -5081,42 +5081,89 @@
         "title": "IELTS Foundation Evening",
         "category": "IELTS",
         "tuition": 4690000,
-        "totalSessions": 36
+        "totalSessions": 36,
+        "shortDescription": "Xây dựng nền tảng IELTS bốn kỹ năng với giảng viên hướng dẫn.",
+        "description": "Chương trình IELTS nền tảng có giảng viên hướng dẫn, luyện đồng đều Listening, Reading, Writing và Speaking.",
+        "entryLevel": "IELTS 3.5 hoặc tương đương",
+        "focusSkills": "LISTENING,READING,WRITING,SPEAKING",
+        "targetBand": 5.5,
+        "learningOutcomes": "Củng cố nền tảng bốn kỹ năng và sẵn sàng cho lộ trình IELTS 6.5.",
+        "teacherGuide": "Bám sát mục tiêu từng Unit, giao bài sau mỗi buổi và phản hồi theo tiêu chí IELTS.",
+        "durationLabel": "12 tuần"
       },
       {
         "code": "ILC_IELTS_65",
         "title": "IELTS 6.5 Intensive",
         "category": "IELTS",
         "tuition": 5290000,
-        "totalSessions": 36
+        "totalSessions": 36,
+        "shortDescription": "Luyện thi IELTS tăng tốc hướng tới Band 6.5.",
+        "description": "Chương trình IELTS tăng tốc có giảng viên, tập trung chiến thuật và thực hành bốn kỹ năng.",
+        "entryLevel": "IELTS 5.0 hoặc tương đương",
+        "focusSkills": "LISTENING,READING,WRITING,SPEAKING",
+        "targetBand": 6.5,
+        "learningOutcomes": "Hoàn thiện chiến thuật bốn kỹ năng và hướng tới IELTS 6.5.",
+        "teacherGuide": "Theo dõi tiến độ từng kỹ năng, chữa bài Writing và Speaking, tổ chức kiểm tra định kỳ.",
+        "durationLabel": "10 tuần"
       },
       {
         "code": "ILC_IELTS_SPEAKING",
         "title": "IELTS Speaking Studio",
         "category": "IELTS",
         "tuition": 3990000,
-        "totalSessions": 36
+        "totalSessions": 36,
+        "shortDescription": "Luyện IELTS Speaking theo Part với phản hồi trực tiếp từ giảng viên.",
+        "description": "Chương trình luyện IELTS Speaking có giảng viên, tập trung Fluency, Pronunciation và phát triển ý Part 1-3.",
+        "entryLevel": "IELTS Speaking 5.0 hoặc tương đương",
+        "focusSkills": "SPEAKING",
+        "targetBand": 6.5,
+        "learningOutcomes": "Trình bày câu trả lời mạch lạc, phát âm rõ và hướng tới IELTS Speaking 6.5.",
+        "teacherGuide": "Tổ chức speaking drill, cue card và phản hồi theo bốn tiêu chí IELTS Speaking.",
+        "durationLabel": "12 tuần"
       },
       {
         "code": "ILC_TOEIC_650",
         "title": "TOEIC 650 Evening",
         "category": "TOEIC",
         "tuition": 4290000,
-        "totalSessions": 36
+        "totalSessions": 36,
+        "shortDescription": "Luyện TOEIC Listening và Reading hướng tới 650 điểm.",
+        "description": "Chương trình TOEIC Listening và Reading có giảng viên, bao quát Part 1-7 và chiến thuật làm bài.",
+        "entryLevel": "TOEIC 450 hoặc tương đương",
+        "focusSkills": "LISTENING,READING",
+        "targetScore": 650,
+        "learningOutcomes": "Nắm cấu trúc Part 1-7, cải thiện tốc độ và hướng tới TOEIC 650.",
+        "teacherGuide": "Luyện theo từng Part, duy trì error log và kiểm tra tiến độ Listening, Reading hằng tuần.",
+        "durationLabel": "10 tuần"
       },
       {
         "code": "ILC_TOEIC_800",
         "title": "TOEIC 800 Intensive",
         "category": "TOEIC",
         "tuition": 4890000,
-        "totalSessions": 36
+        "totalSessions": 36,
+        "shortDescription": "Luyện TOEIC tăng tốc từ nền tảng 650 hướng tới 800 điểm.",
+        "description": "Chương trình TOEIC tăng tốc có giảng viên cho học viên đã đạt khoảng 650 và hướng tới 800.",
+        "entryLevel": "TOEIC 650 hoặc tương đương",
+        "focusSkills": "LISTENING,READING",
+        "targetScore": 800,
+        "learningOutcomes": "Tăng tốc độ xử lý Part 5-7, kiểm soát bẫy Listening và hướng tới TOEIC 800.",
+        "teacherGuide": "Phân tích lỗi theo Part, giao timed practice và tổ chức mock test định kỳ.",
+        "durationLabel": "12 tuần"
       },
       {
         "code": "ILC_COMM_WORK",
         "title": "English for Workplace",
         "category": "COMMUNICATION",
         "tuition": 3590000,
-        "totalSessions": 36
+        "totalSessions": 36,
+        "shortDescription": "Phát triển tiếng Anh giao tiếp thực tế trong môi trường công sở.",
+        "description": "Chương trình tiếng Anh công sở có giảng viên, luyện giao tiếp trong họp, email, điện thoại và thuyết trình.",
+        "entryLevel": "CEFR A2 hoặc tương đương",
+        "focusSkills": "SPEAKING,LISTENING,WRITING",
+        "learningOutcomes": "Giao tiếp công sở ở mức CEFR B1, viết email rõ ràng và trình bày ngắn có cấu trúc.",
+        "teacherGuide": "Ưu tiên role-play, tình huống công sở và phản hồi thực hành sau mỗi buổi.",
+        "durationLabel": "24 buổi"
       }
     ],
     "protectedCourses": [

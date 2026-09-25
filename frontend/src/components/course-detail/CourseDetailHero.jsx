@@ -4,7 +4,7 @@ import LearnerCourseActions from '../learner/LearnerCourseActions';
 import CourseCommerceActions from '../learner/CourseCommerceActions';
 import RichTextHtml from '../content-manager/RichTextHtml';
 import { formatCoursePrice } from '../course/courseFormatters';
-import { formatBandRangeText, formatBandValue, getBandFitInfo } from '../../utils/selfPacedHelpers';
+import { formatBandRangeText, formatBandValue, getBandFitInfo, resolveCourseTargetDisplay } from '../../utils/selfPacedHelpers';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const formatLevelLabel = (level) => {
@@ -58,11 +58,13 @@ const buildStatItems = (course, bandFit) => {
   const totalLessons = Number(course.totalLessons || 0);
   const totalHours = Number(course.totalHours || 0);
   const enrollmentCount = Number(course.enrollmentCount || 0);
+  const targetDisplay = resolveCourseTargetDisplay(course);
+  const isIelts = String(course.category || '').toUpperCase() === 'IELTS';
 
   return [
     {
-      title: 'Band phù hợp',
-      value: formatBandCompactText(course),
+      title: isIelts ? 'Band phù hợp' : 'Trình độ phù hợp',
+      value: isIelts ? formatBandCompactText(course) : formatLevelLabel(course.level),
       description: bandFit.message || 'Phù hợp với trình độ hiện tại',
     },
     {
@@ -76,7 +78,7 @@ const buildStatItems = (course, bandFit) => {
     {
       title: 'Trình độ đề xuất',
       value: formatLevelLabel(course.level),
-      description: course.targetBand ? `Mục tiêu Band ${formatBandValue(course.targetBand)}` : 'Theo lộ trình hiện tại',
+      description: `${targetDisplay.label}: ${targetDisplay.value}`,
     },
     {
       title: 'Số bài học',
@@ -131,9 +133,12 @@ const buildTabItems = ({ course, bandFit, focusSkills, prerequisites }) => [
         <div className="flex gap-3 text-base leading-8 text-[#584140]">
           <span className="mt-1 text-lg font-black text-[#8a0018]">✓</span>
           <p>
-            {course.targetBand
-              ? `Mục tiêu đầu ra hướng tới Band ${formatBandValue(course.targetBand)}.`
-              : 'Khóa học tập trung giúp bạn cải thiện kết quả học tập thực tế.'}
+            {(() => {
+              const target = resolveCourseTargetDisplay(course);
+              return target.value === 'Đang cập nhật'
+                ? 'Khóa học tập trung giúp bạn cải thiện kết quả học tập thực tế.'
+                : `${target.label}: ${target.value}.`;
+            })()}
           </p>
         </div>
         <div className="flex gap-3 text-base leading-8 text-[#584140]">

@@ -208,11 +208,10 @@ public class InstructorLedCourseManagementServiceImpl implements InstructorLedCo
         applyEnglishProfile(course, request);
         course.setLearningOutcomes(trimOrNull(request.getOutcomes()));
         course.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
-        PackageStatus previousStatus = course.getPublicationStatus();
         PackageStatus nextStatus = parsePublicationStatus(request.getStatus());
 
         // Validate course readiness before publishing
-        if (nextStatus == PackageStatus.PUBLISHED && previousStatus != PackageStatus.PUBLISHED) {
+        if (nextStatus == PackageStatus.PUBLISHED) {
             validateReadyForPublish(course);
         }
         course.setPublicationStatus(nextStatus);

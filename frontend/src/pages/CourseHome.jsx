@@ -12,7 +12,7 @@ import RichTextHtml from '../components/content-manager/RichTextHtml';
 import { hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
-import { isAssessmentPassed } from '../utils/selfPacedHelpers';
+import { isAssessmentPassed, resolveCourseTargetDisplay } from '../utils/selfPacedHelpers';
 import { resolveScoreCap } from '../utils/ieltsBandScale';
 import { findFurthestReachedModuleIndex, isReachedModuleUnlocked } from '../utils/courseProgressAccess';
 import { buildLessonWorkspacePath } from '../utils/courseWorkspaceNavigation';
@@ -193,8 +193,15 @@ const CourseHome = () => {
   const completedLessonIds = useMemo(() => new Set(enrollment?.completedLessonIds || []), [enrollment?.completedLessonIds]);
   const totalLessons = countLessons(course?.modules || []);
   const completedCount = completedLessonIds.size;
+  const totalAssessments = Number(completion?.totalAssessments ?? assessments.length);
+  const completedAssessments = Number(
+    completion?.completedAssessments ?? assessments.filter(isAssessmentPassed).length,
+  );
+  const totalContent = totalLessons + totalAssessments;
+  const completedContent = completedCount + completedAssessments;
   const progressPercent = Math.round(Number(completion?.progressPercent ?? enrollment?.progressPercent ?? course?.progressPercent ?? 0));
   const courseCompleted = Boolean(completion?.eligibleForCertificate);
+  const targetDisplay = resolveCourseTargetDisplay(course || {});
   const assessmentsByModule = useMemo(() => {
     const grouped = new Map();
     assessments.forEach((assessment) => {
@@ -341,7 +348,7 @@ const CourseHome = () => {
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
           <h2 className="font-['Manrope'] text-2xl font-extrabold text-[#1a1c1c]">Nội dung khóa học</h2>
-          <p className="mt-1 text-sm text-[#6b7280]">{completedCount}/{totalLessons} bài học đã hoàn thành • {progressPercent}% tiến độ</p>
+          <p className="mt-1 text-sm text-[#6b7280]">{completedContent}/{totalContent} nội dung đã hoàn thành • {progressPercent}% tiến độ</p>
         </div>
         <span className="rounded bg-[#fff1f3] px-3 py-1 text-xs font-bold text-[#730014]">
           {courseCompleted ? 'Hoàn thành' : 'Đang học'}
@@ -634,8 +641,8 @@ const CourseHome = () => {
           <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{course.level || course.targetScore || 'Theo lộ trình'}</p>
         </div>
         <div className="border border-[#e5e7eb] bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Mục tiêu band</p>
-          <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{course.targetBand || course.targetScore || 'Theo lộ trình'}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">{targetDisplay.label}</p>
+          <p className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{targetDisplay.value}</p>
         </div>
         <div className="border border-[#e5e7eb] bg-white p-4">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b7280]">Bài học</p>
@@ -682,7 +689,7 @@ const CourseHome = () => {
             <h3 className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">Chứng nhận</h3>
             <p className="mt-3 text-sm leading-6 text-[#4b5563]">
               {certificate?.eligible
-                ? `Đủ điều kiện nhận chứng nhận. Mã xác thực: ${certificate.verificationCode || 'đang cập nhật'}.`
+                ? 'Đủ điều kiện nhận chứng nhận.'
                 : certificate?.message || completion?.statusReason || 'Hoàn thành toàn bộ bài học và bài đánh giá để nhận chứng nhận.'}
             </p>
           </div>

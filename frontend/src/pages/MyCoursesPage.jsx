@@ -7,7 +7,7 @@ import BrandLoadingState from '../components/ui/BrandLoadingState';
 import courseApi from '../api/courseApi';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
-import { formatBandValue } from '../utils/selfPacedHelpers';
+import { resolveCourseTargetDisplay } from '../utils/selfPacedHelpers';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import Pagination, { usePagination } from '../components/ui/Pagination';
 
@@ -244,7 +244,13 @@ const MyCoursesPage = () => {
                 animate="show"
                 className="grid gap-5"
               >
-                {paginatedCourses.map(({ course, enrollment, completion }) => (
+                {paginatedCourses.map(({ course, enrollment, completion }) => {
+                  const targetDisplay = resolveCourseTargetDisplay(course);
+                  const completedContent = Number(completion?.completedLessons ?? 0)
+                    + Number(completion?.completedAssessments ?? completion?.passedAssessments ?? 0);
+                  const totalContent = Number(completion?.totalLessons ?? 0)
+                    + Number(completion?.totalAssessments ?? 0);
+                  return (
                   <motion.article
                     key={course.id}
                     variants={itemVariants}
@@ -279,9 +285,9 @@ const MyCoursesPage = () => {
                         {/* Progress Grid */}
                         <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
                           <KpiMiniCell label="Tiến độ học" value={`${completion?.progressPercent ?? enrollment.progressPercent ?? 0}%`} />
-                          <KpiMiniCell label="Bài hoàn thành" value={`${completion?.completedLessons ?? 0} / ${completion?.totalLessons ?? 0}`} />
+                          <KpiMiniCell label="Nội dung hoàn thành" value={`${completedContent} / ${totalContent}`} />
                           <KpiMiniCell label="Đánh giá đạt" value={`${completion?.completedAssessments ?? completion?.passedAssessments ?? 0} / ${completion?.totalAssessments ?? 0}`} />
-                          <KpiMiniCell label="Band mục tiêu" value={course.targetBand ? `Band ${formatBandValue(course.targetBand)}` : 'Đang cập nhật'} />
+                          <KpiMiniCell label={targetDisplay.label} value={targetDisplay.value} />
                         </div>
 
                         {/* Actions buttons */}
@@ -309,7 +315,8 @@ const MyCoursesPage = () => {
                       </div>
                     </div>
                   </motion.article>
-                ))}
+                  );
+                })}
 
                 {filteredCourses.length > 5 && (
                   <div className="mt-4 flex justify-end">
