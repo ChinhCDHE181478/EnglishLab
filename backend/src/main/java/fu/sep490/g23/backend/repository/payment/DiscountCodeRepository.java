@@ -18,4 +18,8 @@ public interface DiscountCodeRepository extends JpaRepository<DiscountCode, Long
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select discountCode from DiscountCode discountCode where lower(discountCode.code) = lower(:code)")
     Optional<DiscountCode> findByCodeIgnoreCaseForUpdate(@Param("code") String code);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select discountCode from DiscountCode discountCode where discountCode.id = :id")
+    Optional<DiscountCode> findByIdForUpdate(@Param("id") Long id);
 }

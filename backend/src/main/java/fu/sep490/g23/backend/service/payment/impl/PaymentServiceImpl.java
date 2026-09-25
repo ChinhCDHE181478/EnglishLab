@@ -43,7 +43,11 @@ import fu.sep490.g23.backend.service.payment.CheckoutPriceSnapshot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import vn.payos.PayOS;
 import vn.payos.exception.PayOSException;
 import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
@@ -85,6 +89,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final ClassroomOfferingService classroomOfferingService;
     private final PaymentReceiptPdfService paymentReceiptPdfService;
     private final StudentCommerceService studentCommerceService;
+    private final PlatformTransactionManager transactionManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -158,8 +163,9 @@ public class PaymentServiceImpl implements PaymentService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
         boolean checkoutConfirmationRequired = checkoutSnapshot != null;
-        boolean lockCheckoutPricing = checkoutConfirmationRequired
-                || (classroomOfferingIds != null && !classroomOfferingIds.isEmpty());
+        // Every real checkout locks its payable rows. Besides keeping prices stable,
+        // this serializes the active-order check for the same online course.
+        boolean lockCheckoutPricing = true;
         PayableBundle bundle = resolvePayableBundle(
                 courseIds,
                 classroomOfferingIds,
@@ -293,7 +299,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentOrderStatusResponse getOrderStatus(Long orderCode, String studentEmail) {
-        PaymentOrder order = paymentOrderRepository.findByOrderCode(orderCode)
+        PaymentOrder order = paymentOrderRepository.findByOrderCodeForUpdate(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn thanh toán."));
 
         if (!Objects.equals(order.getStudent().getEmail(), studentEmail)) {
@@ -350,6 +356,14 @@ public class PaymentServiceImpl implements PaymentService {
         order.setWebhookConfirmedAt(LocalDateTime.now());
         order.setLastWebhookPayload(writePayload(payload));
 
+        // A delayed or duplicated failure webhook must never downgrade an order
+        // that another trusted path has already finalized successfully.
+        if (order.getStatus() == PaymentOrderStatus.PAID
+                || order.getStatus() == PaymentOrderStatus.REFUNDED) {
+            paymentOrderRepository.save(order);
+            return;
+        }
+
         boolean success = Boolean.TRUE.equals(payload.get("success"))
                 && "00".equalsIgnoreCase(stringValue(payload.get("code")))
                 && "00".equalsIgnoreCase(stringValue(data.get("code")));
@@ -381,13 +395,30 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void reconcilePendingPaymentOrders() {
         if (!payosProperties.isEnabled()) {
             return;
         }
-        paymentOrderRepository.findByStatusIn(List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING))
-                .forEach(this::syncOrderStatusFromProvider);
+        List<PaymentOrderStatus> pendingStatuses = List.of(
+                PaymentOrderStatus.PENDING,
+                PaymentOrderStatus.PROCESSING
+        );
+        for (Long orderCode : paymentOrderRepository.findOrderCodesByStatusIn(pendingStatuses)) {
+            try {
+                reconcilePendingPaymentOrder(orderCode);
+            } catch (RuntimeException exception) {
+                log.error("Không thể đối soát orderCode={}; tiếp tục với đơn kế tiếp.", orderCode, exception);
+            }
+        }
+    }
+
+    private void reconcilePendingPaymentOrder(Long orderCode) {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transaction.executeWithoutResult(status -> paymentOrderRepository.findByOrderCodeForUpdate(orderCode)
+                .filter(order -> isPendingStatus(order.getStatus()))
+                .ifPresent(this::syncOrderStatusFromProvider));
     }
 
     private PriceBreakdown calculateBreakdown(PayableBundle bundle, String couponCode, boolean lockCoupon) {
@@ -541,7 +572,9 @@ public class PaymentServiceImpl implements PaymentService {
         if (order.getDiscountCode() == null || order.isCouponReservationReleased()) {
             return;
         }
-        consumeCouponReservation(order.getDiscountCode());
+        DiscountCode discountCode = lockDiscountCode(order.getDiscountCode());
+        consumeCouponReservation(discountCode);
+        order.setDiscountCode(discountCode);
         order.setCouponReservationReleased(true);
     }
 
@@ -557,9 +590,18 @@ public class PaymentServiceImpl implements PaymentService {
         if (order.getDiscountCode() == null || order.isCouponReservationReleased()) {
             return;
         }
-        DiscountCode discountCode = order.getDiscountCode();
+        DiscountCode discountCode = lockDiscountCode(order.getDiscountCode());
         discountCode.setReservedCount(Math.max(0, safeCount(discountCode.getReservedCount()) - 1));
+        order.setDiscountCode(discountCode);
         order.setCouponReservationReleased(true);
+    }
+
+    private DiscountCode lockDiscountCode(DiscountCode discountCode) {
+        if (discountCode == null || discountCode.getId() == null) {
+            throw new IllegalStateException("Không tìm thấy mã giảm giá của đơn thanh toán.");
+        }
+        return discountCodeRepository.findByIdForUpdate(discountCode.getId())
+                .orElseThrow(() -> new IllegalStateException("Mã giảm giá của đơn thanh toán không còn tồn tại."));
     }
 
     private PayableBundle resolvePayableBundle(
@@ -617,6 +659,22 @@ public class PaymentServiceImpl implements PaymentService {
                 .toList();
         if (payableCourses.isEmpty()) {
             throw new RuntimeException("Lộ trình không còn khóa học trả phí. Vui lòng đăng ký các khóa học miễn phí trực tiếp.");
+        }
+        if (lockCheckoutPricing) {
+            List<Long> payableCourseIds = payableCourses.stream().map(OnlineCourse::getId).toList();
+            Map<Long, OnlineCourse> lockedCoursesById = onlineCourseRepository
+                    .findAllByIdForCheckout(payableCourseIds)
+                    .stream()
+                    .collect(Collectors.toMap(OnlineCourse::getId, course -> course));
+            payableCourses = payableCourseIds.stream()
+                    .map(lockedCoursesById::get)
+                    .filter(Objects::nonNull)
+                    .toList();
+            if (payableCourses.size() != payableCourseIds.size()
+                    || payableCourses.stream().anyMatch(course -> course.getStatus() != PackageStatus.PUBLISHED)) {
+                throw new RuntimeException("Có khóa học trong lộ trình hiện không còn khả dụng để thanh toán.");
+            }
+            ensureNoActiveOnlineCourseOrders(student, payableCourseIds);
         }
         return new PayableBundle(payableCourses, List.of(), path);
     }
@@ -732,9 +790,23 @@ public class PaymentServiceImpl implements PaymentService {
             courses.add(course);
         }
 
+        if (lockCheckoutPricing) {
+            ensureNoActiveOnlineCourseOrders(student, courseIds);
+        }
+
         return courses.stream()
                 .sorted(Comparator.comparing(OnlineCourse::getTitle, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+    }
+
+    private void ensureNoActiveOnlineCourseOrders(User student, List<Long> courseIds) {
+        if (paymentOrderItemRepository.countActiveOnlineCourseOrders(
+                student.getId(), courseIds, List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING)) > 0) {
+            throw new RuntimeException(
+                    "Bạn đang có đơn PayOS chưa hoàn tất cho một khóa học đã chọn. "
+                            + "Vui lòng hoàn tất hoặc chờ đơn hết hạn trước khi tạo đơn mới."
+            );
+        }
     }
 
     private void enrollPurchasedCourses(PaymentOrder order) {

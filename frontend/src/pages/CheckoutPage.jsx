@@ -147,7 +147,7 @@ const CheckoutPage = () => {
     const status = String(returnParams.get('status') || '').toUpperCase();
     const cancelled = isTruthyReturnValue(returnParams.get('cancel')) || status === 'CANCELLED';
 
-    if (cancelled) {
+    if (cancelled && !orderCode) {
       setPaymentReturn({
         checked: true,
         loading: false,
@@ -204,13 +204,15 @@ const CheckoutPage = () => {
         setPaymentReturn({
           checked: true,
           loading: false,
-          status: String(result?.status || (paid ? 'PAID' : 'PENDING')).toUpperCase(),
+          status: String(result?.status || (paid ? 'PAID' : (cancelled ? 'CANCELLED' : 'PENDING'))).toUpperCase(),
           paid,
           message: result?.message || (paid
             ? (isClassroomTuition
               ? 'Thanh toán thành công. Học phí lớp đã được ghi nhận.'
               : 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.')
-            : 'Đơn thanh toán đang chờ PayOS xác nhận. Vui lòng tải lại sau vài giây.'),
+            : (cancelled
+              ? 'Bạn đã hủy thanh toán. Giỏ hàng vẫn được giữ để bạn có thể thử lại.'
+              : 'Đơn thanh toán đang chờ PayOS xác nhận. Vui lòng tải lại sau vài giây.')),
           orderCode,
           classroomOfferingId: result?.classroomOfferingId || classroomTuitionReturn?.classroomId || null,
         });

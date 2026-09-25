@@ -4,7 +4,6 @@ import { Route } from 'lucide-react';
 import { getCurrentUser } from '../api/authApi';
 import courseApi from '../api/courseApi';
 import {
-  CategoryTabs,
   CourseCatalog,
   CourseHero,
   CurrentCourse,
@@ -33,10 +32,10 @@ const Courses = () => {
   const [allCourses, setAllCourses] = useState([]);
   const [learningPaths, setLearningPaths] = useState([]);
   const [coursePage, setCoursePage] = useState(EMPTY_PAGE);
+  const [popularCoursePool, setPopularCoursePool] = useState([]);
   const [catalogPage, setCatalogPage] = useState(1);
   const [categories, setCategories] = useState([]);
   const [myEnrollments, setMyEnrollments] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('');
   const [keyword, setKeyword] = useState('');
   const [filters, setFilters] = useState(defaultFilters);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -85,6 +84,24 @@ const Courses = () => {
 
     loadCurrentUser();
 
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadPopularCourses = async () => {
+      try {
+        const pageData = await courseApi.getOnlineCourses({ page: 0, size: 100 });
+        if (active) setPopularCoursePool((pageData.content || []).map(normalizeCourse));
+      } catch {
+        if (active) setPopularCoursePool([]);
+      }
+    };
+
+    loadPopularCourses();
     return () => {
       active = false;
     };
@@ -173,7 +190,7 @@ const Courses = () => {
     try {
       const params = pageParams(catalogPage, PAGE_SIZE);
 
-      const selectedCategory = activeCategory || filters.category;
+      const selectedCategory = filters.category;
       if (deferredKeyword) params.keyword = deferredKeyword;
       if (selectedCategory) params.category = selectedCategory;
       if (filters.currentBand) params.currentBand = Number(filters.currentBand);
@@ -202,7 +219,7 @@ const Courses = () => {
       setCoursesLoading(false);
       setInitialLoading(false);
     }
-  }, [activeCategory, catalogPage, deferredKeyword, filters.category, filters.currentBand, filters.promotion, filters.skill, filters.targetBand, filters.toeicTarget, loadMyEnrollments]);
+  }, [catalogPage, deferredKeyword, filters.category, filters.currentBand, filters.promotion, filters.skill, filters.targetBand, filters.toeicTarget, loadMyEnrollments]);
 
   useEffect(() => {
     loadCourses();
@@ -210,23 +227,23 @@ const Courses = () => {
 
   const visibleCourses = allCourses;
 
-  const featuredCourses = useMemo(() => {
-    const featured = visibleCourses.filter((course) => course.featured);
-    return (featured.length ? featured : visibleCourses).slice(0, 4);
-  }, [visibleCourses]);
+  const popularCourses = useMemo(() => {
+    const coursesWithRegistration = mergeCourseRegistrations(popularCoursePool, myEnrollments);
+    const featured = coursesWithRegistration.filter((course) => course.featured);
+    return (featured.length ? featured : coursesWithRegistration).slice(0, 4);
+  }, [myEnrollments, popularCoursePool]);
 
   const recommendedCourses = useMemo(() => (
     isAuthenticated
       ? backendRecommendations
-      : featuredCourses.slice(0, 3).map((course) => ({
+      : popularCourses.slice(0, 3).map((course) => ({
         ...course,
         recommendationReason: 'Khóa học nổi bật để bạn tham khảo trước khi cập nhật hồ sơ học tập.',
       }))
-  ), [backendRecommendations, featuredCourses, isAuthenticated]);
+  ), [backendRecommendations, isAuthenticated, popularCourses]);
 
   const handleClearFilters = () => {
     setKeyword('');
-    setActiveCategory('');
     setFilters(defaultFilters);
   };
 
@@ -237,11 +254,6 @@ const Courses = () => {
         ? { ...current, category: value, currentBand: '', targetBand: '', toeicTarget: '' }
         : { ...current, [name]: value }
     ));
-  };
-
-  const handleCategoryChange = (value) => {
-    setActiveCategory(value);
-    setFilters((current) => ({ ...current, category: '', currentBand: '', targetBand: '', toeicTarget: '' }));
   };
 
   return (
@@ -287,11 +299,8 @@ const Courses = () => {
           />
           </div>
           <div className='mt-6'></div>
-          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <LearningPathCatalog paths={learningPaths} />
-          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
-          <PopularCourses courses={featuredCourses} />
-          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
+          <PopularCourses courses={popularCourses} />
           <CourseCatalog
             courses={visibleCourses}
             keyword={keyword}
@@ -302,7 +311,7 @@ const Courses = () => {
             loading={coursesLoading}
             currentBand={user?.currentBand ?? null}
             categories={categories}
-            selectedCategory={activeCategory || filters.category}
+            selectedCategory={filters.category}
             serverPage={coursePage}
             onPageChange={setCatalogPage}
           />

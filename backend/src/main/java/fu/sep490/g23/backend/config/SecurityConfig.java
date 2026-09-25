@@ -72,6 +72,7 @@ public class SecurityConfig {
                         // same endpoint, so this specific path is opened to TEACHER before the general rule.
                         .requestMatchers("/api/content-manager/material-library/upload").hasAnyRole("TEACHER", "CONTENT_MANAGER", "MANAGER", "ADMIN")
                         .requestMatchers("/api/content-manager/**").hasAnyRole("CONTENT_MANAGER", "ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/student/online-courses/*/register").hasRole("LEARNER")
                         .requestMatchers("/api/student/**").hasAnyRole("LEARNER", "CONTENT_MANAGER", "MANAGER", "ADMIN")
                         .anyRequest().authenticated()
                 )

@@ -95,7 +95,7 @@ const CertificatePreview = ({ certificate, verificationUrl: verificationUrlProp 
             <p className="mb-2 text-lg italic text-[#6f6f6f]">Đã hoàn thành xuất sắc khóa học</p>
             <h2 className="text-3xl font-bold leading-tight text-[#2b2828]">{certificate.courseTitle}</h2>
             <p className="mt-4 text-sm leading-relaxed text-[#7f7f7f]">
-              Chứng nhận này xác nhận học viên đã hoàn thành đầy đủ các yêu cầu học tập, bài đánh giá bắt buộc và đạt chuẩn đầu ra cam kết của EnglishLab.
+              Chứng nhận này xác nhận học viên đã hoàn thành đầy đủ các yêu cầu học tập, bài đánh giá bắt buộc và đạt chuẩn đầu ra cam kết của khóa học.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[#7f7f7f]">
               Mục tiêu đầu ra: {certificate.targetOutcome || 'Đang cập nhật mục tiêu đầu ra.'}
@@ -108,24 +108,21 @@ const CertificatePreview = ({ certificate, verificationUrl: verificationUrlProp 
                 <div className="font-['Playfair_Display'] text-3xl italic text-[#730014]/80">EnglishLab</div>
               </div>
               <div className="border-t border-[#d4d4d4] pt-2">
-                <p className="font-bold text-[#2b2828]">EnglishLab</p>
-                <p className="text-xs uppercase tracking-[0.16em] text-[#7f7f7f]">EnglishLab Academy</p>
+                <p className="font-bold text-[#2b2828]">Đơn vị cấp chứng nhận</p>
+                <p className="mt-0.5 text-[9px] uppercase tracking-[0.16em] text-[#9b9b9b]">Xác nhận điện tử</p>
               </div>
             </div>
 
-            <div className="max-w-xs text-right">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b9b9b]">Xác minh trực tuyến:</p>
+            <div className="w-[410px] shrink-0 text-right">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b9b9b]">Xác minh trực tuyến tại:</p>
               <a
                 href={verificationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-bold text-[#730014] hover:underline break-all block"
+                className="block whitespace-nowrap text-[10px] font-bold text-[#730014] hover:underline"
               >
                 {typeof window !== 'undefined' ? `https://${window.location.host}/certificates/${certificate.verificationCode}` : `https://englishlab.io.vn/certificates/${certificate.verificationCode}`}
               </a>
-              <p className="mt-2 text-[9px] leading-tight text-[#9b9b9b]">
-                EnglishLab Academy · Mã tra cứu: <span className="font-mono font-bold text-slate-700">{certificate.verificationCode}</span>
-              </p>
             </div>
           </footer>
         </main>
