@@ -73,7 +73,7 @@ export const ReactionButton = ({ compact = false, counts = {}, myReaction, onRea
       {/* Bridge to keep hover open */}
       <div className="pointer-events-none absolute bottom-full left-0 z-10 h-3 w-full opacity-0 group-hover:pointer-events-auto group-focus-within:pointer-events-auto" />
       {/* Reaction picker bar */}
-      <div className={`pointer-events-none absolute bottom-full z-[70] flex translate-y-1 scale-95 items-center rounded-full border border-slate-200 bg-white py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100 ${compact ? 'left-0 gap-0.5 px-1' : 'right-0 gap-1 px-2'}`}>
+      <div className={`pointer-events-none absolute bottom-full left-0 z-[70] flex translate-y-1 scale-95 items-center rounded-full border border-slate-200 bg-white py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100 ${compact ? 'gap-0.5 px-1' : 'gap-1 px-2'}`}>
         {REACTIONS.map((reaction) => (
           <button
             className={`${compact ? 'h-8 w-8' : 'h-10 w-10'} flex items-center justify-center rounded-full transition hover:-translate-y-1 hover:scale-125 focus:-translate-y-1 focus:scale-125 focus:outline-none`}
