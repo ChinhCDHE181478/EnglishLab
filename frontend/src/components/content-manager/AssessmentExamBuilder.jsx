@@ -1127,8 +1127,7 @@ function SpeakingConfigEditor({ compact = false, config, onChange }) {
       {variants.map((variant, variantIndex) => (
         <section key={variant.key || variantIndex} className="rounded-3xl border border-[#dfbfbd] bg-white p-5">
           <div className="flex items-start justify-between gap-3">
-            <div className="grid flex-1 gap-3 md:grid-cols-2">
-              <Field label="Mã đề Speaking" value={variant.key || ''} onChange={(value) => updateVariant(variantIndex, { key: value })} />
+            <div className="flex-1">
               <Field label="Tên đề Speaking" value={variant.label || ''} onChange={(value) => updateVariant(variantIndex, { label: value })} />
             </div>
             <IconButton
