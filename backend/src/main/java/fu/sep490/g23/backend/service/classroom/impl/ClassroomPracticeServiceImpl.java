@@ -3,7 +3,6 @@ import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptHistoryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.course.CourseUnitContentRefRepository;
-import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,11 +14,14 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.entity.course.enums.CourseUnitContentType;
 import fu.sep490.g23.backend.entity.course.CourseUnitContentRef;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomPracticeService;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
+import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +41,6 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     private final ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     private final ClassroomAccessHelper accessHelper;
     private final CourseUnitContentRefRepository contentRefRepository;
-    private final ExerciseBankItemRepository exerciseRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -108,7 +109,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
         long historyCount = attemptHistoryRepository
                 .countByClassSectionIdAndStudentIdAndExerciseId(offeringId, learner.getId(), exerciseId);
 
-        ScoreResult score = score(request.getAnswersJson(), ref.exercise().getAnswerKey());
+        ScoreResult score = score(request.getAnswersJson(), answerKey(ref.exercise()));
         int attemptNumber = Math.toIntExact(historyCount + 1);
         ClassroomPracticeAttemptHistory history = ClassroomPracticeAttemptHistory.builder()
                 .classSection(offering)
@@ -162,15 +163,13 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
             return List.of();
         }
         return contentRefRepository
-                .findByCourseUnitInstructorLedCourseIdAndContentTypeOrderByCourseUnitSequenceNumberAscSequenceNumberAscIdAsc(
-                        offering.getInstructorLedCourse().getId(), CourseUnitContentType.EXERCISE)
+                .findByCourseUnitInstructorLedCourseIdAndContentTypeInOrderByCourseUnitSequenceNumberAscSequenceNumberAscIdAsc(
+                        offering.getInstructorLedCourse().getId(),
+                        List.of(CourseUnitContentType.EXERCISE, CourseUnitContentType.ASSESSMENT))
                 .stream()
                 .filter(ref -> ref.getContentBankItem() != null)
-                .map(ref -> new PracticeRef(
-                        ref,
-                        exerciseRepository.findById(ref.getContentBankItem().getId()).orElse(null)
-                ))
-                .filter(ref -> ref.exercise() != null && "PUBLISHED".equalsIgnoreCase(ref.exercise().getStatus()))
+                .map(ref -> new PracticeRef(ref, ref.getContentBankItem()))
+                .filter(ref -> "PUBLISHED".equalsIgnoreCase(ref.exercise().getStatus()))
                 .toList();
     }
 
@@ -201,8 +200,8 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 .exerciseId(ref.exercise().getId())
                 .title(ref.exercise().getTitle())
                 .skill(ref.exercise().getSkill())
-                .exerciseType(ref.exercise().getExerciseType())
-                .instruction(ref.exercise().getPrompt())
+                .exerciseType(practiceType(ref.exercise()))
+                .instruction(practiceInstruction(ref.exercise()))
                 .completed(attempt != null)
                 .responseText(attempt == null ? null : attempt.getResponseText())
                 .completedAt(attempt == null ? null : attempt.getCompletedAt())
@@ -226,8 +225,30 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 .durationSeconds(attempt.getDurationSeconds())
                 .startedAt(attempt.getStartedAt())
                 .completedAt(attempt.getCompletedAt())
-                .explanation(attempt.getExercise().getExplanation())
+                .explanation(payloadValue(attempt.getExercise(), "explanation"))
                 .build();
+    }
+
+    private String practiceType(ContentBankItem item) {
+        return payloadValue(item, item.getBankType() == ContentBankType.ASSESSMENT ? "type" : "exerciseType");
+    }
+
+    private String practiceInstruction(ContentBankItem item) {
+        if (item.getBankType() == ContentBankType.ASSESSMENT) {
+            String uiConfig = payloadValue(item, "uiConfigJson");
+            return isBlank(uiConfig) ? payloadValue(item, "instructions") : uiConfig;
+        }
+        return payloadValue(item, "prompt");
+    }
+
+    private String answerKey(ContentBankItem item) {
+        return payloadValue(item, item.getBankType() == ContentBankType.ASSESSMENT
+                ? "objectiveAnswerKey"
+                : "answerKey");
+    }
+
+    private String payloadValue(ContentBankItem item, String key) {
+        return ContentBankPayloadSupport.getString(item.getContentData(), key);
     }
 
     private Map<Long, ClassroomPracticeAttemptHistory> latestAttempts(Long offeringId, Long learnerId) {
@@ -290,7 +311,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
 
     private record PracticeRef(
             CourseUnitContentRef link,
-            fu.sep490.g23.backend.entity.assessment.ExerciseBankItem exercise
+            ContentBankItem exercise
     ) {
     }
 }

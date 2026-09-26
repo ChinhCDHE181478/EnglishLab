@@ -898,6 +898,7 @@ function TeacherCurriculumPanel({ curriculum }) {
 function CurriculumUnitCard({ expanded, onToggle, unit }) {
   const totalResources = (unit.materials?.length ?? 0)
     + (unit.exercises?.length ?? 0)
+    + (unit.assessments?.length ?? 0)
     + (unit.flashcards?.length ?? 0);
 
   return (
@@ -934,7 +935,7 @@ function CurriculumUnitCard({ expanded, onToggle, unit }) {
           ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             <CurriculumRefList title="Học liệu" refs={unit.materials} />
-            <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
+            <CurriculumRefList title="Luyện tập trong giáo trình" refs={[...(unit.exercises || []), ...(unit.assessments || [])]} />
             <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
           </div>
         </div>

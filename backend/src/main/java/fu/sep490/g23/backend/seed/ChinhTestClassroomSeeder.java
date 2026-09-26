@@ -137,6 +137,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final CourseUnitContentRefRepository courseUnitContentRefRepository;
     private final CenterMaterialLibraryItemRepository centerMaterialRepository;
     private final ExerciseBankItemRepository exerciseRepository;
+    private final ContentBankItemRepository contentBankItemRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
     private final InstructorLedCourseManagementService instructorLedCourseManagementService;
@@ -590,7 +591,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
                         .classSection(offering)
                         .student(learner)
-                        .exercise(ex1)
+                        .exercise(contentBankItemRepository.findById(ex1.getId()).orElseThrow())
                         .attemptNumber(1)
                         .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
                         .answersJson("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
@@ -612,7 +613,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
                         .classSection(offering)
                         .student(learner)
-                        .exercise(ex2)
+                        .exercise(contentBankItemRepository.findById(ex2.getId()).orElseThrow())
                         .attemptNumber(1)
                         .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"A\"}")
                         .answersJson("{\"1\":\"B\",\"2\":\"A\",\"3\":\"A\"}")

@@ -16,7 +16,6 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
-  GraduationCap,
   HelpCircle,
   Info,
   Layers,
@@ -111,16 +110,17 @@ const emptyInstructorLedCourseForm = {
 
 const typeOptions = [
   { label: 'Học liệu trung tâm', value: 'MATERIAL', description: 'Thêm tài liệu từ kho học liệu trung tâm.' },
-  { label: 'Bài tập & Đề luyện tập', value: 'ASSESSMENT', description: 'Thêm bài tập / đề luyện tập từ 4 mục Luyện nghe, Luyện đọc, Luyện viết, Luyện nói.' },
+  { label: 'Luyện tập', value: 'ASSESSMENT', description: 'Thêm nội dung từ Luyện nghe, Luyện đọc, Luyện viết hoặc Luyện nói.' },
   { label: 'Bộ Flashcard', value: 'FLASHCARD', description: 'Thêm bộ flashcard từ kho từ vựng.' },
 ];
 
 const refGroups = [
-  { key: 'materials', title: 'Học liệu', icon: BookMarked },
-  { key: 'exercises', title: 'Bài tập', icon: Layers },
-  { key: 'assessments', title: 'Đề đánh giá', icon: GraduationCap },
-  { key: 'flashcards', title: 'Flashcard', icon: Sparkles },
+  { key: 'materials', keys: ['materials'], title: 'Học liệu', icon: BookMarked },
+  { key: 'practice', keys: ['exercises', 'assessments'], title: 'Luyện tập', icon: Layers },
+  { key: 'flashcards', keys: ['flashcards'], title: 'Flashcard', icon: Sparkles },
 ];
+
+const getGroupReferences = (unit, group) => group.keys.flatMap((key) => unit?.[key] || []);
 
 const asList = (value) => (Array.isArray(value) ? value : value?.content || value?.items || []);
 const countStructuredLessons = (items = []) => items.reduce(
@@ -157,9 +157,6 @@ const describeStructuredResource = (config) => {
 
 // Các kỹ năng mà khóa học có giảng viên được phép tham chiếu tới kho đề luyện tập
 // (đồng bộ với 4 tab Luyện nghe / Luyện đọc / Luyện viết / Luyện nói).
-const REUSABLE_PRACTICE_SKILLS = new Set(['LISTENING', 'READING', 'WRITING', 'SPEAKING']);
-const REUSABLE_PRACTICE_TYPES = new Set(['LESSON_PRACTICE', 'WRITING_TASK', 'SPEAKING_TASK']);
-
 const SKILL_DISPLAY_LABELS = {
   LISTENING: 'Luyện nghe',
   READING: 'Luyện đọc',
@@ -176,15 +173,6 @@ const TYPE_DISPLAY_LABELS = {
 };
 
 const normalizeAssessmentKey = (value) => String(value || '').toUpperCase().trim();
-
-const isReusablePracticeAssessment = (item = {}) => {
-  const skill = normalizeAssessmentKey(item.skill);
-  const type = normalizeAssessmentKey(item.type);
-  if (REUSABLE_PRACTICE_SKILLS.has(skill) && REUSABLE_PRACTICE_TYPES.has(type)) return true;
-  // MOCK_TEST liên quan tới ngân hàng đề thi thử — cho phép tham chiếu nếu thuộc 4 kỹ năng.
-  if (REUSABLE_PRACTICE_SKILLS.has(skill) && type === 'MOCK_TEST') return true;
-  return false;
-};
 
 const formatAssessmentSkill = (skill) => SKILL_DISPLAY_LABELS[normalizeAssessmentKey(skill)] || String(skill || '');
 
@@ -328,9 +316,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
       setBanks({
         materials: asList(materials).filter(isPublished),
         exercises: [],
-        assessments: asList(assessments)
-          .filter(isPublished)
-          .filter(isReusablePracticeAssessment),
+        assessments: asList(assessments).filter(isPublished),
         flashcards: asList(flashcards).filter(isPublished),
       });
     } catch (err) {
@@ -944,12 +930,12 @@ export default function ContentManagerInstructorLedCoursesPage() {
       : 'Không còn tài nguyên khả dụng (đã gắn hết vào Unit)';
     const descriptionFor = (item) => {
       if (attachForm.type === 'ASSESSMENT') {
+        const skill = normalizeAssessmentKey(item.skill);
+        const type = normalizeAssessmentKey(item.type);
         const skillLabel = formatAssessmentSkill(item.skill);
         const typeLabel = formatAssessmentType(item.type);
         const exam = item.examCategory ? String(item.examCategory) : '';
-        // Skill/type được đưa vào cả label lẫn description để BrandedSelect có thể
-        // tìm kiếm theo TÊN hoặc KỸ NĂNG hoặc LOẠI BÀI (chỉ cần khớp 1 trong 3).
-        return [skillLabel, typeLabel, exam].filter(Boolean).join(' · ');
+        return [skillLabel, skill, typeLabel, type, exam].filter(Boolean).join(' · ');
       }
       if (attachForm.type === 'MATERIAL') {
         return item.materialType || item.category || '';
@@ -1265,7 +1251,7 @@ export default function ContentManagerInstructorLedCoursesPage() {
                 <>
                   <div className="space-y-5 p-5 sm:p-6">
                     {pageItems.map((unit) => {
-                      const resourceCount = refGroups.reduce((total, group) => total + (unit[group.key]?.length || 0), 0);
+                      const resourceCount = refGroups.reduce((total, group) => total + getGroupReferences(unit, group).length, 0);
                       const expanded = expandedUnitIds.has(unit.id);
                       const lessons = [...(unit.lessons || [])].sort((left, right) => (
                         Number(left.sessionNumber || 0) - Number(right.sessionNumber || 0)
@@ -1894,15 +1880,15 @@ function InstructorLedCourseListPanel({
 }
 
 function UnitResourceGroups({ onDetach, unit, working }) {
-  const total = refGroups.reduce((sum, group) => sum + (unit?.[group.key]?.length || 0), 0);
+  const total = refGroups.reduce((sum, group) => sum + getGroupReferences(unit, group).length, 0);
   if (!total) {
     return <p className="mt-2 text-xs font-medium text-slate-400">Chưa có tài nguyên nào được gắn vào Unit này.</p>;
   }
 
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {refGroups.map((group) => {
-        const references = unit?.[group.key] || [];
+        const references = getGroupReferences(unit, group);
         if (!references.length) return null;
         const Icon = group.icon;
         return (

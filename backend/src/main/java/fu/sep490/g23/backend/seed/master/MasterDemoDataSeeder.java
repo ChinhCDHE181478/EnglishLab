@@ -2380,7 +2380,7 @@ public class MasterDemoDataSeeder implements CommandLineRunner {
             ClassroomPracticeAttemptHistory attempt = ClassroomPracticeAttemptHistory.builder()
                     .classSection(section)
                     .student(student)
-                    .exercise(exercise)
+                    .exercise(contentBankItemRepository.findById(exercise.getId()).orElseThrow())
                     .attemptNumber(attemptNumber)
                     .responseText(markerText != null ? markerText : node.path("responseText").asText(null))
                     .answersJson(node.path("answersJson").asText(null))

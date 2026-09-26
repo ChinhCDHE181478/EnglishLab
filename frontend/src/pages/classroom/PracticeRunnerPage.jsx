@@ -2,10 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Clock3, History, Play, RotateCcw } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
+import courseApi from '../../api/courseApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import ListeningExamMode from '../../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../../components/course-assessment/ReadingExamMode';
+import SpeakingExamMode from '../../components/course-assessment/SpeakingExamMode';
 import ToeicExamMode from '../../components/course-assessment/ToeicExamMode';
+import WritingExamMode from '../../components/course-assessment/WritingExamMode';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { requestExamFullscreen } from '../../utils/examFullscreen';
@@ -14,7 +17,10 @@ import { isToeicExamConfig } from '../../utils/mockTestExam';
 const parseExamConfig = (instruction) => {
   try {
     const parsed = JSON.parse(instruction || '');
-    return Array.isArray(parsed?.parts) && parsed.parts.length ? parsed : null;
+    const hasStructuredContent = (Array.isArray(parsed?.parts) && parsed.parts.length)
+      || (Array.isArray(parsed?.tasks) && parsed.tasks.length)
+      || (Array.isArray(parsed?.variants) && parsed.variants.length);
+    return parsed && typeof parsed === 'object' && hasStructuredContent ? parsed : null;
   } catch {
     return null;
   }
@@ -32,11 +38,16 @@ const formatDuration = (seconds) => {
   return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
-const countQuestions = (config) => (config?.parts || []).reduce((total, part) => (
-  total + (part.questionGroups || []).reduce((groupTotal, group) => (
-    groupTotal + (group.questionNumbers?.length || group.questions?.length || 0)
-  ), 0)
-), 0);
+const countQuestions = (config) => {
+  if (Array.isArray(config?.tasks)) return config.tasks.length;
+  const parts = config?.parts || config?.variants?.[0]?.parts || [];
+  return parts.reduce((total, part) => {
+    if (Array.isArray(part.prompts)) return total + part.prompts.length;
+    return total + (part.questionGroups || []).reduce((groupTotal, group) => (
+      groupTotal + (group.questionNumbers?.length || group.questions?.length || 0)
+    ), 0);
+  }, 0);
+};
 
 const toAnswerMap = (objectiveAnswersJson) => {
   try {
@@ -85,8 +96,20 @@ export default function PracticeRunnerPage() {
 
   const examConfig = useMemo(() => parseExamConfig(practice?.instruction), [practice?.instruction]);
   const questionCount = countQuestions(examConfig);
-  const isListening = String(practice?.skill || '').toUpperCase() === 'LISTENING'
+  const normalizedSkill = String(practice?.skill || '').toUpperCase();
+  const isListening = normalizedSkill === 'LISTENING'
     || examConfig?.type === 'ielts_listening_exam';
+  const isWriting = normalizedSkill === 'WRITING' || examConfig?.type === 'ielts_writing_exam';
+  const isSpeaking = normalizedSkill === 'SPEAKING' || examConfig?.type === 'speaking_mock_test';
+  const speakingConfig = useMemo(() => {
+    if (!isSpeaking || !examConfig) return null;
+    const variant = examConfig.variants?.[0];
+    return {
+      ...examConfig,
+      submissionLabel: variant?.label || examConfig.title || practice?.title,
+      parts: variant?.parts || examConfig.parts || [],
+    };
+  }, [examConfig, isSpeaking, practice?.title]);
 
   const goBack = () => {
     navigate(`/my-classrooms/${classroomId}`, { replace: true });
@@ -109,12 +132,18 @@ export default function PracticeRunnerPage() {
     setError('');
     try {
       const objectivePayload = JSON.parse(examPayload.objectiveAnswersJson || '{}');
-      const durationSeconds = Math.max(
-        0,
-        Number(examConfig?.durationMinutes || 10) * 60 - Number(objectivePayload.remainingSeconds || 0),
-      );
+      const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAtRef.current.getTime()) / 1000));
+      const durationSeconds = objectivePayload.remainingSeconds == null
+        ? elapsedSeconds
+        : Math.max(0, Number(examConfig?.durationMinutes || 10) * 60 - Number(objectivePayload.remainingSeconds));
+      const subjectiveMetadata = examPayload.submittedAudioUrl
+        ? JSON.stringify({ submittedAudioUrl: examPayload.submittedAudioUrl })
+        : examPayload.objectiveAnswersJson;
       const result = await classroomApi.submitClassroomPracticeAttempt(classroomId, exerciseId, {
-        answersJson: JSON.stringify(toAnswerMap(examPayload.objectiveAnswersJson)),
+        responseText: examPayload.submittedText || null,
+        answersJson: isWriting || isSpeaking
+          ? (subjectiveMetadata || null)
+          : JSON.stringify(toAnswerMap(examPayload.objectiveAnswersJson)),
         durationSeconds,
         startedAt: startedAtRef.current?.toISOString() || new Date().toISOString(),
       });
@@ -142,6 +171,7 @@ export default function PracticeRunnerPage() {
 
   const useToeicUi = isToeicExamConfig(examConfig);
   const ExamMode = useToeicUi ? ToeicExamMode : (isListening ? ListeningExamMode : ReadingExamMode);
+  const skillLabel = isSpeaking ? 'Speaking' : isWriting ? 'Writing' : isListening ? 'Listening' : 'Reading';
   const assessment = {
     id: practice.exerciseId,
     title: practice.title,
@@ -170,7 +200,7 @@ export default function PracticeRunnerPage() {
                 <div className="mt-6 flex flex-wrap gap-3 text-xs font-extrabold text-[#584140]">
                   <span className="rounded-full border border-[#dfbfbd] bg-white px-4 py-2">{questionCount} câu hỏi</span>
                   <span className="rounded-full border border-[#dfbfbd] bg-white px-4 py-2">{examConfig.durationMinutes || 10} phút</span>
-                  <span className="rounded-full border border-[#dfbfbd] bg-white px-4 py-2">{isListening ? 'Listening' : 'Reading'} test mode</span>
+                  <span className="rounded-full border border-[#dfbfbd] bg-white px-4 py-2">{skillLabel} test mode</span>
                 </div>
                 <button className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-[#730014] px-7 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(115,0,20,0.22)] transition hover:-translate-y-0.5" onClick={openExam} type="button"><Play className="h-5 w-5 fill-current" />{attempts.length ? 'Làm một lượt mới' : 'Vào chế độ làm bài'}</button>
               </div>
@@ -187,7 +217,9 @@ export default function PracticeRunnerPage() {
           {latestResult ? (
             <section className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-6">
               <div className="flex items-center gap-3"><CheckCircle2 className="h-6 w-6 text-emerald-700" /><h2 className="text-lg font-black text-emerald-900">Hoàn thành lượt #{latestResult.attemptNumber}</h2></div>
-              <p className="mt-3 text-sm font-bold text-emerald-800">Kết quả: {latestResult.correctAnswers}/{latestResult.totalQuestions} câu đúng · {Math.round(latestResult.scorePercent || 0)}%</p>
+              {latestResult.scorePercent != null ? (
+                <p className="mt-3 text-sm font-bold text-emerald-800">Kết quả: {latestResult.correctAnswers}/{latestResult.totalQuestions} câu đúng · {Math.round(latestResult.scorePercent)}%</p>
+              ) : <p className="mt-3 text-sm font-bold text-emerald-800">Bài làm đã được ghi nhận.</p>}
               {latestResult.explanation ? <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-emerald-900">{latestResult.explanation}</p> : null}
               <button className="mt-5 inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-5 py-3 text-sm font-extrabold text-emerald-800" onClick={openExam} type="button"><RotateCcw className="h-4 w-4" />Luyện lại</button>
             </section>
@@ -206,7 +238,26 @@ export default function PracticeRunnerPage() {
         </aside>
       </div>
 
-      {examOpen && examConfig ? (
+      {examOpen && examConfig && isWriting ? (
+        <WritingExamMode
+          assessment={assessment}
+          config={examConfig}
+          onClose={() => setExamOpen(false)}
+          onSubmit={submitExam}
+          submitLabel="Nộp lượt luyện tập"
+          submitting={submitting}
+        />
+      ) : null}
+      {examOpen && speakingConfig && isSpeaking ? (
+        <SpeakingExamMode
+          config={speakingConfig}
+          onClose={() => setExamOpen(false)}
+          onSubmit={submitExam}
+          submitting={submitting}
+          uploadAudio={courseApi.uploadAssessmentAudio}
+        />
+      ) : null}
+      {examOpen && examConfig && !isWriting && !isSpeaking ? (
         <ExamMode
           assessment={assessment}
           config={examConfig}
