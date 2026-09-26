@@ -2632,10 +2632,10 @@ function LearnerCurriculumPanel({
 
                       {unit.lessons?.length > 0 && (
                         <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
-                          <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Các buổi học</span>
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Các bài học</span>
                           {unit.lessons.map((plan) => (
                             <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
-                              <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                              <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Bài {plan.sessionNumber}</p>
                               <p className="text-xs font-bold text-[#1a1c1c]">{plan.title}</p>
                             </div>
                           ))}
